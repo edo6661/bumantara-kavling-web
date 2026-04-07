@@ -1,4 +1,4 @@
-
+tolong ui ux nya perbaiki dan diperbagus, bertahap ya, pelan pelan saja.
 <file path="package.json">
 {
   "name": "bumantara-kavling",
@@ -37,55 +37,6 @@
     "vite": "^7.3.1"
   }
 }
-</file>
-
-<file path="src/components/layouts/RootLayout.tsx">
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '../Sidebar';
-import Navbar from '../Navbar';
-
-const RootLayout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  return (
-    <div className="flex h-screen w-full bg-theme-background overflow-hidden">
-      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <Outlet />
-        </main>
-      </div>
-    </div>
-  );
-};
-
-export default RootLayout;
-</file>
-
-<file path="src/components/Navbar.tsx">
-import { Menu } from 'lucide-react';
-
-interface NavbarProps {
-  onMenuClick: () => void;
-}
-
-const Navbar = ({ onMenuClick }: NavbarProps) => {
-  return (
-    <header className="h-16 flex items-center px-4 border-b border-gray-200 bg-white md:hidden shrink-0">
-      <button
-        onClick={onMenuClick}
-        className="p-2 -ml-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-md cursor-pointer"
-      >
-        <Menu size={24} />
-      </button>
-      <span className="font-heading font-bold text-lg text-gray-900">Bumantaraz</span>
-    </header>
-  );
-};
-
-export default Navbar;
 </file>
 
 <file path="src/components/shared/FileInput.tsx">
@@ -148,43 +99,6 @@ const Input = ({ label, error, ...props }: InputProps) => {
 };
 
 export default Input;
-</file>
-
-<file path="src/components/shared/Modal.tsx">
-import { type ReactNode } from 'react';
-import { X } from 'lucide-react';
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-}
-
-const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-radius-card w-full max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col shadow-xl">
-        <div className="flex justify-between items-center p-4 md:p-5 border-b border-gray-200">
-          <h3 className="text-lg md:text-xl font-heading font-semibold text-gray-900">{title}</h3>
-          <button
-            onClick={onClose}
-            className="p-1 text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-4 md:p-5 overflow-y-auto">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Modal;
 </file>
 
 <file path="src/components/shared/Select.tsx">
@@ -496,20 +410,6 @@ const Bank = () => {
 export default Bank;
 </file>
 
-<file path="src/pages/Management/Notaris.tsx">
-const Notaris = () => {
-  return (
-    <>
-      <h1>
-        Notarispage
-      </h1>
-    </>
-  );
-};
-
-export default Notaris;
-</file>
-
 <file path="src/pages/PageLoader.tsx">
 const PageLoader = () => (
 
@@ -607,178 +507,90 @@ export default defineConfig({
 });
 </file>
 
-<file path="src/components/Sidebar.tsx">
-import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Briefcase,
-  Users,
-  UserCircle,
-  FolderKanban,
-  ChevronDown,
-  ChevronUp,
-  X
-} from 'lucide-react';
+<file path="src/components/layouts/RootLayout.tsx">
+import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import Navbar from '../Navbar';
 
-const menuItems = [
-  {
-    title: 'Dashboard',
-    path: '/',
-    icon: <LayoutDashboard size={20} />,
-  },
-  {
-    title: 'Management',
-    icon: <Briefcase size={20} />,
-    submenus: [
-      { title: 'Penjualan', path: '/management/penjualan' },
-      { title: 'Kavling', path: '/management/kavling' },
-      { title: 'Notaris', path: '/management/notaris' },
-      { title: 'Bank', path: '/management/bank' },
-    ],
-  },
-  {
-    title: 'Customer',
-    icon: <Users size={20} />,
-    submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial' },
-      { title: 'SPR', path: '/customer/spr' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
-      { title: 'Kavling', path: '/customer/kavling' },
-    ],
-  },
-  {
-    title: 'Marketing',
-    icon: <UserCircle size={20} />,
-    submenus: [
-      { title: 'Agents', path: '/marketing/agents' },
-      { title: 'Fee Agent', path: '/marketing/fee-agent' },
-    ],
-  },
-  {
-    title: 'Proyek',
-    icon: <FolderKanban size={20} />,
-    submenus: [
-      { title: 'SPK', path: '/proyek/spk' },
-      { title: 'Progress', path: '/proyek/progress' },
-    ],
-  },
-];
-
-interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-}
-
-const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
-  const location = useLocation();
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    setIsOpen(false);
-  }, [location.pathname, setIsOpen]);
-
-  const toggleMenu = (title: string) => {
-    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-  };
-
-  const isActiveRoute = (path?: string, submenus?: { path: string }[]) => {
-    if (path && location.pathname === path) return true;
-    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
-    return false;
-  };
+const RootLayout = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+    <div className="flex h-screen w-full bg-theme-background overflow-hidden">
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
 
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-sidebar-border text-sidebar-text flex flex-col transition-transform duration-300 ease-in-out shrink-0 md:static md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+export default RootLayout;
+</file>
+
+<file path="src/components/Navbar.tsx">
+import { Menu } from 'lucide-react';
+
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+const Navbar = ({ onMenuClick }: NavbarProps) => {
+  return (
+    <header className="h-16 flex items-center px-4 border-b border-gray-200 bg-white md:hidden shrink-0">
+      <button
+        onClick={onMenuClick}
+        className="p-2 -ml-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-md cursor-pointer"
       >
-        <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border shrink-0">
-          <span className="font-heading font-bold text-xl">Bumantaraz</span>
+        <Menu size={24} />
+      </button>
+      <span className="font-heading font-bold text-lg text-gray-900">Bumantaraz</span>
+    </header>
+  );
+};
+
+export default Navbar;
+</file>
+
+<file path="src/components/shared/Modal.tsx">
+import { type ReactNode } from 'react';
+import { X } from 'lucide-react';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-radius-card w-full max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col shadow-xl">
+        <div className="flex justify-between items-center p-4 md:p-5 border-b border-gray-200">
+          <h3 className="text-lg md:text-xl font-heading font-semibold text-gray-900">{title}</h3>
           <button
-            onClick={() => setIsOpen(false)}
-            className="md:hidden p-1 text-gray-500 hover:bg-gray-100 rounded-md cursor-pointer"
+            onClick={onClose}
+            className="p-1 text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
         </div>
-
-        <div className="flex-1 overflow-y-auto py-4">
-          <nav className="space-y-1 px-3">
-            {menuItems.map((item) => {
-              const isActive = isActiveRoute(item.path, item.submenus);
-              const isOpenMenu = openMenus[item.title] || isActive;
-
-              return (
-                <div key={item.title}>
-                  {item.submenus ? (
-                    <div>
-                      <button
-                        onClick={() => toggleMenu(item.title)}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-radius-btn transition-colors duration-200 cursor-pointer ${isActive
-                          ? 'bg-sidebar-hover-bg text-sidebar-text font-medium'
-                          : 'hover:bg-sidebar-hover-bg text-sidebar-text/80 hover:text-sidebar-text'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {item.icon}
-                          <span>{item.title}</span>
-                        </div>
-                        {isOpenMenu ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
-
-                      {isOpenMenu && (
-                        <div className="mt-1 mb-2 space-y-1 px-3 pb-2 border-l border-sidebar-border ml-5">
-                          {item.submenus.map((sub) => (
-                            <NavLink
-                              key={sub.title}
-                              to={sub.path}
-                              className={({ isActive }) =>
-                                `block px-3 py-2 rounded-radius-btn text-sm transition-colors duration-200 ${isActive
-                                  ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
-                                  : 'text-sidebar-text/70 hover:bg-sidebar-submenu-bg hover:text-sidebar-text'
-                                }`
-                              }
-                            >
-                              {sub.title}
-                            </NavLink>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <NavLink
-                      to={item.path!}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-radius-btn transition-colors duration-200 ${isActive
-                          ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
-                          : 'text-sidebar-text/80 hover:bg-sidebar-hover-bg hover:text-sidebar-text'
-                        }`
-                      }
-                    >
-                      {item.icon}
-                      <span>{item.title}</span>
-                    </NavLink>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
+        <div className="p-4 md:p-5 overflow-y-auto">
+          {children}
         </div>
-      </aside>
-    </>
+      </div>
+    </div>
   );
 };
 
-export default Sidebar;
+export default Modal;
 </file>
 
 <file path="src/main.tsx">
@@ -1850,104 +1662,55 @@ const SPR = () => {
 export default SPR;
 </file>
 
-<file path="src/pages/Management/Penjualan.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
+<file path="src/pages/Management/Notaris.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatDate } from "../../utils/formatters";
+import { formatRupiah } from "../../utils/formatters";
 
-interface PenjualanData {
+interface NotarisData {
   id: string;
-  tanggal: string;
   nama: string;
-  alamat: string;
-  noTelepon: string;
-  noIdentitas: string;
-  perusahaan: string;
-  alamatKoresponden: string;
-  perumahan: string;
-  blok: string;
-  tipe: string;
-  nomorUnit: string;
-  hargaJual: number;
-  diskonPenjualan: number;
-  paketPromosi: string;
-  bank: string;
-  caraPembayaran: string;
-  nilaiPengajuanKpr: number;
-  fileKtp: string;
-  fileKk: string;
-  fileNpwp: string;
-  bookingFee: number;
-  rekeningTujuan: string;
-  status: string;
+  biayaAjb: number;
 }
 
-const initialFormState: PenjualanData = {
+const initialFormState: NotarisData = {
   id: '',
-  tanggal: '',
   nama: '',
-  alamat: '',
-  noTelepon: '',
-  noIdentitas: '',
-  perusahaan: '',
-  alamatKoresponden: '',
-  perumahan: '',
-  blok: '',
-  tipe: '',
-  nomorUnit: '',
-  hargaJual: 0,
-  diskonPenjualan: 0,
-  paketPromosi: '',
-  bank: '',
-  caraPembayaran: '',
-  nilaiPengajuanKpr: 0,
-  fileKtp: '',
-  fileKk: '',
-  fileNpwp: '',
-  bookingFee: 5000000, // Fixed 5 Juta
-  rekeningTujuan: '',
-  status: 'Booked',
+  biayaAjb: 0,
 };
 
-const Penjualan = () => {
-  const [data, setData] = useState<PenjualanData[]>([]);
+const Notaris = () => {
+  const [data, setData] = useState<NotarisData[]>([
+    {
+      id: '1',
+      nama: 'Notaris PPAT Budi Hartono, S.H., M.Kn.',
+      biayaAjb: 3500000
+    }
+  ]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
+  const [formData, setFormData] = useState<NotarisData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof NotarisData, string>>>({});
+
   const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
-    { header: 'ID Transaksi', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    { header: 'Nama Customer', accessor: 'nama' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
+    { header: 'Nama Notaris', accessor: 'nama' },
     {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-          {val}
-        </span>
-      )
+      header: 'Biaya Pembuatan AJB',
+      accessor: 'biayaAjb',
+      render: (val: number) => formatRupiah(val)
     },
   ];
 
-  const openModal = (item?: PenjualanData) => {
+  const openModal = (item?: NotarisData) => {
     if (item) {
       setFormData(item);
       setIsEditing(true);
     } else {
-      setFormData({
-        ...initialFormState,
-        tanggal: new Date().toISOString().split('T')[0]
-      });
+      setFormData(initialFormState);
       setIsEditing(false);
     }
     setErrors({});
@@ -1959,41 +1722,21 @@ const Penjualan = () => {
     setFormData(initialFormState);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
 
-    if (name === 'caraPembayaran' && value !== 'KPR') {
-      setFormData(prev => ({ ...prev, [name]: value, bank: '', nilaiPengajuanKpr: 0 }));
-    } else {
-      const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
 
-    if (errors[name as keyof PenjualanData]) {
+    if (errors[name as keyof NotarisData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-
   const validateForm = () => {
-    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
-
-    if (formData.caraPembayaran === 'KPR') {
-      if (!formData.bank.trim()) newErrors.bank = 'Bank KPR wajib diisi';
-      if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
-    }
+    const newErrors: Partial<Record<keyof NotarisData, string>> = {};
+    if (!formData.nama.trim()) newErrors.nama = 'Nama Notaris wajib diisi';
+    if (formData.biayaAjb < 0) newErrors.biayaAjb = 'Biaya AJB tidak boleh minus';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -2006,14 +1749,14 @@ const Penjualan = () => {
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
-      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
+      const newData = { ...formData, id: Date.now().toString() };
+      setData((prev) => [...prev, newData]);
     }
     closeModal();
   };
 
-  const handleDelete = (item: PenjualanData) => {
-    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
+  const handleDelete = (item: NotarisData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus data Notaris ${item.nama}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
@@ -2021,7 +1764,7 @@ const Penjualan = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title="Data Penjualan"
+        title="Data Notaris"
         columns={columns}
         data={data}
         onAdd={() => openModal()}
@@ -2029,137 +1772,45 @@ const Penjualan = () => {
         onDelete={handleDelete}
       />
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          {/* Data Pembeli */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
-              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
-              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
-              <div className="md:col-span-2">
-                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
-              </div>
-            </div>
-          </div>
-
-          {/* Data Kavling */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} placeholder="Contoh: Free AC / Cashback" />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} />
-            </div>
-          </div>
-
-          {/* Skema Pembayaran */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Cara Pembayaran"
-                name="caraPembayaran"
-                value={formData.caraPembayaran}
-                onChange={handleChange}
-                options={[
-                  { value: 'CASH KERAS', label: 'CASH KERAS' },
-                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
-                  { value: 'KPR', label: 'KPR' }
-                ]}
-                error={errors.caraPembayaran}
-              />
-              <Input
-                label="Diskon Penjualan (Rp)"
-                type="number"
-                name="diskonPenjualan"
-                value={formData.diskonPenjualan || ''}
-                onChange={handleChange}
-              />
-            </div>
-
-            {formData.caraPembayaran === 'KPR' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
-                <Input
-                  label="Bank KPR"
-                  name="bank"
-                  value={formData.bank}
-                  onChange={handleChange}
-                  placeholder="Contoh: BTN, BSI"
-                  error={errors.bank}
-                />
-                <Input
-                  label="Nilai Pengajuan KPR (Rp)"
-                  type="number"
-                  name="nilaiPengajuanKpr"
-                  value={formData.nilaiPengajuanKpr || ''}
-                  onChange={handleChange}
-                  error={errors.nilaiPengajuanKpr}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Dokumen Opsional */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
-                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
-                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
-                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Pembayaran Booking */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
-            <div className="grid grid-cols-1 gap-4">
-              <Input
-                label="Booking Fee (Fixed Rp)"
-                type="number"
-                name="bookingFee"
-                value={formData.bookingFee}
-                readOnly
-                className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
-              />
-              <Select
-                label="Transfer ke Rekening"
-                name="rekeningTujuan"
-                value={formData.rekeningTujuan}
-                onChange={handleChange}
-                options={[
-                  { value: 'BSI-Gajah', label: 'Bank BSI No Rekening : 7326575644 a/n PT. Bintang Safana Gajah' },
-                  { value: 'BSI-Mahligai', label: 'Bank BSI No Rekening : 7326573692 a/n PT. Bintang Safana Mahligai' }
-                ]}
-                error={errors.rekeningTujuan}
-              />
-            </div>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Data Notaris" : "Tambah Data Notaris"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <Input
+              label="Nama Notaris"
+              name="nama"
+              value={formData.nama}
+              onChange={handleChange}
+              error={errors.nama}
+              placeholder="Contoh: Notaris Budi Hartono, S.H."
+            />
+            <Input
+              label="Biaya Notaris Pembuatan AJB (Rp)"
+              name="biayaAjb"
+              type="number"
+              value={formData.biayaAjb === 0 ? '' : formData.biayaAjb}
+              onChange={handleChange}
+              error={errors.biayaAjb as string}
+              placeholder="Contoh: 3500000"
+            />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer transition-colors"
+            >
               Batal
             </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
-              Simpan Penjualan
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer transition-colors"
+            >
+              Simpan Data
             </button>
           </div>
         </form>
@@ -2168,7 +1819,7 @@ const Penjualan = () => {
   );
 };
 
-export default Penjualan;
+export default Notaris;
 </file>
 
 <file path="src/pages/Marketing/Agents.tsx">
@@ -2648,6 +2299,572 @@ const SPK = () => {
 export default SPK;
 </file>
 
+<file path="src/components/Sidebar.tsx">
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  UserCircle,
+  FolderKanban,
+  ChevronDown,
+  ChevronUp,
+  X
+} from 'lucide-react';
+
+const menuItems = [
+  {
+    title: 'Dashboard',
+    path: '/',
+    icon: <LayoutDashboard size={20} />,
+  },
+  {
+    title: 'Management',
+    icon: <Briefcase size={20} />,
+    submenus: [
+      { title: 'Penjualan', path: '/management/penjualan' },
+      { title: 'Kavling', path: '/management/kavling' },
+      { title: 'Notaris', path: '/management/notaris' },
+      { title: 'Bank', path: '/management/bank' },
+    ],
+  },
+  {
+    title: 'Customer',
+    icon: <Users size={20} />,
+    submenus: [
+      { title: 'Data Sosial', path: '/customer/data-sosial' },
+      { title: 'SPR', path: '/customer/spr' },
+      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
+      { title: 'Kavling', path: '/customer/kavling' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    icon: <UserCircle size={20} />,
+    submenus: [
+      { title: 'Agents', path: '/marketing/agents' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent' },
+    ],
+  },
+  {
+    title: 'Proyek',
+    icon: <FolderKanban size={20} />,
+    submenus: [
+      { title: 'SPK', path: '/proyek/spk' },
+      { title: 'Progress', path: '/proyek/progress' },
+    ],
+  },
+];
+
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+}
+
+const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
+  const location = useLocation();
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname, setIsOpen]);
+
+  const toggleMenu = (title: string) => {
+    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const isActiveRoute = (path?: string, submenus?: { path: string }[]) => {
+    if (path && location.pathname === path) return true;
+    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
+    return false;
+  };
+
+  return (
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-sidebar-border text-sidebar-text flex flex-col transition-transform duration-300 ease-in-out shrink-0 md:static md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+      >
+        <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border shrink-0">
+          <span className="font-heading font-bold text-xl">Bumantaraz</span>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden p-1 text-gray-500 hover:bg-gray-100 rounded-md cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-4">
+          <nav className="space-y-1 px-3">
+            {menuItems.map((item) => {
+              const isActive = isActiveRoute(item.path, item.submenus);
+              const isOpenMenu = openMenus[item.title] || isActive;
+
+              return (
+                <div key={item.title}>
+                  {item.submenus ? (
+                    <div>
+                      <button
+                        onClick={() => toggleMenu(item.title)}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-radius-btn transition-colors duration-200 cursor-pointer ${isActive
+                          ? 'bg-sidebar-hover-bg text-sidebar-text font-medium'
+                          : 'hover:bg-sidebar-hover-bg text-sidebar-text/80 hover:text-sidebar-text'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {item.icon}
+                          <span>{item.title}</span>
+                        </div>
+                        {isOpenMenu ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+
+                      {isOpenMenu && (
+                        <div className="mt-1 mb-2 space-y-1 px-3 pb-2 border-l border-sidebar-border ml-5">
+                          {item.submenus.map((sub) => (
+                            <NavLink
+                              key={sub.title}
+                              to={sub.path}
+                              className={({ isActive }) =>
+                                `block px-3 py-2 rounded-radius-btn text-sm transition-colors duration-200 ${isActive
+                                  ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
+                                  : 'text-sidebar-text/70 hover:bg-sidebar-submenu-bg hover:text-sidebar-text'
+                                }`
+                              }
+                            >
+                              {sub.title}
+                            </NavLink>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <NavLink
+                      to={item.path!}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-radius-btn transition-colors duration-200 ${isActive
+                          ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
+                          : 'text-sidebar-text/80 hover:bg-sidebar-hover-bg hover:text-sidebar-text'
+                        }`
+                      }
+                    >
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </NavLink>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Sidebar;
+</file>
+
+<file path="src/pages/Management/Penjualan.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatDate } from "../../utils/formatters";
+
+interface PenjualanData {
+  id: string;
+  tanggal: string;
+  nama: string;
+  alamat: string;
+  noTelepon: string;
+  noIdentitas: string;
+  perusahaan: string;
+  alamatKoresponden: string;
+  perumahan: string;
+  blok: string;
+  tipe: string;
+  nomorUnit: string;
+  hargaJual: number;
+  dp: number;
+  diskonPenjualan: number;
+  paketPromosi: string;
+  bank: string;
+  caraPembayaran: string;
+  nilaiPengajuanKpr: number;
+  fileKtp: string;
+  fileKk: string;
+  fileNpwp: string;
+  bookingFee: number;
+  rekeningTujuan: string;
+  status: string;
+}
+
+const initialFormState: PenjualanData = {
+  id: '',
+  tanggal: '',
+  nama: '',
+  alamat: '',
+  noTelepon: '',
+  noIdentitas: '',
+  perusahaan: '',
+  alamatKoresponden: '',
+  perumahan: '',
+  blok: '',
+  tipe: '',
+  nomorUnit: '',
+  hargaJual: 0,
+  dp: 0,
+  diskonPenjualan: 0,
+  paketPromosi: '',
+  bank: '',
+  caraPembayaran: '',
+  nilaiPengajuanKpr: 0,
+  fileKtp: '',
+  fileKk: '',
+  fileNpwp: '',
+  bookingFee: 5000000,
+  rekeningTujuan: '',
+  status: 'Booked',
+};
+
+const Penjualan = () => {
+  const [data, setData] = useState<PenjualanData[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'ID Transaksi', accessor: 'id' },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+    { header: 'Nama Customer', accessor: 'nama' },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => (
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+          {val}
+        </span>
+      )
+    },
+  ];
+
+  const openModal = (item?: PenjualanData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+
+    if (name === 'caraPembayaran' && value !== 'KPR') {
+      setFormData(prev => ({ ...prev, [name]: value, bank: '', nilaiPengajuanKpr: 0 }));
+    } else {
+      const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    }
+
+    if (errors[name as keyof PenjualanData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
+    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
+    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
+
+    if (formData.caraPembayaran === 'KPR') {
+      if (!formData.bank.trim()) newErrors.bank = 'Bank KPR wajib diisi';
+      if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: PenjualanData) => {
+    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Data Penjualan"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
+              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
+              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
+              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
+              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
+              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
+              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} placeholder="Contoh: Free AC / Cashback" />
+              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Select
+                label="Cara Pembayaran"
+                name="caraPembayaran"
+                value={formData.caraPembayaran}
+                onChange={handleChange}
+                options={[
+                  { value: 'CASH KERAS', label: 'CASH KERAS' },
+                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
+                  { value: 'KPR', label: 'KPR' }
+                ]}
+                error={errors.caraPembayaran}
+              />
+              <Input
+                label="Down Payment (DP) - Rp"
+                type="number"
+                name="dp"
+                value={formData.dp}
+                onChange={handleChange}
+                placeholder="0 jika tidak ada DP"
+              />
+              <Input
+                label="Diskon Penjualan (Rp)"
+                type="number"
+                name="diskonPenjualan"
+                value={formData.diskonPenjualan === 0 ? '' : formData.diskonPenjualan}
+                onChange={handleChange}
+              />
+            </div>
+
+            {formData.caraPembayaran === 'KPR' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
+                <Input
+                  label="Bank KPR"
+                  name="bank"
+                  value={formData.bank}
+                  onChange={handleChange}
+                  placeholder="Contoh: BTN, BSI"
+                  error={errors.bank}
+                />
+                <Input
+                  label="Nilai Pengajuan KPR (Rp)"
+                  type="number"
+                  name="nilaiPengajuanKpr"
+                  value={formData.nilaiPengajuanKpr === 0 ? '' : formData.nilaiPengajuanKpr}
+                  onChange={handleChange}
+                  error={errors.nilaiPengajuanKpr}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
+                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
+                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
+                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
+            <div className="grid grid-cols-1 gap-4">
+              <Input
+                label="Booking Fee (Fixed Rp)"
+                type="number"
+                name="bookingFee"
+                value={formData.bookingFee}
+                readOnly
+                className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
+              />
+              <Select
+                label="Transfer ke Rekening"
+                name="rekeningTujuan"
+                value={formData.rekeningTujuan}
+                onChange={handleChange}
+                options={[
+                  { value: 'BSI-Gajah', label: 'Bank BSI No Rekening : 7326575644 a/n PT. Bintang Safana Gajah' },
+                  { value: 'BSI-Mahligai', label: 'Bank BSI No Rekening : 7326573692 a/n PT. Bintang Safana Mahligai' }
+                ]}
+                error={errors.rekeningTujuan}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
+              Simpan Penjualan
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Penjualan;
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+
+const App = () => {
+  return (
+    <HelmetProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<RootLayout />}>
+              <Route index element={<Dashboard />} />
+
+              <Route path="management/penjualan" element={<Penjualan />} />
+              <Route path="management/kavling" element={<Kavling />} />
+              <Route path="management/notaris" element={<Notaris />} />
+              <Route path="management/bank" element={<Bank />} />
+
+              <Route path="customer/data-sosial" element={<DataSosial />} />
+              <Route path="customer/spr" element={<SPR />} />
+              <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+              <Route path="customer/kavling" element={<CustomerKavling />} />
+
+              <Route path="marketing/agents" element={<Agents />} />
+              <Route path="marketing/fee-agent" element={<FeeAgent />} />
+
+              <Route path="proyek/spk" element={<SPK />} />
+              <Route path="proyek/progress" element={<Progress />} />
+            </Route>
+
+            <Route path="/login" element={<p>login</p>} />
+
+            <Route element={<p>test protected route</p>}>
+              <Route path="/test" element={<p>test</p>} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </HelmetProvider>
+  );
+};
+
+export default App;
+</file>
+
 <file path="src/components/shared/DataTable.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
@@ -2783,12 +3000,12 @@ export default DataTable;
 </file>
 
 <file path="src/pages/Management/Kavling.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
 import { formatRupiah } from "../../utils/formatters";
 
 interface KavlingMasterData {
@@ -2799,6 +3016,9 @@ interface KavlingMasterData {
   tipe: string;
   hargaJual: number;
   status: string;
+  filePbg: string;
+  fileSertifikatTanah: string;
+  fileNopPbb: string;
 }
 
 const initialFormState: KavlingMasterData = {
@@ -2809,6 +3029,9 @@ const initialFormState: KavlingMasterData = {
   tipe: '',
   hargaJual: 0,
   status: 'Available',
+  filePbg: '',
+  fileSertifikatTanah: '',
+  fileNopPbb: '',
 };
 
 const Kavling = () => {
@@ -2820,7 +3043,8 @@ const Kavling = () => {
 
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: any, row: KavlingMasterData) => `${row.blok}-${row.nomorUnit}` },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: any, row: KavlingMasterData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Tipe', accessor: 'tipe' },
     { header: 'Harga Jual', accessor: 'hargaJual', render: (val: number) => formatRupiah(val) },
     {
@@ -2872,6 +3096,13 @@ const Kavling = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+
   const validateForm = () => {
     const newErrors: Partial<Record<keyof KavlingMasterData, string>> = {};
     if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
@@ -2897,7 +3128,7 @@ const Kavling = () => {
   };
 
   const handleDelete = (item: KavlingMasterData) => {
-    if (window.confirm(`Hapus data kavling Blok ${item.blok}-${item.nomorUnit}?`)) {
+    if (window.confirm(`Hapus data kavling Blok ${item.blok} - ${item.nomorUnit}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
@@ -2915,30 +3146,52 @@ const Kavling = () => {
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
-            <Select
-              label="Status"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              options={[
-                { value: 'Available', label: 'Available' },
-                { value: 'Booking', label: 'Booking' },
-                { value: 'Terjual', label: 'Terjual' }
-              ]}
-            />
-            <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
-            <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
-            <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
-            <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} error={errors.hargaJual} />
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Utama</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
+              <Select
+                label="Status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                options={[
+                  { value: 'Available', label: 'Available' },
+                  { value: 'Booking', label: 'Booking' },
+                  { value: 'Terjual', label: 'Terjual' }
+                ]}
+              />
+              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
+              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
+              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Upload Dokumen (Opsional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <FileInput label="Upload File PBG" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'filePbg')} />
+                {formData.filePbg && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.filePbg}</p>}
+              </div>
+              <div>
+                <FileInput label="Sertifikat Tanah" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileSertifikatTanah')} />
+                {formData.fileSertifikatTanah && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileSertifikatTanah}</p>}
+              </div>
+              <div>
+                <FileInput label="NOP PBB" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNopPbb')} />
+                {formData.fileNopPbb && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileNopPbb}</p>}
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
               Batal
             </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
               Simpan Kavling
             </button>
           </div>
@@ -2949,72 +3202,6 @@ const Kavling = () => {
 };
 
 export default Kavling;
-</file>
-
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-
-const App = () => {
-  return (
-    <HelmetProvider>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<RootLayout />}>
-              <Route index element={<Dashboard />} />
-
-              <Route path="management/penjualan" element={<Penjualan />} />
-              <Route path="management/kavling" element={<Kavling />} />
-              <Route path="management/notaris" element={<Notaris />} />
-              <Route path="management/bank" element={<Bank />} />
-
-              <Route path="customer/data-sosial" element={<DataSosial />} />
-              <Route path="customer/spr" element={<SPR />} />
-              <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-              <Route path="customer/kavling" element={<CustomerKavling />} />
-
-              <Route path="marketing/agents" element={<Agents />} />
-              <Route path="marketing/fee-agent" element={<FeeAgent />} />
-
-              <Route path="proyek/spk" element={<SPK />} />
-              <Route path="proyek/progress" element={<Progress />} />
-            </Route>
-
-            <Route path="/login" element={<p>login</p>} />
-
-            <Route element={<p>test protected route</p>}>
-              <Route path="/test" element={<p>test</p>} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </HelmetProvider>
-  );
-};
-
-export default App;
 </file>
 
 </files>

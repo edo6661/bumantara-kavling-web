@@ -7,24 +7,27 @@ interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 const FileInput = ({ label, error, ...props }: FileInputProps) => {
   return (
-    <div className="flex flex-col gap-1 mb-4">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
+    <div className="flex flex-col gap-1.5 mb-4">
+      <label className="text-sm font-semibold text-gray-700">{label}</label>
       <input
         type="file"
-        className={`block w-full text-sm text-gray-500
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-md file:border-0
+        className={`block w-full text-sm text-gray-600
+          file:mr-4 file:py-2.5 file:px-4
+          file:rounded-lg file:border-0
           file:text-sm file:font-semibold
-          file:bg-gray-100 file:text-gray-700
-          hover:file:bg-gray-200
-          border rounded-md px-3 py-2
-          focus:outline-none focus:ring-2 transition-colors
-          ${error ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'}
-          bg-white cursor-pointer
+          file:bg-black file:text-white
+          hover:file:bg-gray-800 file:transition-colors
+          file:cursor-pointer cursor-pointer
+          border rounded-lg shadow-sm
+          focus:outline-none transition-all duration-200 bg-white
+          ${error
+            ? 'border-red-500 focus:ring-4 focus:ring-red-500/10'
+            : 'border-gray-200 hover:border-gray-300 focus:ring-4 focus:ring-black/5 focus:border-black'
+          }
         `}
         {...props}
       />
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && <span className="text-xs font-medium text-red-500 mt-0.5">{error}</span>}
     </div>
   );
 };
