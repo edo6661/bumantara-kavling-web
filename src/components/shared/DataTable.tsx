@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight } from 'lucide-react';
 
 interface Column {
   header: string;
@@ -33,36 +33,37 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableP
   }, [data, searchTerm, columns]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-md/10">
       {/* Header & Toolbar */}
-      <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
+      <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white/50 backdrop-blur-sm">
         <div>
-          <h2 className="text-lg font-heading font-bold text-gray-900">{title}</h2>
-          <p className="text-sm text-gray-500 mt-0.5 font-medium">
-            Total {filteredData.length} data ditemukan
-          </p>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h2>
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-full border border-slate-200/50">
+              {filteredData.length} Data
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full sm:w-72 group">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-400 group-focus-within:text-black transition-colors duration-200" />
-            </div>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-64 group">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
             <input
               type="text"
               placeholder="Cari data..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black hover:bg-white hover:border-gray-300 transition-all shadow-sm text-gray-900 placeholder:text-gray-400"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all shadow-sm/5 text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
           {onAdd && (
             <button
               onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2.5 rounded-lg hover:bg-gray-800 hover:shadow-md transition-all duration-200 font-medium text-sm active:scale-[0.98] cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2 rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-black/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest active:scale-95 cursor-pointer"
             >
-              <Plus size={18} />
+              <Plus size={16} strokeWidth={3} />
               Tambah Data
             </button>
           )}
@@ -72,70 +73,65 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableP
       {/* Table Container */}
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-sm text-left border-collapse">
-          <thead className="bg-gray-50/80 text-gray-500 text-xs uppercase font-semibold tracking-wider border-b border-gray-200">
-            <tr>
+          <thead>
+            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-widest border-b border-slate-100">
               {columns.map((col, index) => (
-                <th key={index} className="px-6 py-4 whitespace-nowrap">
+                <th key={index} className="px-6 py-4 whitespace-nowrap font-bold">
                   {col.header}
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-4 text-center whitespace-nowrap w-28">
-                  Aksi
-                </th>
+                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 bg-white">
+          <tbody className="divide-y divide-slate-50">
             {filteredData.length > 0 ? (
               filteredData.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
-                  className="hover:bg-gray-50/50 transition-colors duration-150 group"
+                  className="hover:bg-slate-50/80 transition-colors duration-200 group"
                 >
                   {columns.map((col, colIndex) => (
-                    <td key={colIndex} className="px-6 py-4 text-gray-700 whitespace-nowrap">
+                    <td key={colIndex} className="px-6 py-4 text-slate-600 whitespace-nowrap font-medium">
                       {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                     </td>
                   ))}
                   {(onEdit || onDelete) && (
-                    <td className="px-6 py-4 flex justify-center gap-2 whitespace-nowrap">
-                      {onEdit && (
-                        <button
-                          onClick={() => onEdit(row)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 cursor-pointer"
-                          title="Edit"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                      )}
-                      {onDelete && (
-                        <button
-                          onClick={() => onDelete(row)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer"
-                          title="Hapus"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="flex justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity duration-300">
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(row)}
+                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(row)}
+                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="px-6 py-20">
-                  <div className="flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
-                    <div className="bg-gray-50 p-4 rounded-full mb-4 ring-8 ring-gray-50/50">
-                      <FileX2 size={32} strokeWidth={1.5} className="text-gray-400" />
+                <td colSpan={columns.length + 1} className="px-6 py-24 text-center">
+                  <div className="flex flex-col items-center max-w-xs mx-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 ring-8 ring-slate-50/30">
+                      <FileX2 size={28} className="text-slate-300" />
                     </div>
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">
-                      {searchTerm ? 'Data tidak ditemukan' : 'Belum ada data'}
-                    </h3>
-                    <p className="text-sm text-gray-500 max-w-sm">
-                      {searchTerm
-                        ? `Pencarian untuk "${searchTerm}" tidak membuahkan hasil. Coba kata kunci lain.`
-                        : 'Silakan tambahkan data baru dengan mengklik tombol "Tambah Data" di pojok kanan atas.'}
+                    <h3 className="text-slate-900 font-bold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-400 text-xs font-medium leading-relaxed">
+                      Kami tidak dapat menemukan data yang Anda cari. Coba ubah kata kunci atau tambahkan data baru.
                     </p>
                   </div>
                 </td>

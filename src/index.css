@@ -4,8 +4,8 @@
   --font-sans: "Montserrat", system-ui, sans-serif;
   --font-heading: "", var(--font-sans);
 
-  --radius-btn: 4px;
-  --radius-card: 8px;
+  --radius-btn: 6px; /* Sedikit lebih membulat dari 4px */
+  --radius-card: 12px; /* Card lebih membulat */
 
   --color-sidebar-bg: var(--sidebar-bg);
   --color-sidebar-text: var(--sidebar-text);
@@ -20,8 +20,8 @@
   --section-padding-y: 6rem;
   --transition-base: all 0.3s ease-in-out;
 
-  --theme-background: #ffffff;
-  --theme-foreground: #000000;
+  --theme-background: #f8fafc; /* Diubah sedikit ke abu-abu kebiruan sangat muda agar area putih menonjol */
+  --theme-foreground: #0f172a;
 
   /* Sidebar Black & White Theme */
   --sidebar-bg: #ffffff;
@@ -58,6 +58,8 @@ body {
   color: var(--theme-foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased; /* Membuat teks lebih tajam */
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -67,5 +69,32 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading);
-  letter-spacing: 0.05em;
+  letter-spacing: -0.02em; /* Sedikit dirapatkan agar terlihat lebih modern/premium */
+}
+
+/* Custom Scrollbar Premium */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
