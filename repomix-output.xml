@@ -1,31 +1,82 @@
-kodenya:
-<file path="src/pages/Management/Bank.tsx">
-const Bank = () => {
-  return (
-    <>
-      <h1>
-        Bankpage
-      </h1>
-    </>
-  );
-};
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
 
-export default Bank;
-</file>
+<file_summary>
+This section contains a summary of this file.
 
-<file path="src/pages/Management/Notaris.tsx">
-const Notaris = () => {
-  return (
-    <>
-      <h1>
-        Notarispage
-      </h1>
-    </>
-  );
-};
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
 
-export default Notaris;
-</file>
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json
+- Files matching these patterns are excluded: **/*.test.ts
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+package.json
+src/App.tsx
+src/components/layouts/RootLayout.tsx
+src/components/Navbar.tsx
+src/components/shared/DataTable.tsx
+src/components/shared/FileInput.tsx
+src/components/shared/Input.tsx
+src/components/shared/Modal.tsx
+src/components/shared/Select.tsx
+src/components/Sidebar.tsx
+src/index.css
+src/main.tsx
+src/pages/Customer/DataSosial.tsx
+src/pages/Customer/Kavling.tsx
+src/pages/Customer/KelengkapanAdministrasi.tsx
+src/pages/Customer/SPR.tsx
+src/pages/Dashboard.tsx
+src/pages/Home.tsx
+src/pages/Management/Bank.tsx
+src/pages/Management/Kavling.tsx
+src/pages/Management/Notaris.tsx
+src/pages/Management/Penjualan.tsx
+src/pages/Marketing/Agents.tsx
+src/pages/Marketing/FeeAgent.tsx
+src/pages/PageLoader.tsx
+src/pages/Proyek/Progress.tsx
+src/pages/Proyek/SPK.tsx
+src/pages/TimMarketing/TimMarketing.tsx
+src/utils/formatters.ts
+tsconfig.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
 
 <file path="package.json">
 {
@@ -68,16 +119,23 @@ export default Notaris;
 </file>
 
 <file path="src/components/layouts/RootLayout.tsx">
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../Sidebar';
+import Navbar from '../Navbar';
 
 const RootLayout = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
-    <div className="flex h-screen w-full bg-theme-background">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6">
-        <Outlet />
-      </main>
+    <div className="flex h-screen w-full bg-theme-background overflow-hidden">
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };
@@ -86,15 +144,27 @@ export default RootLayout;
 </file>
 
 <file path="src/components/Navbar.tsx">
-import React from 'react'
+import { Menu } from 'lucide-react';
 
-const Navbar = () => {
-  return (
-    <div>Navbar</div>
-  )
+interface NavbarProps {
+  onMenuClick: () => void;
 }
 
-export default Navbar
+const Navbar = ({ onMenuClick }: NavbarProps) => {
+  return (
+    <header className="h-16 flex items-center px-4 border-b border-gray-200 bg-white md:hidden shrink-0">
+      <button
+        onClick={onMenuClick}
+        className="p-2 -ml-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-md cursor-pointer"
+      >
+        <Menu size={24} />
+      </button>
+      <span className="font-heading font-bold text-lg text-gray-900">Bumantaraz</span>
+    </header>
+  );
+};
+
+export default Navbar;
 </file>
 
 <file path="src/components/shared/FileInput.tsx">
@@ -175,9 +245,9 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-radius-card w-full max-w-2xl max-h-[90vh] flex flex-col shadow-xl">
-        <div className="flex justify-between items-center p-5 border-b border-gray-200">
-          <h3 className="text-xl font-heading font-semibold text-gray-900">{title}</h3>
+      <div className="bg-white rounded-radius-card w-full max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col shadow-xl">
+        <div className="flex justify-between items-center p-4 md:p-5 border-b border-gray-200">
+          <h3 className="text-lg md:text-xl font-heading font-semibold text-gray-900">{title}</h3>
           <button
             onClick={onClose}
             className="p-1 text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
@@ -185,7 +255,7 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
             <X size={20} />
           </button>
         </div>
-        <div className="p-5 overflow-y-auto">
+        <div className="p-4 md:p-5 overflow-y-auto">
           {children}
         </div>
       </div>
@@ -306,6 +376,724 @@ h6 {
   font-family: var(--font-heading);
   letter-spacing: 0.05em;
 }
+</file>
+
+<file path="src/pages/Dashboard.tsx">
+const Dashboard = () => {
+  return (
+    <>
+      <h1>
+        Dashboardpage
+      </h1>
+    </>
+  );
+};
+
+export default Dashboard;
+</file>
+
+<file path="src/pages/Home.tsx">
+const Home = () => {
+  return (
+    <>
+      <h1>
+        Homepage
+      </h1>
+    </>
+  );
+};
+
+export default Home;
+</file>
+
+<file path="src/pages/Management/Bank.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+
+interface BankData {
+  id: string;
+  namaBank: string;
+  noRekening: string;
+  atasNama: string;
+}
+
+const initialFormState: BankData = {
+  id: '',
+  namaBank: '',
+  noRekening: '',
+  atasNama: '',
+};
+
+const Bank = () => {
+  const [data, setData] = useState<BankData[]>([
+    {
+      id: '1',
+      namaBank: 'Bank BSI',
+      noRekening: '7326575644',
+      atasNama: 'PT. Bintang Safana Gajah'
+    },
+    {
+      id: '2',
+      namaBank: 'Bank BSI',
+      noRekening: '7326573692',
+      atasNama: 'PT. Bintang Safana Mahligai'
+    }
+  ]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<BankData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<BankData>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'Nama Bank', accessor: 'namaBank' },
+    { header: 'No Rekening', accessor: 'noRekening' },
+    { header: 'Atas Nama (a/n)', accessor: 'atasNama' },
+  ];
+
+  const openModal = (item?: BankData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name as keyof BankData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<BankData> = {};
+    if (!formData.namaBank.trim()) newErrors.namaBank = 'Nama Bank wajib diisi';
+    if (!formData.noRekening.trim()) newErrors.noRekening = 'No Rekening wajib diisi';
+    if (!formData.atasNama.trim()) newErrors.atasNama = 'Atas Nama wajib diisi';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newData = { ...formData, id: Date.now().toString() };
+      setData((prev) => [...prev, newData]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: BankData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus data ${item.namaBank} - ${item.noRekening}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Data Bank"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Data Bank" : "Tambah Data Bank"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <Input
+              label="Nama Bank"
+              name="namaBank"
+              value={formData.namaBank}
+              onChange={handleChange}
+              error={errors.namaBank}
+              placeholder="Contoh: Bank BSI"
+            />
+            <Input
+              label="No Rekening"
+              name="noRekening"
+              value={formData.noRekening}
+              onChange={handleChange}
+              error={errors.noRekening}
+              placeholder="Masukkan nomor rekening"
+            />
+            <Input
+              label="Atas Nama"
+              name="atasNama"
+              value={formData.atasNama}
+              onChange={handleChange}
+              error={errors.atasNama}
+              placeholder="Contoh: PT. Bintang Safana"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
+            >
+              Simpan Data
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Bank;
+</file>
+
+<file path="src/pages/Management/Notaris.tsx">
+const Notaris = () => {
+  return (
+    <>
+      <h1>
+        Notarispage
+      </h1>
+    </>
+  );
+};
+
+export default Notaris;
+</file>
+
+<file path="src/pages/PageLoader.tsx">
+const PageLoader = () => (
+
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="w-16 h-16 border-t-2 border-accent border-solid rounded-full animate-spin"></div>
+  </div>
+);
+
+export default PageLoader
+</file>
+
+<file path="src/pages/TimMarketing/TimMarketing.tsx">
+import DataTable from "../../components/shared/DataTable";
+
+const TimMarketing = () => {
+  const columns = [
+    { header: 'ID Sales', accessor: 'id_sales' },
+    { header: 'Nama', accessor: 'nama' },
+    { header: 'Target (Bulan Ini)', accessor: 'target' },
+    { header: 'Pencapaian', accessor: 'pencapaian' },
+    { header: 'Status', accessor: 'status' },
+  ];
+
+  const dummyData = [
+    { id_sales: 'MKT-001', nama: 'Andi Pratama', target: '5 Unit', pencapaian: '4 Unit', status: 'Aktif' },
+    { id_sales: 'MKT-002', nama: 'Rina Wijaya', target: '5 Unit', pencapaian: '6 Unit', status: 'Aktif' },
+  ];
+
+  const handleAdd = () => {
+    console.log('Tambah Anggota Tim Marketing...');
+  };
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Data Tim Marketing"
+        columns={columns}
+        data={dummyData}
+        onAdd={handleAdd}
+      />
+    </div>
+  );
+};
+
+export default TimMarketing;
+</file>
+
+<file path="src/utils/formatters.ts">
+export const formatRupiah = (angka: string | number): string => {
+  if (!angka) return "Rp 0";
+
+  const numberValue = typeof angka === "string" ? parseFloat(angka) : angka;
+  if (isNaN(numberValue)) return "Rp 0";
+
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(numberValue);
+};
+
+export const formatDate = (dateString: string): string => {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+};
+</file>
+
+<file path="tsconfig.json">
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+</file>
+
+<file path="vite.config.ts">
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import tailwindcss from "@tailwindcss/vite";
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+});
+</file>
+
+<file path="src/components/Sidebar.tsx">
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  UserCircle,
+  FolderKanban,
+  ChevronDown,
+  ChevronUp,
+  X
+} from 'lucide-react';
+
+const menuItems = [
+  {
+    title: 'Dashboard',
+    path: '/',
+    icon: <LayoutDashboard size={20} />,
+  },
+  {
+    title: 'Management',
+    icon: <Briefcase size={20} />,
+    submenus: [
+      { title: 'Penjualan', path: '/management/penjualan' },
+      { title: 'Kavling', path: '/management/kavling' },
+      { title: 'Notaris', path: '/management/notaris' },
+      { title: 'Bank', path: '/management/bank' },
+    ],
+  },
+  {
+    title: 'Customer',
+    icon: <Users size={20} />,
+    submenus: [
+      { title: 'Data Sosial', path: '/customer/data-sosial' },
+      { title: 'SPR', path: '/customer/spr' },
+      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
+      { title: 'Kavling', path: '/customer/kavling' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    icon: <UserCircle size={20} />,
+    submenus: [
+      { title: 'Agents', path: '/marketing/agents' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent' },
+    ],
+  },
+  {
+    title: 'Proyek',
+    icon: <FolderKanban size={20} />,
+    submenus: [
+      { title: 'SPK', path: '/proyek/spk' },
+      { title: 'Progress', path: '/proyek/progress' },
+    ],
+  },
+];
+
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+}
+
+const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
+  const location = useLocation();
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname, setIsOpen]);
+
+  const toggleMenu = (title: string) => {
+    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const isActiveRoute = (path?: string, submenus?: { path: string }[]) => {
+    if (path && location.pathname === path) return true;
+    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
+    return false;
+  };
+
+  return (
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-sidebar-border text-sidebar-text flex flex-col transition-transform duration-300 ease-in-out shrink-0 md:static md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+      >
+        <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border shrink-0">
+          <span className="font-heading font-bold text-xl">Bumantaraz</span>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden p-1 text-gray-500 hover:bg-gray-100 rounded-md cursor-pointer"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-4">
+          <nav className="space-y-1 px-3">
+            {menuItems.map((item) => {
+              const isActive = isActiveRoute(item.path, item.submenus);
+              const isOpenMenu = openMenus[item.title] || isActive;
+
+              return (
+                <div key={item.title}>
+                  {item.submenus ? (
+                    <div>
+                      <button
+                        onClick={() => toggleMenu(item.title)}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-radius-btn transition-colors duration-200 cursor-pointer ${isActive
+                          ? 'bg-sidebar-hover-bg text-sidebar-text font-medium'
+                          : 'hover:bg-sidebar-hover-bg text-sidebar-text/80 hover:text-sidebar-text'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {item.icon}
+                          <span>{item.title}</span>
+                        </div>
+                        {isOpenMenu ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+
+                      {isOpenMenu && (
+                        <div className="mt-1 mb-2 space-y-1 px-3 pb-2 border-l border-sidebar-border ml-5">
+                          {item.submenus.map((sub) => (
+                            <NavLink
+                              key={sub.title}
+                              to={sub.path}
+                              className={({ isActive }) =>
+                                `block px-3 py-2 rounded-radius-btn text-sm transition-colors duration-200 ${isActive
+                                  ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
+                                  : 'text-sidebar-text/70 hover:bg-sidebar-submenu-bg hover:text-sidebar-text'
+                                }`
+                              }
+                            >
+                              {sub.title}
+                            </NavLink>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <NavLink
+                      to={item.path!}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2.5 rounded-radius-btn transition-colors duration-200 ${isActive
+                          ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
+                          : 'text-sidebar-text/80 hover:bg-sidebar-hover-bg hover:text-sidebar-text'
+                        }`
+                      }
+                    >
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </NavLink>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Sidebar;
+</file>
+
+<file path="src/main.tsx">
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <App />
+);
+</file>
+
+<file path="src/pages/Customer/DataSosial.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+
+interface CustomerData {
+  id: string;
+  nama: string;
+  alamatKtp: string;
+  alamatTinggal: string;
+  nik: string;
+  noHp: string;
+  email: string;
+  pekerjaan: string;
+  bank: string;
+}
+
+const initialFormState: CustomerData = {
+  id: '',
+  nama: '',
+  alamatKtp: '',
+  alamatTinggal: '',
+  nik: '',
+  noHp: '',
+  email: '',
+  pekerjaan: '',
+  bank: ''
+};
+
+const DataSosial = () => {
+  // State untuk Data Table
+  const [data, setData] = useState<CustomerData[]>([
+    {
+      id: '1',
+      nama: 'Budi Santoso',
+      alamatKtp: 'Jl. Merdeka No. 1, Tangerang',
+      alamatTinggal: 'Jl. Merdeka No. 1, Tangerang',
+      nik: '3671012345670001',
+      noHp: '081234567890',
+      email: 'budi@example.com',
+      pekerjaan: 'Pegawai Swasta',
+      bank: 'BCA'
+    }
+  ]);
+
+  // State untuk Modal & Form
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<CustomerData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<CustomerData>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'NIK', accessor: 'nik' },
+    { header: 'Nama Lengkap', accessor: 'nama' },
+    { header: 'No. WhatsApp', accessor: 'noHp' },
+    { header: 'Pekerjaan', accessor: 'pekerjaan' },
+    { header: 'Bank', accessor: 'bank' },
+  ];
+
+  // Handler Buka/Tutup Modal
+  const openModal = (item?: CustomerData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  // Handler Perubahan Input
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Hapus error saat user mulai mengetik
+    if (errors[name as keyof CustomerData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  // Validasi Dasar
+  const validateForm = () => {
+    const newErrors: Partial<CustomerData> = {};
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
+    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
+    if (!formData.email.trim()) newErrors.email = 'Email wajib diisi';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Submit Form (Create / Update)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newData = { ...formData, id: Date.now().toString() };
+      setData((prev) => [...prev, newData]);
+    }
+    closeModal();
+  };
+
+  // Delete Data
+  const handleDelete = (item: CustomerData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus data ${item.nama}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Data Sosial Customer"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Data Sosial Customer" : "Tambah Data Sosial Customer"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Nama Sesuai KTP"
+              name="nama"
+              value={formData.nama}
+              onChange={handleChange}
+              error={errors.nama}
+              placeholder="Masukkan nama lengkap"
+            />
+            <Input
+              label="NIK"
+              name="nik"
+              value={formData.nik}
+              onChange={handleChange}
+              error={errors.nik}
+              placeholder="Masukkan 16 digit NIK"
+            />
+            <Input
+              label="Alamat Sesuai KTP"
+              name="alamatKtp"
+              value={formData.alamatKtp}
+              onChange={handleChange}
+              placeholder="Masukkan alamat KTP"
+            />
+            <Input
+              label="Alamat Tinggal Sekarang"
+              name="alamatTinggal"
+              value={formData.alamatTinggal}
+              onChange={handleChange}
+              placeholder="Masukkan alamat domisili"
+            />
+            <Input
+              label="No. WhatsApp / HP"
+              name="noHp"
+              value={formData.noHp}
+              onChange={handleChange}
+              error={errors.noHp}
+              placeholder="08xxxxxxxxxx"
+            />
+            <Input
+              label="Email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              error={errors.email}
+              placeholder="email@example.com"
+            />
+            <Input
+              label="Pekerjaan"
+              name="pekerjaan"
+              value={formData.pekerjaan}
+              onChange={handleChange}
+              placeholder="PNS / Swasta / Wiraswasta"
+            />
+            <Input
+              label="Bank / Bank KPR"
+              name="bank"
+              value={formData.bank}
+              onChange={handleChange}
+              placeholder="BCA / Mandiri / BTN"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
+            >
+              Simpan Data
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default DataSosial;
 </file>
 
 <file path="src/pages/Customer/Kavling.tsx">
@@ -939,45 +1727,527 @@ export default KelengkapanAdministrasi;
 </file>
 
 <file path="src/pages/Customer/SPR.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import FileInput from "../../components/shared/FileInput";
+
+interface SPRData {
+  id: string;
+  nama: string;
+  noTelepon: string;
+  perumahan: string;
+  blok: string;
+  filePdfSpr: string;
+}
+
+const initialFormState: SPRData = {
+  id: '',
+  nama: '',
+  noTelepon: '',
+  perumahan: '',
+  blok: '',
+  filePdfSpr: '',
+};
+
 const SPR = () => {
+  const [data, setData] = useState<SPRData[]>([
+    {
+      id: '1',
+      nama: 'Budi Santoso',
+      noTelepon: '081234567890',
+      perumahan: 'Griya Indah Pesona',
+      blok: 'A-01',
+      filePdfSpr: 'SPR_Budi_Santoso.pdf',
+    }
+  ]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<SPRData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<SPRData>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'Nama', accessor: 'nama' },
+    { header: 'No Telepon', accessor: 'noTelepon' },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Blok', accessor: 'blok' },
+    {
+      header: 'File SPR',
+      accessor: 'filePdfSpr',
+      render: (val: string) => val ? (
+        <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-1 rounded">{val}</span>
+      ) : (
+        <span className="text-gray-400 text-xs">- Belum ada -</span>
+      )
+    },
+  ];
+
+  const openModal = (item?: SPRData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name as keyof SPRData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SPRData) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<SPRData> = {};
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.noTelepon.trim()) newErrors.noTelepon = 'No Telepon wajib diisi';
+    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newData = { ...formData, id: Date.now().toString() };
+      setData((prev) => [...prev, newData]);
+    }
+    closeModal();
+  };
+
   return (
-    <>
-      <h1>
-        SPRpage
-      </h1>
-    </>
+    <div className="space-y-6">
+      <DataTable
+        title="Data Surat Pesanan Rumah (SPR)"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+      // onDelete sengaja tidak diteruskan agar tombol hapus tidak muncul
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Data SPR" : "Tambah Data SPR"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Nama Lengkap"
+              name="nama"
+              value={formData.nama}
+              onChange={handleChange}
+              error={errors.nama}
+              placeholder="Masukkan nama lengkap"
+            />
+            <Input
+              label="No Telepon / HP"
+              name="noTelepon"
+              value={formData.noTelepon}
+              onChange={handleChange}
+              error={errors.noTelepon}
+              placeholder="08xxxxxxxxxx"
+            />
+            <Input
+              label="Perumahan"
+              name="perumahan"
+              value={formData.perumahan}
+              onChange={handleChange}
+              error={errors.perumahan}
+              placeholder="Nama perumahan"
+            />
+            <Input
+              label="Blok / Unit"
+              name="blok"
+              value={formData.blok}
+              onChange={handleChange}
+              error={errors.blok}
+              placeholder="Contoh: A-01"
+            />
+          </div>
+
+          <div className="mt-4 border border-gray-200 p-3 rounded-md bg-white">
+            <FileInput
+              label="Upload File SPR (PDF)"
+              accept=".pdf"
+              onChange={(e) => handleFileChange(e, 'filePdfSpr')}
+            />
+            {formData.filePdfSpr && (
+              <p className="text-xs text-green-600 mt-1 truncate">
+                File tersimpan: {formData.filePdfSpr}
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
+            >
+              Simpan Data
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 };
 
 export default SPR;
 </file>
 
-<file path="src/pages/Dashboard.tsx">
-const Dashboard = () => {
+<file path="src/pages/Management/Penjualan.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatDate } from "../../utils/formatters";
+
+interface PenjualanData {
+  id: string;
+  tanggal: string;
+  nama: string;
+  alamat: string;
+  noTelepon: string;
+  noIdentitas: string;
+  perusahaan: string;
+  alamatKoresponden: string;
+  perumahan: string;
+  blok: string;
+  tipe: string;
+  nomorUnit: string;
+  hargaJual: number;
+  diskonPenjualan: number;
+  paketPromosi: string;
+  bank: string;
+  caraPembayaran: string;
+  nilaiPengajuanKpr: number;
+  fileKtp: string;
+  fileKk: string;
+  fileNpwp: string;
+  bookingFee: number;
+  rekeningTujuan: string;
+  status: string;
+}
+
+const initialFormState: PenjualanData = {
+  id: '',
+  tanggal: '',
+  nama: '',
+  alamat: '',
+  noTelepon: '',
+  noIdentitas: '',
+  perusahaan: '',
+  alamatKoresponden: '',
+  perumahan: '',
+  blok: '',
+  tipe: '',
+  nomorUnit: '',
+  hargaJual: 0,
+  diskonPenjualan: 0,
+  paketPromosi: '',
+  bank: '',
+  caraPembayaran: '',
+  nilaiPengajuanKpr: 0,
+  fileKtp: '',
+  fileKk: '',
+  fileNpwp: '',
+  bookingFee: 5000000, // Fixed 5 Juta
+  rekeningTujuan: '',
+  status: 'Booked',
+};
+
+const Penjualan = () => {
+  const [data, setData] = useState<PenjualanData[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'ID Transaksi', accessor: 'id' },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+    { header: 'Nama Customer', accessor: 'nama' },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => (
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+          {val}
+        </span>
+      )
+    },
+  ];
+
+  const openModal = (item?: PenjualanData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+
+    if (name === 'caraPembayaran' && value !== 'KPR') {
+      setFormData(prev => ({ ...prev, [name]: value, bank: '', nilaiPengajuanKpr: 0 }));
+    } else {
+      const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    }
+
+    if (errors[name as keyof PenjualanData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
+    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
+    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
+
+    if (formData.caraPembayaran === 'KPR') {
+      if (!formData.bank.trim()) newErrors.bank = 'Bank KPR wajib diisi';
+      if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: PenjualanData) => {
+    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
   return (
-    <>
-      <h1>
-        Dashboardpage
-      </h1>
-    </>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Data Penjualan"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* Data Pembeli */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
+              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
+              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
+              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
+              </div>
+            </div>
+          </div>
+
+          {/* Data Kavling */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
+              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
+              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
+              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} placeholder="Contoh: Free AC / Cashback" />
+              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} />
+            </div>
+          </div>
+
+          {/* Skema Pembayaran */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Cara Pembayaran"
+                name="caraPembayaran"
+                value={formData.caraPembayaran}
+                onChange={handleChange}
+                options={[
+                  { value: 'CASH KERAS', label: 'CASH KERAS' },
+                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
+                  { value: 'KPR', label: 'KPR' }
+                ]}
+                error={errors.caraPembayaran}
+              />
+              <Input
+                label="Diskon Penjualan (Rp)"
+                type="number"
+                name="diskonPenjualan"
+                value={formData.diskonPenjualan || ''}
+                onChange={handleChange}
+              />
+            </div>
+
+            {formData.caraPembayaran === 'KPR' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
+                <Input
+                  label="Bank KPR"
+                  name="bank"
+                  value={formData.bank}
+                  onChange={handleChange}
+                  placeholder="Contoh: BTN, BSI"
+                  error={errors.bank}
+                />
+                <Input
+                  label="Nilai Pengajuan KPR (Rp)"
+                  type="number"
+                  name="nilaiPengajuanKpr"
+                  value={formData.nilaiPengajuanKpr || ''}
+                  onChange={handleChange}
+                  error={errors.nilaiPengajuanKpr}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Dokumen Opsional */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
+                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
+                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
+                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Pembayaran Booking */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
+            <div className="grid grid-cols-1 gap-4">
+              <Input
+                label="Booking Fee (Fixed Rp)"
+                type="number"
+                name="bookingFee"
+                value={formData.bookingFee}
+                readOnly
+                className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
+              />
+              <Select
+                label="Transfer ke Rekening"
+                name="rekeningTujuan"
+                value={formData.rekeningTujuan}
+                onChange={handleChange}
+                options={[
+                  { value: 'BSI-Gajah', label: 'Bank BSI No Rekening : 7326575644 a/n PT. Bintang Safana Gajah' },
+                  { value: 'BSI-Mahligai', label: 'Bank BSI No Rekening : 7326573692 a/n PT. Bintang Safana Mahligai' }
+                ]}
+                error={errors.rekeningTujuan}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
+              Simpan Penjualan
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 };
 
-export default Dashboard;
-</file>
-
-<file path="src/pages/Home.tsx">
-const Home = () => {
-  return (
-    <>
-      <h1>
-        Homepage
-      </h1>
-    </>
-  );
-};
-
-export default Home;
+export default Penjualan;
 </file>
 
 <file path="src/pages/Marketing/Agents.tsx">
@@ -1429,17 +2699,6 @@ const FeeAgent = () => {
 export default FeeAgent;
 </file>
 
-<file path="src/pages/PageLoader.tsx">
-const PageLoader = () => (
-
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="w-16 h-16 border-t-2 border-accent border-solid rounded-full animate-spin"></div>
-  </div>
-);
-
-export default PageLoader
-</file>
-
 <file path="src/pages/Proyek/Progress.tsx">
 const Progress = () => {
   return (
@@ -1468,101 +2727,17 @@ const SPK = () => {
 export default SPK;
 </file>
 
-<file path="src/pages/TimMarketing/TimMarketing.tsx">
-import DataTable from "../../components/shared/DataTable";
-
-const TimMarketing = () => {
-  const columns = [
-    { header: 'ID Sales', accessor: 'id_sales' },
-    { header: 'Nama', accessor: 'nama' },
-    { header: 'Target (Bulan Ini)', accessor: 'target' },
-    { header: 'Pencapaian', accessor: 'pencapaian' },
-    { header: 'Status', accessor: 'status' },
-  ];
-
-  const dummyData = [
-    { id_sales: 'MKT-001', nama: 'Andi Pratama', target: '5 Unit', pencapaian: '4 Unit', status: 'Aktif' },
-    { id_sales: 'MKT-002', nama: 'Rina Wijaya', target: '5 Unit', pencapaian: '6 Unit', status: 'Aktif' },
-  ];
-
-  const handleAdd = () => {
-    console.log('Tambah Anggota Tim Marketing...');
-  };
-
-  return (
-    <div className="space-y-6">
-      <DataTable
-        title="Data Tim Marketing"
-        columns={columns}
-        data={dummyData}
-        onAdd={handleAdd}
-      />
-    </div>
-  );
-};
-
-export default TimMarketing;
-</file>
-
-<file path="src/utils/formatters.ts">
-export const formatRupiah = (angka: string | number): string => {
-  if (!angka) return "Rp 0";
-
-  const numberValue = typeof angka === "string" ? parseFloat(angka) : angka;
-  if (isNaN(numberValue)) return "Rp 0";
-
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(numberValue);
-};
-
-export const formatDate = (dateString: string): string => {
-  if (!dateString) return "-";
-
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-};
-</file>
-
-<file path="tsconfig.json">
-{
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
-}
-</file>
-
-<file path="vite.config.ts">
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import tailwindcss from "@tailwindcss/vite";
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-});
-</file>
-
 <file path="src/components/shared/DataTable.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React from 'react';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Search } from 'lucide-react';
+
 interface Column {
   header: string;
   accessor: string;
   render?: (value: any, row: any) => React.ReactNode;
 }
+
 interface DataTableProps {
   title: string;
   columns: Column[];
@@ -1571,25 +2746,55 @@ interface DataTableProps {
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
 }
+
 const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableProps) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return data;
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, searchTerm, columns]);
+
   return (
     <div className="bg-white rounded-radius-card shadow-sm border border-sidebar-border overflow-hidden">
-      <div className="p-5 border-b border-sidebar-border flex justify-between items-center">
+      <div className="p-4 md:p-5 border-b border-sidebar-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-lg font-heading font-semibold text-gray-900">{title}</h2>
-        {/* Render tombol Tambah hanya jika onAdd tersedia */}
-        {onAdd && (
-          <button
-            onClick={onAdd}
-            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-radius-btn hover:bg-gray-800 transition-colors text-sm font-medium cursor-pointer"
-          >
-            <Plus size={16} />
-            Tambah
-          </button>
-        )}
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={16} className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors bg-gray-50 focus:bg-white text-gray-900"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-radius-btn hover:bg-gray-800 transition-colors text-sm font-medium cursor-pointer"
+            >
+              <Plus size={16} />
+              Tambah
+            </button>
+          )}
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
-          <thead className="text-xs text-gray-600 uppercase bg-gray-50 border-b border-sidebar-border">
+          <thead className="text-xs text-gray-600 uppercase bg-gray-50 border-b border-sidebar-border whitespace-nowrap">
             <tr>
               {columns.map((col, index) => (
                 <th key={index} className="px-6 py-4 font-semibold tracking-wider">
@@ -1604,20 +2809,19 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableP
             </tr>
           </thead>
           <tbody>
-            {data.length > 0 ? (
-              data.map((row, rowIndex) => (
+            {filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
                   className="border-b border-sidebar-border hover:bg-gray-50 transition-colors"
                 >
                   {columns.map((col, colIndex) => (
-                    <td key={colIndex} className="px-6 py-4 text-gray-900">
-                      {/* Cek apakah ada fungsi render custom, jika tidak tampilkan data asli */}
+                    <td key={colIndex} className="px-6 py-4 text-gray-900 whitespace-nowrap">
                       {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                     </td>
                   ))}
                   {(onEdit || onDelete) && (
-                    <td className="px-6 py-4 flex justify-center gap-3">
+                    <td className="px-6 py-4 flex justify-center gap-3 whitespace-nowrap">
                       {onEdit && (
                         <button
                           onClick={() => onEdit(row)}
@@ -1643,7 +2847,7 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableP
             ) : (
               <tr>
                 <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="px-6 py-8 text-center text-gray-500">
-                  Belum ada data.
+                  {searchTerm ? 'Data tidak ditemukan.' : 'Belum ada data.'}
                 </td>
               </tr>
             )}
@@ -1653,776 +2857,8 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableP
     </div>
   );
 };
+
 export default DataTable;
-</file>
-
-<file path="src/components/Sidebar.tsx">
-import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Briefcase,
-  Users,
-  UserCircle,
-  FolderKanban,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
-
-const menuItems = [
-  {
-    title: 'Dashboard',
-    path: '/',
-    icon: <LayoutDashboard size={20} />,
-  },
-  {
-    title: 'Management',
-    icon: <Briefcase size={20} />,
-    submenus: [
-      { title: 'Penjualan', path: '/management/penjualan' },
-      { title: 'Kavling', path: '/management/kavling' },
-      { title: 'Notaris', path: '/management/notaris' },
-      { title: 'Bank', path: '/management/bank' },
-    ],
-  },
-  {
-    title: 'Customer',
-    icon: <Users size={20} />,
-    submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial' },
-      { title: 'SPR', path: '/customer/spr' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
-      { title: 'Kavling', path: '/customer/kavling' },
-    ],
-  },
-  {
-    title: 'Marketing',
-    icon: <UserCircle size={20} />,
-    submenus: [
-      { title: 'Agents', path: '/marketing/agents' },
-      { title: 'Fee Agent', path: '/marketing/fee-agent' },
-    ],
-  },
-  {
-    title: 'Proyek',
-    icon: <FolderKanban size={20} />,
-    submenus: [
-      { title: 'SPK', path: '/proyek/spk' },
-      { title: 'Progress', path: '/proyek/progress' },
-    ],
-  },
-];
-
-const Sidebar = () => {
-  const location = useLocation();
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-
-  const toggleMenu = (title: string) => {
-    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-  };
-
-  const isActiveRoute = (path?: string, submenus?: { path: string }[]) => {
-    if (path && location.pathname === path) return true;
-    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
-    return false;
-  };
-
-  return (
-    <aside className="w-64 h-screen bg-sidebar-bg border-r border-sidebar-border text-sidebar-text flex flex-col transition-base shrink-0">
-      <div className="h-16 flex items-center px-6 border-b border-sidebar-border font-heading font-bold text-xl">
-        Bumantaraz
-      </div>
-
-      <div className="flex-1 overflow-y-auto py-4">
-        <nav className="space-y-1 px-3">
-          {menuItems.map((item) => {
-            const isActive = isActiveRoute(item.path, item.submenus);
-            const isOpen = openMenus[item.title] || isActive;
-
-            return (
-              <div key={item.title}>
-                {item.submenus ? (
-                  <div>
-                    <button
-                      onClick={() => toggleMenu(item.title)}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-radius-btn transition-colors duration-200 cursor-pointer ${isActive
-                        ? 'bg-sidebar-hover-bg text-sidebar-text font-medium'
-                        : 'hover:bg-sidebar-hover-bg text-sidebar-text/80 hover:text-sidebar-text'
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {item.icon}
-                        <span>{item.title}</span>
-                      </div>
-                      {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
-
-                    {isOpen && (
-                      <div className="mt-1 mb-2 space-y-1 px-3 pb-2 border-l border-sidebar-border ml-5">
-                        {item.submenus.map((sub) => (
-                          <NavLink
-                            key={sub.title}
-                            to={sub.path}
-                            className={({ isActive }) =>
-                              `block px-3 py-2 rounded-radius-btn text-sm transition-colors duration-200 ${isActive
-                                ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
-                                : 'text-sidebar-text/70 hover:bg-sidebar-submenu-bg hover:text-sidebar-text'
-                              }`
-                            }
-                          >
-                            {sub.title}
-                          </NavLink>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <NavLink
-                    to={item.path!}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2.5 rounded-radius-btn transition-colors duration-200 ${isActive
-                        ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
-                        : 'text-sidebar-text/80 hover:bg-sidebar-hover-bg hover:text-sidebar-text'
-                      }`
-                    }
-                  >
-                    {item.icon}
-                    <span>{item.title}</span>
-                  </NavLink>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-      </div>
-    </aside>
-  );
-};
-
-export default Sidebar;
-</file>
-
-<file path="src/main.tsx">
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <App />
-);
-</file>
-
-<file path="src/pages/Customer/DataSosial.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-
-interface CustomerData {
-  id: string;
-  nama: string;
-  alamatKtp: string;
-  alamatTinggal: string;
-  nik: string;
-  noHp: string;
-  email: string;
-  pekerjaan: string;
-  bank: string;
-}
-
-const initialFormState: CustomerData = {
-  id: '',
-  nama: '',
-  alamatKtp: '',
-  alamatTinggal: '',
-  nik: '',
-  noHp: '',
-  email: '',
-  pekerjaan: '',
-  bank: ''
-};
-
-const DataSosial = () => {
-  // State untuk Data Table
-  const [data, setData] = useState<CustomerData[]>([
-    {
-      id: '1',
-      nama: 'Budi Santoso',
-      alamatKtp: 'Jl. Merdeka No. 1, Tangerang',
-      alamatTinggal: 'Jl. Merdeka No. 1, Tangerang',
-      nik: '3671012345670001',
-      noHp: '081234567890',
-      email: 'budi@example.com',
-      pekerjaan: 'Pegawai Swasta',
-      bank: 'BCA'
-    }
-  ]);
-
-  // State untuk Modal & Form
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<CustomerData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<CustomerData>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'NIK', accessor: 'nik' },
-    { header: 'Nama Lengkap', accessor: 'nama' },
-    { header: 'No. WhatsApp', accessor: 'noHp' },
-    { header: 'Pekerjaan', accessor: 'pekerjaan' },
-    { header: 'Bank', accessor: 'bank' },
-  ];
-
-  // Handler Buka/Tutup Modal
-  const openModal = (item?: CustomerData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  // Handler Perubahan Input
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Hapus error saat user mulai mengetik
-    if (errors[name as keyof CustomerData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  // Validasi Dasar
-  const validateForm = () => {
-    const newErrors: Partial<CustomerData> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
-    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    if (!formData.email.trim()) newErrors.email = 'Email wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Submit Form (Create / Update)
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newData = { ...formData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
-    }
-    closeModal();
-  };
-
-  // Delete Data
-  const handleDelete = (item: CustomerData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus data ${item.nama}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <DataTable
-        title="Data Sosial Customer"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Data Sosial Customer" : "Tambah Data Sosial Customer"}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Nama Sesuai KTP"
-              name="nama"
-              value={formData.nama}
-              onChange={handleChange}
-              error={errors.nama}
-              placeholder="Masukkan nama lengkap"
-            />
-            <Input
-              label="NIK"
-              name="nik"
-              value={formData.nik}
-              onChange={handleChange}
-              error={errors.nik}
-              placeholder="Masukkan 16 digit NIK"
-            />
-            <Input
-              label="Alamat Sesuai KTP"
-              name="alamatKtp"
-              value={formData.alamatKtp}
-              onChange={handleChange}
-              placeholder="Masukkan alamat KTP"
-            />
-            <Input
-              label="Alamat Tinggal Sekarang"
-              name="alamatTinggal"
-              value={formData.alamatTinggal}
-              onChange={handleChange}
-              placeholder="Masukkan alamat domisili"
-            />
-            <Input
-              label="No. WhatsApp / HP"
-              name="noHp"
-              value={formData.noHp}
-              onChange={handleChange}
-              error={errors.noHp}
-              placeholder="08xxxxxxxxxx"
-            />
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              placeholder="email@example.com"
-            />
-            <Input
-              label="Pekerjaan"
-              name="pekerjaan"
-              value={formData.pekerjaan}
-              onChange={handleChange}
-              placeholder="PNS / Swasta / Wiraswasta"
-            />
-            <Input
-              label="Bank / Bank KPR"
-              name="bank"
-              value={formData.bank}
-              onChange={handleChange}
-              placeholder="BCA / Mandiri / BTN"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
-            >
-              Simpan Data
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default DataSosial;
-</file>
-
-<file path="src/pages/Management/Penjualan.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatDate } from "../../utils/formatters";
-
-interface PenjualanData {
-  id: string;
-  tanggal: string;
-  nama: string;
-  alamat: string;
-  noTelepon: string;
-  noIdentitas: string;
-  perusahaan: string;
-  alamatKoresponden: string;
-  perumahan: string;
-  blok: string;
-  tipe: string;
-  nomorUnit: string;
-  hargaJual: number;
-  diskonPenjualan: number;
-  paketPromosi: string;
-  bank: string;
-  caraPembayaran: string;
-  nilaiPengajuanKpr: number;
-  fileKtp: string;
-  fileKk: string;
-  fileNpwp: string;
-  bookingFee: number;
-  rekeningTujuan: string;
-  status: string;
-}
-
-const initialFormState: PenjualanData = {
-  id: '',
-  tanggal: '',
-  nama: '',
-  alamat: '',
-  noTelepon: '',
-  noIdentitas: '',
-  perusahaan: '',
-  alamatKoresponden: '',
-  perumahan: '',
-  blok: '',
-  tipe: '',
-  nomorUnit: '',
-  hargaJual: 0,
-  diskonPenjualan: 0,
-  paketPromosi: '',
-  bank: '',
-  caraPembayaran: '',
-  nilaiPengajuanKpr: 0,
-  fileKtp: '',
-  fileKk: '',
-  fileNpwp: '',
-  bookingFee: 5000000, // Fixed 5 Juta
-  rekeningTujuan: '',
-  status: 'Booked',
-};
-
-const Penjualan = () => {
-  const [data, setData] = useState<PenjualanData[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'ID Transaksi', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    { header: 'Nama Customer', accessor: 'nama' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-          {val}
-        </span>
-      )
-    },
-  ];
-
-  const openModal = (item?: PenjualanData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData({
-        ...initialFormState,
-        tanggal: new Date().toISOString().split('T')[0]
-      });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-
-    if (name === 'caraPembayaran' && value !== 'KPR') {
-      setFormData(prev => ({ ...prev, [name]: value, bank: '', nilaiPengajuanKpr: 0 }));
-    } else {
-      const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-    }
-
-    if (errors[name as keyof PenjualanData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
-
-    if (formData.caraPembayaran === 'KPR') {
-      if (!formData.bank.trim()) newErrors.bank = 'Bank KPR wajib diisi';
-      if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: PenjualanData) => {
-    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Data Penjualan"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          {/* Data Pembeli */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
-              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
-              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
-              <div className="md:col-span-2">
-                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
-              </div>
-            </div>
-          </div>
-
-          {/* Data Kavling */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} placeholder="Contoh: Free AC / Cashback" />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} />
-            </div>
-          </div>
-
-          {/* Skema Pembayaran */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Cara Pembayaran"
-                name="caraPembayaran"
-                value={formData.caraPembayaran}
-                onChange={handleChange}
-                options={[
-                  { value: 'CASH KERAS', label: 'CASH KERAS' },
-                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
-                  { value: 'KPR', label: 'KPR' }
-                ]}
-                error={errors.caraPembayaran}
-              />
-              <Input
-                label="Diskon Penjualan (Rp)"
-                type="number"
-                name="diskonPenjualan"
-                value={formData.diskonPenjualan || ''}
-                onChange={handleChange}
-              />
-            </div>
-
-            {formData.caraPembayaran === 'KPR' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
-                <Input
-                  label="Bank KPR"
-                  name="bank"
-                  value={formData.bank}
-                  onChange={handleChange}
-                  placeholder="Contoh: BTN, BSI"
-                  error={errors.bank}
-                />
-                <Input
-                  label="Nilai Pengajuan KPR (Rp)"
-                  type="number"
-                  name="nilaiPengajuanKpr"
-                  value={formData.nilaiPengajuanKpr || ''}
-                  onChange={handleChange}
-                  error={errors.nilaiPengajuanKpr}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Dokumen Opsional */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
-                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
-                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
-                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Pembayaran Booking */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
-            <div className="grid grid-cols-1 gap-4">
-              <Input
-                label="Booking Fee (Fixed Rp)"
-                type="number"
-                name="bookingFee"
-                value={formData.bookingFee}
-                readOnly
-                className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
-              />
-              <Select
-                label="Transfer ke Rekening"
-                name="rekeningTujuan"
-                value={formData.rekeningTujuan}
-                onChange={handleChange}
-                options={[
-                  { value: 'BSI-Gajah', label: 'Bank BSI No Rekening : 7326575644 a/n PT. Bintang Safana Gajah' },
-                  { value: 'BSI-Mahligai', label: 'Bank BSI No Rekening : 7326573692 a/n PT. Bintang Safana Mahligai' }
-                ]}
-                error={errors.rekeningTujuan}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
-              Batal
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
-              Simpan Penjualan
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Penjualan;
-</file>
-
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-
-const App = () => {
-  return (
-    <HelmetProvider>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<RootLayout />}>
-              <Route index element={<Dashboard />} />
-
-              <Route path="management/penjualan" element={<Penjualan />} />
-              <Route path="management/kavling" element={<Kavling />} />
-              <Route path="management/notaris" element={<Notaris />} />
-              <Route path="management/bank" element={<Bank />} />
-
-              <Route path="customer/data-sosial" element={<DataSosial />} />
-              <Route path="customer/spr" element={<SPR />} />
-              <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-              <Route path="customer/kavling" element={<CustomerKavling />} />
-
-              <Route path="marketing/agents" element={<Agents />} />
-              <Route path="marketing/fee-agent" element={<FeeAgent />} />
-
-              <Route path="proyek/spk" element={<SPK />} />
-              <Route path="proyek/progress" element={<Progress />} />
-            </Route>
-
-            <Route path="/login" element={<p>login</p>} />
-
-            <Route element={<p>test protected route</p>}>
-              <Route path="/test" element={<p>test</p>} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </HelmetProvider>
-  );
-};
-
-export default App;
 </file>
 
 <file path="src/pages/Management/Kavling.tsx">
@@ -2592,6 +3028,72 @@ const Kavling = () => {
 };
 
 export default Kavling;
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+
+const App = () => {
+  return (
+    <HelmetProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<RootLayout />}>
+              <Route index element={<Dashboard />} />
+
+              <Route path="management/penjualan" element={<Penjualan />} />
+              <Route path="management/kavling" element={<Kavling />} />
+              <Route path="management/notaris" element={<Notaris />} />
+              <Route path="management/bank" element={<Bank />} />
+
+              <Route path="customer/data-sosial" element={<DataSosial />} />
+              <Route path="customer/spr" element={<SPR />} />
+              <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+              <Route path="customer/kavling" element={<CustomerKavling />} />
+
+              <Route path="marketing/agents" element={<Agents />} />
+              <Route path="marketing/fee-agent" element={<FeeAgent />} />
+
+              <Route path="proyek/spk" element={<SPK />} />
+              <Route path="proyek/progress" element={<Progress />} />
+            </Route>
+
+            <Route path="/login" element={<p>login</p>} />
+
+            <Route element={<p>test protected route</p>}>
+              <Route path="/test" element={<p>test</p>} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </HelmetProvider>
+  );
+};
+
+export default App;
 </file>
 
 </files>
