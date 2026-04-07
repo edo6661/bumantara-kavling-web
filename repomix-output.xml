@@ -1,0 +1,222 @@
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/components/layouts/RootLayout.tsx">
+import { Outlet } from 'react-router-dom';
+
+const RootLayout = () => {
+
+  return (
+    <main>
+      <Outlet />
+    </main>
+  );
+};
+
+export default RootLayout;
+</file>
+
+<file path="src/components/Sidebar.tsx">
+import React from 'react'
+
+const Sidebar = () => {
+  return (
+    <div>Sidebar</div>
+  )
+}
+
+export default Sidebar
+</file>
+
+<file path="src/pages/Dashboard.tsx">
+const Dashboard = () => {
+  return (
+    <>
+      <h1>
+        Dashboardpage
+      </h1>
+    </>
+  );
+};
+
+export default Dashboard;
+</file>
+
+<file path="src/pages/PageLoader.tsx">
+const PageLoader = () => (
+
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="w-16 h-16 border-t-2 border-accent border-solid rounded-full animate-spin"></div>
+  </div>
+);
+
+export default PageLoader
+</file>
+
+<file path="src/assets/FAST_Favicons/Icon_">
+
+</file>
+
+<file path="src/assets/FAST_Logo_JPEG/Icon_">
+
+</file>
+
+<file path="src/assets/FAST_Logo_PNG/Icon_">
+
+</file>
+
+<file path="src/main.tsx">
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <App />
+);
+</file>
+
+<file path="src/index.css">
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-heading: "", var(--font-sans);
+
+  --radius-btn: 4px;
+  --radius-card: 8px;
+}
+
+:root {
+  --section-padding-y: 6rem;
+  --transition-base: all 0.3s ease-in-out;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  background-color: var(--theme-background);
+  color: var(--theme-foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: 0.05em;
+}
+</file>
+
+<file path="src/pages/Home.tsx">
+const Home = () => {
+  return (
+    <>
+      <h1>
+        Homepage
+      </h1>
+    </>
+  );
+};
+
+export default Home;
+</file>
+
+<file path="package.json">
+{
+  "name": "landing-page",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.0",
+    "framer-motion": "^12.38.0",
+    "i18next": "^25.8.11",
+    "lucide-react": "^0.575.0",
+    "motion": "^12.34.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.2",
+    "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.3.1"
+  }
+}
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+
+const Home = lazy(() => import('./pages/Home'));
+
+
+
+const App = () => {
+  return (
+    <HelmetProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<RootLayout />}>
+              <Route index element={<Home />} />
+            </Route>
+
+            <Route path="/login" element={<p>login</p>} />
+
+            <Route element={<p>test protected route</p>}>
+              <Route path="" element={<p>
+                test
+              </p>} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </HelmetProvider >
+  );
+};
+
+export default App;
+</file>
+
+<file path="src/components/Navbar.tsx">
+import React from 'react'
+
+const Navbar = () => {
+  return (
+    <div>Navbar</div>
+  )
+}
+
+export default Navbar
+</file>
+
+</files>

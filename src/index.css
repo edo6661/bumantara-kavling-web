@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-heading: "", var(--font-sans);
+
+  --radius-btn: 4px;
+  --radius-card: 8px;
+
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover-bg: var(--sidebar-hover-bg);
+  --color-sidebar-active-bg: var(--sidebar-active-bg);
+  --color-sidebar-active-text: var(--sidebar-active-text);
+  --color-sidebar-submenu-bg: var(--sidebar-submenu-bg);
+}
+
+:root {
+  --section-padding-y: 6rem;
+  --transition-base: all 0.3s ease-in-out;
+
+  --theme-background: #ffffff;
+  --theme-foreground: #000000;
+
+  /* Sidebar Black & White Theme */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #000000;
+  --sidebar-border: #e5e5e5;
+  --sidebar-hover-bg: #f3f4f6;
+  --sidebar-active-bg: #000000;
+  --sidebar-active-text: #ffffff;
+  --sidebar-submenu-bg: #fafafa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-background: #000000;
+    --theme-foreground: #ffffff;
+
+    --sidebar-bg: #000000;
+    --sidebar-text: #ffffff;
+    --sidebar-border: #262626;
+    --sidebar-hover-bg: #171717;
+    --sidebar-active-bg: #ffffff;
+    --sidebar-active-text: #000000;
+    --sidebar-submenu-bg: #0a0a0a;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  background-color: var(--theme-background);
+  color: var(--theme-foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: 0.05em;
+}

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Mencegah bot merayapi file yang tidak perlu (opsional untuk React/Vite)
+Disallow: /assets/
+Disallow: /*.json$
+
+Sitemap: https://www.famindofast.com/sitemap.xml
