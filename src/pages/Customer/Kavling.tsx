@@ -1,88 +1,65 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatDate } from "../../utils/formatters";
+import { formatRupiah } from "../../utils/formatters";
+
+// Data dummy untuk simulasi relasi ID -> Nama di Frontend
+const mockCustomers = [
+  { value: 'CUST-001', label: 'Budi Santoso' },
+  { value: 'CUST-002', label: 'Siti Aminah' }
+];
+
+const mockKavling = [
+  { value: 'KAV-001', label: 'Bumantara - Blok A-01 (Tipe 45/90)' },
+  { value: 'KAV-002', label: 'Bumantara - Blok B-12 (Tipe 36/72)' }
+];
 
 interface PenjualanData {
   id: string;
-  tanggal: string;
-  nama: string;
-  alamat: string;
-  noTelepon: string;
-  noIdentitas: string;
-  perusahaan: string;
-  alamatKoresponden: string;
-  perumahan: string;
-  blok: string;
-  tipe: string;
-  nomorUnit: string;
-  hargaJual: number;
+  customerId: string;
+  kavlingId: string;
   diskonPenjualan: number;
-  paketPromosi: string;
   bank: string;
   caraPembayaran: string;
   nilaiPengajuanKpr: number;
-  fileKtp: string;
-  fileKk: string;
-  fileNpwp: string;
-  bookingFee: number;
   rekeningTujuan: string;
-  status: string;
+  bookingFee: number;
 }
 
 const initialFormState: PenjualanData = {
   id: '',
-  tanggal: '',
-  nama: '',
-  alamat: '',
-  noTelepon: '',
-  noIdentitas: '',
-  perusahaan: '',
-  alamatKoresponden: '',
-  perumahan: '',
-  blok: '',
-  tipe: '',
-  nomorUnit: '',
-  hargaJual: 0,
+  customerId: '',
+  kavlingId: '',
   diskonPenjualan: 0,
-  paketPromosi: '',
   bank: '',
   caraPembayaran: '',
   nilaiPengajuanKpr: 0,
-  fileKtp: '',
-  fileKk: '',
-  fileNpwp: '',
-  bookingFee: 5000000, // Fixed 5 Juta
   rekeningTujuan: '',
-  status: 'Booked',
+  bookingFee: 5000000, // Fixed 5 Juta
 };
 
-const Penjualan = () => {
+const CustomerKavling = () => {
   const [data, setData] = useState<PenjualanData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
   const [isEditing, setIsEditing] = useState(false);
 
+  // Helper untuk menampilkan nama di tabel
+  const getCustomerName = (id: string) => mockCustomers.find(c => c.value === id)?.label || '-';
+  const getKavlingInfo = (id: string) => mockKavling.find(k => k.value === id)?.label || '-';
+
   const columns = [
-    { header: 'ID Transaksi', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    { header: 'Nama Customer', accessor: 'nama' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Nama Customer', accessor: 'customerId', render: (val: string) => getCustomerName(val) },
+    { header: 'Kavling', accessor: 'kavlingId', render: (val: string) => getKavlingInfo(val) },
     { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
+    { header: 'Diskon', accessor: 'diskonPenjualan', render: (val: number) => formatRupiah(val) },
     {
       header: 'Status',
-      accessor: 'status',
-      render: (val: string) => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-          {val}
-        </span>
-      )
+      accessor: 'id', // Dummy status based on existence
+      render: () => <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">Booked</span>
     },
   ];
 
@@ -91,10 +68,7 @@ const Penjualan = () => {
       setFormData(item);
       setIsEditing(true);
     } else {
-      setFormData({
-        ...initialFormState,
-        tanggal: new Date().toISOString().split('T')[0]
-      });
+      setFormData(initialFormState);
       setIsEditing(false);
     }
     setErrors({});
@@ -109,6 +83,7 @@ const Penjualan = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
 
+    // Auto-reset field KPR jika metode pembayaran diganti
     if (name === 'caraPembayaran' && value !== 'KPR') {
       setFormData(prev => ({ ...prev, [name]: value, bank: '', nilaiPengajuanKpr: 0 }));
     } else {
@@ -121,19 +96,10 @@ const Penjualan = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-
   const validateForm = () => {
     const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
+    if (!formData.customerId) newErrors.customerId = 'Customer wajib dipilih';
+    if (!formData.kavlingId) newErrors.kavlingId = 'Kavling wajib dipilih';
     if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
     if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
 
@@ -153,14 +119,13 @@ const Penjualan = () => {
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
-      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
+      setData((prev) => [...prev, { ...formData, id: Date.now().toString() }]);
     }
     closeModal();
   };
 
   const handleDelete = (item: PenjualanData) => {
-    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
+    if (window.confirm(`Hapus data penjualan untuk customer ini?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
@@ -168,7 +133,7 @@ const Penjualan = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title="Data Penjualan"
+        title="Data Penjualan Kavling (Customer)"
         columns={columns}
         data={data}
         onAdd={() => openModal()}
@@ -176,42 +141,35 @@ const Penjualan = () => {
         onDelete={handleDelete}
       />
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Data Penjualan"}>
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Data Pembeli */}
+          {/* Bagian 1: Data Utama */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
-              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
-              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
-              <div className="md:col-span-2">
-                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
-              </div>
+              <Select
+                label="Nama Customer"
+                name="customerId"
+                value={formData.customerId}
+                onChange={handleChange}
+                options={mockCustomers}
+                error={errors.customerId}
+              />
+              <Select
+                label="Pilih Kavling"
+                name="kavlingId"
+                value={formData.kavlingId}
+                onChange={handleChange}
+                options={mockKavling}
+                error={errors.kavlingId}
+              />
             </div>
           </div>
 
-          {/* Data Kavling */}
+          {/* Bagian 2: Skema Pembayaran */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} placeholder="Contoh: Free AC / Cashback" />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} />
-            </div>
-          </div>
-
-          {/* Skema Pembayaran */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Skema Pembayaran</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select
                 label="Cara Pembayaran"
@@ -231,9 +189,11 @@ const Penjualan = () => {
                 name="diskonPenjualan"
                 value={formData.diskonPenjualan || ''}
                 onChange={handleChange}
+                error={errors.diskonPenjualan}
               />
             </div>
 
+            {/* Conditional Rendering Khusus KPR */}
             {formData.caraPembayaran === 'KPR' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
                 <Input
@@ -256,31 +216,12 @@ const Penjualan = () => {
             )}
           </div>
 
-          {/* Dokumen Opsional */}
+          {/* Bagian 3: Pembayaran Booking */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
-                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
-                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
-                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Pembayaran Booking */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Pembayaran Booking Fee</h4>
             <div className="grid grid-cols-1 gap-4">
               <Input
-                label="Booking Fee (Fixed Rp)"
+                label="Booking Fee (Rp)"
                 type="number"
                 name="bookingFee"
                 value={formData.bookingFee}
@@ -293,8 +234,8 @@ const Penjualan = () => {
                 value={formData.rekeningTujuan}
                 onChange={handleChange}
                 options={[
-                  { value: 'BSI-Gajah', label: 'Bank BSI No Rekening : 7326575644 a/n PT. Bintang Safana Gajah' },
-                  { value: 'BSI-Mahligai', label: 'Bank BSI No Rekening : 7326573692 a/n PT. Bintang Safana Mahligai' }
+                  { value: '7326575644', label: 'Bank BSI - 7326575644 a/n PT. Bintang Safana Gajah' },
+                  { value: '7326573692', label: 'Bank BSI - 7326573692 a/n PT. Bintang Safana Mahligai' }
                 ]}
                 error={errors.rekeningTujuan}
               />
@@ -306,7 +247,7 @@ const Penjualan = () => {
               Batal
             </button>
             <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
-              Simpan Penjualan
+              Simpan Data Penjualan
             </button>
           </div>
         </form>
@@ -315,4 +256,4 @@ const Penjualan = () => {
   );
 };
 
-export default Penjualan;
+export default CustomerKavling;

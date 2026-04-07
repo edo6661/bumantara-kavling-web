@@ -19,6 +19,8 @@ const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
 const Progress = lazy(() => import('./pages/Proyek/Progress'));
 
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+
 const App = () => {
   return (
     <HelmetProvider>
@@ -40,6 +42,9 @@ const App = () => {
 
               <Route path="proyek/spk" element={<SPK />} />
               <Route path="proyek/progress" element={<Progress />} />
+
+
+              <Route path="customer/kavling" element={<CustomerKavling />} />
             </Route>
 
             <Route path="/login" element={<p>login</p>} />
