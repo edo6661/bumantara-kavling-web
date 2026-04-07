@@ -13,7 +13,8 @@ const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
 const SPR = lazy(() => import('./pages/Customer/SPR'));
 const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
 
-const TimMarketing = lazy(() => import('./pages/TimMarketing/TimMarketing'));
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
 
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
 const Progress = lazy(() => import('./pages/Proyek/Progress'));
@@ -34,7 +35,8 @@ const App = () => {
               <Route path="customer/spr" element={<SPR />} />
               <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
 
-              <Route path="tim-marketing" element={<TimMarketing />} />
+              <Route path="marketing/agents" element={<Agents />} />
+              <Route path="marketing/fee-agent" element={<FeeAgent />} />
 
               <Route path="proyek/spk" element={<SPK />} />
               <Route path="proyek/progress" element={<Progress />} />

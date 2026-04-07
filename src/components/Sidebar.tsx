@@ -38,11 +38,10 @@ const menuItems = [
   },
   {
     title: 'Marketing',
-    path: '/marketing',
     icon: <UserCircle size={20} />,
     submenus: [
-      { title: 'Agents', path: '/customer/agents' },
-      { title: 'Fee Agent', path: '/customer/fee-agent' },
+      { title: 'Agents', path: '/marketing/agents' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent' },
     ],
   },
   {

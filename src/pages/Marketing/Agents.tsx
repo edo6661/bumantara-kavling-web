@@ -3,62 +3,53 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 
-interface CustomerData {
+interface AgentData {
   id: string;
-  nama: string;
-  alamatKtp: string;
-  alamatTinggal: string;
   nik: string;
+  nama: string;
+  alamat: string;
   noHp: string;
   email: string;
-  pekerjaan: string;
-  bank: string;
 }
 
-const initialFormState: CustomerData = {
+const initialFormState: AgentData = {
   id: '',
-  nama: '',
-  alamatKtp: '',
-  alamatTinggal: '',
   nik: '',
+  nama: '',
+  alamat: '',
   noHp: '',
-  email: '',
-  pekerjaan: '',
-  bank: ''
+  email: ''
 };
 
-const DataSosial = () => {
+const Agents = () => {
   // State untuk Data Table
-  const [data, setData] = useState<CustomerData[]>([
+  const [data, setData] = useState<AgentData[]>([
     {
       id: '1',
-      nama: 'Budi Santoso',
-      alamatKtp: 'Jl. Merdeka No. 1, Tangerang',
-      alamatTinggal: 'Jl. Merdeka No. 1, Tangerang',
       nik: '3671012345670001',
+      nama: 'Andi Pratama',
+      alamat: 'Jl. Sudirman No. 10, Jakarta',
       noHp: '081234567890',
-      email: 'budi@example.com',
-      pekerjaan: 'Pegawai Swasta',
-      bank: 'BCA'
+      email: 'andi@example.com'
     }
   ]);
 
   // State untuk Modal & Form
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<CustomerData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<CustomerData>>({});
+  const [formData, setFormData] = useState<AgentData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<AgentData>>({});
   const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
     { header: 'NIK', accessor: 'nik' },
-    { header: 'Nama Lengkap', accessor: 'nama' },
+    { header: 'Nama Agent', accessor: 'nama' },
     { header: 'No. WhatsApp', accessor: 'noHp' },
-    { header: 'Pekerjaan', accessor: 'pekerjaan' },
-    { header: 'Bank', accessor: 'bank' },
+    { header: 'Email', accessor: 'email' },
+    { header: 'Alamat', accessor: 'alamat' },
   ];
 
   // Handler Buka/Tutup Modal
-  const openModal = (item?: CustomerData) => {
+  const openModal = (item?: AgentData) => {
     if (item) {
       setFormData(item);
       setIsEditing(true);
@@ -79,17 +70,16 @@ const DataSosial = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Hapus error saat user mulai mengetik
-    if (errors[name as keyof CustomerData]) {
+    if (errors[name as keyof AgentData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
   // Validasi Dasar
   const validateForm = () => {
-    const newErrors: Partial<CustomerData> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    const newErrors: Partial<AgentData> = {};
     if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
     if (!formData.email.trim()) newErrors.email = 'Email wajib diisi';
 
@@ -112,8 +102,8 @@ const DataSosial = () => {
   };
 
   // Delete Data
-  const handleDelete = (item: CustomerData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus data ${item.nama}?`)) {
+  const handleDelete = (item: AgentData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
@@ -121,7 +111,7 @@ const DataSosial = () => {
   return (
     <div className="space-y-6">
       <DataTable
-        title="Data Sosial Customer"
+        title="Data Agent Marketing"
         columns={columns}
         data={data}
         onAdd={() => openModal()}
@@ -132,18 +122,10 @@ const DataSosial = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={isEditing ? "Edit Data Sosial Customer" : "Tambah Data Sosial Customer"}
+        title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Nama Sesuai KTP"
-              name="nama"
-              value={formData.nama}
-              onChange={handleChange}
-              error={errors.nama}
-              placeholder="Masukkan nama lengkap"
-            />
+          <div className="grid grid-cols-1 gap-4">
             <Input
               label="NIK"
               name="nik"
@@ -153,18 +135,12 @@ const DataSosial = () => {
               placeholder="Masukkan 16 digit NIK"
             />
             <Input
-              label="Alamat Sesuai KTP"
-              name="alamatKtp"
-              value={formData.alamatKtp}
+              label="Nama Lengkap"
+              name="nama"
+              value={formData.nama}
               onChange={handleChange}
-              placeholder="Masukkan alamat KTP"
-            />
-            <Input
-              label="Alamat Tinggal Sekarang"
-              name="alamatTinggal"
-              value={formData.alamatTinggal}
-              onChange={handleChange}
-              placeholder="Masukkan alamat domisili"
+              error={errors.nama}
+              placeholder="Masukkan nama agent"
             />
             <Input
               label="No. WhatsApp / HP"
@@ -184,18 +160,11 @@ const DataSosial = () => {
               placeholder="email@example.com"
             />
             <Input
-              label="Pekerjaan"
-              name="pekerjaan"
-              value={formData.pekerjaan}
+              label="Alamat Lengkap"
+              name="alamat"
+              value={formData.alamat}
               onChange={handleChange}
-              placeholder="PNS / Swasta / Wiraswasta"
-            />
-            <Input
-              label="Bank / Bank KPR"
-              name="bank"
-              value={formData.bank}
-              onChange={handleChange}
-              placeholder="BCA / Mandiri / BTN"
+              placeholder="Masukkan alamat lengkap agent"
             />
           </div>
 
@@ -220,4 +189,4 @@ const DataSosial = () => {
   );
 };
 
-export default DataSosial;
+export default Agents;
