@@ -6,7 +6,7 @@ import Input from "../../components/shared/Input";
 import FileInput from "../../components/shared/FileInput";
 interface FeeData {
   id: string;
-  namaMarketing: string;
+  namaAgent: string;
   bookingNominal: string;
   bookingTanggal: string;
   bookingBukti: string;
@@ -19,7 +19,7 @@ interface FeeData {
 }
 const initialFormState: FeeData = {
   id: '',
-  namaMarketing: '',
+  namaAgent: '',
   bookingNominal: '',
   bookingTanggal: '',
   bookingBukti: '',
@@ -34,7 +34,7 @@ const FeeAgent = () => {
   const [data, setData] = useState<FeeData[]>([
     {
       id: '1',
-      namaMarketing: 'Andi Pratama',
+      namaAgent: 'Andi Pratama',
       bookingNominal: '1000000',
       bookingTanggal: '2026-04-01',
       bookingBukti: 'tf_booking_andi.jpg',
@@ -51,7 +51,7 @@ const FeeAgent = () => {
   const [errors, setErrors] = useState<Partial<FeeData>>({});
   const [isEditing, setIsEditing] = useState(false);
   const columns = [
-    { header: 'Nama Marketing', accessor: 'namaMarketing' },
+    { header: 'Nama Agent', accessor: 'namaAgent' },
     {
       header: 'Booking Fee',
       accessor: 'bookingNominal',
@@ -98,7 +98,7 @@ const FeeAgent = () => {
   };
   const validateForm = () => {
     const newErrors: Partial<FeeData> = {};
-    if (!formData.namaMarketing.trim()) newErrors.namaMarketing = 'Nama marketing wajib diisi';
+    if (!formData.namaAgent.trim()) newErrors.namaAgent = 'Nama Agent wajib diisi';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -114,7 +114,7 @@ const FeeAgent = () => {
     closeModal();
   };
   const handleDelete = (item: FeeData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus data fee ${item.namaMarketing}?`)) {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus data fee ${item.namaAgent}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
@@ -136,11 +136,11 @@ const FeeAgent = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <Input
-              label="Nama Marketing"
-              name="namaMarketing"
-              value={formData.namaMarketing}
+              label="Nama Agent"
+              name="namaAgent"
+              value={formData.namaAgent}
               onChange={handleChange}
-              error={errors.namaMarketing}
+              error={errors.namaAgent}
               placeholder="Masukkan nama agent marketing"
             />
           </div>

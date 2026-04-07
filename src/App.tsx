@@ -8,18 +8,19 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
 const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
 
 const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
 const SPR = lazy(() => import('./pages/Customer/SPR'));
 const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
 
 const Agents = lazy(() => import('./pages/Marketing/Agents'));
 const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
 
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
 const Progress = lazy(() => import('./pages/Proyek/Progress'));
-
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
 
 const App = () => {
   return (
@@ -32,19 +33,19 @@ const App = () => {
 
               <Route path="management/penjualan" element={<Penjualan />} />
               <Route path="management/kavling" element={<Kavling />} />
+              <Route path="management/notaris" element={<Notaris />} />
+              <Route path="management/bank" element={<Bank />} />
 
               <Route path="customer/data-sosial" element={<DataSosial />} />
               <Route path="customer/spr" element={<SPR />} />
               <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+              <Route path="customer/kavling" element={<CustomerKavling />} />
 
               <Route path="marketing/agents" element={<Agents />} />
               <Route path="marketing/fee-agent" element={<FeeAgent />} />
 
               <Route path="proyek/spk" element={<SPK />} />
               <Route path="proyek/progress" element={<Progress />} />
-
-
-              <Route path="customer/kavling" element={<CustomerKavling />} />
             </Route>
 
             <Route path="/login" element={<p>login</p>} />
@@ -55,7 +56,7 @@ const App = () => {
           </Routes>
         </Suspense>
       </BrowserRouter>
-    </HelmetProvider >
+    </HelmetProvider>
   );
 };
 

@@ -1,37 +1,34 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
-
 interface Column {
   header: string;
   accessor: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, row: any) => React.ReactNode;
 }
-
 interface DataTableProps {
   title: string;
   columns: Column[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[];
-  onAdd: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onAdd?: () => void;
   onEdit?: (item: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onDelete?: (item: any) => void;
 }
-
 const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableProps) => {
   return (
     <div className="bg-white rounded-radius-card shadow-sm border border-sidebar-border overflow-hidden">
       <div className="p-5 border-b border-sidebar-border flex justify-between items-center">
         <h2 className="text-lg font-heading font-semibold text-gray-900">{title}</h2>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-radius-btn hover:bg-gray-800 transition-colors text-sm font-medium cursor-pointer"
-        >
-          <Plus size={16} />
-          Tambah
-        </button>
+        {/* Render tombol Tambah hanya jika onAdd tersedia */}
+        {onAdd && (
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-radius-btn hover:bg-gray-800 transition-colors text-sm font-medium cursor-pointer"
+          >
+            <Plus size={16} />
+            Tambah
+          </button>
+        )}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left">
@@ -99,5 +96,4 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableP
     </div>
   );
 };
-
 export default DataTable;
