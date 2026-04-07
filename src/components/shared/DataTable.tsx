@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, Inbox } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileX2 } from 'lucide-react';
 
 interface Column {
   header: string;
@@ -33,58 +33,65 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableP
   }, [data, searchTerm, columns]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/30">
-        <h2 className="text-lg font-heading font-bold text-gray-900">{title}</h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+      {/* Header & Toolbar */}
+      <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
+        <div>
+          <h2 className="text-lg font-heading font-bold text-gray-900">{title}</h2>
+          <p className="text-sm text-gray-500 mt-0.5 font-medium">
+            Total {filteredData.length} data ditemukan
+          </p>
+        </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-72 group">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-400" />
+              <Search size={18} className="text-gray-400 group-focus-within:text-black transition-colors duration-200" />
             </div>
             <input
               type="text"
               placeholder="Cari data..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black hover:border-gray-300 transition-all shadow-sm text-gray-900"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black hover:bg-white hover:border-gray-300 transition-all shadow-sm text-gray-900 placeholder:text-gray-400"
             />
           </div>
 
           {onAdd && (
             <button
               onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2.5 rounded-lg hover:bg-gray-800 transition-all duration-200 shadow-sm text-sm font-semibold cursor-pointer active:scale-[0.98]"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2.5 rounded-lg hover:bg-gray-800 hover:shadow-md transition-all duration-200 font-medium text-sm active:scale-[0.98] cursor-pointer"
             >
               <Plus size={18} />
-              Tambah
+              Tambah Data
             </button>
           )}
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-gray-500 uppercase bg-white border-b border-gray-100 whitespace-nowrap">
+      {/* Table Container */}
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead className="bg-gray-50/80 text-gray-500 text-xs uppercase font-semibold tracking-wider border-b border-gray-200">
             <tr>
               {columns.map((col, index) => (
-                <th key={index} className="px-6 py-4 font-semibold tracking-wider">
+                <th key={index} className="px-6 py-4 whitespace-nowrap">
                   {col.header}
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-4 font-semibold tracking-wider text-center w-28">
+                <th className="px-6 py-4 text-center whitespace-nowrap w-28">
                   Aksi
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 bg-white">
             {filteredData.length > 0 ? (
               filteredData.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
-                  className="bg-white hover:bg-gray-50/80 transition-colors duration-150"
+                  className="hover:bg-gray-50/50 transition-colors duration-150 group"
                 >
                   {columns.map((col, colIndex) => (
                     <td key={colIndex} className="px-6 py-4 text-gray-700 whitespace-nowrap">
@@ -117,18 +124,18 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableP
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="px-6 py-16">
-                  <div className="flex flex-col items-center justify-center text-center">
-                    <div className="bg-gray-50 p-4 rounded-full mb-3">
-                      <Inbox size={32} strokeWidth={1.5} className="text-gray-400" />
+                <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="px-6 py-20">
+                  <div className="flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
+                    <div className="bg-gray-50 p-4 rounded-full mb-4 ring-8 ring-gray-50/50">
+                      <FileX2 size={32} strokeWidth={1.5} className="text-gray-400" />
                     </div>
-                    <p className="text-base font-semibold text-gray-900">
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">
                       {searchTerm ? 'Data tidak ditemukan' : 'Belum ada data'}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1 max-w-sm">
+                    </h3>
+                    <p className="text-sm text-gray-500 max-w-sm">
                       {searchTerm
-                        ? `Pencarian "${searchTerm}" tidak cocok dengan data manapun. Coba gunakan kata kunci lain.`
-                        : 'Silakan klik tombol "Tambah" di atas untuk memasukkan data baru ke dalam tabel.'}
+                        ? `Pencarian untuk "${searchTerm}" tidak membuahkan hasil. Coba kata kunci lain.`
+                        : 'Silakan tambahkan data baru dengan mengklik tombol "Tambah Data" di pojok kanan atas.'}
                     </p>
                   </div>
                 </td>

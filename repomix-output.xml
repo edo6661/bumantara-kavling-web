@@ -1,4 +1,83 @@
-tolong ui ux nya perbaiki dan diperbagus, bertahap ya, pelan pelan saja.
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json
+- Files matching these patterns are excluded: **/*.test.ts
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+package.json
+src/App.tsx
+src/components/layouts/RootLayout.tsx
+src/components/Navbar.tsx
+src/components/shared/DataTable.tsx
+src/components/shared/FileInput.tsx
+src/components/shared/Input.tsx
+src/components/shared/Modal.tsx
+src/components/shared/Select.tsx
+src/components/Sidebar.tsx
+src/index.css
+src/main.tsx
+src/pages/Customer/DataSosial.tsx
+src/pages/Customer/Kavling.tsx
+src/pages/Customer/KelengkapanAdministrasi.tsx
+src/pages/Customer/SPR.tsx
+src/pages/Dashboard.tsx
+src/pages/Home.tsx
+src/pages/Management/Bank.tsx
+src/pages/Management/Kavling.tsx
+src/pages/Management/Notaris.tsx
+src/pages/Management/Penjualan.tsx
+src/pages/Marketing/Agents.tsx
+src/pages/Marketing/FeeAgent.tsx
+src/pages/PageLoader.tsx
+src/pages/Proyek/Progress.tsx
+src/pages/Proyek/SPK.tsx
+src/pages/TimMarketing/TimMarketing.tsx
+src/utils/formatters.ts
+tsconfig.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
 <file path="package.json">
 {
   "name": "bumantara-kavling",
@@ -37,106 +116,6 @@ tolong ui ux nya perbaiki dan diperbagus, bertahap ya, pelan pelan saja.
     "vite": "^7.3.1"
   }
 }
-</file>
-
-<file path="src/components/shared/FileInput.tsx">
-import type { InputHTMLAttributes } from 'react';
-
-interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  error?: string;
-}
-
-const FileInput = ({ label, error, ...props }: FileInputProps) => {
-  return (
-    <div className="flex flex-col gap-1 mb-4">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      <input
-        type="file"
-        className={`block w-full text-sm text-gray-500
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-md file:border-0
-          file:text-sm file:font-semibold
-          file:bg-gray-100 file:text-gray-700
-          hover:file:bg-gray-200
-          border rounded-md px-3 py-2
-          focus:outline-none focus:ring-2 transition-colors
-          ${error ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'}
-          bg-white cursor-pointer
-        `}
-        {...props}
-      />
-      {error && <span className="text-xs text-red-500">{error}</span>}
-    </div>
-  );
-};
-
-export default FileInput;
-</file>
-
-<file path="src/components/shared/Input.tsx">
-import type { InputHTMLAttributes } from 'react';
-
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  error?: string;
-}
-
-const Input = ({ label, error, ...props }: InputProps) => {
-  return (
-    <div className="flex flex-col gap-1 mb-4">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      <input
-        className={`px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${error
-          ? 'border-red-500 focus:ring-red-200'
-          : 'border-gray-300 focus:ring-blue-200'
-          } bg-white text-black`}
-        {...props}
-      />
-      {error && <span className="text-xs text-red-500">{error}</span>}
-    </div>
-  );
-};
-
-export default Input;
-</file>
-
-<file path="src/components/shared/Select.tsx">
-import type { SelectHTMLAttributes } from 'react';
-
-interface Option {
-  value: string | number;
-  label: string;
-}
-
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;
-  options: Option[];
-  error?: string;
-}
-
-const Select = ({ label, options, error, ...props }: SelectProps) => {
-  return (
-    <div className="flex flex-col gap-1 mb-4">
-      <label className="text-sm font-medium text-gray-700">{label}</label>
-      <select
-        className={`px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${error ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'
-          } bg-white text-black`}
-        {...props}
-      >
-        <option value="" disabled>Pilih {label}...</option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-      {error && <span className="text-xs text-red-500">{error}</span>}
-    </div>
-  );
-};
-
-export default Select;
 </file>
 
 <file path="src/index.css">
@@ -412,13 +391,17 @@ export default Bank;
 
 <file path="src/pages/PageLoader.tsx">
 const PageLoader = () => (
-
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="w-16 h-16 border-t-2 border-accent border-solid rounded-full animate-spin"></div>
+  <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50/80 backdrop-blur-sm">
+    <div className="relative flex items-center justify-center w-16 h-16">
+      <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+      <div className="absolute inset-0 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
+    </div>
+    <p className="mt-4 text-sm font-medium text-gray-500 animate-pulse">Memuat data...</p>
   </div>
 );
 
-export default PageLoader
+export default PageLoader;
 </file>
 
 <file path="src/pages/TimMarketing/TimMarketing.tsx">
@@ -507,90 +490,135 @@ export default defineConfig({
 });
 </file>
 
-<file path="src/components/layouts/RootLayout.tsx">
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '../Sidebar';
-import Navbar from '../Navbar';
+<file path="src/components/shared/FileInput.tsx">
+import type { InputHTMLAttributes } from 'react';
 
-const RootLayout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
 
+const FileInput = ({ label, error, ...props }: FileInputProps) => {
   return (
-    <div className="flex h-screen w-full bg-theme-background overflow-hidden">
-      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <Outlet />
-        </main>
-      </div>
+    <div className="flex flex-col gap-1.5 mb-4 group">
+      <label className="text-sm font-semibold text-gray-700 transition-colors group-focus-within:text-black">
+        {label}
+      </label>
+      <input
+        type="file"
+        className={`block w-full text-sm text-gray-600
+          file:mr-4 file:py-2.5 file:px-4
+          file:rounded-l-lg file:border-0
+          file:text-sm file:font-semibold
+          file:bg-black file:text-white
+          hover:file:bg-gray-800 file:transition-colors
+          file:cursor-pointer cursor-pointer
+          border rounded-lg shadow-sm transition-all duration-200
+          ${error
+            ? 'border-red-500 bg-red-50/30 focus:ring-4 focus:ring-red-500/15'
+            : 'border-gray-200 bg-gray-50/50 hover:bg-white hover:border-gray-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black'
+          }
+        `}
+        {...props}
+      />
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {error}
+        </span>
+      )}
     </div>
   );
 };
 
-export default RootLayout;
+export default FileInput;
 </file>
 
-<file path="src/components/Navbar.tsx">
-import { Menu } from 'lucide-react';
+<file path="src/components/shared/Input.tsx">
+import type { InputHTMLAttributes } from 'react';
 
-interface NavbarProps {
-  onMenuClick: () => void;
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
 }
 
-const Navbar = ({ onMenuClick }: NavbarProps) => {
+const Input = ({ label, error, ...props }: InputProps) => {
   return (
-    <header className="h-16 flex items-center px-4 border-b border-gray-200 bg-white md:hidden shrink-0">
-      <button
-        onClick={onMenuClick}
-        className="p-2 -ml-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-md cursor-pointer"
+    <div className="flex flex-col gap-1.5 mb-4 group">
+      <label className="text-sm font-semibold text-gray-700 transition-colors group-focus-within:text-black">
+        {label}
+      </label>
+      <input
+        className={`w-full px-4 py-2.5 text-sm rounded-lg border transition-all duration-200 outline-none text-gray-900 placeholder:text-gray-400 shadow-sm
+          ${error
+            ? 'border-red-500 bg-red-50/30 focus:ring-4 focus:ring-red-500/15 focus:border-red-500'
+            : 'border-gray-200 bg-gray-50/50 hover:bg-white hover:border-gray-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black'
+          }`}
+        {...props}
+      />
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Input;
+</file>
+
+<file path="src/components/shared/Select.tsx">
+import type { SelectHTMLAttributes } from 'react';
+
+interface Option {
+  value: string | number;
+  label: string;
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label: string;
+  options: Option[];
+  error?: string;
+}
+
+const Select = ({ label, options, error, ...props }: SelectProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group">
+      <label className="text-sm font-semibold text-gray-700 transition-colors group-focus-within:text-black">
+        {label}
+      </label>
+      <select
+        className={`w-full px-4 py-2.5 text-sm rounded-lg border transition-all duration-200 outline-none text-gray-900 cursor-pointer appearance-none shadow-sm
+          ${error
+            ? 'border-red-500 bg-red-50/30 focus:ring-4 focus:ring-red-500/15 focus:border-red-500'
+            : 'border-gray-200 bg-gray-50/50 hover:bg-white hover:border-gray-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black'
+          }`}
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+          backgroundPosition: 'right 0.75rem center',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: '1.25em 1.25em',
+          paddingRight: '2.5rem'
+        }}
+        {...props}
       >
-        <Menu size={24} />
-      </button>
-      <span className="font-heading font-bold text-lg text-gray-900">Bumantaraz</span>
-    </header>
-  );
-};
-
-export default Navbar;
-</file>
-
-<file path="src/components/shared/Modal.tsx">
-import { type ReactNode } from 'react';
-import { X } from 'lucide-react';
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-}
-
-const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-radius-card w-full max-w-2xl max-h-[90vh] md:max-h-[85vh] flex flex-col shadow-xl">
-        <div className="flex justify-between items-center p-4 md:p-5 border-b border-gray-200">
-          <h3 className="text-lg md:text-xl font-heading font-semibold text-gray-900">{title}</h3>
-          <button
-            onClick={onClose}
-            className="p-1 text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-4 md:p-5 overflow-y-auto">
-          {children}
-        </div>
-      </div>
+        <option value="" disabled className="text-gray-500">Pilih {label}...</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value} className="text-gray-900">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {error}
+        </span>
+      )}
     </div>
   );
 };
 
-export default Modal;
+export default Select;
 </file>
 
 <file path="src/main.tsx">
@@ -2299,178 +2327,133 @@ const SPK = () => {
 export default SPK;
 </file>
 
-<file path="src/components/Sidebar.tsx">
-import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Briefcase,
-  Users,
-  UserCircle,
-  FolderKanban,
-  ChevronDown,
-  ChevronUp,
-  X
-} from 'lucide-react';
+<file path="src/components/layouts/RootLayout.tsx">
+import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import Navbar from '../Navbar';
 
-const menuItems = [
-  {
-    title: 'Dashboard',
-    path: '/',
-    icon: <LayoutDashboard size={20} />,
-  },
-  {
-    title: 'Management',
-    icon: <Briefcase size={20} />,
-    submenus: [
-      { title: 'Penjualan', path: '/management/penjualan' },
-      { title: 'Kavling', path: '/management/kavling' },
-      { title: 'Notaris', path: '/management/notaris' },
-      { title: 'Bank', path: '/management/bank' },
-    ],
-  },
-  {
-    title: 'Customer',
-    icon: <Users size={20} />,
-    submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial' },
-      { title: 'SPR', path: '/customer/spr' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
-      { title: 'Kavling', path: '/customer/kavling' },
-    ],
-  },
-  {
-    title: 'Marketing',
-    icon: <UserCircle size={20} />,
-    submenus: [
-      { title: 'Agents', path: '/marketing/agents' },
-      { title: 'Fee Agent', path: '/marketing/fee-agent' },
-    ],
-  },
-  {
-    title: 'Proyek',
-    icon: <FolderKanban size={20} />,
-    submenus: [
-      { title: 'SPK', path: '/proyek/spk' },
-      { title: 'Progress', path: '/proyek/progress' },
-    ],
-  },
-];
-
-interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-}
-
-const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
-  const location = useLocation();
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    setIsOpen(false);
-  }, [location.pathname, setIsOpen]);
-
-  const toggleMenu = (title: string) => {
-    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-  };
-
-  const isActiveRoute = (path?: string, submenus?: { path: string }[]) => {
-    if (path && location.pathname === path) return true;
-    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
-    return false;
-  };
+const RootLayout = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg border-r border-sidebar-border text-sidebar-text flex flex-col transition-transform duration-300 ease-in-out shrink-0 md:static md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-      >
-        <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border shrink-0">
-          <span className="font-heading font-bold text-xl">Bumantaraz</span>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="md:hidden p-1 text-gray-500 hover:bg-gray-100 rounded-md cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-4">
-          <nav className="space-y-1 px-3">
-            {menuItems.map((item) => {
-              const isActive = isActiveRoute(item.path, item.submenus);
-              const isOpenMenu = openMenus[item.title] || isActive;
-
-              return (
-                <div key={item.title}>
-                  {item.submenus ? (
-                    <div>
-                      <button
-                        onClick={() => toggleMenu(item.title)}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-radius-btn transition-colors duration-200 cursor-pointer ${isActive
-                          ? 'bg-sidebar-hover-bg text-sidebar-text font-medium'
-                          : 'hover:bg-sidebar-hover-bg text-sidebar-text/80 hover:text-sidebar-text'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {item.icon}
-                          <span>{item.title}</span>
-                        </div>
-                        {isOpenMenu ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
-
-                      {isOpenMenu && (
-                        <div className="mt-1 mb-2 space-y-1 px-3 pb-2 border-l border-sidebar-border ml-5">
-                          {item.submenus.map((sub) => (
-                            <NavLink
-                              key={sub.title}
-                              to={sub.path}
-                              className={({ isActive }) =>
-                                `block px-3 py-2 rounded-radius-btn text-sm transition-colors duration-200 ${isActive
-                                  ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
-                                  : 'text-sidebar-text/70 hover:bg-sidebar-submenu-bg hover:text-sidebar-text'
-                                }`
-                              }
-                            >
-                              {sub.title}
-                            </NavLink>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <NavLink
-                      to={item.path!}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2.5 rounded-radius-btn transition-colors duration-200 ${isActive
-                          ? 'bg-sidebar-active-bg text-sidebar-active-text font-medium shadow-sm'
-                          : 'text-sidebar-text/80 hover:bg-sidebar-hover-bg hover:text-sidebar-text'
-                        }`
-                      }
-                    >
-                      {item.icon}
-                      <span>{item.title}</span>
-                    </NavLink>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
-    </>
+    <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans text-gray-900">
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
   );
 };
 
-export default Sidebar;
+export default RootLayout;
+</file>
+
+<file path="src/components/Navbar.tsx">
+import { Menu } from 'lucide-react';
+
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+const Navbar = ({ onMenuClick }: NavbarProps) => {
+  return (
+    <header className="h-16 flex items-center px-4 md:px-6 border-b border-gray-100 bg-white sticky top-0 z-30 shrink-0 md:hidden shadow-sm">
+      <button
+        onClick={onMenuClick}
+        className="p-2 -ml-2 mr-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+      >
+        <Menu size={24} />
+      </button>
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm">
+          B
+        </div>
+        <span className="font-heading font-bold text-lg text-gray-900 tracking-tight">Bumantaraz</span>
+      </div>
+    </header>
+  );
+};
+
+export default Navbar;
+</file>
+
+<file path="src/components/shared/Modal.tsx">
+import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]"
+            onClick={onClose}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: "spring", duration: 0.4, bounce: 0 }}
+            className="relative bg-white rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-gray-200 overflow-hidden pointer-events-auto"
+          >
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm shrink-0">
+              <h3 className="text-lg font-heading font-bold text-gray-900">{title}</h3>
+              <button
+                onClick={onClose}
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer"
+                title="Tutup"
+              >
+                <X size={20} strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar bg-white">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+export default Modal;
 </file>
 
 <file path="src/pages/Management/Penjualan.tsx">
@@ -2865,138 +2848,185 @@ const App = () => {
 export default App;
 </file>
 
-<file path="src/components/shared/DataTable.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search } from 'lucide-react';
+<file path="src/components/Sidebar.tsx">
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  UserCircle,
+  FolderKanban,
+  ChevronDown,
+  ChevronUp,
+  X
+} from 'lucide-react';
 
-interface Column {
-  header: string;
-  accessor: string;
-  render?: (value: any, row: any) => React.ReactNode;
+const menuItems = [
+  {
+    title: 'Dashboard',
+    path: '/',
+    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
+  },
+  {
+    title: 'Management',
+    icon: <Briefcase size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Penjualan', path: '/management/penjualan' },
+      { title: 'Kavling', path: '/management/kavling' },
+      { title: 'Notaris', path: '/management/notaris' },
+      { title: 'Bank', path: '/management/bank' },
+    ],
+  },
+  {
+    title: 'Customer',
+    icon: <Users size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Data Sosial', path: '/customer/data-sosial' },
+      { title: 'SPR', path: '/customer/spr' },
+      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
+      { title: 'Kavling', path: '/customer/kavling' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    icon: <UserCircle size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Agents', path: '/marketing/agents' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent' },
+    ],
+  },
+  {
+    title: 'Proyek',
+    icon: <FolderKanban size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'SPK', path: '/proyek/spk' },
+      { title: 'Progress', path: '/proyek/progress' },
+    ],
+  },
+];
+
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
-interface DataTableProps {
-  title: string;
-  columns: Column[];
-  data: any[];
-  onAdd?: () => void;
-  onEdit?: (item: any) => void;
-  onDelete?: (item: any) => void;
-}
+const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
+  const location = useLocation();
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
-const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname, setIsOpen]);
 
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return data;
-    const lowercasedTerm = searchTerm.toLowerCase();
-    return data.filter((row) => {
-      return columns.some((col) => {
-        const value = row[col.accessor];
-        if (value == null) return false;
-        return String(value).toLowerCase().includes(lowercasedTerm);
-      });
-    });
-  }, [data, searchTerm, columns]);
+  const toggleMenu = (title: string) => {
+    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const isActiveRoute = (path?: string, submenus?: { path: string }[]) => {
+    if (path && location.pathname === path) return true;
+    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
+    return false;
+  };
 
   return (
-    <div className="bg-white rounded-radius-card shadow-sm border border-sidebar-border overflow-hidden">
-      <div className="p-4 md:p-5 border-b border-sidebar-border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-lg font-heading font-semibold text-gray-900">{title}</h2>
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden transition-opacity"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full sm:w-64">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={16} className="text-gray-400" />
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-100 flex flex-col transition-transform duration-300 ease-in-out shrink-0 md:static md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          } shadow-2xl md:shadow-none`}
+      >
+        <div className="h-16 flex items-center justify-between px-6 border-b border-gray-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              B
             </div>
-            <input
-              type="text"
-              placeholder="Cari data..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors bg-gray-50 focus:bg-white text-gray-900"
-            />
+            <span className="font-heading font-bold text-xl tracking-tight text-gray-900">Bumantaraz</span>
           </div>
-
-          {onAdd && (
-            <button
-              onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-radius-btn hover:bg-gray-800 transition-colors text-sm font-medium cursor-pointer"
-            >
-              <Plus size={16} />
-              Tambah
-            </button>
-          )}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-gray-600 uppercase bg-gray-50 border-b border-sidebar-border whitespace-nowrap">
-            <tr>
-              {columns.map((col, index) => (
-                <th key={index} className="px-6 py-4 font-semibold tracking-wider">
-                  {col.header}
-                </th>
-              ))}
-              {(onEdit || onDelete) && (
-                <th className="px-6 py-4 font-semibold tracking-wider text-center w-28">
-                  Aksi
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.length > 0 ? (
-              filteredData.map((row, rowIndex) => (
-                <tr
-                  key={rowIndex}
-                  className="border-b border-sidebar-border hover:bg-gray-50 transition-colors"
-                >
-                  {columns.map((col, colIndex) => (
-                    <td key={colIndex} className="px-6 py-4 text-gray-900 whitespace-nowrap">
-                      {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
-                    </td>
-                  ))}
-                  {(onEdit || onDelete) && (
-                    <td className="px-6 py-4 flex justify-center gap-3 whitespace-nowrap">
-                      {onEdit && (
-                        <button
-                          onClick={() => onEdit(row)}
-                          className="text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-                          title="Edit"
-                        >
-                          <Edit2 size={18} />
-                        </button>
+
+        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar">
+          <nav className="space-y-1.5">
+            {menuItems.map((item) => {
+              const isActive = isActiveRoute(item.path, item.submenus);
+              const isOpenMenu = openMenus[item.title] || isActive;
+
+              return (
+                <div key={item.title}>
+                  {item.submenus ? (
+                    <div>
+                      <button
+                        onClick={() => toggleMenu(item.title)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer ${isActive
+                          ? 'bg-gray-50 text-black font-semibold'
+                          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={isActive ? 'text-black' : 'text-gray-400'}>{item.icon}</span>
+                          <span>{item.title}</span>
+                        </div>
+                        {isOpenMenu ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                      </button>
+
+                      {isOpenMenu && (
+                        <div className="mt-1 mb-3 space-y-1 px-4 pb-2 border-l-2 border-gray-100 ml-6">
+                          {item.submenus.map((sub) => (
+                            <NavLink
+                              key={sub.title}
+                              to={sub.path}
+                              className={({ isActive }) =>
+                                `block px-4 py-2.5 rounded-lg text-sm transition-all duration-200 ${isActive
+                                  ? 'bg-black text-white font-medium shadow-sm'
+                                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
+                                }`
+                              }
+                            >
+                              {sub.title}
+                            </NavLink>
+                          ))}
+                        </div>
                       )}
-                      {onDelete && (
-                        <button
-                          onClick={() => onDelete(row)}
-                          className="text-red-600 hover:text-red-800 transition-colors cursor-pointer"
-                          title="Hapus"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      )}
-                    </td>
+                    </div>
+                  ) : (
+                    <NavLink
+                      to={item.path!}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
+                          ? 'bg-black text-white font-medium shadow-sm'
+                          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
+                        }`
+                      }
+                    >
+                      <span className={isActiveRoute(item.path) ? 'text-white' : 'text-gray-400'}>
+                        {item.icon}
+                      </span>
+                      <span>{item.title}</span>
+                    </NavLink>
                   )}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="px-6 py-8 text-center text-gray-500">
-                  {searchTerm ? 'Data tidak ditemukan.' : 'Belum ada data.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+    </>
   );
 };
 
-export default DataTable;
+export default Sidebar;
 </file>
 
 <file path="src/pages/Management/Kavling.tsx">
@@ -3202,6 +3232,160 @@ const Kavling = () => {
 };
 
 export default Kavling;
+</file>
+
+<file path="src/components/shared/DataTable.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2 } from 'lucide-react';
+
+interface Column {
+  header: string;
+  accessor: string;
+  render?: (value: any, row: any) => React.ReactNode;
+}
+
+interface DataTableProps {
+  title: string;
+  columns: Column[];
+  data: any[];
+  onAdd?: () => void;
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+}
+
+const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete }: DataTableProps) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return data;
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, searchTerm, columns]);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+      {/* Header & Toolbar */}
+      <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
+        <div>
+          <h2 className="text-lg font-heading font-bold text-gray-900">{title}</h2>
+          <p className="text-sm text-gray-500 mt-0.5 font-medium">
+            Total {filteredData.length} data ditemukan
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-72 group">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-400 group-focus-within:text-black transition-colors duration-200" />
+            </div>
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black hover:bg-white hover:border-gray-300 transition-all shadow-sm text-gray-900 placeholder:text-gray-400"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2.5 rounded-lg hover:bg-gray-800 hover:shadow-md transition-all duration-200 font-medium text-sm active:scale-[0.98] cursor-pointer"
+            >
+              <Plus size={18} />
+              Tambah Data
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Table Container */}
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead className="bg-gray-50/80 text-gray-500 text-xs uppercase font-semibold tracking-wider border-b border-gray-200">
+            <tr>
+              {columns.map((col, index) => (
+                <th key={index} className="px-6 py-4 whitespace-nowrap">
+                  {col.header}
+                </th>
+              ))}
+              {(onEdit || onDelete) && (
+                <th className="px-6 py-4 text-center whitespace-nowrap w-28">
+                  Aksi
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 bg-white">
+            {filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => (
+                <tr
+                  key={rowIndex}
+                  className="hover:bg-gray-50/50 transition-colors duration-150 group"
+                >
+                  {columns.map((col, colIndex) => (
+                    <td key={colIndex} className="px-6 py-4 text-gray-700 whitespace-nowrap">
+                      {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
+                    </td>
+                  ))}
+                  {(onEdit || onDelete) && (
+                    <td className="px-6 py-4 flex justify-center gap-2 whitespace-nowrap">
+                      {onEdit && (
+                        <button
+                          onClick={() => onEdit(row)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 cursor-pointer"
+                          title="Edit"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                      )}
+                      {onDelete && (
+                        <button
+                          onClick={() => onDelete(row)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer"
+                          title="Hapus"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="px-6 py-20">
+                  <div className="flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
+                    <div className="bg-gray-50 p-4 rounded-full mb-4 ring-8 ring-gray-50/50">
+                      <FileX2 size={32} strokeWidth={1.5} className="text-gray-400" />
+                    </div>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">
+                      {searchTerm ? 'Data tidak ditemukan' : 'Belum ada data'}
+                    </h3>
+                    <p className="text-sm text-gray-500 max-w-sm">
+                      {searchTerm
+                        ? `Pencarian untuk "${searchTerm}" tidak membuahkan hasil. Coba kata kunci lain.`
+                        : 'Silakan tambahkan data baru dengan mengklik tombol "Tambah Data" di pojok kanan atas.'}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default DataTable;
 </file>
 
 </files>
