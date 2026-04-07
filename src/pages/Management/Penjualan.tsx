@@ -21,6 +21,7 @@ interface PenjualanData {
   tipe: string;
   nomorUnit: string;
   hargaJual: number;
+  dp: number;
   diskonPenjualan: number;
   paketPromosi: string;
   bank: string;
@@ -48,6 +49,7 @@ const initialFormState: PenjualanData = {
   tipe: '',
   nomorUnit: '',
   hargaJual: 0,
+  dp: 0,
   diskonPenjualan: 0,
   paketPromosi: '',
   bank: '',
@@ -56,7 +58,7 @@ const initialFormState: PenjualanData = {
   fileKtp: '',
   fileKk: '',
   fileNpwp: '',
-  bookingFee: 5000000, // Fixed 5 Juta
+  bookingFee: 5000000,
   rekeningTujuan: '',
   status: 'Booked',
 };
@@ -179,7 +181,6 @@ const Penjualan = () => {
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Data Pembeli */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -196,7 +197,6 @@ const Penjualan = () => {
             </div>
           </div>
 
-          {/* Data Kavling */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -205,14 +205,13 @@ const Penjualan = () => {
               <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
               <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} placeholder="Contoh: Free AC / Cashback" />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} />
+              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} />
             </div>
           </div>
 
-          {/* Skema Pembayaran */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select
                 label="Cara Pembayaran"
                 name="caraPembayaran"
@@ -226,10 +225,18 @@ const Penjualan = () => {
                 error={errors.caraPembayaran}
               />
               <Input
+                label="Down Payment (DP) - Rp"
+                type="number"
+                name="dp"
+                value={formData.dp}
+                onChange={handleChange}
+                placeholder="0 jika tidak ada DP"
+              />
+              <Input
                 label="Diskon Penjualan (Rp)"
                 type="number"
                 name="diskonPenjualan"
-                value={formData.diskonPenjualan || ''}
+                value={formData.diskonPenjualan === 0 ? '' : formData.diskonPenjualan}
                 onChange={handleChange}
               />
             </div>
@@ -248,7 +255,7 @@ const Penjualan = () => {
                   label="Nilai Pengajuan KPR (Rp)"
                   type="number"
                   name="nilaiPengajuanKpr"
-                  value={formData.nilaiPengajuanKpr || ''}
+                  value={formData.nilaiPengajuanKpr === 0 ? '' : formData.nilaiPengajuanKpr}
                   onChange={handleChange}
                   error={errors.nilaiPengajuanKpr}
                 />
@@ -256,7 +263,6 @@ const Penjualan = () => {
             )}
           </div>
 
-          {/* Dokumen Opsional */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -275,7 +281,6 @@ const Penjualan = () => {
             </div>
           </div>
 
-          {/* Pembayaran Booking */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
             <div className="grid grid-cols-1 gap-4">
@@ -302,10 +307,10 @@ const Penjualan = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
               Batal
             </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
               Simpan Penjualan
             </button>
           </div>
