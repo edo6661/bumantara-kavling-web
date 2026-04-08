@@ -112,7 +112,8 @@ const Penjualan = () => {
     const { name, value, type } = e.target;
 
     if (name === 'caraPembayaran' && value !== 'KPR') {
-      setFormData(prev => ({ ...prev, [name]: value, bank: '', nilaiPengajuanKpr: 0 }));
+      // Hanya mengosongkan nilai pengajuan KPR, bank tetap dipertahankan
+      setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
     } else {
       const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
       setFormData((prev) => ({ ...prev, [name]: parsedValue }));
@@ -139,8 +140,13 @@ const Penjualan = () => {
     if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
     if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
 
+    // Validasi Bank berlaku untuk semua cara pembayaran
+    if (formData.caraPembayaran && !formData.bank.trim()) {
+      newErrors.bank = 'Bank wajib diisi';
+    }
+
+    // Validasi khusus KPR
     if (formData.caraPembayaran === 'KPR') {
-      if (!formData.bank.trim()) newErrors.bank = 'Bank KPR wajib diisi';
       if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
     }
 
@@ -204,7 +210,7 @@ const Penjualan = () => {
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
               <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} placeholder="Contoh: Free AC / Cashback" />
+              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} />
               <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} />
             </div>
           </div>
@@ -241,24 +247,28 @@ const Penjualan = () => {
               />
             </div>
 
-            {formData.caraPembayaran === 'KPR' && (
+            {/* Input Bank & Nilai Pengajuan KPR Dinamis */}
+            {formData.caraPembayaran && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
                 <Input
-                  label="Bank KPR"
+                  label={formData.caraPembayaran === 'KPR' ? "Bank KPR" : "Bank"}
                   name="bank"
                   value={formData.bank}
                   onChange={handleChange}
-                  placeholder="Contoh: BTN, BSI"
+                  placeholder="Contoh: BCA, BSI, Mandiri"
                   error={errors.bank}
                 />
-                <Input
-                  label="Nilai Pengajuan KPR (Rp)"
-                  type="number"
-                  name="nilaiPengajuanKpr"
-                  value={formData.nilaiPengajuanKpr === 0 ? '' : formData.nilaiPengajuanKpr}
-                  onChange={handleChange}
-                  error={errors.nilaiPengajuanKpr}
-                />
+
+                {formData.caraPembayaran === 'KPR' && (
+                  <Input
+                    label="Nilai Pengajuan KPR (Rp)"
+                    type="number"
+                    name="nilaiPengajuanKpr"
+                    value={formData.nilaiPengajuanKpr === 0 ? '' : formData.nilaiPengajuanKpr}
+                    onChange={handleChange}
+                    error={errors.nilaiPengajuanKpr}
+                  />
+                )}
               </div>
             )}
           </div>
