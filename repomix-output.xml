@@ -1,3 +1,45 @@
+ada data dashboard yang masih kurang tidak untuk project ini, nanti saya akan mengimplementasikan backend nya, saat ini frontend nya dulu saja.
+
+
+<file path="package.json">
+{
+  "name": "bumantara-kavling",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.0",
+    "framer-motion": "^12.38.0",
+    "i18next": "^25.8.11",
+    "lucide-react": "^0.575.0",
+    "motion": "^12.34.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.2",
+    "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.3.1"
+  }
+}
+</file>
 
 <file path="src/pages/Customer/Tagihan.tsx">
 import React, { useState } from 'react';
@@ -270,54 +312,325 @@ const Tagihan = () => {
 export default Tagihan;
 </file>
 
-<file path="package.json">
-{
-  "name": "bumantara-kavling",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.2.0",
-    "framer-motion": "^12.38.0",
-    "i18next": "^25.8.11",
-    "lucide-react": "^0.575.0",
-    "motion": "^12.34.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.2",
-    "tailwindcss": "^4.2.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react-swc": "^4.2.2",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
-  }
-}
-</file>
-
 <file path="src/pages/Dashboard.tsx">
+import React from 'react';
+import {
+  Building2,
+  Wallet,
+  AlertCircle,
+  HardHat,
+  ArrowRight,
+  Clock,
+  Award,
+  FileText,
+  ChevronRight
+} from 'lucide-react';
+import { formatRupiah } from '../utils/formatters';
+
 const Dashboard = () => {
+  // Mock Data untuk metrik utama
+  const stats = [
+    {
+      title: 'Total Pendapatan',
+      value: formatRupiah(12500000000),
+      trend: '+15.5%',
+      isPositive: true,
+      icon: <Wallet className="text-slate-700" size={24} />,
+      bgColor: 'bg-slate-100',
+    },
+    {
+      title: 'Kavling Terjual',
+      value: '24',
+      trend: 'Total 40 Unit',
+      isPositive: true,
+      icon: <Building2 className="text-blue-700" size={24} />,
+      bgColor: 'bg-blue-50',
+    },
+    {
+      title: 'Tagihan Jatuh Tempo',
+      value: formatRupiah(150000000),
+      trend: '5 Customer',
+      isPositive: false,
+      icon: <AlertCircle className="text-red-700" size={24} />,
+      bgColor: 'bg-red-50',
+    },
+    {
+      title: 'Proyek Aktif (SPK)',
+      value: '8 Unit',
+      trend: 'Rata-rata 65%',
+      isPositive: true,
+      icon: <HardHat className="text-amber-700" size={24} />,
+      bgColor: 'bg-amber-50',
+    },
+  ];
+
+  // Mock Data Transaksi Terbaru
+  const recentTransactions = [
+    { id: 'TRX-001', customer: 'Budi Santoso', kavling: 'Blok A - 01', type: 'Booking Fee', amount: 5000000, status: 'Lunas', date: 'Hari ini, 10:30' },
+    { id: 'TRX-002', customer: 'Andi Pratama', kavling: 'Blok B - 12', type: 'DP 1', amount: 45000000, status: 'Pending', date: 'Kemarin, 14:15' },
+    { id: 'TRX-003', customer: 'Siti Aminah', kavling: 'Blok C - 05', type: 'Cash Keras', amount: 550000000, status: 'Lunas', date: '12 Mar 2026' },
+  ];
+
+  // Mock Data Progress Pembangunan
+  const progressData = [
+    { kavling: 'Blok A - 01', customer: 'Budi Santoso', progress: 85, tahap: 'Keramik & Plafon', isLate: false },
+    { kavling: 'Blok B - 12', customer: 'Andi Pratama', progress: 45, tahap: 'Struktur & Dinding', isLate: false },
+    { kavling: 'Blok C - 05', customer: 'Siti Aminah', progress: 15, tahap: 'Pondasi & Sloof', isLate: true },
+  ];
+
+  // Mock Data Top Agent
+  const topAgents = [
+    { name: 'Rina Wijaya', closing: 6, feeStatus: 'Rp 15.000.000' },
+    { name: 'Andi Pratama', closing: 4, feeStatus: 'Rp 10.000.000' },
+    { name: 'Budi Hartono', closing: 2, feeStatus: 'Rp 5.000.000' },
+  ];
+
+  // Mock Data Alert Dokumen
+  const documentAlerts = [
+    { customer: 'Rudi Hermawan', kavling: 'Blok D - 02', missing: ['NPWP', 'KK'] },
+    { customer: 'Siska Amelia', kavling: 'Blok A - 08', missing: ['KTP Pasangan'] },
+  ];
+
   return (
-    <>
-      <h1>
-        Dashboardpage
-      </h1>
-    </>
+    <div className="space-y-8 animate-in fade-in duration-500">
+
+      {/* Header Greeting */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
+            Halo, Edo. Selamat datang kembali! 👋
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Berikut adalah ringkasan performa operasional dan finansial Bumantara Kavling hari ini.
+          </p>
+        </div>
+        <button className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest cursor-pointer shadow-lg shadow-black/10 shrink-0">
+          Buat Laporan
+        </button>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <div key={index} className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="flex justify-between items-start mb-4">
+              <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
+                {stat.icon}
+              </div>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {stat.trend}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">{stat.title}</h3>
+              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Status Kavling Overview */}
+        <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Status Kavling</h3>
+            <button className="text-slate-400 hover:text-black transition-colors cursor-pointer">
+              <ArrowRight size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            {/* Terjual */}
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Terjual</span>
+                <span className="text-slate-900 font-bold">24 Unit (60%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-black h-2.5 rounded-full w-[60%]"></div>
+              </div>
+            </div>
+
+            {/* Booking */}
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Booking</span>
+                <span className="text-slate-900 font-bold">6 Unit (15%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-blue-500 h-2.5 rounded-full w-[15%]"></div>
+              </div>
+            </div>
+
+            {/* Available */}
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Tersedia</span>
+                <span className="text-slate-900 font-bold">10 Unit (25%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-green-500 h-2.5 rounded-full w-[25%]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Transaksi Terbaru */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Transaksi Pembayaran Terbaru</h3>
+            <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer">
+              Lihat Semua
+            </button>
+          </div>
+
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
+                  <th className="pb-3 pr-4">Customer</th>
+                  <th className="pb-3 px-4">Kavling</th>
+                  <th className="pb-3 px-4">Keterangan</th>
+                  <th className="pb-3 px-4 text-right">Nominal</th>
+                  <th className="pb-3 pl-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {recentTransactions.map((trx) => (
+                  <tr key={trx.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="py-4 pr-4">
+                      <p className="font-bold text-slate-900">{trx.customer}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                        <Clock size={12} /> {trx.date}
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 font-medium text-slate-700">{trx.kavling}</td>
+                    <td className="py-4 px-4 text-slate-600">{trx.type}</td>
+                    <td className="py-4 px-4 text-right font-bold text-slate-900">
+                      {formatRupiah(trx.amount)}
+                    </td>
+                    <td className="py-4 pl-4 text-center">
+                      <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${trx.status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                        {trx.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Baris Bawah: 3 Kolom Metrik Operasional */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Progress Pembangunan Lapangan */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <HardHat size={18} className="text-slate-700" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Progress Proyek</h3>
+            </div>
+            <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer">
+              Detail
+            </button>
+          </div>
+          <div className="space-y-4 flex-1">
+            {progressData.map((prog, idx) => (
+              <div key={idx} className="p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
+                <div className="flex justify-between text-sm font-medium mb-1">
+                  <span className="text-slate-900 font-bold">{prog.kavling}</span>
+                  <span className={prog.isLate ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
+                    {prog.progress}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-slate-500">{prog.customer}</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{prog.tahap}</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div className={`h-1.5 rounded-full ${prog.isLate ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${prog.progress}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Agent Marketing */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <Award size={18} className="text-amber-500" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Top Agent Bulan Ini</h3>
+            </div>
+          </div>
+          <div className="space-y-3 flex-1">
+            {topAgents.map((agent, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-amber-50/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+                    #{idx + 1}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{agent.name}</p>
+                    <p className="text-xs text-slate-500">{agent.closing} Closing</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Fee</p>
+                  <p className="text-sm font-bold text-slate-900">{agent.feeStatus}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+            Lihat Data Fee <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Kelengkapan Dokumen / Alert */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-red-500" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Alert Dokumen</h3>
+            </div>
+            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
+              {documentAlerts.length} Action
+            </span>
+          </div>
+          <div className="space-y-3 flex-1">
+            <p className="text-xs text-slate-500 mb-2">Customer berikut belum melengkapi berkas administrasi:</p>
+            {documentAlerts.map((alert, idx) => (
+              <div key={idx} className="p-3 border border-red-100 bg-red-50/30 rounded-xl">
+                <div className="flex justify-between items-start mb-1">
+                  <p className="font-bold text-slate-900 text-sm">{alert.customer}</p>
+                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    {alert.kavling}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {alert.missing.map((doc, i) => (
+                    <span key={i} className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                      Missing: {doc}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer">
+            Follow Up Customer <ChevronRight size={14} />
+          </button>
+        </div>
+
+      </div>
+
+    </div>
   );
 };
 
@@ -2389,34 +2702,6 @@ const PageLoader = () => (
 export default PageLoader;
 </file>
 
-<file path="src/pages/Proyek/Progress.tsx">
-const Progress = () => {
-  return (
-    <>
-      <h1>
-        Progresspage
-      </h1>
-    </>
-  );
-};
-
-export default Progress;
-</file>
-
-<file path="src/pages/Proyek/SPK.tsx">
-const SPK = () => {
-  return (
-    <>
-      <h1>
-        SPKpage
-      </h1>
-    </>
-  );
-};
-
-export default SPK;
-</file>
-
 <file path="src/pages/Management/Penjualan.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
@@ -2743,73 +3028,326 @@ const Penjualan = () => {
 export default Penjualan;
 </file>
 
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
+<file path="src/pages/Proyek/Progress.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatDate } from "../../utils/formatters";
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+interface ProgressData {
+  id: string;
+  kavlingId: string;
+  kavlingLabel: string;
+  pelaksana: string;
+  tanggalLaporan: string;
+  tahapanPekerjaan: string;
+  persentase: number;
+  keterangan: string;
+  kendala: string;
+  fotoLapangan: string[];
+  status: string;
+}
 
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
+const initialFormState: ProgressData = {
+  id: '',
+  kavlingId: '',
+  kavlingLabel: '',
+  pelaksana: '',
+  tanggalLaporan: '',
+  tahapanPekerjaan: '',
+  persentase: 0,
+  keterangan: '',
+  kendala: '',
+  fotoLapangan: [],
+  status: 'Menunggu Verifikasi',
+};
 
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+// Mock data kavling (Nantinya diganti dengan data dari API/Backend)
+const mockKavlings = [
+  { id: 'KAV-001', perumahan: 'Griya Indah Pesona', blok: 'A', unit: '01' },
+  { id: 'KAV-002', perumahan: 'Griya Indah Pesona', blok: 'B', unit: '12' },
+  { id: 'KAV-003', perumahan: 'Puri Safana', blok: 'C', unit: '05' },
+];
 
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const Progress = () => {
+  const [data, setData] = useState<ProgressData[]>([
+    {
+      id: 'PRG-001',
+      kavlingId: 'KAV-001',
+      kavlingLabel: 'Griya Indah Pesona - Blok A No. 01',
+      pelaksana: 'Mandor Supri',
+      tanggalLaporan: '2026-04-10',
+      tahapanPekerjaan: 'Pekerjaan Pondasi & Sloof',
+      persentase: 15,
+      keterangan: 'Pengecoran sloof selesai 100%, persiapan naik bata.',
+      kendala: 'Cuaca hujan di sore hari.',
+      fotoLapangan: ['foto_pondasi_1.jpg', 'foto_sloof.jpg'],
+      status: 'Disetujui',
+    }
+  ]);
 
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<ProgressData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof ProgressData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
 
-const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+  const columns = [
+    { header: 'Tanggal', accessor: 'tanggalLaporan', render: (val: string) => formatDate(val) },
+    { header: 'Kavling', accessor: 'kavlingLabel' },
+    { header: 'Tahapan', accessor: 'tahapanPekerjaan' },
+    {
+      header: 'Progress',
+      accessor: 'persentase',
+      render: (val: number) => (
+        <div className="flex items-center gap-3 min-w-[120px]">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full ${val === 100 ? 'bg-green-500' : 'bg-blue-600'}`}
+              style={{ width: `${val}%` }}
+            ></div>
+          </div>
+          <span className="text-xs font-bold text-gray-700">{val}%</span>
+        </div>
+      )
+    },
+    { header: 'Pelaksana', accessor: 'pelaksana' },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        const bg = val === 'Disetujui' ? 'bg-green-100 text-green-800' :
+          val === 'Revisi' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
+      }
+    },
+  ];
 
-const App = () => {
+  const openModal = (item?: ProgressData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggalLaporan: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    let parsedValue: string | number = value;
+
+    if (type === 'number') {
+      parsedValue = value === '' ? 0 : Number(value);
+      if (name === 'persentase' && parsedValue > 100) parsedValue = 100;
+      if (name === 'persentase' && parsedValue < 0) parsedValue = 0;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+
+    if (errors[name as keyof ProgressData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleMultipleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      // Mengambil nama semua file yang dipilih dan menyimpannya ke array fotoLapangan
+      const fileNames = Array.from(files).map((file) => file.name);
+      setFormData((prev) => ({ ...prev, fotoLapangan: fileNames }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof ProgressData, string>> = {};
+    if (!formData.kavlingId) newErrors.kavlingId = 'Kavling wajib dipilih';
+    if (!formData.tahapanPekerjaan) newErrors.tahapanPekerjaan = 'Tahapan wajib dipilih';
+    if (formData.persentase < 0 || formData.persentase > 100) newErrors.persentase = 'Progress harus 0 - 100';
+    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan progress wajib diisi';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `PRG-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: ProgressData) => {
+    if (window.confirm(`Hapus laporan progress ${item.kavlingLabel} tanggal ${formatDate(item.tanggalLaporan)}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
   return (
-    <HelmetProvider>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<RootLayout />}>
-              <Route index element={<Dashboard />} />
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Laporan Progress Lapangan"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
 
-              <Route path="management/penjualan" element={<Penjualan />} />
-              <Route path="management/kavling" element={<Kavling />} />
-              <Route path="management/notaris" element={<Notaris />} />
-              <Route path="management/bank" element={<Bank />} />
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Progress Lapangan" : "Buat Laporan Progress Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
 
-              <Route path="customer/data-sosial" element={<DataSosial />} />
-              <Route path="customer/spr" element={<SPR />} />
-              <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-              <Route path="customer/kavling" element={<CustomerKavling />} />
-              <Route path="customer/tagihan" element={<Tagihan />} />
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Identitas Proyek</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Kavling"
+                  name="kavlingId"
+                  value={formData.kavlingId}
+                  onChange={(e) => {
+                    const selected = mockKavlings.find(k => k.id === e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      kavlingId: selected?.id || '',
+                      kavlingLabel: selected ? `${selected.perumahan} - Blok ${selected.blok} No. ${selected.unit}` : ''
+                    }));
+                    if (errors.kavlingId) setErrors(prev => ({ ...prev, kavlingId: undefined }));
+                  }}
+                  options={mockKavlings.map(k => ({
+                    value: k.id,
+                    label: `${k.perumahan} - Blok ${k.blok} No. ${k.unit}`
+                  }))}
+                  error={errors.kavlingId}
+                />
+              </div>
+              <Input label="Nama Pelaksana/Mandor" name="pelaksana" value={formData.pelaksana} onChange={handleChange} />
+              <Input label="Tanggal Laporan" type="date" name="tanggalLaporan" value={formData.tanggalLaporan} onChange={handleChange} />
+            </div>
+          </div>
 
-              <Route path="marketing/agents" element={<Agents />} />
-              <Route path="marketing/fee-agent" element={<FeeAgent />} />
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Status Pekerjaan</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Tahapan Pekerjaan"
+                name="tahapanPekerjaan"
+                value={formData.tahapanPekerjaan}
+                onChange={handleChange}
+                error={errors.tahapanPekerjaan}
+                options={[
+                  { value: 'Persiapan Lahan', label: 'Persiapan Lahan' },
+                  { value: 'Pekerjaan Pondasi & Sloof', label: 'Pekerjaan Pondasi & Sloof' },
+                  { value: 'Struktur & Dinding', label: 'Struktur & Dinding' },
+                  { value: 'Rangka Atap & Genteng', label: 'Rangka Atap & Genteng' },
+                  { value: 'Pemasangan Keramik & Plafon', label: 'Pemasangan Keramik & Plafon' },
+                  { value: 'Finishing & Pengecatan', label: 'Finishing & Pengecatan' },
+                  { value: 'Siap Serah Terima (100%)', label: 'Siap Serah Terima (100%)' }
+                ]}
+              />
+              <Input
+                label="Total Persentase Progress (%)"
+                type="number"
+                name="persentase"
+                value={formData.persentase}
+                onChange={handleChange}
+                error={errors.persentase}
+                placeholder="0 - 100"
+              />
+              <div className="md:col-span-2">
+                <Input
+                  label="Keterangan Pekerjaan"
+                  name="keterangan"
+                  value={formData.keterangan}
+                  onChange={handleChange}
+                  error={errors.keterangan}
+                  placeholder="Deskripsikan pekerjaan yang selesai dilakukan hari ini..."
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Input
+                  label="Kendala di Lapangan (Opsional)"
+                  name="kendala"
+                  value={formData.kendala}
+                  onChange={handleChange}
+                  placeholder="Contoh: Hujan deras dari siang, pengiriman bata telat..."
+                />
+              </div>
+            </div>
+          </div>
 
-              <Route path="proyek/spk" element={<SPK />} />
-              <Route path="proyek/progress" element={<Progress />} />
-            </Route>
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Dokumentasi</h4>
+            <div className="grid grid-cols-1 gap-4">
+              {/* Input Multiple File */}
+              <FileInput
+                label="Foto Lapangan (Bisa pilih lebih dari 1)"
+                accept="image/*"
+                multiple
+                onChange={handleMultipleFileChange}
+              />
+              {/* List Nama File Yang Terpilih */}
+              {formData.fotoLapangan && formData.fotoLapangan.length > 0 && (
+                <div className="mt-2 space-y-1 bg-white p-3 rounded-lg border border-gray-200">
+                  <p className="text-xs font-bold text-gray-500 mb-2">File terpilih ({formData.fotoLapangan.length}):</p>
+                  {formData.fotoLapangan.map((name, i) => (
+                    <p key={i} className="text-xs text-green-600 truncate flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                      {name}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
-            <Route path="/login" element={<p>login</p>} />
+          <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+            <Select
+              label="Status Verifikasi Pusat"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              options={[
+                { value: 'Menunggu Verifikasi', label: 'Menunggu Verifikasi' },
+                { value: 'Disetujui', label: 'Disetujui' },
+                { value: 'Revisi', label: 'Butuh Revisi / Laporan Ditolak' }
+              ]}
+            />
+          </div>
 
-            <Route element={<p>test protected route</p>}>
-              <Route path="/test" element={<p>test</p>} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </HelmetProvider>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
+              Simpan Progress
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 };
 
-export default App;
+export default Progress;
 </file>
 
 <file path="src/components/layouts/RootLayout.tsx">
@@ -3035,6 +3573,366 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
 };
 
 export default Select;
+</file>
+
+<file path="src/pages/Proyek/SPK.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import FileInput from "../../components/shared/FileInput";
+import { formatRupiah } from "../../utils/formatters";
+interface SpkData {
+  id: string;
+  noSpk: string;
+  tanggalSpk: string;
+  judulPekerjaan: string;
+  lokasi: string;
+  jangkaWaktu: number;
+  nilaiKontrak: number;
+  namaPihakPertama: string;
+  nikPihakPertama: string;
+  namaPihakKedua: string;
+  nikPihakKedua: string;
+  alamatPihakKedua: string;
+  namaBank: string;
+  noRekening: string;
+  atasNamaRekening: string;
+  fileSpk: string;
+}
+const initialFormState: SpkData = {
+  id: '',
+  noSpk: '',
+  tanggalSpk: '',
+  judulPekerjaan: '',
+  lokasi: '',
+  jangkaWaktu: 0,
+  nilaiKontrak: 0,
+  namaPihakPertama: '',
+  nikPihakPertama: '',
+  namaPihakKedua: '',
+  nikPihakKedua: '',
+  alamatPihakKedua: '',
+  namaBank: '',
+  noRekening: '',
+  atasNamaRekening: '',
+  fileSpk: '',
+};
+const SPK = () => {
+  const [data, setData] = useState<SpkData[]>([
+    {
+      id: 'SPK-001',
+      noSpk: '026/SPK/AA24/FTR/PSC/III/2026',
+      tanggalSpk: '2026-03-30',
+      judulPekerjaan: 'Pembangunan Rumah Tinggal di Perumahan Puri Safana Cikeas (8 Unit)',
+      lokasi: 'Jl. Bojong Nangka Rt.001 Rw.012 Kel. Cikeas Udik, Kec. Gunung Putri Kab. Bogor',
+      jangkaWaktu: 120,
+      nilaiKontrak: 1330626827.04,
+      namaPihakPertama: 'Yusdi Nurfauzi, ST',
+      nikPihakPertama: '3671081002770009',
+      namaPihakKedua: 'Fathor Rosid',
+      nikPihakKedua: '3201021208780028',
+      alamatPihakKedua: 'Lembur Rt 002 Rw 009 Kel. Bojong Kulur Kec. Gunung Putri, Kab Bogor, Jawa Barat',
+      namaBank: 'BCA',
+      noRekening: '5725393927',
+      atasNamaRekening: 'Saiful Hasan',
+      fileSpk: 'SPK_026_Fathor_Rosid.pdf',
+    }
+  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<SpkData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof SpkData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const columns = [
+    { header: 'No. SPK', accessor: 'noSpk' },
+    { header: 'Judul Pekerjaan', accessor: 'judulPekerjaan' },
+    { header: 'Pihak Kedua (Vendor)', accessor: 'namaPihakKedua' },
+    {
+      header: 'Nilai Kontrak',
+      accessor: 'nilaiKontrak',
+      render: (val: number) => formatRupiah(val)
+    },
+    {
+      header: 'Waktu',
+      accessor: 'jangkaWaktu',
+      render: (val: number) => `${val} Hari`
+    },
+    {
+      header: 'Dokumen',
+      accessor: 'fileSpk',
+      render: (val: string) => val ? (
+        <span className="text-blue-600 text-xs font-medium bg-blue-50 px-2 py-1 rounded">{val}</span>
+      ) : (
+        <span className="text-gray-400 text-xs">-</span>
+      )
+    },
+  ];
+  const openModal = (item?: SpkData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({ ...initialFormState, tanggalSpk: new Date().toISOString().split('T')[0] });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    if (errors[name as keyof SpkData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SpkData) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof SpkData, string>> = {};
+    if (!formData.noSpk.trim()) newErrors.noSpk = 'Nomor SPK wajib diisi';
+    if (!formData.judulPekerjaan.trim()) newErrors.judulPekerjaan = 'Judul pekerjaan wajib diisi';
+    if (formData.nilaiKontrak <= 0) newErrors.nilaiKontrak = 'Nilai kontrak harus lebih dari 0';
+    if (!formData.namaPihakKedua.trim()) newErrors.namaPihakKedua = 'Nama vendor wajib diisi';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `SPK-${Date.now()}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+  const handleDelete = (item: SpkData) => {
+    if (window.confirm(`Hapus data SPK ${item.noSpk}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Surat Perjanjian Kerja (SPK)"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit SPK" : "Buat SPK Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Section 1: Informasi Proyek */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Informasi Pekerjaan</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Nomor SPK" name="noSpk" value={formData.noSpk} onChange={handleChange} error={errors.noSpk} />
+              <Input label="Tanggal SPK" type="date" name="tanggalSpk" value={formData.tanggalSpk} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <Input label="Judul Pekerjaan" name="judulPekerjaan" value={formData.judulPekerjaan} onChange={handleChange} error={errors.judulPekerjaan} />
+              </div>
+              {/* step="any" ditambahkan agar form mengizinkan input koma/desimal pada nilai kontrak */}
+              <Input label="Nilai Kontrak (Rp)" type="number" step="any" name="nilaiKontrak" value={formData.nilaiKontrak === 0 ? '' : formData.nilaiKontrak} onChange={handleChange} error={errors.nilaiKontrak} />
+              <Input label="Jangka Waktu (Hari)" type="number" name="jangkaWaktu" value={formData.jangkaWaktu === 0 ? '' : formData.jangkaWaktu} onChange={handleChange} />
+            </div>
+          </div>
+          {/* Section 2: Pihak Pertama & Kedua */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Para Pihak</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Pihak Pertama (Pemberi Tugas)</p>
+                <Input label="Nama" name="namaPihakPertama" value={formData.namaPihakPertama} onChange={handleChange} />
+                <Input label="NIK" name="nikPihakPertama" value={formData.nikPihakPertama} onChange={handleChange} />
+              </div>
+              <div className="space-y-4">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Pihak Kedua (Pemborong)</p>
+                <Input label="Nama Vendor" name="namaPihakKedua" value={formData.namaPihakKedua} onChange={handleChange} error={errors.namaPihakKedua} />
+                <Input label="NIK Vendor" name="nikPihakKedua" value={formData.nikPihakKedua} onChange={handleChange} />
+                <Input label="Alamat" name="alamatPihakKedua" value={formData.alamatPihakKedua} onChange={handleChange} />
+              </div>
+            </div>
+          </div>
+          {/* Section 3: Pembayaran & File */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Pembayaran & Dokumen</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <Input label="Nama Bank" name="namaBank" value={formData.namaBank} onChange={handleChange} />
+              <Input label="No Rekening" name="noRekening" value={formData.noRekening} onChange={handleChange} />
+              <Input label="Atas Nama" name="atasNamaRekening" value={formData.atasNamaRekening} onChange={handleChange} />
+            </div>
+            <div className="border border-gray-200 p-3 rounded-md bg-white">
+              <FileInput label="Upload SPK (PDF)" accept=".pdf" onChange={(e) => handleFileChange(e, 'fileSpk')} />
+              {formData.fileSpk && (
+                <p className="text-xs text-green-600 mt-1 truncate">File terlampir: {formData.fileSpk}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
+              Simpan SPK
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+export default SPK;
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+
+const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+
+const App = () => {
+  return (
+    <HelmetProvider>
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<RootLayout />}>
+              <Route index element={<Dashboard />} />
+
+              <Route path="management/penjualan" element={<Penjualan />} />
+              <Route path="management/kavling" element={<Kavling />} />
+              <Route path="management/notaris" element={<Notaris />} />
+              <Route path="management/bank" element={<Bank />} />
+
+              <Route path="customer/data-sosial" element={<DataSosial />} />
+              <Route path="customer/spr" element={<SPR />} />
+              <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+              <Route path="customer/kavling" element={<CustomerKavling />} />
+              <Route path="customer/tagihan" element={<Tagihan />} />
+
+              <Route path="marketing/agents" element={<Agents />} />
+              <Route path="marketing/fee-agent" element={<FeeAgent />} />
+
+              <Route path="proyek/spk" element={<SPK />} />
+              <Route path="proyek/progress" element={<Progress />} />
+            </Route>
+
+            <Route path="/login" element={<p>login</p>} />
+
+            <Route element={<p>test protected route</p>}>
+              <Route path="/test" element={<p>test</p>} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </HelmetProvider>
+  );
+};
+
+export default App;
+</file>
+
+<file path="src/components/shared/Modal.tsx">
+import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-all"
+            onClick={onClose}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            className="relative bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-slate-200 overflow-hidden"
+          >
+            <div className="flex justify-between items-center px-8 py-5 border-b border-slate-100 bg-white shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
+                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Formulir Penginputan Data</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            <div className="p-8 overflow-y-auto custom-scrollbar bg-white">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+export default Modal;
 </file>
 
 <file path="src/pages/Management/Kavling.tsx">
@@ -3314,79 +4212,7 @@ const Kavling = () => {
 export default Kavling;
 </file>
 
-<file path="src/components/shared/Modal.tsx">
-import { type ReactNode, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-}
-
-const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-all"
-            onClick={onClose}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="relative bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-slate-200 overflow-hidden"
-          >
-            <div className="flex justify-between items-center px-8 py-5 border-b border-slate-100 bg-white shrink-0">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Formulir Penginputan Data</p>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-              >
-                <X size={20} strokeWidth={2.5} />
-              </button>
-            </div>
-
-            <div className="p-8 overflow-y-auto custom-scrollbar bg-white">
-              {children}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>,
-    document.body
-  );
-};
-
-export default Modal;
-</file>
-
 <file path="src/components/Sidebar.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -3396,7 +4222,8 @@ import {
   UserCircle,
   FolderKanban,
   ChevronDown,
-  X
+  X,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -3453,6 +4280,8 @@ interface SidebarProps {
 const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
 
+  // State untuk kontrol expand/shrink
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
     const initialOpenMenus: Record<string, boolean> = {};
@@ -3464,8 +4293,14 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     return initialOpenMenus;
   });
 
-  const toggleMenu = (title: string) => {
-    setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+  const handleMenuClick = (title: string) => {
+    // Jika shrink aktif dan user klik menu, otomatis expand agar submenu terlihat
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setOpenMenus((prev) => ({ ...prev, [title]: true }));
+    } else {
+      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+    }
   };
 
   const checkActive = (path?: string, submenus?: { path: string }[]) => {
@@ -3489,26 +4324,45 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       </AnimatePresence>
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-500 ease-in-out shrink-0 md:static md:translate-x-0 ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'
-          }`}
+        /* PERBAIKAN: 
+          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
+          - Base class selalu merender state "Expanded" (untuk Mobile).
+          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
+        */
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
+          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
+          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
+        `}
       >
-        <div className="h-20 flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
+        >
+          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
               B
             </div>
-            <span className="font-heading font-extrabold text-xl tracking-tighter text-slate-900">Bumantaraz</span>
+            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
+              Bumantaraz
+            </span>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar">
-          <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Main Menu</p>
+        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
+          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
+            Main Menu
+          </p>
+
           <nav className="space-y-1">
             {menuItems.map((item) => {
               const hasSubmenus = !!item.submenus;
@@ -3520,25 +4374,33 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                   {hasSubmenus ? (
                     <>
                       <button
-                        onClick={() => toggleMenu(item.title)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group cursor-pointer ${isActive
-                          ? 'text-slate-900 font-bold'
-                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                          }`}
+                        onClick={() => handleMenuClick(item.title)}
+                        title={!isExpanded ? item.title : undefined}
+                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
+                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
                       >
-                        <div className="flex items-center gap-3">
-                          <span className={`${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
                             {item.icon}
                           </span>
-                          <span className="text-sm tracking-tight">{item.title}</span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
                         </div>
                         <ChevronDown
                           size={14}
-                          className={`transition-transform duration-300 text-slate-300 group-hover:text-slate-500 ${isOpenMenu ? 'rotate-180' : ''}`}
+                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
+                            ${isOpenMenu ? 'rotate-180' : ''}
+                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
                         />
                       </button>
 
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}`}>
+                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
+                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
+                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
+                      `}>
                         <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
                           {item.submenus!.map((sub) => {
                             return (
@@ -3546,7 +4408,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                                 key={sub.title}
                                 to={sub.path}
                                 className={({ isActive: linkActive }) => `
-                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200
+                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
                                   ${linkActive
                                     ? 'bg-black text-white shadow-md shadow-black/10'
                                     : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
@@ -3562,22 +4424,25 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                   ) : (
                     <NavLink
                       to={item.path!}
-
+                      title={!isExpanded ? item.title : undefined}
                       className={({ isActive: linkActive }) =>
-                        `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${linkActive
-                          ? 'bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1'
+                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
+                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                        ${linkActive
+                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
                           : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                         }`
                       }
                     >
-                      {/* SOLUSI ERROR 2: Gunakan fungsi manual untuk class icon agar TS tidak bingung */}
                       {({ isActive: linkActive }) => (
-                        <>
-                          <span className={linkActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}>
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
                             {item.icon}
                           </span>
-                          <span className="text-sm tracking-tight">{item.title}</span>
-                        </>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
                       )}
                     </NavLink>
                   )}
@@ -3586,7 +4451,6 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             })}
           </nav>
         </div>
-
       </aside>
     </>
   );
