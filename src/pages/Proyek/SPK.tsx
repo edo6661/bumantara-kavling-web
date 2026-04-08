@@ -1,28 +1,9 @@
-interface SpkData {
-  id: string;
-  noSpk: string;
-  tanggalSpk: string;
-  judulPekerjaan: string;
-  lokasi: string;
-  jangkaWaktu: number;
-  nilaiKontrak: number;
-  namaPihakPertama: string;
-  nikPihakPertama: string;
-  namaPihakKedua: string;
-  nikPihakKedua: string;
-  alamatPihakKedua: string;
-  namaBank: string;
-  noRekening: string;
-  atasNamaRekening: string;
-  fileSpk: string;
-}
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import FileInput from "../../components/shared/FileInput";
 import { formatRupiah } from "../../utils/formatters";
-
 interface SpkData {
   id: string;
   noSpk: string;
@@ -41,7 +22,6 @@ interface SpkData {
   atasNamaRekening: string;
   fileSpk: string;
 }
-
 const initialFormState: SpkData = {
   id: '',
   noSpk: '',
@@ -60,35 +40,31 @@ const initialFormState: SpkData = {
   atasNamaRekening: '',
   fileSpk: '',
 };
-
 const SPK = () => {
-  // Data inisial diisi sesuai PDF yang diberikan
   const [data, setData] = useState<SpkData[]>([
     {
       id: 'SPK-001',
-      noSpk: '035/SPK/SACLD/II/2026',
-      tanggalSpk: '2026-12-09',
-      judulPekerjaan: 'Cladding ACP Area Jembatan Penghubung Gedung Baru',
-      lokasi: 'RSSA Ciledug, Jl. HOS Cokroaminoto No.38',
-      jangkaWaktu: 30,
-      nilaiKontrak: 95850000,
+      noSpk: '026/SPK/AA24/FTR/PSC/III/2026',
+      tanggalSpk: '2026-03-30',
+      judulPekerjaan: 'Pembangunan Rumah Tinggal di Perumahan Puri Safana Cikeas (8 Unit)',
+      lokasi: 'Jl. Bojong Nangka Rt.001 Rw.012 Kel. Cikeas Udik, Kec. Gunung Putri Kab. Bogor',
+      jangkaWaktu: 120,
+      nilaiKontrak: 1330626827.04,
       namaPihakPertama: 'Yusdi Nurfauzi, ST',
       nikPihakPertama: '3671081002770009',
-      namaPihakKedua: 'Fauzan Bashar',
-      nikPihakKedua: '3671082503990002',
-      alamatPihakKedua: 'Taman Royal 2 Jl.Majapahit Timur No.51',
+      namaPihakKedua: 'Fathor Rosid',
+      nikPihakKedua: '3201021208780028',
+      alamatPihakKedua: 'Lembur Rt 002 Rw 009 Kel. Bojong Kulur Kec. Gunung Putri, Kab Bogor, Jawa Barat',
       namaBank: 'BCA',
-      noRekening: '8670849491',
-      atasNamaRekening: 'Fauzan Bashar',
-      fileSpk: 'SPK_ACP_RSSA.pdf',
+      noRekening: '5725393927',
+      atasNamaRekening: 'Saiful Hasan',
+      fileSpk: 'SPK_026_Fathor_Rosid.pdf',
     }
   ]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<SpkData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof SpkData, string>>>({});
   const [isEditing, setIsEditing] = useState(false);
-
   const columns = [
     { header: 'No. SPK', accessor: 'noSpk' },
     { header: 'Judul Pekerjaan', accessor: 'judulPekerjaan' },
@@ -113,7 +89,6 @@ const SPK = () => {
       )
     },
   ];
-
   const openModal = (item?: SpkData) => {
     if (item) {
       setFormData(item);
@@ -125,44 +100,36 @@ const SPK = () => {
     setErrors({});
     setIsModalOpen(true);
   };
-
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
   };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
     setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-
     if (errors[name as keyof SpkData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SpkData) => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
     }
   };
-
   const validateForm = () => {
     const newErrors: Partial<Record<keyof SpkData, string>> = {};
     if (!formData.noSpk.trim()) newErrors.noSpk = 'Nomor SPK wajib diisi';
     if (!formData.judulPekerjaan.trim()) newErrors.judulPekerjaan = 'Judul pekerjaan wajib diisi';
     if (formData.nilaiKontrak <= 0) newErrors.nilaiKontrak = 'Nilai kontrak harus lebih dari 0';
     if (!formData.namaPihakKedua.trim()) newErrors.namaPihakKedua = 'Nama vendor wajib diisi';
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
@@ -171,13 +138,11 @@ const SPK = () => {
     }
     closeModal();
   };
-
   const handleDelete = (item: SpkData) => {
     if (window.confirm(`Hapus data SPK ${item.noSpk}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
@@ -188,10 +153,8 @@ const SPK = () => {
         onEdit={(item) => openModal(item)}
         onDelete={handleDelete}
       />
-
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit SPK" : "Buat SPK Baru"}>
         <form onSubmit={handleSubmit} className="space-y-6">
-
           {/* Section 1: Informasi Proyek */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Informasi Pekerjaan</h4>
@@ -201,11 +164,11 @@ const SPK = () => {
               <div className="md:col-span-2">
                 <Input label="Judul Pekerjaan" name="judulPekerjaan" value={formData.judulPekerjaan} onChange={handleChange} error={errors.judulPekerjaan} />
               </div>
-              <Input label="Nilai Kontrak (Rp)" type="number" name="nilaiKontrak" value={formData.nilaiKontrak === 0 ? '' : formData.nilaiKontrak} onChange={handleChange} error={errors.nilaiKontrak} />
+              {/* step="any" ditambahkan agar form mengizinkan input koma/desimal pada nilai kontrak */}
+              <Input label="Nilai Kontrak (Rp)" type="number" step="any" name="nilaiKontrak" value={formData.nilaiKontrak === 0 ? '' : formData.nilaiKontrak} onChange={handleChange} error={errors.nilaiKontrak} />
               <Input label="Jangka Waktu (Hari)" type="number" name="jangkaWaktu" value={formData.jangkaWaktu === 0 ? '' : formData.jangkaWaktu} onChange={handleChange} />
             </div>
           </div>
-
           {/* Section 2: Pihak Pertama & Kedua */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Para Pihak</h4>
@@ -223,7 +186,6 @@ const SPK = () => {
               </div>
             </div>
           </div>
-
           {/* Section 3: Pembayaran & File */}
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Pembayaran & Dokumen</h4>
@@ -239,7 +201,6 @@ const SPK = () => {
               )}
             </div>
           </div>
-
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
               Batal
@@ -253,5 +214,4 @@ const SPK = () => {
     </div>
   );
 };
-
 export default SPK;
