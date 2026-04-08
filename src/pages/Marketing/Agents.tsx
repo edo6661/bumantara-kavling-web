@@ -3,6 +3,12 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 
+interface PICData {
+  nama: string;
+  noHp: string;
+  alamat: string;
+}
+
 interface AgentData {
   id: string;
   nik: string;
@@ -10,6 +16,7 @@ interface AgentData {
   alamat: string;
   noHp: string;
   email: string;
+  pics: PICData[];
 }
 
 const initialFormState: AgentData = {
@@ -18,7 +25,8 @@ const initialFormState: AgentData = {
   nama: '',
   alamat: '',
   noHp: '',
-  email: ''
+  email: '',
+  pics: [{ nama: '', noHp: '', alamat: '' }]
 };
 
 const Agents = () => {
@@ -30,10 +38,16 @@ const Agents = () => {
       nama: 'Andi Pratama',
       alamat: 'Jl. Sudirman No. 10, Jakarta',
       noHp: '081234567890',
-      email: 'andi@example.com'
+      email: 'andi@example.com',
+      pics: [
+        {
+          nama: 'Budi Santoso',
+          noHp: '081987654321',
+          alamat: 'Jl. Melati No. 5, Jakarta'
+        }
+      ]
     }
   ]);
-
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<AgentData>(initialFormState);
@@ -42,16 +56,27 @@ const Agents = () => {
 
   const columns = [
     { header: 'NIK', accessor: 'nik' },
-    { header: 'Nama', accessor: 'nama' },
+    { header: 'Nama Agent', accessor: 'nama' },
     { header: 'No. WhatsApp', accessor: 'noHp' },
-    { header: 'Email', accessor: 'email' },
+    {
+      header: 'Total PIC',
+      accessor: 'pics',
+      render: (pics: PICData[]) => (
+        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold">
+          {pics?.length || 0} Orang
+        </span>
+      )
+    },
     { header: 'Alamat', accessor: 'alamat' },
   ];
 
-
   const openModal = (item?: AgentData) => {
     if (item) {
-      setFormData(item);
+      // Jika data lama tidak punya pics, berikan array kosong dengan 1 form default
+      setFormData({
+        ...item,
+        pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
+      });
       setIsEditing(true);
     } else {
       setFormData(initialFormState);
@@ -66,7 +91,6 @@ const Agents = () => {
     setFormData(initialFormState);
   };
 
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -75,6 +99,28 @@ const Agents = () => {
     }
   };
 
+  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const newPics = [...prev.pics];
+      newPics[index] = { ...newPics[index], [name]: value };
+      return { ...prev, pics: newPics };
+    });
+  };
+
+  const handleAddPIC = () => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
+    }));
+  };
+
+  const handleRemovePIC = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: prev.pics.filter((_, i) => i !== index)
+    }));
+  };
 
   const validateForm = () => {
     const newErrors: Partial<AgentData> = {};
@@ -86,7 +132,6 @@ const Agents = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +145,6 @@ const Agents = () => {
     }
     closeModal();
   };
-
 
   const handleDelete = (item: AgentData) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
@@ -125,47 +169,111 @@ const Agents = () => {
         title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <Input
-              label="NIK"
-              name="nik"
-              value={formData.nik}
-              onChange={handleChange}
-              error={errors.nik}
-              placeholder="Masukkan 16 digit NIK"
-            />
-            <Input
-              label="Nama Lengkap"
-              name="nama"
-              value={formData.nama}
-              onChange={handleChange}
-              error={errors.nama}
-              placeholder="Masukkan nama"
-            />
-            <Input
-              label="No. WhatsApp / HP"
-              name="noHp"
-              value={formData.noHp}
-              onChange={handleChange}
-              error={errors.noHp}
-              placeholder="08xxxxxxxxxx"
-            />
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              placeholder="email@example.com"
-            />
-            <Input
-              label="Alamat Lengkap"
-              name="alamat"
-              value={formData.alamat}
-              onChange={handleChange}
-              placeholder="Masukkan alamat lengkap agent"
-            />
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="NIK"
+                name="nik"
+                value={formData.nik}
+                onChange={handleChange}
+                error={errors.nik}
+                placeholder="Masukkan 16 digit NIK"
+              />
+              <Input
+                label="Nama Lengkap"
+                name="nama"
+                value={formData.nama}
+                onChange={handleChange}
+                error={errors.nama}
+                placeholder="Masukkan nama"
+              />
+              <Input
+                label="No. WhatsApp / HP"
+                name="noHp"
+                value={formData.noHp}
+                onChange={handleChange}
+                error={errors.noHp}
+                placeholder="08xxxxxxxxxx"
+              />
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
+                placeholder="email@example.com"
+              />
+              <div className="md:col-span-2">
+                <Input
+                  label="Alamat Lengkap"
+                  name="alamat"
+                  value={formData.alamat}
+                  onChange={handleChange}
+                  placeholder="Masukkan alamat lengkap agent"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent</h4>
+                <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk agent ini</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddPIC}
+                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer"
+              >
+                + Tambah PIC
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {formData.pics.map((pic, index) => (
+                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
+                  {formData.pics.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePIC(index)}
+                      className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Nama PIC"
+                      name="nama"
+                      value={pic.nama}
+                      onChange={(e) => handlePICChange(index, e)}
+                      placeholder="Masukkan nama PIC"
+                    />
+                    <Input
+                      label="No. Telepon / HP PIC"
+                      name="noHp"
+                      value={pic.noHp}
+                      onChange={(e) => handlePICChange(index, e)}
+                      placeholder="08xxxxxxxxxx"
+                    />
+                    <div className="md:col-span-2">
+                      <Input
+                        label="Alamat PIC"
+                        name="alamat"
+                        value={pic.alamat}
+                        onChange={(e) => handlePICChange(index, e)}
+                        placeholder="Masukkan alamat lengkap PIC"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">

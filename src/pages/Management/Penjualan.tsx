@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -63,6 +62,15 @@ const initialFormState: PenjualanData = {
   status: 'Booked',
 };
 
+// Mock Data untuk Master
+const mockPerumahanList = ['Griya Indah Pesona', 'Puri Safana'];
+
+const mockBankList = [
+  { id: 'BSI-01', perumahan: 'Griya Indah Pesona', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
+  { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
+];
+
+
 const Penjualan = () => {
   const [data, setData] = useState<PenjualanData[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -112,8 +120,10 @@ const Penjualan = () => {
     const { name, value, type } = e.target;
 
     if (name === 'caraPembayaran' && value !== 'KPR') {
-      // Hanya mengosongkan nilai pengajuan KPR, bank tetap dipertahankan
       setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
+    } else if (name === 'perumahan') {
+      // Reset rekening jika perumahan diganti agar tidak salah masuk bank
+      setFormData(prev => ({ ...prev, [name]: value, rekeningTujuan: '' }));
     } else {
       const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
       setFormData((prev) => ({ ...prev, [name]: parsedValue }));
@@ -140,12 +150,10 @@ const Penjualan = () => {
     if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
     if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
 
-    // Validasi Bank berlaku untuk semua cara pembayaran
     if (formData.caraPembayaran && !formData.bank.trim()) {
       newErrors.bank = 'Bank wajib diisi';
     }
 
-    // Validasi khusus KPR
     if (formData.caraPembayaran === 'KPR') {
       if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
     }
@@ -172,6 +180,13 @@ const Penjualan = () => {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
+
+  // Filter bank berdasarkan perumahan yang dipilih
+  const filteredBanks = mockBankList.filter(b => b.perumahan === formData.perumahan);
+  const bankOptions = filteredBanks.map(b => ({
+    value: b.id,
+    label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
+  }));
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -206,7 +221,14 @@ const Penjualan = () => {
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
+              <Select
+                label="Perumahan"
+                name="perumahan"
+                value={formData.perumahan}
+                onChange={handleChange}
+                error={errors.perumahan}
+                options={mockPerumahanList.map(p => ({ value: p, label: p }))}
+              />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
               <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
@@ -247,7 +269,6 @@ const Penjualan = () => {
               />
             </div>
 
-            {/* Input Bank & Nilai Pengajuan KPR Dinamis */}
             {formData.caraPembayaran && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
                 <Input
@@ -292,8 +313,8 @@ const Penjualan = () => {
           </div>
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
-            <div className="grid grid-cols-1 gap-4">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee & Keperluan Legal</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Booking Fee (Fixed Rp)"
                 type="number"
@@ -302,16 +323,19 @@ const Penjualan = () => {
                 readOnly
                 className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
               />
+
               <Select
                 label="Transfer ke Rekening"
                 name="rekeningTujuan"
                 value={formData.rekeningTujuan}
                 onChange={handleChange}
-                options={[
-                  { value: 'BSI-Gajah', label: 'Bank BSI No Rekening : 7326575644 a/n PT. Bintang Safana Gajah' },
-                  { value: 'BSI-Mahligai', label: 'Bank BSI No Rekening : 7326573692 a/n PT. Bintang Safana Mahligai' }
-                ]}
+                options={
+                  formData.perumahan
+                    ? bankOptions
+                    : [{ value: '', label: 'Silakan pilih Perumahan di Atas Dahulu' }]
+                }
                 error={errors.rekeningTujuan}
+                disabled={!formData.perumahan}
               />
             </div>
           </div>

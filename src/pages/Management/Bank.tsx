@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
 
 interface BankData {
   id: string;
+  perumahan: string;
   namaBank: string;
   noRekening: string;
   atasNama: string;
@@ -12,21 +14,30 @@ interface BankData {
 
 const initialFormState: BankData = {
   id: '',
+  perumahan: '',
   namaBank: '',
   noRekening: '',
   atasNama: '',
 };
 
+// Mock data perumahan (Nantinya bisa ditarik dari API/Data Master Kavling)
+const mockPerumahan = [
+  'Poris88',
+  'Puri Safana',
+];
+
 const Bank = () => {
   const [data, setData] = useState<BankData[]>([
     {
       id: '1',
+      perumahan: 'Poris88',
       namaBank: 'Bank BSI',
       noRekening: '7326575644',
       atasNama: 'PT. Bintang Safana Gajah'
     },
     {
       id: '2',
+      perumahan: 'Puri Safana',
       namaBank: 'Bank BSI',
       noRekening: '7326573692',
       atasNama: 'PT. Bintang Safana Mahligai'
@@ -39,6 +50,11 @@ const Bank = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
+    {
+      header: 'Perumahan',
+      accessor: 'perumahan',
+      render: (val: string) => <span className="font-semibold text-blue-700">{val}</span>
+    },
     { header: 'Nama Bank', accessor: 'namaBank' },
     { header: 'No Rekening', accessor: 'noRekening' },
     { header: 'Atas Nama (a/n)', accessor: 'atasNama' },
@@ -61,7 +77,7 @@ const Bank = () => {
     setFormData(initialFormState);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof BankData]) {
@@ -71,6 +87,7 @@ const Bank = () => {
 
   const validateForm = () => {
     const newErrors: Partial<BankData> = {};
+    if (!formData.perumahan) newErrors.perumahan = 'Perumahan wajib dipilih';
     if (!formData.namaBank.trim()) newErrors.namaBank = 'Nama Bank wajib diisi';
     if (!formData.noRekening.trim()) newErrors.noRekening = 'No Rekening wajib diisi';
     if (!formData.atasNama.trim()) newErrors.atasNama = 'Atas Nama wajib diisi';
@@ -116,6 +133,17 @@ const Bank = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
+              <Select
+                label="Peruntukan Perumahan"
+                name="perumahan"
+                value={formData.perumahan}
+                onChange={handleChange}
+                error={errors.perumahan}
+                options={mockPerumahan.map(p => ({ value: p, label: p }))}
+              />
+            </div>
+
             <Input
               label="Nama Bank"
               name="namaBank"
