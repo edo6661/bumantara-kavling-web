@@ -34,6 +34,15 @@ const initialFormState: KavlingMasterData = {
 
 const Kavling = () => {
   const [data, setData] = useState<KavlingMasterData[]>([]);
+
+
+  const [perumahanList, setPerumahanList] = useState<string[]>([
+    'Puri Safana',
+  ]);
+
+
+  const [isNewPerumahan, setIsNewPerumahan] = useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<KavlingMasterData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof KavlingMasterData, string>>>({});
@@ -41,6 +50,7 @@ const Kavling = () => {
 
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan' },
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: any, row: KavlingMasterData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Tipe', accessor: 'tipe' },
@@ -70,9 +80,17 @@ const Kavling = () => {
     if (item) {
       setFormData(item);
       setIsEditing(true);
+
+
+      if (!perumahanList.includes(item.perumahan)) {
+        setIsNewPerumahan(true);
+      } else {
+        setIsNewPerumahan(false);
+      }
     } else {
       setFormData(initialFormState);
       setIsEditing(false);
+      setIsNewPerumahan(false);
     }
     setErrors({});
     setIsModalOpen(true);
@@ -81,6 +99,7 @@ const Kavling = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
+    setIsNewPerumahan(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -117,6 +136,14 @@ const Kavling = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+
+
+    if (isNewPerumahan && formData.perumahan.trim() !== '') {
+      if (!perumahanList.includes(formData.perumahan)) {
+        setPerumahanList(prev => [...prev, formData.perumahan]);
+      }
+    }
+
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
@@ -148,7 +175,52 @@ const Kavling = () => {
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Utama</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
+
+              {/* DYNAMIC PERUMAHAN FIELD */}
+              <div className="relative">
+                {!isNewPerumahan ? (
+                  <Select
+                    label="Perumahan"
+                    name="perumahan"
+                    value={formData.perumahan}
+                    onChange={(e) => {
+                      if (e.target.value === 'NEW') {
+                        setIsNewPerumahan(true);
+                        setFormData((prev) => ({ ...prev, perumahan: '' }));
+                      } else {
+                        handleChange(e);
+                      }
+                    }}
+                    options={[
+                      ...perumahanList.map(p => ({ value: p, label: p })),
+                      { value: 'NEW', label: '+ Tambah Perumahan Baru...' }
+                    ]}
+                    error={errors.perumahan}
+                  />
+                ) : (
+                  <div className="relative animate-in fade-in zoom-in-95 duration-200">
+                    <Input
+                      label="Nama Perumahan Baru"
+                      name="perumahan"
+                      value={formData.perumahan}
+                      onChange={handleChange}
+                      error={errors.perumahan}
+                      placeholder="Ketik nama perumahan..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNewPerumahan(false);
+                        setFormData((prev) => ({ ...prev, perumahan: '' }));
+                      }}
+                      className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      Batal Tambah
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <Select
                 label="Status"
                 name="status"
