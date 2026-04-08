@@ -65,10 +65,10 @@ const initialFormState: PenjualanData = {
 };
 
 // Mock Data untuk Master
-const mockPerumahanList = ['Griya Indah Pesona', 'Puri Safana'];
+const mockPerumahanList = ['Puri Safana', 'Puri Safana'];
 
 const mockBankList = [
-  { id: 'BSI-01', perumahan: 'Griya Indah Pesona', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
+  { id: 'BSI-01', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
   { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
 ];
 
@@ -85,7 +85,7 @@ const Penjualan = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
-    { header: 'ID Transaksi', accessor: 'id' },
+    { header: 'ID Penjualan', accessor: 'id' },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
     { header: 'Nama Customer', accessor: 'nama' },
     { header: 'Perumahan', accessor: 'perumahan' },

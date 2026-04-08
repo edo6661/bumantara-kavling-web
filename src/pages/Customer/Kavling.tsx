@@ -89,7 +89,7 @@ const initialMockData: KavlingData[] = [
   {
     ...initialFormState,
     id: '1',
-    perumahan: 'Griya Indah Pesona',
+    perumahan: 'Puri Safana',
     status: 'Available',
     lantai: '1',
     blok: 'A',
@@ -109,7 +109,7 @@ const initialMockData: KavlingData[] = [
   {
     ...initialFormState,
     id: '2',
-    perumahan: 'Griya Indah Pesona',
+    perumahan: 'Puri Safana',
     status: 'Terjual',
     lantai: '2',
     blok: 'B',

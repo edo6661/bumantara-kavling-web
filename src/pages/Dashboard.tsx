@@ -49,7 +49,7 @@ const Dashboard = () => {
     },
   ];
 
-  // Mock Data Transaksi Terbaru
+  // Mock Data Penjualan Terbaru
   const recentTransactions = [
     { id: 'TRX-001', customer: 'Budi Santoso', kavling: 'Blok A - 01', type: 'Booking Fee', amount: 5000000, status: 'Lunas', date: 'Hari ini, 10:30' },
     { id: 'TRX-002', customer: 'Andi Pratama', kavling: 'Blok B - 12', type: 'DP 1', amount: 45000000, status: 'Pending', date: 'Kemarin, 14:15' },
@@ -161,10 +161,10 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Transaksi Terbaru */}
+        {/* Penjualan Terbaru */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Transaksi Pembayaran Terbaru</h3>
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Penjualan Pembayaran Terbaru</h3>
             <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer">
               Lihat Semua
             </button>

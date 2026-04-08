@@ -25,7 +25,7 @@ const SPR = () => {
       id: '1',
       nama: 'Budi Santoso',
       noTelepon: '081234567890',
-      perumahan: 'Griya Indah Pesona',
+      perumahan: 'Puri Safana',
       blok: 'A-01',
     }
   ]);

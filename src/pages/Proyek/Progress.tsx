@@ -36,8 +36,8 @@ const initialFormState: ProgressData = {
 
 // Mock data kavling (Nantinya diganti dengan data dari API/Backend)
 const mockKavlings = [
-  { id: 'KAV-001', perumahan: 'Griya Indah Pesona', blok: 'A', unit: '01' },
-  { id: 'KAV-002', perumahan: 'Griya Indah Pesona', blok: 'B', unit: '12' },
+  { id: 'KAV-001', perumahan: 'Puri Safana', blok: 'A', unit: '01' },
+  { id: 'KAV-002', perumahan: 'Puri Safana', blok: 'B', unit: '12' },
   { id: 'KAV-003', perumahan: 'Puri Safana', blok: 'C', unit: '05' },
 ];
 
@@ -46,7 +46,7 @@ const Progress = () => {
     {
       id: 'PRG-001',
       kavlingId: 'KAV-001',
-      kavlingLabel: 'Griya Indah Pesona - Blok A No. 01',
+      kavlingLabel: 'Puri Safana - Blok A No. 01',
       pelaksana: 'Mandor Supri',
       tanggalLaporan: '2026-04-10',
       tahapanPekerjaan: 'Pekerjaan Pondasi & Sloof',

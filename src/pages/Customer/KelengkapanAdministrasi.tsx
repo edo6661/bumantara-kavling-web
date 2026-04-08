@@ -33,8 +33,8 @@ const initialFormState: AdministrasiData = {
 
 // Mock data customer yang diperkaya dengan data pembelian unitnya
 const mockCustomers = [
-  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Griya Indah Pesona', blok: 'A', tipe: '45/90', unit: '01' },
-  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Griya Indah Pesona', blok: 'B', tipe: '60/120', unit: '12' },
+  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A', tipe: '45/90', unit: '01' },
+  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B', tipe: '60/120', unit: '12' },
   { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C', tipe: '36/72', unit: '05' },
   { id: 'CUST-004', name: 'Rina Wijaya', perumahan: 'Puri Safana', blok: 'D', tipe: '45/90', unit: '08' },
 ];
@@ -46,7 +46,7 @@ const KelengkapanAdministrasi = () => {
       id: '1',
       customerId: 'CUST-001',
       customerName: 'Budi Santoso',
-      perumahan: 'Griya Indah Pesona',
+      perumahan: 'Puri Safana',
       blok: 'A',
       tipe: '45/90',
       unit: '01',
@@ -207,7 +207,7 @@ const KelengkapanAdministrasi = () => {
                   value={formData.perumahan}
                   onChange={handleChange}
                   error={errors.perumahan}
-                  placeholder="Contoh: Griya Indah Pesona"
+                  placeholder="Contoh: Puri Safana"
                 />
               </div>
               <Input

@@ -1,3 +1,4 @@
+
 <file path="package.json">
 {
   "name": "bumantara-kavling",
@@ -36,277 +37,6 @@
     "vite": "^7.3.1"
   }
 }
-</file>
-
-<file path="src/pages/Customer/Tagihan.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatRupiah, formatDate } from "../../utils/formatters";
-
-interface TagihanData {
-  id: string;
-  namaCustomer: string;
-  keterangan: string;
-  nominal: number;
-  jatuhTempo: string;
-  status: string;
-  fileBukti: string;
-}
-
-const initialFormState: TagihanData = {
-  id: '',
-  namaCustomer: '',
-  keterangan: '',
-  nominal: 0,
-  jatuhTempo: '',
-  status: 'Belum Bayar',
-  fileBukti: '',
-};
-
-// Mock data untuk pilihan customer
-const mockCustomers = [
-  { id: 'CUST-001', name: 'Budi Santoso' },
-  { id: 'CUST-002', name: 'Andi Pratama' },
-  { id: 'CUST-003', name: 'Siti Aminah' },
-];
-
-const Tagihan = () => {
-  const [data, setData] = useState<TagihanData[]>([
-    {
-      id: 'INV-001',
-      namaCustomer: 'Budi Santoso',
-      keterangan: 'Cicilan DP Pertama',
-      nominal: 15000000,
-      jatuhTempo: '2026-05-01',
-      status: 'Lunas',
-      fileBukti: 'bukti_tf_budi.pdf',
-    },
-    {
-      id: 'INV-002',
-      namaCustomer: 'Andi Pratama',
-      keterangan: 'Cicilan KPR Bulan ke-1',
-      nominal: 4500000,
-      jatuhTempo: '2026-05-15',
-      status: 'Belum Bayar',
-      fileBukti: '',
-    }
-  ]);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<TagihanData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof TagihanData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'No. Tagihan', accessor: 'id' },
-    { header: 'Nama Customer', accessor: 'namaCustomer' },
-    { header: 'Keterangan', accessor: 'keterangan' },
-    {
-      header: 'Nominal',
-      accessor: 'nominal',
-      render: (val: number) => formatRupiah(val)
-    },
-    {
-      header: 'Jatuh Tempo',
-      accessor: 'jatuhTempo',
-      render: (val: string) => formatDate(val)
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => {
-        const bg = val === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
-      }
-    },
-    {
-      header: 'Bukti',
-      accessor: 'fileBukti',
-      render: (val: string) => val ? (
-        <span className="text-blue-600 text-xs font-medium bg-blue-50 px-2 py-1 rounded">{val}</span>
-      ) : (
-        <span className="text-gray-400 text-xs">-</span>
-      )
-    },
-  ];
-
-  const openModal = (item?: TagihanData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-
-    if (errors[name as keyof TagihanData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof TagihanData, string>> = {};
-    if (!formData.namaCustomer) newErrors.namaCustomer = 'Customer wajib dipilih';
-    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan wajib diisi';
-    if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
-    if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      // Generate ID Tagihan Mock
-      const newId = `INV-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: TagihanData) => {
-    if (window.confirm(`Hapus data tagihan ${item.keterangan} untuk ${item.namaCustomer}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Data Tagihan Customer"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Tagihan" : "Buat Tagihan Baru"}
-      >
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <Select
-              label="Pilih Customer"
-              name="namaCustomer"
-              value={formData.namaCustomer}
-              onChange={handleChange}
-              error={errors.namaCustomer}
-              options={mockCustomers.map(c => ({ value: c.name, label: c.name }))}
-            />
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Input
-                  label="Keterangan Tagihan"
-                  name="keterangan"
-                  value={formData.keterangan}
-                  onChange={handleChange}
-                  error={errors.keterangan}
-                  placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP"
-                />
-              </div>
-              <Input
-                label="Nominal (Rp)"
-                type="number"
-                name="nominal"
-                value={formData.nominal === 0 ? '' : formData.nominal}
-                onChange={handleChange}
-                error={errors.nominal}
-                placeholder="0"
-              />
-              <Input
-                label="Jatuh Tempo"
-                type="date"
-                name="jatuhTempo"
-                value={formData.jatuhTempo}
-                onChange={handleChange}
-                error={errors.jatuhTempo}
-              />
-              <Select
-                label="Status Pembayaran"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                options={[
-                  { value: 'Belum Bayar', label: 'Belum Bayar' },
-                  { value: 'Lunas', label: 'Lunas' }
-                ]}
-              />
-            </div>
-          </div>
-
-          {formData.status === 'Lunas' && (
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-100 animate-in fade-in">
-              <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Bukti Pembayaran</h4>
-              <FileInput
-                label="Upload Bukti Transfer"
-                accept="image/*,.pdf"
-                onChange={(e) => handleFileChange(e, 'fileBukti')}
-              />
-              {formData.fileBukti && (
-                <p className="text-xs text-green-600 mt-1 truncate">File terlampir: {formData.fileBukti}</p>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer"
-            >
-              Simpan Tagihan
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Tagihan;
 </file>
 
 <file path="src/pages/Home.tsx">
@@ -712,156 +442,111 @@ const DataSosial = () => {
 export default DataSosial;
 </file>
 
-<file path="src/pages/Customer/Kavling.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
+<file path="src/pages/Customer/Tagihan.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
-import { formatRupiah } from "../../utils/formatters";
+import FileInput from "../../components/shared/FileInput";
+import { formatRupiah, formatDate } from "../../utils/formatters";
 
-interface KavlingData {
+interface TagihanData {
   id: string;
-  perumahan: string;
+  namaCustomer: string;
+  keterangan: string;
+  nominal: number;
+  jatuhTempo: string;
   status: string;
-  lantai: string;
-  blok: string;
-  unit: string;
-  tipe: string;
-  luasBangunan: string;
-  lokasiStrategis: string;
-  tanggalAkadPpjb: string;
-  akadPpjb: string;
-  tanggalAkadAjbPpat: string;
-  tanggalPembayaranPph: string;
-  tanggalPembayaranBphtb: string;
-  pembiayaan: string;
-  sp3r: string;
-  harga: number;
-  lebihTanah: number;
-  biayaStrategis: number;
-  totalHargaJual: number;
-  nrBiayaKprAsuransi: number;
-  nrDiskonAngsuran: number;
-  nrDiskonCash: number;
-  nrBiayaBbn: number;
-  nrBiayaNotarisAjb: number;
-  nrBiayaAppraisal: number;
-  nrBiayaBphtb: number;
-  nrLainLain: number;
-  nrTotalSubsidi: number;
-  nrNilaiPenyerahan: number;
-  nrPpn: number;
-  nrBphtb: number;
-  nrPph: number;
-  pjBiayaKpr: number;
-  pjBiayaAsuransi: number;
-  pjDiskonAngsuran: number;
-  pjBiayaBbn: number;
-  pjBiayaAjb: number;
-  pjBiayaAppraisal: number;
-  pjBphtb: number;
-  pjLainLain: number;
-  pjTotalSubsidi: number;
-  pjNilaiPenyerahan: number;
-  pjPpn: number;
-  pjBphtbPajak: number;
-  pjPph: number;
-  pjTotalBphtbPph: number;
-  ajbNjopTanahPerMeter: number;
-  ajbNjopTanah: number;
-  ajbNjopBangunanPerMeter: number;
-  ajbNjopBangunan: number;
-  ajbNjopTotal: number;
-  ajbPpn: number;
-  ajbBphtb: number;
-  ajbPph: number;
-  ajbTotalBphtbPph: number;
-  ajbSelisihPajakPbb: number;
-  ajbUping: number;
+  fileBukti: string;
 }
 
-const initialFormState: KavlingData = {
+const initialFormState: TagihanData = {
   id: '',
-  perumahan: '', status: '', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', lokasiStrategis: '',
-  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
-  harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
-  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
-  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
-  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
+  namaCustomer: '',
+  keterangan: '',
+  nominal: 0,
+  jatuhTempo: '',
+  status: 'Belum Bayar', // Default Status saat pembuatan
+  fileBukti: '',
 };
 
-// --- MOCK DATA DITAMBAHKAN DI SINI ---
-const initialMockData: KavlingData[] = [
-  {
-    ...initialFormState,
-    id: '1',
-    perumahan: 'Griya Indah Pesona',
-    status: 'Available',
-    lantai: '1',
-    blok: 'A',
-    unit: '01',
-    tipe: '45/90',
-    luasBangunan: '45',
-    lokasiStrategis: 'Ya',
-    pembiayaan: 'KPR',
-    harga: 500000000,
-    lebihTanah: 0,
-    biayaStrategis: 15000000,
-    totalHargaJual: 515000000,
-    nrNilaiPenyerahan: 515000000,
-    pjNilaiPenyerahan: 515000000
-  },
-  {
-    ...initialFormState,
-    id: '2',
-    perumahan: 'Griya Indah Pesona',
-    status: 'Terjual',
-    lantai: '2',
-    blok: 'B',
-    unit: '12',
-    tipe: '60/120',
-    luasBangunan: '60',
-    lokasiStrategis: 'Tidak',
-    pembiayaan: 'Cash Keras',
-    harga: 850000000,
-    lebihTanah: 20000000,
-    biayaStrategis: 0,
-    totalHargaJual: 870000000,
-    nrNilaiPenyerahan: 870000000,
-    pjNilaiPenyerahan: 870000000
-  }
+// Mock data untuk pilihan customer
+const mockCustomers = [
+  { id: 'CUST-001', name: 'Budi Santoso' },
+  { id: 'CUST-002', name: 'Andi Pratama' },
+  { id: 'CUST-003', name: 'Siti Aminah' },
 ];
 
-const CustomerKavling = () => {
-  const [data, setData] = useState<KavlingData[]>(initialMockData); // Menggunakan mock data
+const Tagihan = () => {
+  const [data, setData] = useState<TagihanData[]>([
+    {
+      id: 'INV-001',
+      namaCustomer: 'Budi Santoso',
+      keterangan: 'Cicilan DP Pertama',
+      nominal: 15000000,
+      jatuhTempo: '2026-05-01',
+      status: 'Lunas',
+      fileBukti: 'bukti_tf_budi.pdf',
+    },
+    {
+      id: 'INV-002',
+      namaCustomer: 'Andi Pratama',
+      keterangan: 'Cicilan KPR Bulan ke-1',
+      nominal: 4500000,
+      jatuhTempo: '2026-05-15',
+      status: 'Belum Bayar',
+      fileBukti: '',
+    }
+  ]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<KavlingData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<KavlingData>>({});
-  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb'>('dasar');
+  const [formData, setFormData] = useState<TagihanData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof TagihanData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
-    { header: 'Tipe', accessor: 'tipe' },
-    { header: 'Total Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
+    { header: 'No. Tagihan', accessor: 'id' },
+    { header: 'Nama Customer', accessor: 'namaCustomer' },
+    { header: 'Keterangan', accessor: 'keterangan' },
+    {
+      header: 'Nominal',
+      accessor: 'nominal',
+      render: (val: number) => formatRupiah(val)
+    },
+    {
+      header: 'Jatuh Tempo',
+      accessor: 'jatuhTempo',
+      render: (val: string) => formatDate(val)
+    },
     {
       header: 'Status',
       accessor: 'status',
-      render: (val: string) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${val === 'Available' ? 'bg-green-100 text-green-800' : val === 'Booking' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
-          {val}
-        </span>
+      render: (val: string) => {
+        const bg = val === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
+      }
+    },
+    {
+      header: 'Bukti',
+      accessor: 'fileBukti',
+      render: (val: string) => val ? (
+        <span className="text-blue-600 text-xs font-medium bg-blue-50 px-2 py-1 rounded">{val}</span>
+      ) : (
+        <span className="text-gray-400 text-xs">-</span>
       )
     },
   ];
 
-  // Hanya menerima item yang sudah ada (edit)
-  const openModal = (item: KavlingData) => {
-    setFormData(item);
+  const openModal = (item?: TagihanData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
     setErrors({});
-    setActiveTab('dasar');
     setIsModalOpen(true);
   };
 
@@ -870,39 +555,44 @@ const CustomerKavling = () => {
     setFormData(initialFormState);
   };
 
-  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
-    const d = { ...currentData };
-    d.totalHargaJual = (Number(d.harga) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
-    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
-    d.nrNilaiPenyerahan = d.totalHargaJual - d.nrTotalSubsidi;
-    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
-    d.pjNilaiPenyerahan = d.totalHargaJual - d.pjTotalSubsidi;
-    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
-    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
-    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
-    return d;
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-    setFormData((prev) => {
-      const updatedData = { ...prev, [name]: parsedValue };
-      return calculateDerivedFields(updatedData);
-    });
-    if (errors[name as keyof KavlingData]) {
+
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+
+    if (errors[name as keyof TagihanData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // LOGIC BARU: Jika ada file diunggah, otomatis status menjadi LUNAS
+      setFormData((prev) => ({
+        ...prev,
+        [fieldName]: file.name,
+        status: 'Lunas'
+      }));
+    } else {
+      // Jika file dihapus, status kembali ke Belum Bayar
+      setFormData((prev) => ({
+        ...prev,
+        [fieldName]: '',
+        status: 'Belum Bayar'
+      }));
+    }
+  };
+
   const validateForm = () => {
-    const newErrors: Partial<KavlingData> = {};
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.unit.trim()) newErrors.unit = 'Unit wajib diisi';
-    if (!formData.tipe.trim()) newErrors.tipe = 'Tipe wajib diisi';
+    const newErrors: Partial<Record<keyof TagihanData, string>> = {};
+    if (!formData.namaCustomer) newErrors.namaCustomer = 'Customer wajib dipilih';
+    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan wajib diisi';
+    if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
+    if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
+
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) setActiveTab('dasar');
     return Object.keys(newErrors).length === 0;
   };
 
@@ -910,179 +600,122 @@ const CustomerKavling = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Hanya melakukan update/edit data yang sudah ada
-    setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      // Generate ID Tagihan Mock
+      const newId = `INV-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
     closeModal();
   };
 
-  const handleDelete = (item: KavlingData) => {
-    if (window.confirm(`Hapus data kavling Blok ${item.blok}-${item.unit}?`)) {
+  const handleDelete = (item: TagihanData) => {
+    if (window.confirm(`Hapus data tagihan ${item.keterangan} untuk ${item.namaCustomer}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
 
-  const tabs = [
-    { id: 'dasar', label: 'Info Dasar' },
-    { id: 'harga', label: 'Harga Jual' },
-    { id: 'nilai', label: 'Nilai Rumah' },
-    { id: 'pajak', label: 'Pajak' },
-    { id: 'ajb', label: 'Keperluan AJB' },
-  ];
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title="Data Kavling Customer"
+        title="Data Tagihan Customer"
         columns={columns}
         data={data}
+        onAdd={() => openModal()}
         onEdit={(item) => openModal(item)}
         onDelete={handleDelete}
       />
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Data Kavling">
-        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
-          {tabs.map((tab) => (
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Tagihan" : "Buat Tagihan Baru"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold text-gray-800">Status Pembayaran</span>
+            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${formData.status === 'Lunas' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
+              {formData.status}
+            </span>
+          </div>
+
+          <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
+            <Select
+              label="Pilih Customer"
+              name="namaCustomer"
+              value={formData.namaCustomer}
+              onChange={handleChange}
+              error={errors.namaCustomer}
+              options={mockCustomers.map(c => ({ value: c.name, label: c.name }))}
+            />
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Input
+                  label="Keterangan Tagihan"
+                  name="keterangan"
+                  value={formData.keterangan}
+                  onChange={handleChange}
+                  error={errors.keterangan}
+                  placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP"
+                />
+              </div>
+              <Input
+                label="Nominal (Rp)"
+                type="number"
+                name="nominal"
+                value={formData.nominal === 0 ? '' : formData.nominal}
+                onChange={handleChange}
+                error={errors.nominal}
+                placeholder="0"
+              />
+              <Input
+                label="Jatuh Tempo"
+                type="date"
+                name="jatuhTempo"
+                value={formData.jatuhTempo}
+                onChange={handleChange}
+                error={errors.jatuhTempo}
+              />
+            </div>
+          </div>
+
+          {/* Form Upload akan SELALU muncul agar user bisa upload bukti bayar jika pelanggan sudah bayar */}
+          <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2">Bukti Pembayaran</h4>
+            <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
+              Upload bukti transfer di sini. Sistem akan otomatis mengubah status tagihan menjadi <strong className="text-green-700">LUNAS</strong>.
+            </p>
+            <FileInput
+              label="Upload Bukti Transfer"
+              accept="image/*,.pdf"
+              onChange={(e) => handleFileChange(e, 'fileBukti')}
+            />
+            {formData.fileBukti && (
+              <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                File tersimpan: {formData.fileBukti}
+              </p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button
-              key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`whitespace-nowrap py-2 px-4 border-b-2 font-medium text-sm transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer"
             >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* TAB 1: INFORMASI DASAR */}
-          {activeTab === 'dasar' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
-              <Select label="Status" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'Available', label: 'Available' }, { value: 'Booking', label: 'Booking' }, { value: 'Terjual', label: 'Terjual' }]} />
-              <div className="grid grid-cols-2 gap-2">
-                <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
-                <Input label="Unit" name="unit" value={formData.unit} onChange={handleChange} error={errors.unit} placeholder="Contoh: 01" />
-              </div>
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
-              <Input label="Lantai" name="lantai" value={formData.lantai} onChange={handleChange} />
-              <Input label="Luas Bangunan (m²)" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} />
-              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} />
-              <Select label="Pembiayaan" name="pembiayaan" value={formData.pembiayaan} onChange={handleChange} options={[{ value: 'KPR', label: 'KPR Bank' }, { value: 'Cash Keras', label: 'Cash Keras' }, { value: 'Cash Bertahap', label: 'Cash Bertahap' }]} />
-              <Input label="SP3R" name="sp3r" value={formData.sp3r} onChange={handleChange} />
-              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
-              <Input label="Akad PPJB" name="akadPpjb" value={formData.akadPpjb} onChange={handleChange} />
-              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
-            </div>
-          )}
-
-          {/* TAB 2: HARGA JUAL */}
-          {activeTab === 'harga' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Harga Standar (Rp)" type="number" name="harga" value={formData.harga || ''} onChange={handleChange} />
-              <Input label="Lebih Tanah (Rp)" type="number" name="lebihTanah" value={formData.lebihTanah || ''} onChange={handleChange} />
-              <Input label="Biaya Strategis (Rp)" type="number" name="biayaStrategis" value={formData.biayaStrategis || ''} onChange={handleChange} />
-              <div className="md:col-span-2 mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-500">Total Harga Jual</span>
-                <span className="text-xl font-bold text-gray-900">{formatRupiah(formData.totalHargaJual)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: NILAI RUMAH */}
-          {activeTab === 'nilai' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
-              <Input label="Biaya KPR & Asuransi" type="number" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi || ''} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran || ''} onChange={handleChange} />
-              <Input label="Diskon Cash & Lainnya" type="number" name="nrDiskonCash" value={formData.nrDiskonCash || ''} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="nrBiayaBbn" value={formData.nrBiayaBbn || ''} onChange={handleChange} />
-              <Input label="Biaya Notaris AJB" type="number" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb || ''} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal || ''} onChange={handleChange} />
-              <Input label="Biaya BPHTB" type="number" name="nrBiayaBphtb" value={formData.nrBiayaBphtb || ''} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="nrLainLain" value={formData.nrLainLain || ''} onChange={handleChange} />
-              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200">
-                <span className="text-sm font-medium text-gray-600">Total Subsidi & Bonus</span>
-                <span className="font-bold text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-blue-50 p-4 rounded-md flex justify-between items-center border border-blue-200 mb-4">
-                <span className="text-sm font-medium text-blue-800">Nilai Penyerahan (Setelah Subsidi)</span>
-                <span className="text-xl font-bold text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Pajak Nilai Rumah" />
-              <Input label="PPN" type="number" name="nrPpn" value={formData.nrPpn || ''} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="nrBphtb" value={formData.nrBphtb || ''} onChange={handleChange} />
-              <Input label="PPh" type="number" name="nrPph" value={formData.nrPph || ''} onChange={handleChange} />
-            </div>
-          )}
-
-          {/* TAB 4: PAJAK */}
-          {activeTab === 'pajak' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Pajak)" />
-              <Input label="Biaya KPR" type="number" name="pjBiayaKpr" value={formData.pjBiayaKpr || ''} onChange={handleChange} />
-              <Input label="Biaya Asuransi" type="number" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi || ''} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran || ''} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="pjBiayaBbn" value={formData.pjBiayaBbn || ''} onChange={handleChange} />
-              <Input label="Biaya Pembuatan AJB" type="number" name="pjBiayaAjb" value={formData.pjBiayaAjb || ''} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal || ''} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtb" value={formData.pjBphtb || ''} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="pjLainLain" value={formData.pjLainLain || ''} onChange={handleChange} />
-              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200">
-                <span className="text-sm font-medium text-gray-600">Total Subsidi & Bonus (Pajak)</span>
-                <span className="font-bold text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-blue-50 p-4 rounded-md flex justify-between items-center border border-blue-200 mb-4">
-                <span className="text-sm font-medium text-blue-800">Nilai Penyerahan (Pajak)</span>
-                <span className="text-xl font-bold text-blue-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Detail Pajak" />
-              <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn || ''} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak || ''} onChange={handleChange} />
-              <Input label="PPh" type="number" name="pjPph" value={formData.pjPph || ''} onChange={handleChange} />
-              <div className="md:col-span-2 mt-2 p-4 bg-gray-600 rounded-md flex justify-between items-center">
-                <span className="text-sm font-medium text-white">BPHTB + PPh</span>
-                <span className="font-bold text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: KEPERLUAN AJB */}
-          {activeTab === 'ajb' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
-              <Input label="NJOP Tanah per Meter" type="number" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter || ''} onChange={handleChange} />
-              <Input label="Total NJOP Tanah" type="number" name="ajbNjopTanah" value={formData.ajbNjopTanah || ''} onChange={handleChange} />
-              <Input label="NJOP Bangunan per Meter" type="number" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter || ''} onChange={handleChange} />
-              <Input label="Total NJOP Bangunan" type="number" name="ajbNjopBangunan" value={formData.ajbNjopBangunan || ''} onChange={handleChange} />
-              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200 mb-4">
-                <span className="text-sm font-medium text-gray-600">NJOP Tanah + Bangunan</span>
-                <span className="font-bold text-gray-900">{formatRupiah(formData.ajbNjopTotal)}</span>
-              </div>
-              <SectionTitle title="Kewajiban Pajak AJB" />
-              <Input label="PPN" type="number" name="ajbPpn" value={formData.ajbPpn || ''} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="ajbBphtb" value={formData.ajbBphtb || ''} onChange={handleChange} />
-              <Input label="PPh" type="number" name="ajbPph" value={formData.ajbPph || ''} onChange={handleChange} />
-              <div className="md:col-span-2 mt-2 p-4 bg-gray-600 rounded-md flex justify-between items-center">
-                <span className="text-sm font-medium text-white">BPHTB + PPh (AJB)</span>
-                <span className="font-bold text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
-              </div>
-              <SectionTitle title="Lain-lain" />
-              <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb || ''} onChange={handleChange} />
-              <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping || ''} onChange={handleChange} />
-            </div>
-          )}
-
-          {/* FOOTER BUTTONS */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-8">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer">
               Batal
             </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer">
-              Simpan Perubahan
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              Simpan Tagihan
             </button>
           </div>
         </form>
@@ -1091,11 +724,7 @@ const CustomerKavling = () => {
   );
 };
 
-const SectionTitle = ({ title }: { title: string }) => (
-  <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2 md:col-span-2">{title}</h4>
-);
-
-export default CustomerKavling;
+export default Tagihan;
 </file>
 
 <file path="src/pages/Dashboard.tsx">
@@ -1150,7 +779,7 @@ const Dashboard = () => {
     },
   ];
 
-  // Mock Data Transaksi Terbaru
+  // Mock Data Penjualan Terbaru
   const recentTransactions = [
     { id: 'TRX-001', customer: 'Budi Santoso', kavling: 'Blok A - 01', type: 'Booking Fee', amount: 5000000, status: 'Lunas', date: 'Hari ini, 10:30' },
     { id: 'TRX-002', customer: 'Andi Pratama', kavling: 'Blok B - 12', type: 'DP 1', amount: 45000000, status: 'Pending', date: 'Kemarin, 14:15' },
@@ -1262,10 +891,10 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Transaksi Terbaru */}
+        {/* Penjualan Terbaru */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Transaksi Pembayaran Terbaru</h3>
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Penjualan Pembayaran Terbaru</h3>
             <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer">
               Lihat Semua
             </button>
@@ -2083,6 +1712,414 @@ const TimMarketing = () => {
 export default TimMarketing;
 </file>
 
+<file path="src/pages/Customer/Kavling.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import { formatRupiah } from "../../utils/formatters";
+
+interface KavlingData {
+  id: string;
+  perumahan: string;
+  status: string;
+  lantai: string;
+  blok: string;
+  unit: string;
+  tipe: string;
+  luasBangunan: string;
+  lokasiStrategis: string;
+  tanggalAkadPpjb: string;
+  akadPpjb: string;
+  tanggalAkadAjbPpat: string;
+  tanggalPembayaranPph: string;
+  tanggalPembayaranBphtb: string;
+  pembiayaan: string;
+  sp3r: string;
+  harga: number;
+  lebihTanah: number;
+  biayaStrategis: number;
+  totalHargaJual: number;
+  nrBiayaKprAsuransi: number;
+  nrDiskonAngsuran: number;
+  nrDiskonCash: number;
+  nrBiayaBbn: number;
+  nrBiayaNotarisAjb: number;
+  nrBiayaAppraisal: number;
+  nrBiayaBphtb: number;
+  nrLainLain: number;
+  nrTotalSubsidi: number;
+  nrNilaiPenyerahan: number;
+  nrPpn: number;
+  nrBphtb: number;
+  nrPph: number;
+  pjBiayaKpr: number;
+  pjBiayaAsuransi: number;
+  pjDiskonAngsuran: number;
+  pjBiayaBbn: number;
+  pjBiayaAjb: number;
+  pjBiayaAppraisal: number;
+  pjBphtb: number;
+  pjLainLain: number;
+  pjTotalSubsidi: number;
+  pjNilaiPenyerahan: number;
+  pjPpn: number;
+  pjBphtbPajak: number;
+  pjPph: number;
+  pjTotalBphtbPph: number;
+  ajbNjopTanahPerMeter: number;
+  ajbNjopTanah: number;
+  ajbNjopBangunanPerMeter: number;
+  ajbNjopBangunan: number;
+  ajbNjopTotal: number;
+  ajbPpn: number;
+  ajbBphtb: number;
+  ajbPph: number;
+  ajbTotalBphtbPph: number;
+  ajbSelisihPajakPbb: number;
+  ajbUping: number;
+  notarisName: string;
+}
+
+const initialFormState: KavlingData = {
+  id: '',
+  perumahan: '', status: '', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', lokasiStrategis: '',
+  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
+  harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
+  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
+  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
+  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
+  notarisName: '',
+};
+
+
+const mockNotaris = [
+  { id: 'NOT-001', name: 'Notaris PPAT Budi Hartono, S.H., M.Kn.' },
+  { id: 'NOT-002', name: 'Notaris Anita Wijaya, S.H.' },
+];
+
+const initialMockData: KavlingData[] = [
+  {
+    ...initialFormState,
+    id: '1',
+    perumahan: 'Puri Safana',
+    status: 'Available',
+    lantai: '1',
+    blok: 'A',
+    unit: '01',
+    tipe: '45/90',
+    luasBangunan: '45',
+    lokasiStrategis: 'Ya',
+    pembiayaan: 'KPR',
+    harga: 500000000,
+    lebihTanah: 0,
+    biayaStrategis: 15000000,
+    totalHargaJual: 515000000,
+    nrNilaiPenyerahan: 515000000,
+    pjNilaiPenyerahan: 515000000,
+    notarisName: 'Notaris PPAT Budi Hartono, S.H., M.Kn.'
+  },
+  {
+    ...initialFormState,
+    id: '2',
+    perumahan: 'Puri Safana',
+    status: 'Terjual',
+    lantai: '2',
+    blok: 'B',
+    unit: '12',
+    tipe: '60/120',
+    luasBangunan: '60',
+    lokasiStrategis: 'Tidak',
+    pembiayaan: 'Cash Keras',
+    harga: 850000000,
+    lebihTanah: 20000000,
+    biayaStrategis: 0,
+    totalHargaJual: 870000000,
+    nrNilaiPenyerahan: 870000000,
+    pjNilaiPenyerahan: 870000000
+  }
+];
+
+const CustomerKavling = () => {
+  const [data, setData] = useState<KavlingData[]>(initialMockData);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<KavlingData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<KavlingData>>({});
+
+  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
+
+  const columns = [
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
+    { header: 'Tipe', accessor: 'tipe' },
+    { header: 'Total Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${val === 'Available' ? 'bg-green-100 text-green-800' : val === 'Booking' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
+          {val}
+        </span>
+      )
+    },
+  ];
+
+  const openModal = (item: KavlingData) => {
+    setFormData(item);
+    setErrors({});
+    setActiveTab('dasar');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
+    const d = { ...currentData };
+    d.totalHargaJual = (Number(d.harga) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
+    d.nrNilaiPenyerahan = d.totalHargaJual - d.nrTotalSubsidi;
+    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
+    d.pjNilaiPenyerahan = d.totalHargaJual - d.pjTotalSubsidi;
+    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
+    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
+    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
+    return d;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: parsedValue };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name as keyof KavlingData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<KavlingData> = {};
+    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.unit.trim()) newErrors.unit = 'Unit wajib diisi';
+    if (!formData.tipe.trim()) newErrors.tipe = 'Tipe wajib diisi';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) setActiveTab('dasar');
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    closeModal();
+  };
+
+  const handleDelete = (item: KavlingData) => {
+    if (window.confirm(`Hapus data kavling Blok ${item.blok}-${item.unit}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  const tabs = [
+    { id: 'dasar', label: 'Info Dasar' },
+    { id: 'harga', label: 'Harga Jual' },
+    { id: 'nilai', label: 'Nilai Rumah' },
+    { id: 'pajak', label: 'Pajak' },
+    { id: 'ajb', label: 'Keperluan AJB' },
+    { id: 'notaris', label: 'Notaris' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Data Kavling Customer"
+        columns={columns}
+        data={data}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Data Kavling">
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`whitespace-nowrap py-2 px-4 border-b-2 font-medium text-sm transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* TAB 1: INFORMASI DASAR */}
+          {activeTab === 'dasar' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
+              <Select label="Status" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'Available', label: 'Available' }, { value: 'Booking', label: 'Booking' }, { value: 'Terjual', label: 'Terjual' }]} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
+                <Input label="Unit" name="unit" value={formData.unit} onChange={handleChange} error={errors.unit} placeholder="Contoh: 01" />
+              </div>
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
+              <Input label="Lantai" name="lantai" value={formData.lantai} onChange={handleChange} />
+              <Input label="Luas Bangunan (m²)" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} />
+              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} />
+              <Select label="Pembiayaan" name="pembiayaan" value={formData.pembiayaan} onChange={handleChange} options={[{ value: 'KPR', label: 'KPR Bank' }, { value: 'Cash Keras', label: 'Cash Keras' }, { value: 'Cash Bertahap', label: 'Cash Bertahap' }]} />
+              <Input label="SP3R" name="sp3r" value={formData.sp3r} onChange={handleChange} />
+              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
+              <Input label="Akad PPJB" name="akadPpjb" value={formData.akadPpjb} onChange={handleChange} />
+              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
+            </div>
+          )}
+
+          {/* TAB 2: HARGA JUAL */}
+          {activeTab === 'harga' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Input label="Harga Standar (Rp)" type="number" name="harga" value={formData.harga || ''} onChange={handleChange} />
+              <Input label="Lebih Tanah (Rp)" type="number" name="lebihTanah" value={formData.lebihTanah || ''} onChange={handleChange} />
+              <Input label="Biaya Strategis (Rp)" type="number" name="biayaStrategis" value={formData.biayaStrategis || ''} onChange={handleChange} />
+              <div className="md:col-span-2 mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500">Total Harga Jual</span>
+                <span className="text-xl font-bold text-gray-900">{formatRupiah(formData.totalHargaJual)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: NILAI RUMAH */}
+          {activeTab === 'nilai' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
+              <Input label="Biaya KPR & Asuransi" type="number" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi || ''} onChange={handleChange} />
+              <Input label="Diskon Angsuran" type="number" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran || ''} onChange={handleChange} />
+              <Input label="Diskon Cash & Lainnya" type="number" name="nrDiskonCash" value={formData.nrDiskonCash || ''} onChange={handleChange} />
+              <Input label="Biaya Balik Nama Sertifikat" type="number" name="nrBiayaBbn" value={formData.nrBiayaBbn || ''} onChange={handleChange} />
+              <Input label="Biaya Notaris AJB" type="number" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb || ''} onChange={handleChange} />
+              <Input label="Biaya Appraisal" type="number" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal || ''} onChange={handleChange} />
+              <Input label="Biaya BPHTB" type="number" name="nrBiayaBphtb" value={formData.nrBiayaBphtb || ''} onChange={handleChange} />
+              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="nrLainLain" value={formData.nrLainLain || ''} onChange={handleChange} />
+              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200">
+                <span className="text-sm font-medium text-gray-600">Total Subsidi & Bonus</span>
+                <span className="font-bold text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-blue-50 p-4 rounded-md flex justify-between items-center border border-blue-200 mb-4">
+                <span className="text-sm font-medium text-blue-800">Nilai Penyerahan (Setelah Subsidi)</span>
+                <span className="text-xl font-bold text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Pajak Nilai Rumah" />
+              <Input label="PPN" type="number" name="nrPpn" value={formData.nrPpn || ''} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="nrBphtb" value={formData.nrBphtb || ''} onChange={handleChange} />
+              <Input label="PPh" type="number" name="nrPph" value={formData.nrPph || ''} onChange={handleChange} />
+            </div>
+          )}
+
+          {/* TAB 4: PAJAK */}
+          {activeTab === 'pajak' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Pajak)" />
+              <Input label="Biaya KPR" type="number" name="pjBiayaKpr" value={formData.pjBiayaKpr || ''} onChange={handleChange} />
+              <Input label="Biaya Asuransi" type="number" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi || ''} onChange={handleChange} />
+              <Input label="Diskon Angsuran" type="number" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran || ''} onChange={handleChange} />
+              <Input label="Biaya Balik Nama Sertifikat" type="number" name="pjBiayaBbn" value={formData.pjBiayaBbn || ''} onChange={handleChange} />
+              <Input label="Biaya Pembuatan AJB" type="number" name="pjBiayaAjb" value={formData.pjBiayaAjb || ''} onChange={handleChange} />
+              <Input label="Biaya Appraisal" type="number" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal || ''} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="pjBphtb" value={formData.pjBphtb || ''} onChange={handleChange} />
+              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="pjLainLain" value={formData.pjLainLain || ''} onChange={handleChange} />
+              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200">
+                <span className="text-sm font-medium text-gray-600">Total Subsidi & Bonus (Pajak)</span>
+                <span className="font-bold text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-blue-50 p-4 rounded-md flex justify-between items-center border border-blue-200 mb-4">
+                <span className="text-sm font-medium text-blue-800">Nilai Penyerahan (Pajak)</span>
+                <span className="text-xl font-bold text-blue-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Detail Pajak" />
+              <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn || ''} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak || ''} onChange={handleChange} />
+              <Input label="PPh" type="number" name="pjPph" value={formData.pjPph || ''} onChange={handleChange} />
+              <div className="md:col-span-2 mt-2 p-4 bg-gray-600 rounded-md flex justify-between items-center">
+                <span className="text-sm font-medium text-white">BPHTB + PPh</span>
+                <span className="font-bold text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: KEPERLUAN AJB */}
+          {activeTab === 'ajb' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
+              <Input label="NJOP Tanah per Meter" type="number" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter || ''} onChange={handleChange} />
+              <Input label="Total NJOP Tanah" type="number" name="ajbNjopTanah" value={formData.ajbNjopTanah || ''} onChange={handleChange} />
+              <Input label="NJOP Bangunan per Meter" type="number" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter || ''} onChange={handleChange} />
+              <Input label="Total NJOP Bangunan" type="number" name="ajbNjopBangunan" value={formData.ajbNjopBangunan || ''} onChange={handleChange} />
+              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200 mb-4">
+                <span className="text-sm font-medium text-gray-600">NJOP Tanah + Bangunan</span>
+                <span className="font-bold text-gray-900">{formatRupiah(formData.ajbNjopTotal)}</span>
+              </div>
+              <SectionTitle title="Kewajiban Pajak AJB" />
+              <Input label="PPN" type="number" name="ajbPpn" value={formData.ajbPpn || ''} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="ajbBphtb" value={formData.ajbBphtb || ''} onChange={handleChange} />
+              <Input label="PPh" type="number" name="ajbPph" value={formData.ajbPph || ''} onChange={handleChange} />
+              <div className="md:col-span-2 mt-2 p-4 bg-gray-600 rounded-md flex justify-between items-center">
+                <span className="text-sm font-medium text-white">BPHTB + PPh (AJB)</span>
+                <span className="font-bold text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
+              </div>
+              <SectionTitle title="Lain-lain" />
+              <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb || ''} onChange={handleChange} />
+              <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping || ''} onChange={handleChange} />
+            </div>
+          )}
+
+          {/* TAB 6: NOTARIS (TAMBAHAN BARU) */}
+          {activeTab === 'notaris' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Pemilihan Notaris" />
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Notaris"
+                  name="notarisName"
+                  value={formData.notarisName}
+                  onChange={handleChange}
+                  options={mockNotaris.map(n => ({ value: n.name, label: n.name }))}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* FOOTER BUTTONS */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-8">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer">
+              Simpan Perubahan
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+const SectionTitle = ({ title }: { title: string }) => (
+  <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2 md:col-span-2">{title}</h4>
+);
+
+export default CustomerKavling;
+</file>
+
 <file path="src/pages/Customer/KelengkapanAdministrasi.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -2119,8 +2156,8 @@ const initialFormState: AdministrasiData = {
 
 // Mock data customer yang diperkaya dengan data pembelian unitnya
 const mockCustomers = [
-  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Griya Indah Pesona', blok: 'A', tipe: '45/90', unit: '01' },
-  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Griya Indah Pesona', blok: 'B', tipe: '60/120', unit: '12' },
+  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A', tipe: '45/90', unit: '01' },
+  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B', tipe: '60/120', unit: '12' },
   { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C', tipe: '36/72', unit: '05' },
   { id: 'CUST-004', name: 'Rina Wijaya', perumahan: 'Puri Safana', blok: 'D', tipe: '45/90', unit: '08' },
 ];
@@ -2132,7 +2169,7 @@ const KelengkapanAdministrasi = () => {
       id: '1',
       customerId: 'CUST-001',
       customerName: 'Budi Santoso',
-      perumahan: 'Griya Indah Pesona',
+      perumahan: 'Puri Safana',
       blok: 'A',
       tipe: '45/90',
       unit: '01',
@@ -2293,7 +2330,7 @@ const KelengkapanAdministrasi = () => {
                   value={formData.perumahan}
                   onChange={handleChange}
                   error={errors.perumahan}
-                  placeholder="Contoh: Griya Indah Pesona"
+                  placeholder="Contoh: Puri Safana"
                 />
               </div>
               <Input
@@ -2420,7 +2457,7 @@ const SPR = () => {
       id: '1',
       nama: 'Budi Santoso',
       noTelepon: '081234567890',
-      perumahan: 'Griya Indah Pesona',
+      perumahan: 'Puri Safana',
       blok: 'A-01',
     }
   ]);
@@ -2914,8 +2951,8 @@ const initialFormState: ProgressData = {
 
 // Mock data kavling (Nantinya diganti dengan data dari API/Backend)
 const mockKavlings = [
-  { id: 'KAV-001', perumahan: 'Griya Indah Pesona', blok: 'A', unit: '01' },
-  { id: 'KAV-002', perumahan: 'Griya Indah Pesona', blok: 'B', unit: '12' },
+  { id: 'KAV-001', perumahan: 'Puri Safana', blok: 'A', unit: '01' },
+  { id: 'KAV-002', perumahan: 'Puri Safana', blok: 'B', unit: '12' },
   { id: 'KAV-003', perumahan: 'Puri Safana', blok: 'C', unit: '05' },
 ];
 
@@ -2924,7 +2961,7 @@ const Progress = () => {
     {
       id: 'PRG-001',
       kavlingId: 'KAV-001',
-      kavlingLabel: 'Griya Indah Pesona - Blok A No. 01',
+      kavlingLabel: 'Puri Safana - Blok A No. 01',
       pelaksana: 'Mandor Supri',
       tanggalLaporan: '2026-04-10',
       tahapanPekerjaan: 'Pekerjaan Pondasi & Sloof',
@@ -4059,366 +4096,6 @@ const Kavling = () => {
 export default Kavling;
 </file>
 
-<file path="src/pages/Management/Penjualan.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatDate } from "../../utils/formatters";
-
-interface PenjualanData {
-  id: string;
-  tanggal: string;
-  nama: string;
-  alamat: string;
-  noTelepon: string;
-  noIdentitas: string;
-  perusahaan: string;
-  alamatKoresponden: string;
-  perumahan: string;
-  blok: string;
-  tipe: string;
-  nomorUnit: string;
-  hargaJual: number;
-  dp: number;
-  diskonPenjualan: number;
-  paketPromosi: string;
-  bank: string;
-  caraPembayaran: string;
-  nilaiPengajuanKpr: number;
-  fileKtp: string;
-  fileKk: string;
-  fileNpwp: string;
-  bookingFee: number;
-  rekeningTujuan: string;
-  status: string;
-}
-
-const initialFormState: PenjualanData = {
-  id: '',
-  tanggal: '',
-  nama: '',
-  alamat: '',
-  noTelepon: '',
-  noIdentitas: '',
-  perusahaan: '',
-  alamatKoresponden: '',
-  perumahan: '',
-  blok: '',
-  tipe: '',
-  nomorUnit: '',
-  hargaJual: 0,
-  dp: 0,
-  diskonPenjualan: 0,
-  paketPromosi: '',
-  bank: '',
-  caraPembayaran: '',
-  nilaiPengajuanKpr: 0,
-  fileKtp: '',
-  fileKk: '',
-  fileNpwp: '',
-  bookingFee: 5000000,
-  rekeningTujuan: '',
-  status: 'Booked',
-};
-
-// Mock Data untuk Master
-const mockPerumahanList = ['Griya Indah Pesona', 'Puri Safana'];
-
-const mockBankList = [
-  { id: 'BSI-01', perumahan: 'Griya Indah Pesona', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
-  { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
-];
-
-
-const Penjualan = () => {
-  const [data, setData] = useState<PenjualanData[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'ID Transaksi', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    { header: 'Nama Customer', accessor: 'nama' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-          {val}
-        </span>
-      )
-    },
-  ];
-
-  const openModal = (item?: PenjualanData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData({
-        ...initialFormState,
-        tanggal: new Date().toISOString().split('T')[0]
-      });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-
-    if (name === 'caraPembayaran' && value !== 'KPR') {
-      setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
-    } else if (name === 'perumahan') {
-      // Reset rekening jika perumahan diganti agar tidak salah masuk bank
-      setFormData(prev => ({ ...prev, [name]: value, rekeningTujuan: '' }));
-    } else {
-      const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-    }
-
-    if (errors[name as keyof PenjualanData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
-
-    if (formData.caraPembayaran && !formData.bank.trim()) {
-      newErrors.bank = 'Bank wajib diisi';
-    }
-
-    if (formData.caraPembayaran === 'KPR') {
-      if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: PenjualanData) => {
-    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  // Filter bank berdasarkan perumahan yang dipilih
-  const filteredBanks = mockBankList.filter(b => b.perumahan === formData.perumahan);
-  const bankOptions = filteredBanks.map(b => ({
-    value: b.id,
-    label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
-  }));
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Data Penjualan"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
-              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
-              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
-              <div className="md:col-span-2">
-                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Perumahan"
-                name="perumahan"
-                value={formData.perumahan}
-                onChange={handleChange}
-                error={errors.perumahan}
-                options={mockPerumahanList.map(p => ({ value: p, label: p }))}
-              />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Select
-                label="Cara Pembayaran"
-                name="caraPembayaran"
-                value={formData.caraPembayaran}
-                onChange={handleChange}
-                options={[
-                  { value: 'CASH KERAS', label: 'CASH KERAS' },
-                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
-                  { value: 'KPR', label: 'KPR' }
-                ]}
-                error={errors.caraPembayaran}
-              />
-              <Input
-                label="Down Payment (DP) - Rp"
-                type="number"
-                name="dp"
-                value={formData.dp}
-                onChange={handleChange}
-                placeholder="0 jika tidak ada DP"
-              />
-              <Input
-                label="Diskon Penjualan (Rp)"
-                type="number"
-                name="diskonPenjualan"
-                value={formData.diskonPenjualan === 0 ? '' : formData.diskonPenjualan}
-                onChange={handleChange}
-              />
-            </div>
-
-            {formData.caraPembayaran && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
-                <Input
-                  label={formData.caraPembayaran === 'KPR' ? "Bank KPR" : "Bank"}
-                  name="bank"
-                  value={formData.bank}
-                  onChange={handleChange}
-                  placeholder="Contoh: BCA, BSI, Mandiri"
-                  error={errors.bank}
-                />
-
-                {formData.caraPembayaran === 'KPR' && (
-                  <Input
-                    label="Nilai Pengajuan KPR (Rp)"
-                    type="number"
-                    name="nilaiPengajuanKpr"
-                    value={formData.nilaiPengajuanKpr === 0 ? '' : formData.nilaiPengajuanKpr}
-                    onChange={handleChange}
-                    error={errors.nilaiPengajuanKpr}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
-                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
-                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
-                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee & Keperluan Legal</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Booking Fee (Fixed Rp)"
-                type="number"
-                name="bookingFee"
-                value={formData.bookingFee}
-                readOnly
-                className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
-              />
-
-              <Select
-                label="Transfer ke Rekening"
-                name="rekeningTujuan"
-                value={formData.rekeningTujuan}
-                onChange={handleChange}
-                options={
-                  formData.perumahan
-                    ? bankOptions
-                    : [{ value: '', label: 'Silakan pilih Perumahan di Atas Dahulu' }]
-                }
-                error={errors.rekeningTujuan}
-                disabled={!formData.perumahan}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
-              Batal
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
-              Simpan Penjualan
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Penjualan;
-</file>
-
 <file path="src/components/Sidebar.tsx">
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -4664,6 +4341,429 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 };
 
 export default Sidebar;
+</file>
+
+<file path="src/pages/Management/Penjualan.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatDate } from "../../utils/formatters";
+
+interface PenjualanData {
+  id: string;
+  tanggal: string;
+  nama: string;
+  alamat: string;
+  noTelepon: string;
+  noIdentitas: string;
+  perusahaan: string;
+  alamatKoresponden: string;
+  perumahan: string;
+  blok: string;
+  tipe: string;
+  nomorUnit: string;
+  hargaJual: number;
+  dp: number;
+  diskonPenjualan: number;
+  paketPromosi: string;
+  bank: string;
+  caraPembayaran: string;
+  nilaiPengajuanKpr: number;
+  fileKtp: string;
+  fileKk: string;
+  fileNpwp: string;
+  bookingFee: number;
+  rekeningTujuan: string;
+  status: string;
+  agent: string; // <-- TAMBAHAN BARU
+}
+
+const initialFormState: PenjualanData = {
+  id: '',
+  tanggal: '',
+  nama: '',
+  alamat: '',
+  noTelepon: '',
+  noIdentitas: '',
+  perusahaan: '',
+  alamatKoresponden: '',
+  perumahan: '',
+  blok: '',
+  tipe: '',
+  nomorUnit: '',
+  hargaJual: 0,
+  dp: 0,
+  diskonPenjualan: 0,
+  paketPromosi: '',
+  bank: '',
+  caraPembayaran: '',
+  nilaiPengajuanKpr: 0,
+  fileKtp: '',
+  fileKk: '',
+  fileNpwp: '',
+  bookingFee: 5000000,
+  rekeningTujuan: '',
+  status: 'Booked',
+  agent: '', // <-- TAMBAHAN BARU
+};
+
+// Mock Data untuk Master
+const mockPerumahanList = ['Puri Safana', 'Puri Safana'];
+
+const mockBankList = [
+  { id: 'BSI-01', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
+  { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
+];
+
+const Penjualan = () => {
+  const [data, setData] = useState<PenjualanData[]>([]);
+
+  // TAMBAHAN BARU: State untuk dinamis agent
+  const [agentList, setAgentList] = useState<string[]>(['Andi Pratama', 'Rina Wijaya']);
+  const [isNewAgent, setIsNewAgent] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'ID Penjualan', accessor: 'id' },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+    { header: 'Nama Customer', accessor: 'nama' },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => (
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+          {val}
+        </span>
+      )
+    },
+  ];
+
+  const openModal = (item?: PenjualanData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+      // Cek apakah agen ada di list, jika tidak anggap custom
+      if (item.agent && !agentList.includes(item.agent)) {
+        setIsNewAgent(true);
+      } else {
+        setIsNewAgent(false);
+      }
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+      setIsNewAgent(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+    setIsNewAgent(false);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+
+    if (name === 'caraPembayaran' && value !== 'KPR') {
+      setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
+    } else if (name === 'perumahan') {
+      setFormData(prev => ({ ...prev, [name]: value, rekeningTujuan: '' }));
+    } else {
+      const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    }
+
+    if (errors[name as keyof PenjualanData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
+    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
+    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
+
+    if (formData.caraPembayaran && !formData.bank.trim()) {
+      newErrors.bank = 'Bank wajib diisi';
+    }
+
+    if (formData.caraPembayaran === 'KPR') {
+      if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    // Simpan ke list agent jika itu agen baru dan tidak kosong
+    if (isNewAgent && formData.agent.trim() !== '') {
+      if (!agentList.includes(formData.agent)) {
+        setAgentList(prev => [...prev, formData.agent]);
+      }
+    }
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: PenjualanData) => {
+    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  const filteredBanks = mockBankList.filter(b => b.perumahan === formData.perumahan);
+  const bankOptions = filteredBanks.map(b => ({
+    value: b.id,
+    label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
+  }));
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Data Penjualan"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* FIELD AGENT DINAMIS */}
+              <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                {!isNewAgent ? (
+                  <Select
+                    label="Agent Marketing"
+                    name="agent"
+                    value={formData.agent}
+                    onChange={(e) => {
+                      if (e.target.value === 'NEW') {
+                        setIsNewAgent(true);
+                        setFormData((prev) => ({ ...prev, agent: '' }));
+                      } else {
+                        handleChange(e);
+                      }
+                    }}
+                    options={[
+                      ...agentList.map(a => ({ value: a, label: a })),
+                      { value: 'NEW', label: '+ Tambah Agent Baru...' }
+                    ]}
+                  />
+                ) : (
+                  <div className="relative animate-in fade-in zoom-in-95 duration-200">
+                    <Input
+                      label="Nama Agent Baru"
+                      name="agent"
+                      value={formData.agent}
+                      onChange={handleChange}
+                      placeholder="Ketik nama agent..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNewAgent(false);
+                        setFormData((prev) => ({ ...prev, agent: '' }));
+                      }}
+                      className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      Batal Tambah
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
+              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
+              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
+              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Perumahan"
+                name="perumahan"
+                value={formData.perumahan}
+                onChange={handleChange}
+                error={errors.perumahan}
+                options={mockPerumahanList.map(p => ({ value: p, label: p }))}
+              />
+              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
+              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
+              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} />
+              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Select
+                label="Cara Pembayaran"
+                name="caraPembayaran"
+                value={formData.caraPembayaran}
+                onChange={handleChange}
+                options={[
+                  { value: 'CASH KERAS', label: 'CASH KERAS' },
+                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
+                  { value: 'KPR', label: 'KPR' }
+                ]}
+                error={errors.caraPembayaran}
+              />
+              <Input
+                label="Down Payment (DP) - Rp"
+                type="number"
+                name="dp"
+                value={formData.dp}
+                onChange={handleChange}
+                placeholder="0 jika tidak ada DP"
+              />
+              <Input
+                label="Diskon Penjualan (Rp)"
+                type="number"
+                name="diskonPenjualan"
+                value={formData.diskonPenjualan === 0 ? '' : formData.diskonPenjualan}
+                onChange={handleChange}
+              />
+            </div>
+
+            {formData.caraPembayaran && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
+                <Input
+                  label={formData.caraPembayaran === 'KPR' ? "Bank KPR" : "Bank"}
+                  name="bank"
+                  value={formData.bank}
+                  onChange={handleChange}
+                  placeholder="Contoh: BCA, BSI, Mandiri"
+                  error={errors.bank}
+                />
+
+                {formData.caraPembayaran === 'KPR' && (
+                  <Input
+                    label="Nilai Pengajuan KPR (Rp)"
+                    type="number"
+                    name="nilaiPengajuanKpr"
+                    value={formData.nilaiPengajuanKpr === 0 ? '' : formData.nilaiPengajuanKpr}
+                    onChange={handleChange}
+                    error={errors.nilaiPengajuanKpr}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
+                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
+                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
+                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee & Keperluan Legal</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Booking Fee (Fixed Rp)"
+                type="number"
+                name="bookingFee"
+                value={formData.bookingFee}
+                readOnly
+                className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
+              />
+
+              <Select
+                label="Transfer ke Rekening"
+                name="rekeningTujuan"
+                value={formData.rekeningTujuan}
+                onChange={handleChange}
+                options={
+                  formData.perumahan
+                    ? bankOptions
+                    : [{ value: '', label: 'Silakan pilih Perumahan di Atas Dahulu' }]
+                }
+                error={errors.rekeningTujuan}
+                disabled={!formData.perumahan}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
+              Simpan Penjualan
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Penjualan;
 </file>
 
 <file path="src/components/shared/DataTable.tsx">
