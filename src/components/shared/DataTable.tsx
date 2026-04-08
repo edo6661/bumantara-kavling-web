@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileX2 } from 'lucide-react';
 
 interface Column {
   header: string;

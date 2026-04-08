@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
-import FileInput from "../../components/shared/FileInput";
 
 interface SPRData {
   id: string;
@@ -10,7 +9,6 @@ interface SPRData {
   noTelepon: string;
   perumahan: string;
   blok: string;
-  filePdfSpr: string;
 }
 
 const initialFormState: SPRData = {
@@ -19,7 +17,6 @@ const initialFormState: SPRData = {
   noTelepon: '',
   perumahan: '',
   blok: '',
-  filePdfSpr: '',
 };
 
 const SPR = () => {
@@ -30,7 +27,6 @@ const SPR = () => {
       noTelepon: '081234567890',
       perumahan: 'Griya Indah Pesona',
       blok: 'A-01',
-      filePdfSpr: 'SPR_Budi_Santoso.pdf',
     }
   ]);
 
@@ -77,13 +73,6 @@ const SPR = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof SPRData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SPRData) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
     }
   };
 
@@ -163,18 +152,6 @@ const SPR = () => {
             />
           </div>
 
-          <div className="mt-4 border border-gray-200 p-3 rounded-md bg-white">
-            <FileInput
-              label="Upload File SPR (PDF)"
-              accept=".pdf"
-              onChange={(e) => handleFileChange(e, 'filePdfSpr')}
-            />
-            {formData.filePdfSpr && (
-              <p className="text-xs text-green-600 mt-1 truncate">
-                File tersimpan: {formData.filePdfSpr}
-              </p>
-            )}
-          </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button

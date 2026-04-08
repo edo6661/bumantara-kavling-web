@@ -4,14 +4,12 @@ const TimMarketing = () => {
   const columns = [
     { header: 'ID Sales', accessor: 'id_sales' },
     { header: 'Nama', accessor: 'nama' },
-    { header: 'Target (Bulan Ini)', accessor: 'target' },
-    { header: 'Pencapaian', accessor: 'pencapaian' },
     { header: 'Status', accessor: 'status' },
   ];
 
   const dummyData = [
-    { id_sales: 'MKT-001', nama: 'Andi Pratama', target: '5 Unit', pencapaian: '4 Unit', status: 'Aktif' },
-    { id_sales: 'MKT-002', nama: 'Rina Wijaya', target: '5 Unit', pencapaian: '6 Unit', status: 'Aktif' },
+    { id_sales: 'MKT-001', nama: 'Andi Pratama', status: 'Aktif' },
+    { id_sales: 'MKT-002', nama: 'Rina Wijaya', status: 'Aktif' },
   ];
 
   const handleAdd = () => {

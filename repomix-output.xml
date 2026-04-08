@@ -1,5 +1,83 @@
-ada data dashboard yang masih kurang tidak untuk project ini, nanti saya akan mengimplementasikan backend nya, saat ini frontend nya dulu saja.
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
 
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json, prisma/schema.prisma, prisma/seeds/*
+- Files matching these patterns are excluded: **/*.test.ts
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+package.json
+src/App.tsx
+src/components/layouts/RootLayout.tsx
+src/components/Navbar.tsx
+src/components/shared/DataTable.tsx
+src/components/shared/FileInput.tsx
+src/components/shared/Input.tsx
+src/components/shared/Modal.tsx
+src/components/shared/Select.tsx
+src/components/Sidebar.tsx
+src/index.css
+src/main.tsx
+src/pages/Customer/DataSosial.tsx
+src/pages/Customer/Kavling.tsx
+src/pages/Customer/KelengkapanAdministrasi.tsx
+src/pages/Customer/SPR.tsx
+src/pages/Customer/Tagihan.tsx
+src/pages/Dashboard.tsx
+src/pages/Home.tsx
+src/pages/Management/Bank.tsx
+src/pages/Management/Kavling.tsx
+src/pages/Management/Notaris.tsx
+src/pages/Management/Penjualan.tsx
+src/pages/Marketing/Agents.tsx
+src/pages/Marketing/FeeAgent.tsx
+src/pages/PageLoader.tsx
+src/pages/Proyek/Progress.tsx
+src/pages/Proyek/SPK.tsx
+src/pages/TimMarketing/TimMarketing.tsx
+src/utils/formatters.ts
+tsconfig.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
 
 <file path="package.json">
 {
@@ -312,331 +390,6 @@ const Tagihan = () => {
 export default Tagihan;
 </file>
 
-<file path="src/pages/Dashboard.tsx">
-import React from 'react';
-import {
-  Building2,
-  Wallet,
-  AlertCircle,
-  HardHat,
-  ArrowRight,
-  Clock,
-  Award,
-  FileText,
-  ChevronRight
-} from 'lucide-react';
-import { formatRupiah } from '../utils/formatters';
-
-const Dashboard = () => {
-  // Mock Data untuk metrik utama
-  const stats = [
-    {
-      title: 'Total Pendapatan',
-      value: formatRupiah(12500000000),
-      trend: '+15.5%',
-      isPositive: true,
-      icon: <Wallet className="text-slate-700" size={24} />,
-      bgColor: 'bg-slate-100',
-    },
-    {
-      title: 'Kavling Terjual',
-      value: '24',
-      trend: 'Total 40 Unit',
-      isPositive: true,
-      icon: <Building2 className="text-blue-700" size={24} />,
-      bgColor: 'bg-blue-50',
-    },
-    {
-      title: 'Tagihan Jatuh Tempo',
-      value: formatRupiah(150000000),
-      trend: '5 Customer',
-      isPositive: false,
-      icon: <AlertCircle className="text-red-700" size={24} />,
-      bgColor: 'bg-red-50',
-    },
-    {
-      title: 'Proyek Aktif (SPK)',
-      value: '8 Unit',
-      trend: 'Rata-rata 65%',
-      isPositive: true,
-      icon: <HardHat className="text-amber-700" size={24} />,
-      bgColor: 'bg-amber-50',
-    },
-  ];
-
-  // Mock Data Transaksi Terbaru
-  const recentTransactions = [
-    { id: 'TRX-001', customer: 'Budi Santoso', kavling: 'Blok A - 01', type: 'Booking Fee', amount: 5000000, status: 'Lunas', date: 'Hari ini, 10:30' },
-    { id: 'TRX-002', customer: 'Andi Pratama', kavling: 'Blok B - 12', type: 'DP 1', amount: 45000000, status: 'Pending', date: 'Kemarin, 14:15' },
-    { id: 'TRX-003', customer: 'Siti Aminah', kavling: 'Blok C - 05', type: 'Cash Keras', amount: 550000000, status: 'Lunas', date: '12 Mar 2026' },
-  ];
-
-  // Mock Data Progress Pembangunan
-  const progressData = [
-    { kavling: 'Blok A - 01', customer: 'Budi Santoso', progress: 85, tahap: 'Keramik & Plafon', isLate: false },
-    { kavling: 'Blok B - 12', customer: 'Andi Pratama', progress: 45, tahap: 'Struktur & Dinding', isLate: false },
-    { kavling: 'Blok C - 05', customer: 'Siti Aminah', progress: 15, tahap: 'Pondasi & Sloof', isLate: true },
-  ];
-
-  // Mock Data Top Agent
-  const topAgents = [
-    { name: 'Rina Wijaya', closing: 6, feeStatus: 'Rp 15.000.000' },
-    { name: 'Andi Pratama', closing: 4, feeStatus: 'Rp 10.000.000' },
-    { name: 'Budi Hartono', closing: 2, feeStatus: 'Rp 5.000.000' },
-  ];
-
-  // Mock Data Alert Dokumen
-  const documentAlerts = [
-    { customer: 'Rudi Hermawan', kavling: 'Blok D - 02', missing: ['NPWP', 'KK'] },
-    { customer: 'Siska Amelia', kavling: 'Blok A - 08', missing: ['KTP Pasangan'] },
-  ];
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-
-      {/* Header Greeting */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
-            Halo, Edo. Selamat datang kembali! 👋
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Berikut adalah ringkasan performa operasional dan finansial Bumantara Kavling hari ini.
-          </p>
-        </div>
-        <button className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest cursor-pointer shadow-lg shadow-black/10 shrink-0">
-          Buat Laporan
-        </button>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow group">
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
-                {stat.icon}
-              </div>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {stat.trend}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">{stat.title}</h3>
-              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Status Kavling Overview */}
-        <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Status Kavling</h3>
-            <button className="text-slate-400 hover:text-black transition-colors cursor-pointer">
-              <ArrowRight size={20} />
-            </button>
-          </div>
-
-          <div className="space-y-5">
-            {/* Terjual */}
-            <div>
-              <div className="flex justify-between text-sm font-medium mb-2">
-                <span className="text-slate-700">Terjual</span>
-                <span className="text-slate-900 font-bold">24 Unit (60%)</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-black h-2.5 rounded-full w-[60%]"></div>
-              </div>
-            </div>
-
-            {/* Booking */}
-            <div>
-              <div className="flex justify-between text-sm font-medium mb-2">
-                <span className="text-slate-700">Booking</span>
-                <span className="text-slate-900 font-bold">6 Unit (15%)</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-blue-500 h-2.5 rounded-full w-[15%]"></div>
-              </div>
-            </div>
-
-            {/* Available */}
-            <div>
-              <div className="flex justify-between text-sm font-medium mb-2">
-                <span className="text-slate-700">Tersedia</span>
-                <span className="text-slate-900 font-bold">10 Unit (25%)</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-green-500 h-2.5 rounded-full w-[25%]"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Transaksi Terbaru */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Transaksi Pembayaran Terbaru</h3>
-            <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer">
-              Lihat Semua
-            </button>
-          </div>
-
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
-                  <th className="pb-3 pr-4">Customer</th>
-                  <th className="pb-3 px-4">Kavling</th>
-                  <th className="pb-3 px-4">Keterangan</th>
-                  <th className="pb-3 px-4 text-right">Nominal</th>
-                  <th className="pb-3 pl-4 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {recentTransactions.map((trx) => (
-                  <tr key={trx.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="py-4 pr-4">
-                      <p className="font-bold text-slate-900">{trx.customer}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                        <Clock size={12} /> {trx.date}
-                      </p>
-                    </td>
-                    <td className="py-4 px-4 font-medium text-slate-700">{trx.kavling}</td>
-                    <td className="py-4 px-4 text-slate-600">{trx.type}</td>
-                    <td className="py-4 px-4 text-right font-bold text-slate-900">
-                      {formatRupiah(trx.amount)}
-                    </td>
-                    <td className="py-4 pl-4 text-center">
-                      <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${trx.status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                        {trx.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Baris Bawah: 3 Kolom Metrik Operasional */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Progress Pembangunan Lapangan */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <HardHat size={18} className="text-slate-700" />
-              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Progress Proyek</h3>
-            </div>
-            <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer">
-              Detail
-            </button>
-          </div>
-          <div className="space-y-4 flex-1">
-            {progressData.map((prog, idx) => (
-              <div key={idx} className="p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
-                <div className="flex justify-between text-sm font-medium mb-1">
-                  <span className="text-slate-900 font-bold">{prog.kavling}</span>
-                  <span className={prog.isLate ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
-                    {prog.progress}%
-                  </span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-slate-500">{prog.customer}</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{prog.tahap}</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                  <div className={`h-1.5 rounded-full ${prog.isLate ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${prog.progress}%` }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Top Agent Marketing */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <Award size={18} className="text-amber-500" />
-              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Top Agent Bulan Ini</h3>
-            </div>
-          </div>
-          <div className="space-y-3 flex-1">
-            {topAgents.map((agent, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-amber-50/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
-                    #{idx + 1}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{agent.name}</p>
-                    <p className="text-xs text-slate-500">{agent.closing} Closing</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Fee</p>
-                  <p className="text-sm font-bold text-slate-900">{agent.feeStatus}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
-            Lihat Data Fee <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* Kelengkapan Dokumen / Alert */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <FileText size={18} className="text-red-500" />
-              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Alert Dokumen</h3>
-            </div>
-            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
-              {documentAlerts.length} Action
-            </span>
-          </div>
-          <div className="space-y-3 flex-1">
-            <p className="text-xs text-slate-500 mb-2">Customer berikut belum melengkapi berkas administrasi:</p>
-            {documentAlerts.map((alert, idx) => (
-              <div key={idx} className="p-3 border border-red-100 bg-red-50/30 rounded-xl">
-                <div className="flex justify-between items-start mb-1">
-                  <p className="font-bold text-slate-900 text-sm">{alert.customer}</p>
-                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    {alert.kavling}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {alert.missing.map((doc, i) => (
-                    <span key={i} className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
-                      Missing: {doc}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer">
-            Follow Up Customer <ChevronRight size={14} />
-          </button>
-        </div>
-
-      </div>
-
-    </div>
-  );
-};
-
-export default Dashboard;
-</file>
-
 <file path="src/pages/Home.tsx">
 const Home = () => {
   return (
@@ -827,14 +580,12 @@ const TimMarketing = () => {
   const columns = [
     { header: 'ID Sales', accessor: 'id_sales' },
     { header: 'Nama', accessor: 'nama' },
-    { header: 'Target (Bulan Ini)', accessor: 'target' },
-    { header: 'Pencapaian', accessor: 'pencapaian' },
     { header: 'Status', accessor: 'status' },
   ];
 
   const dummyData = [
-    { id_sales: 'MKT-001', nama: 'Andi Pratama', target: '5 Unit', pencapaian: '4 Unit', status: 'Aktif' },
-    { id_sales: 'MKT-002', nama: 'Rina Wijaya', target: '5 Unit', pencapaian: '6 Unit', status: 'Aktif' },
+    { id_sales: 'MKT-001', nama: 'Andi Pratama', status: 'Aktif' },
+    { id_sales: 'MKT-002', nama: 'Rina Wijaya', status: 'Aktif' },
   ];
 
   const handleAdd = () => {
@@ -1880,7 +1631,6 @@ import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
-import FileInput from "../../components/shared/FileInput";
 
 interface SPRData {
   id: string;
@@ -1888,7 +1638,6 @@ interface SPRData {
   noTelepon: string;
   perumahan: string;
   blok: string;
-  filePdfSpr: string;
 }
 
 const initialFormState: SPRData = {
@@ -1897,7 +1646,6 @@ const initialFormState: SPRData = {
   noTelepon: '',
   perumahan: '',
   blok: '',
-  filePdfSpr: '',
 };
 
 const SPR = () => {
@@ -1908,7 +1656,6 @@ const SPR = () => {
       noTelepon: '081234567890',
       perumahan: 'Griya Indah Pesona',
       blok: 'A-01',
-      filePdfSpr: 'SPR_Budi_Santoso.pdf',
     }
   ]);
 
@@ -1955,13 +1702,6 @@ const SPR = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name as keyof SPRData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SPRData) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
     }
   };
 
@@ -2041,18 +1781,6 @@ const SPR = () => {
             />
           </div>
 
-          <div className="mt-4 border border-gray-200 p-3 rounded-md bg-white">
-            <FileInput
-              label="Upload File SPR (PDF)"
-              accept=".pdf"
-              onChange={(e) => handleFileChange(e, 'filePdfSpr')}
-            />
-            {formData.filePdfSpr && (
-              <p className="text-xs text-green-600 mt-1 truncate">
-                File tersimpan: {formData.filePdfSpr}
-              </p>
-            )}
-          </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button
@@ -2076,6 +1804,331 @@ const SPR = () => {
 };
 
 export default SPR;
+</file>
+
+<file path="src/pages/Dashboard.tsx">
+import React from 'react';
+import {
+  Building2,
+  Wallet,
+  AlertCircle,
+  HardHat,
+  ArrowRight,
+  Clock,
+  Award,
+  FileText,
+  ChevronRight
+} from 'lucide-react';
+import { formatRupiah } from '../utils/formatters';
+
+const Dashboard = () => {
+  // Mock Data untuk metrik utama
+  const stats = [
+    {
+      title: 'Total Pendapatan',
+      value: formatRupiah(12500000000),
+      trend: '+15.5%',
+      isPositive: true,
+      icon: <Wallet className="text-slate-700" size={24} />,
+      bgColor: 'bg-slate-100',
+    },
+    {
+      title: 'Kavling Terjual',
+      value: '24',
+      trend: 'Total 40 Unit',
+      isPositive: true,
+      icon: <Building2 className="text-blue-700" size={24} />,
+      bgColor: 'bg-blue-50',
+    },
+    {
+      title: 'Tagihan Jatuh Tempo',
+      value: formatRupiah(150000000),
+      trend: '5 Customer',
+      isPositive: false,
+      icon: <AlertCircle className="text-red-700" size={24} />,
+      bgColor: 'bg-red-50',
+    },
+    {
+      title: 'Proyek Aktif (SPK)',
+      value: '8 Unit',
+      trend: 'Rata-rata 65%',
+      isPositive: true,
+      icon: <HardHat className="text-amber-700" size={24} />,
+      bgColor: 'bg-amber-50',
+    },
+  ];
+
+  // Mock Data Transaksi Terbaru
+  const recentTransactions = [
+    { id: 'TRX-001', customer: 'Budi Santoso', kavling: 'Blok A - 01', type: 'Booking Fee', amount: 5000000, status: 'Lunas', date: 'Hari ini, 10:30' },
+    { id: 'TRX-002', customer: 'Andi Pratama', kavling: 'Blok B - 12', type: 'DP 1', amount: 45000000, status: 'Pending', date: 'Kemarin, 14:15' },
+    { id: 'TRX-003', customer: 'Siti Aminah', kavling: 'Blok C - 05', type: 'Cash Keras', amount: 550000000, status: 'Lunas', date: '12 Mar 2026' },
+  ];
+
+  // Mock Data Progress Pembangunan
+  const progressData = [
+    { kavling: 'Blok A - 01', customer: 'Budi Santoso', progress: 85, tahap: 'Keramik & Plafon', isLate: false },
+    { kavling: 'Blok B - 12', customer: 'Andi Pratama', progress: 45, tahap: 'Struktur & Dinding', isLate: false },
+    { kavling: 'Blok C - 05', customer: 'Siti Aminah', progress: 15, tahap: 'Pondasi & Sloof', isLate: true },
+  ];
+
+  // Mock Data Top Agent
+  const topAgents = [
+    { name: 'Rina Wijaya', closing: 6, feeStatus: 'Rp 15.000.000' },
+    { name: 'Andi Pratama', closing: 4, feeStatus: 'Rp 10.000.000' },
+    { name: 'Budi Hartono', closing: 2, feeStatus: 'Rp 5.000.000' },
+  ];
+
+  // Mock Data Alert Dokumen
+  const documentAlerts = [
+    { customer: 'Rudi Hermawan', kavling: 'Blok D - 02', missing: ['NPWP', 'KK'] },
+    { customer: 'Siska Amelia', kavling: 'Blok A - 08', missing: ['KTP Pasangan'] },
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+
+      {/* Header Greeting */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
+            Halo, Edo. Selamat datang kembali! 👋
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Berikut adalah ringkasan performa operasional dan finansial Bumantara Kavling hari ini.
+          </p>
+        </div>
+        <button className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest cursor-pointer shadow-lg shadow-black/10 shrink-0">
+          Buat Laporan
+        </button>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <div key={index} className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow group">
+            <div className="flex justify-between items-start mb-4">
+              <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
+                {stat.icon}
+              </div>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {stat.trend}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">{stat.title}</h3>
+              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Status Kavling Overview */}
+        <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Status Kavling</h3>
+            <button className="text-slate-400 hover:text-black transition-colors cursor-pointer">
+              <ArrowRight size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            {/* Terjual */}
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Terjual</span>
+                <span className="text-slate-900 font-bold">24 Unit (60%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-black h-2.5 rounded-full w-[60%]"></div>
+              </div>
+            </div>
+
+            {/* Booking */}
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Booking</span>
+                <span className="text-slate-900 font-bold">6 Unit (15%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-blue-500 h-2.5 rounded-full w-[15%]"></div>
+              </div>
+            </div>
+
+            {/* Available */}
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Tersedia</span>
+                <span className="text-slate-900 font-bold">10 Unit (25%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-green-500 h-2.5 rounded-full w-[25%]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Transaksi Terbaru */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Transaksi Pembayaran Terbaru</h3>
+            <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer">
+              Lihat Semua
+            </button>
+          </div>
+
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
+                  <th className="pb-3 pr-4">Customer</th>
+                  <th className="pb-3 px-4">Kavling</th>
+                  <th className="pb-3 px-4">Keterangan</th>
+                  <th className="pb-3 px-4 text-right">Nominal</th>
+                  <th className="pb-3 pl-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {recentTransactions.map((trx) => (
+                  <tr key={trx.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="py-4 pr-4">
+                      <p className="font-bold text-slate-900">{trx.customer}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                        <Clock size={12} /> {trx.date}
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 font-medium text-slate-700">{trx.kavling}</td>
+                    <td className="py-4 px-4 text-slate-600">{trx.type}</td>
+                    <td className="py-4 px-4 text-right font-bold text-slate-900">
+                      {formatRupiah(trx.amount)}
+                    </td>
+                    <td className="py-4 pl-4 text-center">
+                      <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${trx.status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                        {trx.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Baris Bawah: 3 Kolom Metrik Operasional */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Progress Pembangunan Lapangan */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <HardHat size={18} className="text-slate-700" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Progress Proyek</h3>
+            </div>
+            <button className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer">
+              Detail
+            </button>
+          </div>
+          <div className="space-y-4 flex-1">
+            {progressData.map((prog, idx) => (
+              <div key={idx} className="p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
+                <div className="flex justify-between text-sm font-medium mb-1">
+                  <span className="text-slate-900 font-bold">{prog.kavling}</span>
+                  <span className={prog.isLate ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
+                    {prog.progress}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-slate-500">{prog.customer}</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{prog.tahap}</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div className={`h-1.5 rounded-full ${prog.isLate ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${prog.progress}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Agent Marketing */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <Award size={18} className="text-amber-500" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Top Agent Bulan Ini</h3>
+            </div>
+          </div>
+          <div className="space-y-3 flex-1">
+            {topAgents.map((agent, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-amber-50/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+                    #{idx + 1}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{agent.name}</p>
+                    <p className="text-xs text-slate-500">{agent.closing} Closing</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Fee</p>
+                  <p className="text-sm font-bold text-slate-900">{agent.feeStatus}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+            Lihat Data Fee <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Kelengkapan Dokumen / Alert */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-red-500" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Alert Dokumen</h3>
+            </div>
+            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
+              {documentAlerts.length} Action
+            </span>
+          </div>
+          <div className="space-y-3 flex-1">
+            <p className="text-xs text-slate-500 mb-2">Customer berikut belum melengkapi berkas administrasi:</p>
+            {documentAlerts.map((alert, idx) => (
+              <div key={idx} className="p-3 border border-red-100 bg-red-50/30 rounded-xl">
+                <div className="flex justify-between items-start mb-1">
+                  <p className="font-bold text-slate-900 text-sm">{alert.customer}</p>
+                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    {alert.kavling}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {alert.missing.map((doc, i) => (
+                    <span key={i} className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                      Missing: {doc}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer">
+            Follow Up Customer <ChevronRight size={14} />
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  );
+};
+
+export default Dashboard;
 </file>
 
 <file path="src/pages/Management/Notaris.tsx">
@@ -2702,332 +2755,6 @@ const PageLoader = () => (
 export default PageLoader;
 </file>
 
-<file path="src/pages/Management/Penjualan.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatDate } from "../../utils/formatters";
-
-interface PenjualanData {
-  id: string;
-  tanggal: string;
-  nama: string;
-  alamat: string;
-  noTelepon: string;
-  noIdentitas: string;
-  perusahaan: string;
-  alamatKoresponden: string;
-  perumahan: string;
-  blok: string;
-  tipe: string;
-  nomorUnit: string;
-  hargaJual: number;
-  dp: number;
-  diskonPenjualan: number;
-  paketPromosi: string;
-  bank: string;
-  caraPembayaran: string;
-  nilaiPengajuanKpr: number;
-  fileKtp: string;
-  fileKk: string;
-  fileNpwp: string;
-  bookingFee: number;
-  rekeningTujuan: string;
-  status: string;
-}
-
-const initialFormState: PenjualanData = {
-  id: '',
-  tanggal: '',
-  nama: '',
-  alamat: '',
-  noTelepon: '',
-  noIdentitas: '',
-  perusahaan: '',
-  alamatKoresponden: '',
-  perumahan: '',
-  blok: '',
-  tipe: '',
-  nomorUnit: '',
-  hargaJual: 0,
-  dp: 0,
-  diskonPenjualan: 0,
-  paketPromosi: '',
-  bank: '',
-  caraPembayaran: '',
-  nilaiPengajuanKpr: 0,
-  fileKtp: '',
-  fileKk: '',
-  fileNpwp: '',
-  bookingFee: 5000000,
-  rekeningTujuan: '',
-  status: 'Booked',
-};
-
-const Penjualan = () => {
-  const [data, setData] = useState<PenjualanData[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'ID Transaksi', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    { header: 'Nama Customer', accessor: 'nama' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-          {val}
-        </span>
-      )
-    },
-  ];
-
-  const openModal = (item?: PenjualanData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData({
-        ...initialFormState,
-        tanggal: new Date().toISOString().split('T')[0]
-      });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-
-    if (name === 'caraPembayaran' && value !== 'KPR') {
-      setFormData(prev => ({ ...prev, [name]: value, bank: '', nilaiPengajuanKpr: 0 }));
-    } else {
-      const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-    }
-
-    if (errors[name as keyof PenjualanData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
-
-    if (formData.caraPembayaran === 'KPR') {
-      if (!formData.bank.trim()) newErrors.bank = 'Bank KPR wajib diisi';
-      if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: PenjualanData) => {
-    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Data Penjualan"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
-              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
-              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
-              <div className="md:col-span-2">
-                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} placeholder="Contoh: Free AC / Cashback" />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Select
-                label="Cara Pembayaran"
-                name="caraPembayaran"
-                value={formData.caraPembayaran}
-                onChange={handleChange}
-                options={[
-                  { value: 'CASH KERAS', label: 'CASH KERAS' },
-                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
-                  { value: 'KPR', label: 'KPR' }
-                ]}
-                error={errors.caraPembayaran}
-              />
-              <Input
-                label="Down Payment (DP) - Rp"
-                type="number"
-                name="dp"
-                value={formData.dp}
-                onChange={handleChange}
-                placeholder="0 jika tidak ada DP"
-              />
-              <Input
-                label="Diskon Penjualan (Rp)"
-                type="number"
-                name="diskonPenjualan"
-                value={formData.diskonPenjualan === 0 ? '' : formData.diskonPenjualan}
-                onChange={handleChange}
-              />
-            </div>
-
-            {formData.caraPembayaran === 'KPR' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
-                <Input
-                  label="Bank KPR"
-                  name="bank"
-                  value={formData.bank}
-                  onChange={handleChange}
-                  placeholder="Contoh: BTN, BSI"
-                  error={errors.bank}
-                />
-                <Input
-                  label="Nilai Pengajuan KPR (Rp)"
-                  type="number"
-                  name="nilaiPengajuanKpr"
-                  value={formData.nilaiPengajuanKpr === 0 ? '' : formData.nilaiPengajuanKpr}
-                  onChange={handleChange}
-                  error={errors.nilaiPengajuanKpr}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
-                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
-                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
-                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
-            <div className="grid grid-cols-1 gap-4">
-              <Input
-                label="Booking Fee (Fixed Rp)"
-                type="number"
-                name="bookingFee"
-                value={formData.bookingFee}
-                readOnly
-                className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
-              />
-              <Select
-                label="Transfer ke Rekening"
-                name="rekeningTujuan"
-                value={formData.rekeningTujuan}
-                onChange={handleChange}
-                options={[
-                  { value: 'BSI-Gajah', label: 'Bank BSI No Rekening : 7326575644 a/n PT. Bintang Safana Gajah' },
-                  { value: 'BSI-Mahligai', label: 'Bank BSI No Rekening : 7326573692 a/n PT. Bintang Safana Mahligai' }
-                ]}
-                error={errors.rekeningTujuan}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
-              Batal
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
-              Simpan Penjualan
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Penjualan;
-</file>
-
 <file path="src/pages/Proyek/Progress.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -3573,6 +3300,342 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
 };
 
 export default Select;
+</file>
+
+<file path="src/pages/Management/Penjualan.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatDate } from "../../utils/formatters";
+
+interface PenjualanData {
+  id: string;
+  tanggal: string;
+  nama: string;
+  alamat: string;
+  noTelepon: string;
+  noIdentitas: string;
+  perusahaan: string;
+  alamatKoresponden: string;
+  perumahan: string;
+  blok: string;
+  tipe: string;
+  nomorUnit: string;
+  hargaJual: number;
+  dp: number;
+  diskonPenjualan: number;
+  paketPromosi: string;
+  bank: string;
+  caraPembayaran: string;
+  nilaiPengajuanKpr: number;
+  fileKtp: string;
+  fileKk: string;
+  fileNpwp: string;
+  bookingFee: number;
+  rekeningTujuan: string;
+  status: string;
+}
+
+const initialFormState: PenjualanData = {
+  id: '',
+  tanggal: '',
+  nama: '',
+  alamat: '',
+  noTelepon: '',
+  noIdentitas: '',
+  perusahaan: '',
+  alamatKoresponden: '',
+  perumahan: '',
+  blok: '',
+  tipe: '',
+  nomorUnit: '',
+  hargaJual: 0,
+  dp: 0,
+  diskonPenjualan: 0,
+  paketPromosi: '',
+  bank: '',
+  caraPembayaran: '',
+  nilaiPengajuanKpr: 0,
+  fileKtp: '',
+  fileKk: '',
+  fileNpwp: '',
+  bookingFee: 5000000,
+  rekeningTujuan: '',
+  status: 'Booked',
+};
+
+const Penjualan = () => {
+  const [data, setData] = useState<PenjualanData[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'ID Transaksi', accessor: 'id' },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+    { header: 'Nama Customer', accessor: 'nama' },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => (
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+          {val}
+        </span>
+      )
+    },
+  ];
+
+  const openModal = (item?: PenjualanData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+
+    if (name === 'caraPembayaran' && value !== 'KPR') {
+      // Hanya mengosongkan nilai pengajuan KPR, bank tetap dipertahankan
+      setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
+    } else {
+      const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    }
+
+    if (errors[name as keyof PenjualanData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
+    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
+    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
+
+    // Validasi Bank berlaku untuk semua cara pembayaran
+    if (formData.caraPembayaran && !formData.bank.trim()) {
+      newErrors.bank = 'Bank wajib diisi';
+    }
+
+    // Validasi khusus KPR
+    if (formData.caraPembayaran === 'KPR') {
+      if (formData.nilaiPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `TRX-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: PenjualanData) => {
+    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Data Penjualan"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
+              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
+              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
+              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
+              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
+              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
+              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} />
+              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Select
+                label="Cara Pembayaran"
+                name="caraPembayaran"
+                value={formData.caraPembayaran}
+                onChange={handleChange}
+                options={[
+                  { value: 'CASH KERAS', label: 'CASH KERAS' },
+                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
+                  { value: 'KPR', label: 'KPR' }
+                ]}
+                error={errors.caraPembayaran}
+              />
+              <Input
+                label="Down Payment (DP) - Rp"
+                type="number"
+                name="dp"
+                value={formData.dp}
+                onChange={handleChange}
+                placeholder="0 jika tidak ada DP"
+              />
+              <Input
+                label="Diskon Penjualan (Rp)"
+                type="number"
+                name="diskonPenjualan"
+                value={formData.diskonPenjualan === 0 ? '' : formData.diskonPenjualan}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Input Bank & Nilai Pengajuan KPR Dinamis */}
+            {formData.caraPembayaran && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
+                <Input
+                  label={formData.caraPembayaran === 'KPR' ? "Bank KPR" : "Bank"}
+                  name="bank"
+                  value={formData.bank}
+                  onChange={handleChange}
+                  placeholder="Contoh: BCA, BSI, Mandiri"
+                  error={errors.bank}
+                />
+
+                {formData.caraPembayaran === 'KPR' && (
+                  <Input
+                    label="Nilai Pengajuan KPR (Rp)"
+                    type="number"
+                    name="nilaiPengajuanKpr"
+                    value={formData.nilaiPengajuanKpr === 0 ? '' : formData.nilaiPengajuanKpr}
+                    onChange={handleChange}
+                    error={errors.nilaiPengajuanKpr}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
+                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
+                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
+                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Pembayaran Booking Fee</h4>
+            <div className="grid grid-cols-1 gap-4">
+              <Input
+                label="Booking Fee (Fixed Rp)"
+                type="number"
+                name="bookingFee"
+                value={formData.bookingFee}
+                readOnly
+                className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
+              />
+              <Select
+                label="Transfer ke Rekening"
+                name="rekeningTujuan"
+                value={formData.rekeningTujuan}
+                onChange={handleChange}
+                options={[
+                  { value: 'BSI-Gajah', label: 'Bank BSI No Rekening : 7326575644 a/n PT. Bintang Safana Gajah' },
+                  { value: 'BSI-Mahligai', label: 'Bank BSI No Rekening : 7326573692 a/n PT. Bintang Safana Mahligai' }
+                ]}
+                error={errors.rekeningTujuan}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
+              Simpan Penjualan
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Penjualan;
 </file>
 
 <file path="src/pages/Proyek/SPK.tsx">
@@ -4462,7 +4525,7 @@ export default Sidebar;
 <file path="src/components/shared/DataTable.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileX2 } from 'lucide-react';
 
 interface Column {
   header: string;
