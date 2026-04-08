@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
+import { useAuth } from "../../context/AuthContext";
 
 interface BankData {
   id: string;
@@ -20,17 +20,14 @@ const initialFormState: BankData = {
   atasNama: '',
 };
 
-// Mock data perumahan (Nantinya bisa ditarik dari API/Data Master Kavling)
-const mockPerumahan = [
-  'Poris88',
-  'Puri Safana',
-];
-
 const Bank = () => {
+  // Ambil state perumahan dari context yang dipilih saat login
+  const { selectedPerumahan } = useAuth();
+
   const [data, setData] = useState<BankData[]>([
     {
       id: '1',
-      perumahan: 'Poris88',
+      perumahan: 'Poris 88',
       namaBank: 'Bank BSI',
       noRekening: '7326575644',
       atasNama: 'PT. Bintang Safana Gajah'
@@ -43,6 +40,9 @@ const Bank = () => {
       atasNama: 'PT. Bintang Safana Mahligai'
     }
   ]);
+
+  // Filter data agar HANYA menampilkan bank untuk perumahan yang dipilih
+  const filteredData = data.filter(bank => bank.perumahan === selectedPerumahan);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<BankData>(initialFormState);
@@ -65,7 +65,8 @@ const Bank = () => {
       setFormData(item);
       setIsEditing(true);
     } else {
-      setFormData(initialFormState);
+      // Otomatis isi perumahan sesuai yang login
+      setFormData({ ...initialFormState, perumahan: selectedPerumahan });
       setIsEditing(false);
     }
     setErrors({});
@@ -87,7 +88,6 @@ const Bank = () => {
 
   const validateForm = () => {
     const newErrors: Partial<BankData> = {};
-    if (!formData.perumahan) newErrors.perumahan = 'Perumahan wajib dipilih';
     if (!formData.namaBank.trim()) newErrors.namaBank = 'Nama Bank wajib diisi';
     if (!formData.noRekening.trim()) newErrors.noRekening = 'No Rekening wajib diisi';
     if (!formData.atasNama.trim()) newErrors.atasNama = 'Atas Nama wajib diisi';
@@ -118,9 +118,9 @@ const Bank = () => {
   return (
     <div className="space-y-6">
       <DataTable
-        title="Data Bank"
+        title={`Data Bank - ${selectedPerumahan}`}
         columns={columns}
-        data={data}
+        data={filteredData} // Gunakan data yang sudah di-filter
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item)}
         onDelete={handleDelete}
@@ -134,13 +134,13 @@ const Bank = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
-              <Select
+              {/* Input dibuat readOnly karena otomatis ambil dari status login */}
+              <Input
                 label="Peruntukan Perumahan"
                 name="perumahan"
                 value={formData.perumahan}
-                onChange={handleChange}
-                error={errors.perumahan}
-                options={mockPerumahan.map(p => ({ value: p, label: p }))}
+                readOnly
+                className="bg-gray-100 cursor-not-allowed w-full px-4 py-2.5 text-sm rounded-xl border border-slate-200 text-slate-500"
               />
             </div>
 
