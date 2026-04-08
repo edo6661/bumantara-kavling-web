@@ -32,6 +32,7 @@ interface PenjualanData {
   bookingFee: number;
   rekeningTujuan: string;
   status: string;
+  agent: string; // <-- TAMBAHAN BARU
 }
 
 const initialFormState: PenjualanData = {
@@ -60,6 +61,7 @@ const initialFormState: PenjualanData = {
   bookingFee: 5000000,
   rekeningTujuan: '',
   status: 'Booked',
+  agent: '', // <-- TAMBAHAN BARU
 };
 
 // Mock Data untuk Master
@@ -70,9 +72,13 @@ const mockBankList = [
   { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
 ];
 
-
 const Penjualan = () => {
   const [data, setData] = useState<PenjualanData[]>([]);
+
+  // TAMBAHAN BARU: State untuk dinamis agent
+  const [agentList, setAgentList] = useState<string[]>(['Andi Pratama', 'Rina Wijaya']);
+  const [isNewAgent, setIsNewAgent] = useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
@@ -100,12 +106,19 @@ const Penjualan = () => {
     if (item) {
       setFormData(item);
       setIsEditing(true);
+      // Cek apakah agen ada di list, jika tidak anggap custom
+      if (item.agent && !agentList.includes(item.agent)) {
+        setIsNewAgent(true);
+      } else {
+        setIsNewAgent(false);
+      }
     } else {
       setFormData({
         ...initialFormState,
         tanggal: new Date().toISOString().split('T')[0]
       });
       setIsEditing(false);
+      setIsNewAgent(false);
     }
     setErrors({});
     setIsModalOpen(true);
@@ -114,6 +127,7 @@ const Penjualan = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
+    setIsNewAgent(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -122,7 +136,6 @@ const Penjualan = () => {
     if (name === 'caraPembayaran' && value !== 'KPR') {
       setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
     } else if (name === 'perumahan') {
-      // Reset rekening jika perumahan diganti agar tidak salah masuk bank
       setFormData(prev => ({ ...prev, [name]: value, rekeningTujuan: '' }));
     } else {
       const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
@@ -166,6 +179,13 @@ const Penjualan = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    // Simpan ke list agent jika itu agen baru dan tidak kosong
+    if (isNewAgent && formData.agent.trim() !== '') {
+      if (!agentList.includes(formData.agent)) {
+        setAgentList(prev => [...prev, formData.agent]);
+      }
+    }
+
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
@@ -181,7 +201,6 @@ const Penjualan = () => {
     }
   };
 
-  // Filter bank berdasarkan perumahan yang dipilih
   const filteredBanks = mockBankList.filter(b => b.perumahan === formData.perumahan);
   const bankOptions = filteredBanks.map(b => ({
     value: b.id,
@@ -203,9 +222,53 @@ const Penjualan = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
+
+              {/* FIELD AGENT DINAMIS */}
+              <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                {!isNewAgent ? (
+                  <Select
+                    label="Agent Marketing"
+                    name="agent"
+                    value={formData.agent}
+                    onChange={(e) => {
+                      if (e.target.value === 'NEW') {
+                        setIsNewAgent(true);
+                        setFormData((prev) => ({ ...prev, agent: '' }));
+                      } else {
+                        handleChange(e);
+                      }
+                    }}
+                    options={[
+                      ...agentList.map(a => ({ value: a, label: a })),
+                      { value: 'NEW', label: '+ Tambah Agent Baru...' }
+                    ]}
+                  />
+                ) : (
+                  <div className="relative animate-in fade-in zoom-in-95 duration-200">
+                    <Input
+                      label="Nama Agent Baru"
+                      name="agent"
+                      value={formData.agent}
+                      onChange={handleChange}
+                      placeholder="Ketik nama agent..."
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsNewAgent(false);
+                        setFormData((prev) => ({ ...prev, agent: '' }));
+                      }}
+                      className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      Batal Tambah
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
               <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
               <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
               <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />

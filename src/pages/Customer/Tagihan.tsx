@@ -22,7 +22,7 @@ const initialFormState: TagihanData = {
   keterangan: '',
   nominal: 0,
   jatuhTempo: '',
-  status: 'Belum Bayar',
+  status: 'Belum Bayar', // Default Status saat pembuatan
   fileBukti: '',
 };
 
@@ -124,7 +124,19 @@ const Tagihan = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+      // LOGIC BARU: Jika ada file diunggah, otomatis status menjadi LUNAS
+      setFormData((prev) => ({
+        ...prev,
+        [fieldName]: file.name,
+        status: 'Lunas'
+      }));
+    } else {
+      // Jika file dihapus, status kembali ke Belum Bayar
+      setFormData((prev) => ({
+        ...prev,
+        [fieldName]: '',
+        status: 'Belum Bayar'
+      }));
     }
   };
 
@@ -176,7 +188,14 @@ const Tagihan = () => {
         title={isEditing ? "Edit Tagihan" : "Buat Tagihan Baru"}
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold text-gray-800">Status Pembayaran</span>
+            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${formData.status === 'Lunas' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
+              {formData.status}
+            </span>
+          </div>
+
+          <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
             <Select
               label="Pilih Customer"
               name="namaCustomer"
@@ -217,32 +236,27 @@ const Tagihan = () => {
                 onChange={handleChange}
                 error={errors.jatuhTempo}
               />
-              <Select
-                label="Status Pembayaran"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                options={[
-                  { value: 'Belum Bayar', label: 'Belum Bayar' },
-                  { value: 'Lunas', label: 'Lunas' }
-                ]}
-              />
             </div>
           </div>
 
-          {formData.status === 'Lunas' && (
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-100 animate-in fade-in">
-              <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Bukti Pembayaran</h4>
-              <FileInput
-                label="Upload Bukti Transfer"
-                accept="image/*,.pdf"
-                onChange={(e) => handleFileChange(e, 'fileBukti')}
-              />
-              {formData.fileBukti && (
-                <p className="text-xs text-green-600 mt-1 truncate">File terlampir: {formData.fileBukti}</p>
-              )}
-            </div>
-          )}
+          {/* Form Upload akan SELALU muncul agar user bisa upload bukti bayar jika pelanggan sudah bayar */}
+          <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2">Bukti Pembayaran</h4>
+            <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
+              Upload bukti transfer di sini. Sistem akan otomatis mengubah status tagihan menjadi <strong className="text-green-700">LUNAS</strong>.
+            </p>
+            <FileInput
+              label="Upload Bukti Transfer"
+              accept="image/*,.pdf"
+              onChange={(e) => handleFileChange(e, 'fileBukti')}
+            />
+            {formData.fileBukti && (
+              <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                File tersimpan: {formData.fileBukti}
+              </p>
+            )}
+          </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button

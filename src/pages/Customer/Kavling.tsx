@@ -65,6 +65,7 @@ interface KavlingData {
   ajbTotalBphtbPph: number;
   ajbSelisihPajakPbb: number;
   ajbUping: number;
+  notarisName: string;
 }
 
 const initialFormState: KavlingData = {
@@ -75,9 +76,15 @@ const initialFormState: KavlingData = {
   nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
   pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
   ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
+  notarisName: '',
 };
 
-// --- MOCK DATA DITAMBAHKAN DI SINI ---
+
+const mockNotaris = [
+  { id: 'NOT-001', name: 'Notaris PPAT Budi Hartono, S.H., M.Kn.' },
+  { id: 'NOT-002', name: 'Notaris Anita Wijaya, S.H.' },
+];
+
 const initialMockData: KavlingData[] = [
   {
     ...initialFormState,
@@ -96,7 +103,8 @@ const initialMockData: KavlingData[] = [
     biayaStrategis: 15000000,
     totalHargaJual: 515000000,
     nrNilaiPenyerahan: 515000000,
-    pjNilaiPenyerahan: 515000000
+    pjNilaiPenyerahan: 515000000,
+    notarisName: 'Notaris PPAT Budi Hartono, S.H., M.Kn.'
   },
   {
     ...initialFormState,
@@ -120,11 +128,12 @@ const initialMockData: KavlingData[] = [
 ];
 
 const CustomerKavling = () => {
-  const [data, setData] = useState<KavlingData[]>(initialMockData); // Menggunakan mock data
+  const [data, setData] = useState<KavlingData[]>(initialMockData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<KavlingData>(initialFormState);
   const [errors, setErrors] = useState<Partial<KavlingData>>({});
-  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb'>('dasar');
+
+  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
 
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan' },
@@ -142,7 +151,6 @@ const CustomerKavling = () => {
     },
   ];
 
-  // Hanya menerima item yang sudah ada (edit)
   const openModal = (item: KavlingData) => {
     setFormData(item);
     setErrors({});
@@ -194,10 +202,7 @@ const CustomerKavling = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
-    // Hanya melakukan update/edit data yang sudah ada
     setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-
     closeModal();
   };
 
@@ -213,6 +218,7 @@ const CustomerKavling = () => {
     { id: 'nilai', label: 'Nilai Rumah' },
     { id: 'pajak', label: 'Pajak' },
     { id: 'ajb', label: 'Keperluan AJB' },
+    { id: 'notaris', label: 'Notaris' },
   ];
 
   return (
@@ -358,6 +364,22 @@ const CustomerKavling = () => {
               <SectionTitle title="Lain-lain" />
               <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb || ''} onChange={handleChange} />
               <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping || ''} onChange={handleChange} />
+            </div>
+          )}
+
+          {/* TAB 6: NOTARIS (TAMBAHAN BARU) */}
+          {activeTab === 'notaris' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Pemilihan Notaris" />
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Notaris"
+                  name="notarisName"
+                  value={formData.notarisName}
+                  onChange={handleChange}
+                  options={mockNotaris.map(n => ({ value: n.name, label: n.name }))}
+                />
+              </div>
             </div>
           )}
 
