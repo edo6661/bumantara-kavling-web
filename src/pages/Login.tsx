@@ -3,30 +3,62 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
+import { useGetPerumahan } from '../hooks/queries/usePerumahan';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [perumahan, setPerumahan] = useState('');
-  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    perumahanId: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [generalError, setGeneralError] = useState('');
 
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isLoading } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Gunakan Custom Hook React Query
+  const { data: perumahanList = [], isLoading: isLoadingPerumahan } = useGetPerumahan();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setGeneralError('');
+    setErrors({});
 
-    if (!perumahan) {
-      setError('Silakan pilih perumahan terlebih dahulu');
+    if (!formData.perumahanId) {
+      setErrors({ perumahanId: 'Silakan pilih perumahan terlebih dahulu' });
       return;
     }
 
-    const success = login(email, password, perumahan);
-    if (success) {
-      navigate('/');
+    const selectedPerumahanObj = perumahanList.find(p => String(p.id) === String(formData.perumahanId));
+
+    if (!selectedPerumahanObj) {
+      setGeneralError('Data perumahan tidak valid. Silakan muat ulang halaman.');
+      return;
+    }
+
+    const result = await login(formData.email, formData.password, selectedPerumahanObj);
+
+    if (result.success) {
+      navigate('/', { replace: true });
     } else {
-      setError('Email atau password salah!');
+      if (result.errors && Array.isArray(result.errors)) {
+        const fieldErrors = result.errors.reduce((acc, err) => {
+          acc[err.field] = err.message;
+          return acc;
+        }, {} as Record<string, string>);
+        setErrors(fieldErrors);
+      } else {
+        setGeneralError(result.message || 'Login gagal');
+      }
     }
   };
 
@@ -42,20 +74,23 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          {error && (
+          {generalError && (
             <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-xl border border-red-100 text-center animate-in fade-in">
-              {error}
+              {generalError}
             </div>
           )}
 
           <Select
             label="Pilih Perumahan"
-            name="perumahan"
-            value={perumahan}
-            onChange={(e) => setPerumahan(e.target.value)}
+            name="perumahanId"
+            value={formData.perumahanId}
+            onChange={handleChange}
+            error={errors.perumahanId}
+            // Disabled select jika data perumahan masih loading dari API
+            disabled={isLoadingPerumahan}
             options={[
-              { value: 'Puri Safana', label: 'Puri Safana' },
-              { value: 'Poris 88', label: 'Poris 88' }
+              { value: '', label: isLoadingPerumahan ? 'Memuat data perumahan...' : 'Pilih opsi...' },
+              ...perumahanList.map(p => ({ value: String(p.id), label: p.nama }))
             ]}
           />
 
@@ -63,8 +98,9 @@ const Login = () => {
             label="Email"
             name="email"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={handleChange}
+            error={errors.email}
             placeholder="admin@gmail.com"
           />
 
@@ -72,16 +108,18 @@ const Login = () => {
             label="Password"
             name="password"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={formData.password}
+            onChange={handleChange}
+            error={errors.password}
             placeholder="Masukkan password"
           />
 
           <button
             type="submit"
-            className="w-full bg-black text-white font-bold text-sm py-3 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-black/10 mt-4 cursor-pointer"
+            disabled={isLoading || isLoadingPerumahan}
+            className={`w-full bg-black text-white font-bold text-sm py-3 rounded-xl transition-colors shadow-lg shadow-black/10 mt-4 flex justify-center items-center ${isLoading || isLoadingPerumahan ? 'opacity-70 cursor-not-allowed' : 'hover:bg-slate-800 cursor-pointer'}`}
           >
-            Masuk Sekarang
+            {isLoading ? 'Memproses...' : 'Masuk Sekarang'}
           </button>
         </form>
       </div>

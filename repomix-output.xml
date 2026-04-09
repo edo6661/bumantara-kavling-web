@@ -1,4 +1,256 @@
 
+<file path="src/hooks/queries/usePerumahan.ts">
+import { useQuery } from "@tanstack/react-query";
+import { perumahanService } from "../../services/perumahan.service";
+
+export const PERUMAHAN_KEYS = {
+  all: ["perumahan"] as const,
+};
+
+export const useGetPerumahan = () => {
+  return useQuery({
+    queryKey: PERUMAHAN_KEYS.all,
+    queryFn: perumahanService.getAll,
+  });
+};
+</file>
+
+<file path="src/hooks/useCrud.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "../lib/axios";
+
+export const useCrud = <T>(endpoint: string, queryKeyName: string) => {
+  const queryClient = useQueryClient();
+
+  const keys = {
+    all: [queryKeyName] as const,
+    detail: (id: string) => [queryKeyName, id] as const,
+  };
+
+  const getAll = useQuery({
+    queryKey: keys.all,
+    queryFn: async () => {
+      const { data } = await api.get<T[]>(endpoint);
+      return data;
+    },
+  });
+
+  const create = useMutation({
+    mutationFn: async (newData: Omit<T, "id">) => {
+      const { data } = await api.post<T>(endpoint, newData);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  const update = useMutation({
+    mutationFn: async ({ id, ...updateData }: Partial<T> & { id: string }) => {
+      const { data } = await api.put<T>(`${endpoint}/${id}`, updateData);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete(`${endpoint}/${id}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.all });
+    },
+  });
+
+  return { keys, getAll, create, update, remove };
+};
+</file>
+
+<file path="src/hooks/useForm.ts">
+import { useState } from "react";
+
+export const useForm = <T>(
+  initialState: T,
+  validateFn?: (values: T) => Partial<Record<keyof T, string>>,
+) => {
+  const [formData, setFormData] = useState<T>(initialState);
+  const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    const parsedValue =
+      type === "number" ? (value === "" ? 0 : Number(value)) : value;
+
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+
+    if (errors[name as keyof T]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: keyof T,
+  ) => {
+    const file = e.target.files?.[0];
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: (file ? file.name : "") as unknown as T[keyof T],
+    }));
+  };
+
+  const validate = () => {
+    if (!validateFn) return true;
+    const newErrors = validateFn(formData);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const resetForm = () => {
+    setFormData(initialState);
+    setErrors({});
+  };
+
+  return {
+    formData,
+    setFormData,
+    errors,
+    setErrors,
+    handleChange,
+    handleFileChange,
+    validate,
+    resetForm,
+  };
+};
+</file>
+
+<file path="src/services/perumahan.service.ts">
+import api from "../lib/axios";
+import type { Perumahan } from "../types/models/perumahan";
+
+export const perumahanService = {
+  getAll: async (): Promise<Perumahan[]> => {
+    const response = await api.get("/perumahan?limit=100");
+    return response.data.data.items;
+  },
+};
+</file>
+
+<file path="src/types/api_response.ts">
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+</file>
+
+<file path="src/types/common.ts">
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export interface ActionResult<T = void> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  errors?: FieldError[];
+}
+</file>
+
+<file path="src/types/models/perumahan.ts">
+export interface Perumahan {
+  id: string;
+  nama: string;
+  logo?: string;
+  alamat?: string;
+}
+</file>
+
+<file path="src/types/models/user.ts">
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+}
+
+export interface LoginData {
+  token: string;
+  user: User;
+}
+</file>
+
+<file path="src/utils/errorHandler.ts">
+import { isAxiosError } from "axios";
+import type { ActionResult } from "../types/common";
+
+export const handleApiError = (error: unknown): ActionResult => {
+  if (import.meta.env.DEV) {
+    console.error("API Request failed:", error);
+  }
+
+  if (isAxiosError(error)) {
+    return {
+      success: false,
+      message:
+        error.response?.data?.message ||
+        "Terjadi kesalahan pada server. Silakan coba lagi.",
+      errors: error.response?.data?.error,
+    };
+  }
+
+  return {
+    success: false,
+    message:
+      error instanceof Error
+        ? error.message
+        : "Terjadi kesalahan tidak terduga.",
+  };
+};
+</file>
+
+<file path="src/utils/storage.ts">
+import type { User } from "../types/models/user";
+import type { Perumahan } from "../types/models/perumahan";
+
+const STORAGE_KEYS = {
+  TOKEN: "token",
+  USER: "user",
+  PERUMAHAN: "perumahan",
+} as const;
+
+const getItemSafe = <T>(key: string): T | null => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? (JSON.parse(item) as T) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const storage = {
+  getToken: () => localStorage.getItem(STORAGE_KEYS.TOKEN),
+  setToken: (token: string) => localStorage.setItem(STORAGE_KEYS.TOKEN, token),
+
+  getUser: () => getItemSafe<User>(STORAGE_KEYS.USER),
+  setUser: (user: User) =>
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user)),
+
+  getPerumahan: () => getItemSafe<Perumahan>(STORAGE_KEYS.PERUMAHAN),
+  setPerumahan: (perumahan: Perumahan) =>
+    localStorage.setItem(STORAGE_KEYS.PERUMAHAN, JSON.stringify(perumahan)),
+
+  clearAuth: () => {
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+  },
+};
+</file>
+
 <file path="src/hooks/queries/useKavling.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -44,42 +296,182 @@ export const useDeleteKavling = () => {
 
 <file path="src/lib/axios.ts">
 import axios from "axios";
-
-const baseURL = import.meta.env.VITE_API_URL;
+import { storage } from "../utils/storage";
 
 const api = axios.create({
-  baseURL,
+  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
+api.interceptors.request.use((config) => {
+  const token = storage.getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem("token");
+      storage.clearAuth();
+      window.dispatchEvent(new Event("auth-unauthorized"));
     }
     return Promise.reject(error);
   },
 );
 
 export default api;
+</file>
+
+<file path="src/pages/Home.tsx">
+const Home = () => {
+  return (
+    <>
+      <h1>
+        Homepage
+      </h1>
+    </>
+  );
+};
+
+export default Home;
+</file>
+
+<file path="src/pages/Login.tsx">
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import Input from '../components/shared/Input';
+import Select from '../components/shared/Select';
+import { useGetPerumahan } from '../hooks/queries/usePerumahan';
+
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    perumahanId: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [generalError, setGeneralError] = useState('');
+
+  const navigate = useNavigate();
+  const { login, isLoading } = useAuth();
+
+  // Gunakan Custom Hook React Query
+  const { data: perumahanList = [], isLoading: isLoadingPerumahan } = useGetPerumahan();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGeneralError('');
+    setErrors({});
+
+    if (!formData.perumahanId) {
+      setErrors({ perumahanId: 'Silakan pilih perumahan terlebih dahulu' });
+      return;
+    }
+
+    const selectedPerumahanObj = perumahanList.find(p => String(p.id) === String(formData.perumahanId));
+
+    if (!selectedPerumahanObj) {
+      setGeneralError('Data perumahan tidak valid. Silakan muat ulang halaman.');
+      return;
+    }
+
+    const result = await login(formData.email, formData.password, selectedPerumahanObj);
+
+    if (result.success) {
+      navigate('/', { replace: true });
+    } else {
+      if (result.errors && Array.isArray(result.errors)) {
+        const fieldErrors = result.errors.reduce((acc, err) => {
+          acc[err.field] = err.message;
+          return acc;
+        }, {} as Record<string, string>);
+        setErrors(fieldErrors);
+      } else {
+        setGeneralError(result.message || 'Login gagal');
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 bg-black rounded-xl mx-auto flex items-center justify-center text-white font-bold text-xl shadow-lg mb-4">
+            B
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Bumantaraz</h1>
+          <p className="text-sm text-slate-500 mt-2">Masuk ke sistem manajemen properti</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          {generalError && (
+            <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-xl border border-red-100 text-center animate-in fade-in">
+              {generalError}
+            </div>
+          )}
+
+          <Select
+            label="Pilih Perumahan"
+            name="perumahanId"
+            value={formData.perumahanId}
+            onChange={handleChange}
+            error={errors.perumahanId}
+            // Disabled select jika data perumahan masih loading dari API
+            disabled={isLoadingPerumahan}
+            options={[
+              { value: '', label: isLoadingPerumahan ? 'Memuat data perumahan...' : 'Pilih opsi...' },
+              ...perumahanList.map(p => ({ value: String(p.id), label: p.nama }))
+            ]}
+          />
+
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            error={errors.email}
+            placeholder="admin@gmail.com"
+          />
+
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            value={formData.password}
+            onChange={handleChange}
+            error={errors.password}
+            placeholder="Masukkan password"
+          />
+
+          <button
+            type="submit"
+            disabled={isLoading || isLoadingPerumahan}
+            className={`w-full bg-black text-white font-bold text-sm py-3 rounded-xl transition-colors shadow-lg shadow-black/10 mt-4 flex justify-center items-center ${isLoading || isLoadingPerumahan ? 'opacity-70 cursor-not-allowed' : 'hover:bg-slate-800 cursor-pointer'}`}
+          >
+            {isLoading ? 'Memproses...' : 'Masuk Sekarang'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Login;
 </file>
 
 <file path="src/providers/QueryProvider.tsx">
@@ -114,22 +506,15 @@ export const QueryProvider = ({ children }: { children: ReactNode }) => {
 
 <file path="src/services/auth.service.ts">
 import api from "../lib/axios";
-
-export interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-  };
-}
+import type { ApiResponse } from "../types/api_response";
+import type { LoginData } from "../types/models/user";
 
 export const authService = {
   login: async (email: string, pass: string, perumahan: string) => {
-    const response = await api.post<LoginResponse>("/api/auth/login", {
+    const response = await api.post<ApiResponse<LoginData>>("/auth/login", {
       email,
       password: pass,
-      perumahan,
+      perumahan: perumahan,
     });
     return response.data;
   },
@@ -164,218 +549,6 @@ export const kavlingService = {
     const response = await api.delete(`/api/kavling/${id}`);
     return response.data;
   },
-};
-</file>
-
-<file path="package.json">
-{
-  "name": "bumantara-kavling",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.2.0",
-    "@tanstack/react-query": "^5.96.2",
-    "axios": "^1.15.0",
-    "framer-motion": "^12.38.0",
-    "i18next": "^25.8.11",
-    "lucide-react": "^0.575.0",
-    "motion": "^12.34.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.2",
-    "tailwindcss": "^4.2.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@tanstack/react-query-devtools": "^5.96.2",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react-swc": "^4.2.2",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
-  }
-}
-</file>
-
-<file path="src/context/AuthContext.tsx">
-import { createContext, useContext } from 'react';
-
-export interface AuthContextType {
-  isAuthenticated: boolean;
-  selectedPerumahan: string;
-  login: (email: string, pass: string, perumahan: string) => Promise<boolean>;
-  logout: () => void;
-}
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth harus digunakan di dalam AuthProvider');
-  }
-  return context;
-};
-</file>
-
-<file path="src/pages/Home.tsx">
-const Home = () => {
-  return (
-    <>
-      <h1>
-        Homepage
-      </h1>
-    </>
-  );
-};
-
-export default Home;
-</file>
-
-<file path="src/pages/Login.tsx">
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import Input from '../components/shared/Input';
-import Select from '../components/shared/Select';
-
-const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [perumahan, setPerumahan] = useState('');
-  const [error, setError] = useState('');
-
-  const navigate = useNavigate();
-  const { login } = useAuth();
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!perumahan) {
-      setError('Silakan pilih perumahan terlebih dahulu');
-      return;
-    }
-
-    const success = login(email, password, perumahan);
-    if (success) {
-      navigate('/');
-    } else {
-      setError('Email atau password salah!');
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-black rounded-xl mx-auto flex items-center justify-center text-white font-bold text-xl shadow-lg mb-4">
-            B
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">Bumantaraz</h1>
-          <p className="text-sm text-slate-500 mt-2">Masuk ke sistem manajemen properti</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-xl border border-red-100 text-center animate-in fade-in">
-              {error}
-            </div>
-          )}
-
-          <Select
-            label="Pilih Perumahan"
-            name="perumahan"
-            value={perumahan}
-            onChange={(e) => setPerumahan(e.target.value)}
-            options={[
-              { value: 'Puri Safana', label: 'Puri Safana' },
-              { value: 'Poris 88', label: 'Poris 88' }
-            ]}
-          />
-
-          <Input
-            label="Email"
-            name="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@gmail.com"
-          />
-
-          <Input
-            label="Password"
-            name="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Masukkan password"
-          />
-
-          <button
-            type="submit"
-            className="w-full bg-black text-white font-bold text-sm py-3 rounded-xl hover:bg-slate-800 transition-colors shadow-lg shadow-black/10 mt-4 cursor-pointer"
-          >
-            Masuk Sekarang
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-export default Login;
-</file>
-
-<file path="src/providers/AuthProvider.tsx">
-import { useState, type ReactNode } from 'react';
-import { AuthContext } from '../context/AuthContext';
-
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [selectedPerumahan, setSelectedPerumahan] = useState('');
-
-  const login = async (email: string, pass: string, perumahan: string) => {
-    try {
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      if (email === 'admin@gmail.com' && pass === 'password') {
-        setIsAuthenticated(true);
-        setSelectedPerumahan(perumahan);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Login failed", error);
-      return false;
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    setIsAuthenticated(false);
-    setSelectedPerumahan('');
-  };
-
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, selectedPerumahan, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
 };
 </file>
 
@@ -427,6 +600,77 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 });
+</file>
+
+<file path="package.json">
+{
+  "name": "bumantara-kavling",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.0",
+    "@tanstack/react-query": "^5.96.2",
+    "axios": "^1.15.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "i18next": "^25.8.11",
+    "lucide-react": "^0.575.0",
+    "motion": "^12.34.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.2",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tanstack/react-query-devtools": "^5.96.2",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.3.1"
+  }
+}
+</file>
+
+<file path="src/context/AuthContext.tsx">
+import { createContext, useContext } from 'react';
+import type { Perumahan } from '../types/models/perumahan';
+import type { ActionResult } from '../types/common';
+
+export interface AuthContextType {
+  isAuthenticated: boolean;
+  selectedPerumahan: Perumahan | null;
+  isLoading: boolean;
+
+
+  login: (email: string, pass: string, perumahan: Perumahan) => Promise<ActionResult>;
+  logout: () => void;
+}
+
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth harus digunakan di dalam AuthProvider');
+  }
+  return context;
+};
 </file>
 
 <file path="src/index.css">
@@ -548,61 +792,67 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 
+
 interface CustomerData {
   id: string;
+  nikKtp: string;
   nama: string;
-  alamatKtp: string;
-  alamatTinggal: string;
-  nik: string;
   noHp: string;
   email: string;
   pekerjaan: string;
+  perusahaan: string;
   bank: string;
+  alamatKtp: string;
+  alamatTinggal: string;
+  alamatKoresponden: string;
 }
 
 const initialFormState: CustomerData = {
   id: '',
+  nikKtp: '',
   nama: '',
-  alamatKtp: '',
-  alamatTinggal: '',
-  nik: '',
   noHp: '',
   email: '',
   pekerjaan: '',
-  bank: ''
+  perusahaan: '',
+  bank: '',
+  alamatKtp: '',
+  alamatTinggal: '',
+  alamatKoresponden: ''
 };
 
 const DataSosial = () => {
-  // State untuk Data Table
+
   const [data, setData] = useState<CustomerData[]>([
     {
       id: '1',
       nama: 'Budi Santoso',
       alamatKtp: 'Jl. Merdeka No. 1, Tangerang',
       alamatTinggal: 'Jl. Merdeka No. 1, Tangerang',
-      nik: '3671012345670001',
+      alamatKoresponden: 'Jl. Merdeka No. 1, Tangerang',
+      nikKtp: '3671012345670001',
       noHp: '081234567890',
       email: 'budi@example.com',
       pekerjaan: 'Pegawai Swasta',
+      perusahaan: 'PT Maju Jaya',
       bank: 'BCA'
     }
   ]);
 
-  // State untuk Modal & Form
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<CustomerData>(initialFormState);
   const [errors, setErrors] = useState<Partial<CustomerData>>({});
   const [isEditing, setIsEditing] = useState(false);
 
+
   const columns = [
-    { header: 'NIK', accessor: 'nik' },
+    { header: 'NIK', accessor: 'nikKtp' },
     { header: 'Nama Lengkap', accessor: 'nama' },
     { header: 'No. WhatsApp', accessor: 'noHp' },
     { header: 'Pekerjaan', accessor: 'pekerjaan' },
     { header: 'Bank', accessor: 'bank' },
   ];
 
-  // Handler Buka/Tutup Modal
   const openModal = (item?: CustomerData) => {
     if (item) {
       setFormData(item);
@@ -620,29 +870,29 @@ const DataSosial = () => {
     setFormData(initialFormState);
   };
 
-  // Handler Perubahan Input
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Hapus error saat user mulai mengetik
+
     if (errors[name as keyof CustomerData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  // Validasi Dasar
   const validateForm = () => {
     const newErrors: Partial<CustomerData> = {};
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
+    if (!formData.nikKtp.trim() || formData.nikKtp.length !== 16) {
+      newErrors.nikKtp = 'NIK wajib diisi 16 digit';
+    }
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
     if (!formData.email.trim()) newErrors.email = 'Email wajib diisi';
+    if (!formData.alamatKtp.trim()) newErrors.alamatKtp = 'Alamat KTP wajib diisi';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submit Form (Create / Update)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -650,13 +900,13 @@ const DataSosial = () => {
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
+
       const newData = { ...formData, id: Date.now().toString() };
       setData((prev) => [...prev, newData]);
     }
     closeModal();
   };
 
-  // Delete Data
   const handleDelete = (item: CustomerData) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus data ${item.nama}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
@@ -670,8 +920,8 @@ const DataSosial = () => {
         columns={columns}
         data={data}
         onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
+        onEdit={(item) => openModal(item as CustomerData)}
+        onDelete={(item) => handleDelete(item as CustomerData)}
       />
 
       <Modal
@@ -691,25 +941,11 @@ const DataSosial = () => {
             />
             <Input
               label="NIK"
-              name="nik"
-              value={formData.nik}
+              name="nikKtp"
+              value={formData.nikKtp}
               onChange={handleChange}
-              error={errors.nik}
+              error={errors.nikKtp}
               placeholder="Masukkan 16 digit NIK"
-            />
-            <Input
-              label="Alamat Sesuai KTP"
-              name="alamatKtp"
-              value={formData.alamatKtp}
-              onChange={handleChange}
-              placeholder="Masukkan alamat KTP"
-            />
-            <Input
-              label="Alamat Tinggal Sekarang"
-              name="alamatTinggal"
-              value={formData.alamatTinggal}
-              onChange={handleChange}
-              placeholder="Masukkan alamat domisili"
             />
             <Input
               label="No. WhatsApp / HP"
@@ -736,11 +972,40 @@ const DataSosial = () => {
               placeholder="PNS / Swasta / Wiraswasta"
             />
             <Input
+              label="Perusahaan"
+              name="perusahaan"
+              value={formData.perusahaan}
+              onChange={handleChange}
+              placeholder="Nama Perusahaan"
+            />
+            <Input
               label="Bank / Bank KPR"
               name="bank"
               value={formData.bank}
               onChange={handleChange}
               placeholder="BCA / Mandiri / BTN"
+            />
+            <Input
+              label="Alamat Sesuai KTP"
+              name="alamatKtp"
+              value={formData.alamatKtp}
+              onChange={handleChange}
+              error={errors.alamatKtp}
+              placeholder="Masukkan alamat KTP"
+            />
+            <Input
+              label="Alamat Tinggal Sekarang"
+              name="alamatTinggal"
+              value={formData.alamatTinggal}
+              onChange={handleChange}
+              placeholder="Masukkan alamat domisili"
+            />
+            <Input
+              label="Alamat Korespondensi"
+              name="alamatKoresponden"
+              value={formData.alamatKoresponden}
+              onChange={handleChange}
+              placeholder="Masukkan alamat surat-menyurat"
             />
           </div>
 
@@ -748,13 +1013,13 @@ const DataSosial = () => {
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded hover:bg-gray-800 cursor-pointer"
             >
               Simpan Data
             </button>
@@ -776,11 +1041,14 @@ import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import { formatRupiah, formatDate } from "../../utils/formatters";
+import { FileText, Printer } from 'lucide-react';
 
 interface TagihanData {
   id: string;
   namaCustomer: string;
-  keterangan: string;
+  perumahan: string;
+  blok: string;
+  pembayaran: string;
   nominal: number;
   jatuhTempo: string;
   status: string;
@@ -790,18 +1058,20 @@ interface TagihanData {
 const initialFormState: TagihanData = {
   id: '',
   namaCustomer: '',
-  keterangan: '',
+  perumahan: '',
+  blok: '',
+  pembayaran: '',
   nominal: 0,
   jatuhTempo: '',
-  status: 'Belum Bayar', // Default Status saat pembuatan
+  status: 'Belum Bayar',
   fileBukti: '',
 };
 
-// Mock data untuk pilihan customer
+
 const mockCustomers = [
-  { id: 'CUST-001', name: 'Budi Santoso' },
-  { id: 'CUST-002', name: 'Andi Pratama' },
-  { id: 'CUST-003', name: 'Siti Aminah' },
+  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A-01' },
+  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B-12' },
+  { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C-05' },
 ];
 
 const Tagihan = () => {
@@ -809,7 +1079,9 @@ const Tagihan = () => {
     {
       id: 'INV-001',
       namaCustomer: 'Budi Santoso',
-      keterangan: 'Cicilan DP Pertama',
+      perumahan: 'Puri Safana',
+      blok: 'A-01',
+      pembayaran: 'Cicilan DP Pertama',
       nominal: 15000000,
       jatuhTempo: '2026-05-01',
       status: 'Lunas',
@@ -818,7 +1090,9 @@ const Tagihan = () => {
     {
       id: 'INV-002',
       namaCustomer: 'Andi Pratama',
-      keterangan: 'Cicilan KPR Bulan ke-1',
+      perumahan: 'Puri Safana',
+      blok: 'B-12',
+      pembayaran: 'Cicilan KPR Bulan ke-1',
       nominal: 4500000,
       jatuhTempo: '2026-05-15',
       status: 'Belum Bayar',
@@ -834,11 +1108,13 @@ const Tagihan = () => {
   const columns = [
     { header: 'No. Tagihan', accessor: 'id' },
     { header: 'Nama Customer', accessor: 'namaCustomer' },
-    { header: 'Keterangan', accessor: 'keterangan' },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Blok/Unit', accessor: 'blok' },
+    { header: 'Pembayaran', accessor: 'pembayaran' },
     {
       header: 'Nominal',
       accessor: 'nominal',
-      render: (val: number) => formatRupiah(val)
+      render: (val: number) => <span className="font-bold text-slate-800">{formatRupiah(val)}</span>
     },
     {
       header: 'Jatuh Tempo',
@@ -850,17 +1126,8 @@ const Tagihan = () => {
       accessor: 'status',
       render: (val: string) => {
         const bg = val === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
+        return <span className={`px-2 py-1 rounded-full text-xs font-bold ${bg}`}>{val}</span>;
       }
-    },
-    {
-      header: 'Bukti',
-      accessor: 'fileBukti',
-      render: (val: string) => val ? (
-        <span className="text-blue-600 text-xs font-medium bg-blue-50 px-2 py-1 rounded">{val}</span>
-      ) : (
-        <span className="text-gray-400 text-xs">-</span>
-      )
     },
   ];
 
@@ -881,6 +1148,20 @@ const Tagihan = () => {
     setFormData(initialFormState);
   };
 
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedName = e.target.value;
+    const customer = mockCustomers.find(c => c.name === selectedName);
+
+    setFormData(prev => ({
+      ...prev,
+      namaCustomer: selectedName,
+      perumahan: customer?.perumahan || '',
+      blok: customer?.blok || ''
+    }));
+
+    if (errors.namaCustomer) setErrors(prev => ({ ...prev, namaCustomer: undefined }));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
@@ -895,14 +1176,12 @@ const Tagihan = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      // LOGIC BARU: Jika ada file diunggah, otomatis status menjadi LUNAS
       setFormData((prev) => ({
         ...prev,
         [fieldName]: file.name,
         status: 'Lunas'
       }));
     } else {
-      // Jika file dihapus, status kembali ke Belum Bayar
       setFormData((prev) => ({
         ...prev,
         [fieldName]: '',
@@ -914,7 +1193,7 @@ const Tagihan = () => {
   const validateForm = () => {
     const newErrors: Partial<Record<keyof TagihanData, string>> = {};
     if (!formData.namaCustomer) newErrors.namaCustomer = 'Customer wajib dipilih';
-    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan wajib diisi';
+    if (!formData.pembayaran.trim()) newErrors.pembayaran = 'Keterangan pembayaran wajib diisi';
     if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
     if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
 
@@ -929,7 +1208,6 @@ const Tagihan = () => {
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
-      // Generate ID Tagihan Mock
       const newId = `INV-${String(data.length + 1).padStart(3, '0')}`;
       setData((prev) => [...prev, { ...formData, id: newId }]);
     }
@@ -937,9 +1215,31 @@ const Tagihan = () => {
   };
 
   const handleDelete = (item: TagihanData) => {
-    if (window.confirm(`Hapus data tagihan ${item.keterangan} untuk ${item.namaCustomer}?`)) {
+    if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
+  };
+
+
+  const expandedRowRender = () => {
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+          <h4 className="text-sm font-bold text-slate-800">Manajemen Invoice & Cetak</h4>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-md">
+            <FileText size={14} />
+            Create Invoice Baru
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors">
+            <Printer size={14} />
+            Cetak Invoice (PDF)
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -951,6 +1251,7 @@ const Tagihan = () => {
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item)}
         onDelete={handleDelete}
+        expandedRowRender={expandedRowRender}
       />
 
       <Modal
@@ -971,10 +1272,17 @@ const Tagihan = () => {
               label="Pilih Customer"
               name="namaCustomer"
               value={formData.namaCustomer}
-              onChange={handleChange}
+              onChange={handleCustomerChange}
               error={errors.namaCustomer}
-              options={mockCustomers.map(c => ({ value: c.name, label: c.name }))}
+              options={mockCustomers.map(c => ({ value: c.name, label: `${c.name} (${c.perumahan} - ${c.blok})` }))}
             />
+
+            {formData.namaCustomer && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100" />
+                <Input label="Blok/Unit" name="blok" value={formData.blok} readOnly className="bg-gray-100" />
+              </div>
+            )}
           </div>
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
@@ -982,11 +1290,11 @@ const Tagihan = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <Input
-                  label="Keterangan Tagihan"
-                  name="keterangan"
-                  value={formData.keterangan}
+                  label="Pembayaran (Keterangan)"
+                  name="pembayaran"
+                  value={formData.pembayaran}
                   onChange={handleChange}
-                  error={errors.keterangan}
+                  error={errors.pembayaran}
                   placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP"
                 />
               </div>
@@ -1010,7 +1318,6 @@ const Tagihan = () => {
             </div>
           </div>
 
-          {/* Form Upload akan SELALU muncul agar user bisa upload bukti bayar jika pelanggan sudah bayar */}
           <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
             <h4 className="text-sm font-semibold text-blue-900 mb-2">Bukti Pembayaran</h4>
             <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
@@ -1354,6 +1661,57 @@ const TimMarketing = () => {
 };
 
 export default TimMarketing;
+</file>
+
+<file path="src/providers/AuthProvider.tsx">
+import { useState, useEffect, type ReactNode, useCallback } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { authService } from '../services/auth.service';
+import type { Perumahan } from '../types/models/perumahan';
+import type { ActionResult } from '../types/common';
+import { storage } from '../utils/storage';
+import { handleApiError } from '../utils/errorHandler';
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!storage.getToken());
+  const [selectedPerumahan, setSelectedPerumahan] = useState<Perumahan | null>(() => storage.getPerumahan());
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const logout = useCallback(() => {
+    storage.clearAuth();
+    setIsAuthenticated(false);
+    setSelectedPerumahan(null);
+  }, []);
+  useEffect(() => {
+    const handleUnauthorized = () => logout();
+    window.addEventListener('auth-unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth-unauthorized', handleUnauthorized);
+  }, [logout]);
+  const login = async (email: string, pass: string, perumahan: Perumahan): Promise<ActionResult> => {
+    setIsLoading(true);
+    try {
+      const response = await authService.login(email, pass, perumahan.id);
+
+      if (response.success && response.data) {
+        storage.setToken(response.data.token);
+        storage.setUser(response.data.user);
+        storage.setPerumahan(perumahan);
+        setIsAuthenticated(true);
+        setSelectedPerumahan(perumahan);
+        return { success: true };
+      }
+
+      return { success: false, message: response.message || 'Login gagal.' };
+    } catch (error) {
+      return handleApiError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, selectedPerumahan, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 </file>
 
 <file path="src/pages/Management/Bank.tsx">
@@ -2896,9 +3254,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
-
 const Dashboard = () => {
-
   const stats = [
     {
       title: 'Total Pendapatan',
@@ -2933,37 +3289,27 @@ const Dashboard = () => {
       bgColor: 'bg-amber-50',
     },
   ];
-
-
   const recentTransactions = [
     { id: 'TRX-001', customer: 'Budi Santoso', kavling: 'Blok A - 01', type: 'Booking Fee', amount: 5000000, status: 'Lunas', date: 'Hari ini, 10:30' },
     { id: 'TRX-002', customer: 'Andi Pratama', kavling: 'Blok B - 12', type: 'DP 1', amount: 45000000, status: 'Pending', date: 'Kemarin, 14:15' },
     { id: 'TRX-003', customer: 'Siti Aminah', kavling: 'Blok C - 05', type: 'Cash Keras', amount: 550000000, status: 'Lunas', date: '12 Mar 2026' },
   ];
-
-
   const progressData = [
     { kavling: 'Blok A - 01', customer: 'Budi Santoso', progress: 85, tahap: 'Keramik & Plafon', isLate: false },
     { kavling: 'Blok B - 12', customer: 'Andi Pratama', progress: 45, tahap: 'Struktur & Dinding', isLate: false },
     { kavling: 'Blok C - 05', customer: 'Siti Aminah', progress: 15, tahap: 'Pondasi & Sloof', isLate: true },
   ];
-
-
   const topAgents = [
     { name: 'Rina Wijaya', closing: 6, feeStatus: 'Rp 15.000.000' },
     { name: 'Andi Pratama', closing: 4, feeStatus: 'Rp 10.000.000' },
     { name: 'Budi Hartono', closing: 2, feeStatus: 'Rp 5.000.000' },
   ];
-
-
   const documentAlerts = [
     { customer: 'Rudi Hermawan', kavling: 'Blok D - 02', missing: ['NPWP', 'KK'] },
     { customer: 'Siska Amelia', kavling: 'Blok A - 08', missing: ['KTP Pasangan'] },
   ];
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-
       {/* Header Greeting */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
         <div>
@@ -2978,7 +3324,6 @@ const Dashboard = () => {
           Buat Laporan
         </button>
       </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
@@ -2998,9 +3343,7 @@ const Dashboard = () => {
           </div>
         ))}
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         {/* Status Kavling Overview */}
         <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
           <div className="flex justify-between items-center mb-6">
@@ -3009,7 +3352,6 @@ const Dashboard = () => {
               <ArrowRight size={20} />
             </button>
           </div>
-
           <div className="space-y-5">
             {/* Terjual */}
             <div>
@@ -3021,7 +3363,6 @@ const Dashboard = () => {
                 <div className="bg-black h-2.5 rounded-full w-[60%]"></div>
               </div>
             </div>
-
             {/* Booking */}
             <div>
               <div className="flex justify-between text-sm font-medium mb-2">
@@ -3032,7 +3373,6 @@ const Dashboard = () => {
                 <div className="bg-blue-500 h-2.5 rounded-full w-[15%]"></div>
               </div>
             </div>
-
             {/* Available */}
             <div>
               <div className="flex justify-between text-sm font-medium mb-2">
@@ -3045,7 +3385,6 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
         {/* Penjualan Terbaru */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
           <div className="flex justify-between items-center mb-6">
@@ -3054,7 +3393,6 @@ const Dashboard = () => {
               Lihat Semua
             </button>
           </div>
-
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-sm text-left">
               <thead>
@@ -3092,12 +3430,9 @@ const Dashboard = () => {
             </table>
           </div>
         </div>
-
       </div>
-
       {/* Baris Bawah: 3 Kolom Metrik Operasional */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         {/* Progress Pembangunan Lapangan */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
           <div className="flex justify-between items-center mb-6">
@@ -3129,7 +3464,6 @@ const Dashboard = () => {
             ))}
           </div>
         </div>
-
         {/* Top Agent Marketing */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
           <div className="flex justify-between items-center mb-6">
@@ -3161,7 +3495,6 @@ const Dashboard = () => {
             Lihat Data Fee <ChevronRight size={14} />
           </button>
         </div>
-
         {/* Kelengkapan Dokumen / Alert */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
           <div className="flex justify-between items-center mb-6">
@@ -3197,13 +3530,10 @@ const Dashboard = () => {
             Follow Up Customer <ChevronRight size={14} />
           </button>
         </div>
-
       </div>
-
     </div>
   );
 };
-
 export default Dashboard;
 </file>
 
@@ -4190,6 +4520,7 @@ interface KavlingMasterData {
   tipe: string;
   hargaJual: number;
   status: string;
+  rekeningTujuan: string; // <-- TAMBAHAN BARU: Transfer ke rekening
   filePbg: string;
   fileSertifikatTanah: string;
   fileNopPbb: string;
@@ -4203,19 +4534,24 @@ const initialFormState: KavlingMasterData = {
   tipe: '',
   hargaJual: 0,
   status: 'Available',
+  rekeningTujuan: '', // <-- TAMBAHAN BARU
   filePbg: '',
   fileSertifikatTanah: '',
   fileNopPbb: '',
 };
 
+// Mock data bank (Sama seperti di Penjualan, agar bisa dipilih)
+const mockBankList = [
+  { id: 'BSI-01', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
+  { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
+];
+
 const Kavling = () => {
   const [data, setData] = useState<KavlingMasterData[]>([]);
-
 
   const [perumahanList, setPerumahanList] = useState<string[]>([
     'Puri Safana',
   ]);
-
 
   const [isNewPerumahan, setIsNewPerumahan] = useState(false);
 
@@ -4226,7 +4562,6 @@ const Kavling = () => {
 
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan' },
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: any, row: KavlingMasterData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Tipe', accessor: 'tipe' },
@@ -4236,8 +4571,10 @@ const Kavling = () => {
       accessor: 'status',
       render: (val: string) => {
         const getStatusStyle = (status: string) => {
+          // UPDATE: Penyesuaian warna sesuai status baru
           switch (status) {
             case 'Available': return 'bg-green-100 text-green-800';
+            case 'Hold': return 'bg-yellow-100 text-yellow-800';
             case 'Booking': return 'bg-blue-100 text-blue-800';
             case 'Terjual': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
@@ -4256,7 +4593,6 @@ const Kavling = () => {
     if (item) {
       setFormData(item);
       setIsEditing(true);
-
 
       if (!perumahanList.includes(item.perumahan)) {
         setIsNewPerumahan(true);
@@ -4303,6 +4639,8 @@ const Kavling = () => {
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
     if (!formData.tipe.trim()) newErrors.tipe = 'Tipe wajib diisi';
     if (formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual harus lebih dari 0';
+    // Validasi Rekening bisa diaktifkan jika wajib
+    // if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening tujuan wajib dipilih';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -4311,8 +4649,6 @@ const Kavling = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
-
 
     if (isNewPerumahan && formData.perumahan.trim() !== '') {
       if (!perumahanList.includes(formData.perumahan)) {
@@ -4333,6 +4669,9 @@ const Kavling = () => {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
+
+  // Filter bank berdasarkan perumahan yang dipilih (jika ada)
+  const filteredBanks = mockBankList.filter(b => formData.perumahan ? b.perumahan === formData.perumahan : true);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -4402,8 +4741,10 @@ const Kavling = () => {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
+                // UPDATE: Status pilihan sesuai request
                 options={[
                   { value: 'Available', label: 'Available' },
+                  { value: 'Hold', label: 'Hold' },
                   { value: 'Booking', label: 'Booking' },
                   { value: 'Terjual', label: 'Terjual' }
                 ]}
@@ -4412,6 +4753,24 @@ const Kavling = () => {
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
               <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
               <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
+
+              {/* TAMBAHAN BARU: Rekening Tujuan di Kavling */}
+              <div className="md:col-span-2">
+                <Select
+                  label="Transfer ke Rekening"
+                  name="rekeningTujuan"
+                  value={formData.rekeningTujuan}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: 'Pilih Rekening Pembayaran...' },
+                    ...filteredBanks.map(b => ({
+                      value: b.id,
+                      label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
+                    }))
+                  ]}
+                  error={errors.rekeningTujuan}
+                />
+              </div>
             </div>
           </div>
 
@@ -4697,76 +5056,6 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 export default Sidebar;
 </file>
 
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-import { useAuth } from './context/AuthContext';
-import { AuthProvider } from './providers/AuthProvider';
-import { QueryProvider } from './providers/QueryProvider';
-
-
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-
-const App = () => {
-  return (
-    <QueryProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-
-              {/* Semua route di dalam sini otomatis terproteksi */}
-              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="management/penjualan" element={<Penjualan />} />
-                <Route path="management/kavling" element={<Kavling />} />
-                <Route path="management/notaris" element={<Notaris />} />
-                <Route path="management/bank" element={<Bank />} />
-                <Route path="customer/data-sosial" element={<DataSosial />} />
-                <Route path="customer/spr" element={<SPR />} />
-                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-                <Route path="customer/kavling" element={<CustomerKavling />} />
-                <Route path="customer/tagihan" element={<Tagihan />} />
-                <Route path="marketing/agents" element={<Agents />} />
-                <Route path="marketing/fee-agent" element={<FeeAgent />} />
-                <Route path="proyek/spk" element={<SPK />} />
-                <Route path="proyek/progress" element={<Progress />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryProvider>
-  );
-};
-
-export default App;
-</file>
-
 <file path="src/pages/Management/Penjualan.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -4774,7 +5063,8 @@ import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
-import { formatDate } from "../../utils/formatters";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import { FileText, Wallet, Receipt, CreditCard } from 'lucide-react';
 
 interface PenjualanData {
   id: string;
@@ -4800,9 +5090,8 @@ interface PenjualanData {
   fileKk: string;
   fileNpwp: string;
   bookingFee: number;
-  rekeningTujuan: string;
   status: string;
-  agent: string; // <-- TAMBAHAN BARU
+  agent: string;
 }
 
 const initialFormState: PenjualanData = {
@@ -4829,23 +5118,29 @@ const initialFormState: PenjualanData = {
   fileKk: '',
   fileNpwp: '',
   bookingFee: 5000000,
-  rekeningTujuan: '',
   status: 'Booked',
-  agent: '', // <-- TAMBAHAN BARU
+  agent: '',
 };
 
 // Mock Data untuk Master
-const mockPerumahanList = ['Puri Safana', 'Puri Safana'];
-
-const mockBankList = [
-  { id: 'BSI-01', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
-  { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
-];
+const mockPerumahanList = ['Puri Safana'];
 
 const Penjualan = () => {
-  const [data, setData] = useState<PenjualanData[]>([]);
+  const [data, setData] = useState<PenjualanData[]>([
+    {
+      ...initialFormState,
+      id: 'TRX-001',
+      tanggal: '2026-04-09',
+      nama: 'Budi Santoso',
+      perumahan: 'Puri Safana',
+      blok: 'A',
+      nomorUnit: '01',
+      caraPembayaran: 'KPR',
+      status: 'Booking',
+      agent: 'Andi Pratama'
+    }
+  ]);
 
-  // TAMBAHAN BARU: State untuk dinamis agent
   const [agentList, setAgentList] = useState<string[]>(['Andi Pratama', 'Rina Wijaya']);
   const [isNewAgent, setIsNewAgent] = useState(false);
 
@@ -4876,7 +5171,6 @@ const Penjualan = () => {
     if (item) {
       setFormData(item);
       setIsEditing(true);
-      // Cek apakah agen ada di list, jika tidak anggap custom
       if (item.agent && !agentList.includes(item.agent)) {
         setIsNewAgent(true);
       } else {
@@ -4905,8 +5199,6 @@ const Penjualan = () => {
 
     if (name === 'caraPembayaran' && value !== 'KPR') {
       setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
-    } else if (name === 'perumahan') {
-      setFormData(prev => ({ ...prev, [name]: value, rekeningTujuan: '' }));
     } else {
       const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
       setFormData((prev) => ({ ...prev, [name]: parsedValue }));
@@ -4931,7 +5223,6 @@ const Penjualan = () => {
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
     if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
 
     if (formData.caraPembayaran && !formData.bank.trim()) {
       newErrors.bank = 'Bank wajib diisi';
@@ -4949,7 +5240,6 @@ const Penjualan = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Simpan ke list agent jika itu agen baru dan tidak kosong
     if (isNewAgent && formData.agent.trim() !== '') {
       if (!agentList.includes(formData.agent)) {
         setAgentList(prev => [...prev, formData.agent]);
@@ -4971,11 +5261,41 @@ const Penjualan = () => {
     }
   };
 
-  const filteredBanks = mockBankList.filter(b => b.perumahan === formData.perumahan);
-  const bankOptions = filteredBanks.map(b => ({
-    value: b.id,
-    label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
-  }));
+  // TAMBAHAN BARU: Aksi Pembayaran & Create Invoice di dalam baris yang di-expand
+  const expandedRowRender = (row: PenjualanData) => {
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+          <h4 className="text-sm font-bold text-slate-800">Manajemen Aksi & Pembayaran</h4>
+          <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold border border-blue-100">
+            Status: {row.status}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-md">
+            <FileText size={14} />
+            Create Invoice
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors">
+            <Wallet size={14} />
+            Pembayaran Booking
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors">
+            <Receipt size={14} />
+            Pembayaran DP
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors">
+            <CreditCard size={14} />
+            Pembayaran Cicilan
+          </button>
+        </div>
+        <p className="text-[11px] text-slate-400 mt-3 italic">
+          *Klik aksi di atas untuk memproses tagihan/invoice terkait tanpa perlu navigasi keluar halaman.
+        </p>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -4986,6 +5306,7 @@ const Penjualan = () => {
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item)}
         onDelete={handleDelete}
+        expandedRowRender={expandedRowRender} // <-- Panggil expanded row di sini
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
@@ -4995,7 +5316,6 @@ const Penjualan = () => {
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              {/* FIELD AGENT DINAMIS */}
               <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
                 {!isNewAgent ? (
                   <Select
@@ -5146,7 +5466,7 @@ const Penjualan = () => {
           </div>
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee & Keperluan Legal</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Booking Fee (Fixed Rp)"
@@ -5155,20 +5475,6 @@ const Penjualan = () => {
                 value={formData.bookingFee}
                 readOnly
                 className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
-              />
-
-              <Select
-                label="Transfer ke Rekening"
-                name="rekeningTujuan"
-                value={formData.rekeningTujuan}
-                onChange={handleChange}
-                options={
-                  formData.perumahan
-                    ? bankOptions
-                    : [{ value: '', label: 'Silakan pilih Perumahan di Atas Dahulu' }]
-                }
-                error={errors.rekeningTujuan}
-                disabled={!formData.perumahan}
               />
             </div>
           </div>
@@ -5188,6 +5494,75 @@ const Penjualan = () => {
 };
 
 export default Penjualan;
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+import { useAuth } from './context/AuthContext';
+import { AuthProvider } from './providers/AuthProvider';
+import { QueryProvider } from './providers/QueryProvider';
+
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const App = () => {
+  return (
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+
+              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="management/penjualan" element={<Penjualan />} />
+                <Route path="management/kavling" element={<Kavling />} />
+                <Route path="management/notaris" element={<Notaris />} />
+                <Route path="management/bank" element={<Bank />} />
+                <Route path="customer/data-sosial" element={<DataSosial />} />
+                <Route path="customer/spr" element={<SPR />} />
+                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+                <Route path="customer/kavling" element={<CustomerKavling />} />
+                <Route path="customer/tagihan" element={<Tagihan />} />
+                <Route path="marketing/agents" element={<Agents />} />
+                <Route path="marketing/fee-agent" element={<FeeAgent />} />
+                <Route path="proyek/spk" element={<SPK />} />
+                <Route path="proyek/progress" element={<Progress />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
+  );
+};
+
+export default App;
 </file>
 
 <file path="src/components/shared/DataTable.tsx">

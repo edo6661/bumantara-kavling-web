@@ -5,6 +5,7 @@ import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import { formatDate } from "../../utils/formatters";
+import { FileText, Wallet, Receipt, CreditCard } from 'lucide-react';
 
 interface PenjualanData {
   id: string;
@@ -30,9 +31,8 @@ interface PenjualanData {
   fileKk: string;
   fileNpwp: string;
   bookingFee: number;
-  rekeningTujuan: string;
   status: string;
-  agent: string; // <-- TAMBAHAN BARU
+  agent: string;
 }
 
 const initialFormState: PenjualanData = {
@@ -59,23 +59,29 @@ const initialFormState: PenjualanData = {
   fileKk: '',
   fileNpwp: '',
   bookingFee: 5000000,
-  rekeningTujuan: '',
   status: 'Booked',
-  agent: '', // <-- TAMBAHAN BARU
+  agent: '',
 };
 
-// Mock Data untuk Master
-const mockPerumahanList = ['Puri Safana', 'Puri Safana'];
 
-const mockBankList = [
-  { id: 'BSI-01', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
-  { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
-];
+const mockPerumahanList = ['Puri Safana'];
 
 const Penjualan = () => {
-  const [data, setData] = useState<PenjualanData[]>([]);
+  const [data, setData] = useState<PenjualanData[]>([
+    {
+      ...initialFormState,
+      id: 'TRX-001',
+      tanggal: '2026-04-09',
+      nama: 'Budi Santoso',
+      perumahan: 'Puri Safana',
+      blok: 'A',
+      nomorUnit: '01',
+      caraPembayaran: 'KPR',
+      status: 'Booking',
+      agent: 'Andi Pratama'
+    }
+  ]);
 
-  // TAMBAHAN BARU: State untuk dinamis agent
   const [agentList, setAgentList] = useState<string[]>(['Andi Pratama', 'Rina Wijaya']);
   const [isNewAgent, setIsNewAgent] = useState(false);
 
@@ -106,7 +112,6 @@ const Penjualan = () => {
     if (item) {
       setFormData(item);
       setIsEditing(true);
-      // Cek apakah agen ada di list, jika tidak anggap custom
       if (item.agent && !agentList.includes(item.agent)) {
         setIsNewAgent(true);
       } else {
@@ -135,8 +140,6 @@ const Penjualan = () => {
 
     if (name === 'caraPembayaran' && value !== 'KPR') {
       setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
-    } else if (name === 'perumahan') {
-      setFormData(prev => ({ ...prev, [name]: value, rekeningTujuan: '' }));
     } else {
       const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
       setFormData((prev) => ({ ...prev, [name]: parsedValue }));
@@ -161,7 +164,6 @@ const Penjualan = () => {
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
     if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening transfer wajib dipilih';
 
     if (formData.caraPembayaran && !formData.bank.trim()) {
       newErrors.bank = 'Bank wajib diisi';
@@ -179,7 +181,6 @@ const Penjualan = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Simpan ke list agent jika itu agen baru dan tidak kosong
     if (isNewAgent && formData.agent.trim() !== '') {
       if (!agentList.includes(formData.agent)) {
         setAgentList(prev => [...prev, formData.agent]);
@@ -200,12 +201,48 @@ const Penjualan = () => {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
+  const expandedRowRender = (row: PenjualanData) => {
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+          <h4 className="text-sm font-bold text-slate-800">Manajemen Aksi & Pembayaran</h4>
+          <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold border border-blue-100">
+            Status: {row.status}
+          </span>
+        </div>
 
-  const filteredBanks = mockBankList.filter(b => b.perumahan === formData.perumahan);
-  const bankOptions = filteredBanks.map(b => ({
-    value: b.id,
-    label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
-  }));
+        <div className="flex flex-wrap gap-3 items-center">
+          <button className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-md cursor-pointer">
+            <FileText size={14} />
+            Create Invoice
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+            <Wallet size={14} />
+            Pembayaran Booking
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+            <Receipt size={14} />
+            Pembayaran DP
+          </button>
+          <div className="flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black/5 focus-within:border-black transition-all">
+            <button className="flex items-center gap-2 px-4 py-2 text-slate-700 text-xs font-bold hover:bg-slate-50 transition-colors border-r border-slate-300 cursor-pointer">
+              <CreditCard size={14} />
+              Pembayaran Cicilan ke-
+            </button>
+            <input
+              type="number"
+              min="1"
+              placeholder="0"
+              className="w-16 px-2 py-2 text-xs font-bold text-center outline-none text-slate-700 bg-white"
+            />
+          </div>
+        </div>
+        <p className="text-[11px] text-slate-400 mt-3 italic">
+          *Klik aksi di atas untuk memproses tagihan/invoice terkait tanpa perlu navigasi keluar halaman.
+        </p>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -216,6 +253,7 @@ const Penjualan = () => {
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item)}
         onDelete={handleDelete}
+        expandedRowRender={expandedRowRender}
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
@@ -225,7 +263,6 @@ const Penjualan = () => {
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              {/* FIELD AGENT DINAMIS */}
               <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
                 {!isNewAgent ? (
                   <Select
@@ -376,7 +413,7 @@ const Penjualan = () => {
           </div>
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee & Keperluan Legal</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Booking Fee (Fixed Rp)"
@@ -385,20 +422,6 @@ const Penjualan = () => {
                 value={formData.bookingFee}
                 readOnly
                 className="px-3 py-2 border rounded-md focus:outline-none bg-gray-200 text-gray-600 cursor-not-allowed w-full"
-              />
-
-              <Select
-                label="Transfer ke Rekening"
-                name="rekeningTujuan"
-                value={formData.rekeningTujuan}
-                onChange={handleChange}
-                options={
-                  formData.perumahan
-                    ? bankOptions
-                    : [{ value: '', label: 'Silakan pilih Perumahan di Atas Dahulu' }]
-                }
-                error={errors.rekeningTujuan}
-                disabled={!formData.perumahan}
               />
             </div>
           </div>

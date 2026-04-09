@@ -39,7 +39,6 @@ const App = () => {
             <Routes>
               <Route path="/login" element={<Login />} />
 
-              {/* Semua route di dalam sini otomatis terproteksi */}
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
                 <Route path="management/penjualan" element={<Penjualan />} />

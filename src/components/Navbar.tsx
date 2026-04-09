@@ -1,5 +1,7 @@
-import { Menu } from 'lucide-react';
+import { Menu, Building } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useGetPerumahan } from '../hooks/queries/usePerumahan';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -7,7 +9,8 @@ interface NavbarProps {
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
   const location = useLocation();
-
+  const { selectedPerumahan, setSelectedPerumahan } = useAuth();
+  const { data: perumahanList } = useGetPerumahan();
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -27,14 +30,12 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           <Menu size={22} />
         </button>
 
-        {/* Judul Halaman di Header (Hanya muncul di Desktop) */}
         <div className="hidden md:block">
           <h1 className="text-xl font-bold font-heading text-gray-900 tracking-tight">
             {getPageTitle()}
           </h1>
         </div>
 
-        {/* Logo Mobile */}
         <div className="flex items-center gap-2 md:hidden">
           <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
             B
@@ -44,7 +45,25 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
       </div>
 
       <div className="flex items-center gap-3 md:gap-5">
-
+        {selectedPerumahan && perumahanList && (
+          <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-black/5 transition-all">
+            <Building size={16} className="text-slate-500" />
+            <select
+              className="bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none w-32 md:w-auto"
+              value={selectedPerumahan.id}
+              onChange={(e) => {
+                const selected = perumahanList.find(p => String(p.id) === e.target.value);
+                if (selected) {
+                  setSelectedPerumahan(selected);
+                }
+              }}
+            >
+              {perumahanList.map(p => (
+                <option key={p.id} value={p.id}>{p.nama}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="w-9 h-9 bg-gradient-to-tr from-gray-800 to-black rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md cursor-pointer border-2 border-white ring-1 ring-gray-100">
           Aq

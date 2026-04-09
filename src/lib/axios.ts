@@ -1,34 +1,27 @@
 import axios from "axios";
-
-const baseURL = import.meta.env.VITE_API_URL;
+import { storage } from "../utils/storage";
 
 const api = axios.create({
-  baseURL,
+  baseURL: import.meta.env.VITE_API_URL || "/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  },
-);
+api.interceptors.request.use((config) => {
+  const token = storage.getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem("token");
+      storage.clearAuth();
+      window.dispatchEvent(new Event("auth-unauthorized"));
     }
     return Promise.reject(error);
   },

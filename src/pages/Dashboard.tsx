@@ -10,9 +10,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
-
 const Dashboard = () => {
-
   const stats = [
     {
       title: 'Total Pendapatan',
@@ -47,37 +45,27 @@ const Dashboard = () => {
       bgColor: 'bg-amber-50',
     },
   ];
-
-
   const recentTransactions = [
     { id: 'TRX-001', customer: 'Budi Santoso', kavling: 'Blok A - 01', type: 'Booking Fee', amount: 5000000, status: 'Lunas', date: 'Hari ini, 10:30' },
     { id: 'TRX-002', customer: 'Andi Pratama', kavling: 'Blok B - 12', type: 'DP 1', amount: 45000000, status: 'Pending', date: 'Kemarin, 14:15' },
     { id: 'TRX-003', customer: 'Siti Aminah', kavling: 'Blok C - 05', type: 'Cash Keras', amount: 550000000, status: 'Lunas', date: '12 Mar 2026' },
   ];
-
-
   const progressData = [
     { kavling: 'Blok A - 01', customer: 'Budi Santoso', progress: 85, tahap: 'Keramik & Plafon', isLate: false },
     { kavling: 'Blok B - 12', customer: 'Andi Pratama', progress: 45, tahap: 'Struktur & Dinding', isLate: false },
     { kavling: 'Blok C - 05', customer: 'Siti Aminah', progress: 15, tahap: 'Pondasi & Sloof', isLate: true },
   ];
-
-
   const topAgents = [
     { name: 'Rina Wijaya', closing: 6, feeStatus: 'Rp 15.000.000' },
     { name: 'Andi Pratama', closing: 4, feeStatus: 'Rp 10.000.000' },
     { name: 'Budi Hartono', closing: 2, feeStatus: 'Rp 5.000.000' },
   ];
-
-
   const documentAlerts = [
     { customer: 'Rudi Hermawan', kavling: 'Blok D - 02', missing: ['NPWP', 'KK'] },
     { customer: 'Siska Amelia', kavling: 'Blok A - 08', missing: ['KTP Pasangan'] },
   ];
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-
       {/* Header Greeting */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
         <div>
@@ -92,7 +80,6 @@ const Dashboard = () => {
           Buat Laporan
         </button>
       </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
@@ -112,9 +99,7 @@ const Dashboard = () => {
           </div>
         ))}
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         {/* Status Kavling Overview */}
         <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
           <div className="flex justify-between items-center mb-6">
@@ -123,7 +108,6 @@ const Dashboard = () => {
               <ArrowRight size={20} />
             </button>
           </div>
-
           <div className="space-y-5">
             {/* Terjual */}
             <div>
@@ -135,7 +119,6 @@ const Dashboard = () => {
                 <div className="bg-black h-2.5 rounded-full w-[60%]"></div>
               </div>
             </div>
-
             {/* Booking */}
             <div>
               <div className="flex justify-between text-sm font-medium mb-2">
@@ -146,7 +129,6 @@ const Dashboard = () => {
                 <div className="bg-blue-500 h-2.5 rounded-full w-[15%]"></div>
               </div>
             </div>
-
             {/* Available */}
             <div>
               <div className="flex justify-between text-sm font-medium mb-2">
@@ -159,7 +141,6 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
         {/* Penjualan Terbaru */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
           <div className="flex justify-between items-center mb-6">
@@ -168,7 +149,6 @@ const Dashboard = () => {
               Lihat Semua
             </button>
           </div>
-
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-sm text-left">
               <thead>
@@ -206,12 +186,9 @@ const Dashboard = () => {
             </table>
           </div>
         </div>
-
       </div>
-
       {/* Baris Bawah: 3 Kolom Metrik Operasional */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         {/* Progress Pembangunan Lapangan */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
           <div className="flex justify-between items-center mb-6">
@@ -243,7 +220,6 @@ const Dashboard = () => {
             ))}
           </div>
         </div>
-
         {/* Top Agent Marketing */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
           <div className="flex justify-between items-center mb-6">
@@ -275,7 +251,6 @@ const Dashboard = () => {
             Lihat Data Fee <ChevronRight size={14} />
           </button>
         </div>
-
         {/* Kelengkapan Dokumen / Alert */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
           <div className="flex justify-between items-center mb-6">
@@ -311,11 +286,8 @@ const Dashboard = () => {
             Follow Up Customer <ChevronRight size={14} />
           </button>
         </div>
-
       </div>
-
     </div>
   );
 };
-
 export default Dashboard;

@@ -5,11 +5,14 @@ import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import { formatRupiah, formatDate } from "../../utils/formatters";
+import { FileText, Printer } from 'lucide-react';
 
 interface TagihanData {
   id: string;
   namaCustomer: string;
-  keterangan: string;
+  perumahan: string;
+  blok: string;
+  pembayaran: string;
   nominal: number;
   jatuhTempo: string;
   status: string;
@@ -19,18 +22,20 @@ interface TagihanData {
 const initialFormState: TagihanData = {
   id: '',
   namaCustomer: '',
-  keterangan: '',
+  perumahan: '',
+  blok: '',
+  pembayaran: '',
   nominal: 0,
   jatuhTempo: '',
-  status: 'Belum Bayar', // Default Status saat pembuatan
+  status: 'Belum Bayar',
   fileBukti: '',
 };
 
-// Mock data untuk pilihan customer
+
 const mockCustomers = [
-  { id: 'CUST-001', name: 'Budi Santoso' },
-  { id: 'CUST-002', name: 'Andi Pratama' },
-  { id: 'CUST-003', name: 'Siti Aminah' },
+  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A-01' },
+  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B-12' },
+  { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C-05' },
 ];
 
 const Tagihan = () => {
@@ -38,7 +43,9 @@ const Tagihan = () => {
     {
       id: 'INV-001',
       namaCustomer: 'Budi Santoso',
-      keterangan: 'Cicilan DP Pertama',
+      perumahan: 'Puri Safana',
+      blok: 'A-01',
+      pembayaran: 'Cicilan DP Pertama',
       nominal: 15000000,
       jatuhTempo: '2026-05-01',
       status: 'Lunas',
@@ -47,7 +54,9 @@ const Tagihan = () => {
     {
       id: 'INV-002',
       namaCustomer: 'Andi Pratama',
-      keterangan: 'Cicilan KPR Bulan ke-1',
+      perumahan: 'Puri Safana',
+      blok: 'B-12',
+      pembayaran: 'Cicilan KPR Bulan ke-1',
       nominal: 4500000,
       jatuhTempo: '2026-05-15',
       status: 'Belum Bayar',
@@ -63,11 +72,13 @@ const Tagihan = () => {
   const columns = [
     { header: 'No. Tagihan', accessor: 'id' },
     { header: 'Nama Customer', accessor: 'namaCustomer' },
-    { header: 'Keterangan', accessor: 'keterangan' },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Blok/Unit', accessor: 'blok' },
+    { header: 'Pembayaran', accessor: 'pembayaran' },
     {
       header: 'Nominal',
       accessor: 'nominal',
-      render: (val: number) => formatRupiah(val)
+      render: (val: number) => <span className="font-bold text-slate-800">{formatRupiah(val)}</span>
     },
     {
       header: 'Jatuh Tempo',
@@ -79,17 +90,8 @@ const Tagihan = () => {
       accessor: 'status',
       render: (val: string) => {
         const bg = val === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
+        return <span className={`px-2 py-1 rounded-full text-xs font-bold ${bg}`}>{val}</span>;
       }
-    },
-    {
-      header: 'Bukti',
-      accessor: 'fileBukti',
-      render: (val: string) => val ? (
-        <span className="text-blue-600 text-xs font-medium bg-blue-50 px-2 py-1 rounded">{val}</span>
-      ) : (
-        <span className="text-gray-400 text-xs">-</span>
-      )
     },
   ];
 
@@ -110,6 +112,20 @@ const Tagihan = () => {
     setFormData(initialFormState);
   };
 
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedName = e.target.value;
+    const customer = mockCustomers.find(c => c.name === selectedName);
+
+    setFormData(prev => ({
+      ...prev,
+      namaCustomer: selectedName,
+      perumahan: customer?.perumahan || '',
+      blok: customer?.blok || ''
+    }));
+
+    if (errors.namaCustomer) setErrors(prev => ({ ...prev, namaCustomer: undefined }));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
@@ -124,14 +140,12 @@ const Tagihan = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      // LOGIC BARU: Jika ada file diunggah, otomatis status menjadi LUNAS
       setFormData((prev) => ({
         ...prev,
         [fieldName]: file.name,
         status: 'Lunas'
       }));
     } else {
-      // Jika file dihapus, status kembali ke Belum Bayar
       setFormData((prev) => ({
         ...prev,
         [fieldName]: '',
@@ -143,7 +157,7 @@ const Tagihan = () => {
   const validateForm = () => {
     const newErrors: Partial<Record<keyof TagihanData, string>> = {};
     if (!formData.namaCustomer) newErrors.namaCustomer = 'Customer wajib dipilih';
-    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan wajib diisi';
+    if (!formData.pembayaran.trim()) newErrors.pembayaran = 'Keterangan pembayaran wajib diisi';
     if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
     if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
 
@@ -158,7 +172,6 @@ const Tagihan = () => {
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
-      // Generate ID Tagihan Mock
       const newId = `INV-${String(data.length + 1).padStart(3, '0')}`;
       setData((prev) => [...prev, { ...formData, id: newId }]);
     }
@@ -166,9 +179,31 @@ const Tagihan = () => {
   };
 
   const handleDelete = (item: TagihanData) => {
-    if (window.confirm(`Hapus data tagihan ${item.keterangan} untuk ${item.namaCustomer}?`)) {
+    if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
+  };
+
+
+  const expandedRowRender = () => {
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+          <h4 className="text-sm font-bold text-slate-800">Manajemen Invoice & Cetak</h4>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-md cursor-pointer">
+            <FileText size={14} />
+            Create Invoice
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+            <Printer size={14} />
+            Cetak Invoice (PDF)
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -180,6 +215,7 @@ const Tagihan = () => {
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item)}
         onDelete={handleDelete}
+        expandedRowRender={expandedRowRender}
       />
 
       <Modal
@@ -200,10 +236,17 @@ const Tagihan = () => {
               label="Pilih Customer"
               name="namaCustomer"
               value={formData.namaCustomer}
-              onChange={handleChange}
+              onChange={handleCustomerChange}
               error={errors.namaCustomer}
-              options={mockCustomers.map(c => ({ value: c.name, label: c.name }))}
+              options={mockCustomers.map(c => ({ value: c.name, label: `${c.name} (${c.perumahan} - ${c.blok})` }))}
             />
+
+            {formData.namaCustomer && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100" />
+                <Input label="Blok/Unit" name="blok" value={formData.blok} readOnly className="bg-gray-100" />
+              </div>
+            )}
           </div>
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
@@ -211,11 +254,11 @@ const Tagihan = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <Input
-                  label="Keterangan Tagihan"
-                  name="keterangan"
-                  value={formData.keterangan}
+                  label="Pembayaran"
+                  name="pembayaran"
+                  value={formData.pembayaran}
                   onChange={handleChange}
-                  error={errors.keterangan}
+                  error={errors.pembayaran}
                   placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP"
                 />
               </div>
@@ -239,7 +282,6 @@ const Tagihan = () => {
             </div>
           </div>
 
-          {/* Form Upload akan SELALU muncul agar user bisa upload bukti bayar jika pelanggan sudah bayar */}
           <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
             <h4 className="text-sm font-semibold text-blue-900 mb-2">Bukti Pembayaran</h4>
             <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
