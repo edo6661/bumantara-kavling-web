@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Building2,
   Wallet,
@@ -13,7 +12,7 @@ import {
 import { formatRupiah } from '../utils/formatters';
 
 const Dashboard = () => {
-  // Mock Data untuk metrik utama
+
   const stats = [
     {
       title: 'Total Pendapatan',
@@ -49,28 +48,28 @@ const Dashboard = () => {
     },
   ];
 
-  // Mock Data Penjualan Terbaru
+
   const recentTransactions = [
     { id: 'TRX-001', customer: 'Budi Santoso', kavling: 'Blok A - 01', type: 'Booking Fee', amount: 5000000, status: 'Lunas', date: 'Hari ini, 10:30' },
     { id: 'TRX-002', customer: 'Andi Pratama', kavling: 'Blok B - 12', type: 'DP 1', amount: 45000000, status: 'Pending', date: 'Kemarin, 14:15' },
     { id: 'TRX-003', customer: 'Siti Aminah', kavling: 'Blok C - 05', type: 'Cash Keras', amount: 550000000, status: 'Lunas', date: '12 Mar 2026' },
   ];
 
-  // Mock Data Progress Pembangunan
+
   const progressData = [
     { kavling: 'Blok A - 01', customer: 'Budi Santoso', progress: 85, tahap: 'Keramik & Plafon', isLate: false },
     { kavling: 'Blok B - 12', customer: 'Andi Pratama', progress: 45, tahap: 'Struktur & Dinding', isLate: false },
     { kavling: 'Blok C - 05', customer: 'Siti Aminah', progress: 15, tahap: 'Pondasi & Sloof', isLate: true },
   ];
 
-  // Mock Data Top Agent
+
   const topAgents = [
     { name: 'Rina Wijaya', closing: 6, feeStatus: 'Rp 15.000.000' },
     { name: 'Andi Pratama', closing: 4, feeStatus: 'Rp 10.000.000' },
     { name: 'Budi Hartono', closing: 2, feeStatus: 'Rp 5.000.000' },
   ];
 
-  // Mock Data Alert Dokumen
+
   const documentAlerts = [
     { customer: 'Rudi Hermawan', kavling: 'Blok D - 02', missing: ['NPWP', 'KK'] },
     { customer: 'Siska Amelia', kavling: 'Blok A - 08', missing: ['KTP Pasangan'] },
