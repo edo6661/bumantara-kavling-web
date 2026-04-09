@@ -1,0 +1,11 @@
+services:
+  kavling-app:
+    build: .
+    container_name: kavling-app
+    restart: unless-stopped
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
