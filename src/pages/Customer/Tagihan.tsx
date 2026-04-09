@@ -17,6 +17,7 @@ interface TagihanData {
   jatuhTempo: string;
   status: string;
   fileBukti: string;
+  reminderBerikutnya: string; // <-- TAMBAHAN BARU
 }
 
 const initialFormState: TagihanData = {
@@ -29,8 +30,8 @@ const initialFormState: TagihanData = {
   jatuhTempo: '',
   status: 'Belum Bayar',
   fileBukti: '',
+  reminderBerikutnya: '', // <-- TAMBAHAN BARU
 };
-
 
 const mockCustomers = [
   { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A-01' },
@@ -50,6 +51,7 @@ const Tagihan = () => {
       jatuhTempo: '2026-05-01',
       status: 'Lunas',
       fileBukti: 'bukti_tf_budi.pdf',
+      reminderBerikutnya: '',
     },
     {
       id: 'INV-002',
@@ -61,6 +63,7 @@ const Tagihan = () => {
       jatuhTempo: '2026-05-15',
       status: 'Belum Bayar',
       fileBukti: '',
+      reminderBerikutnya: '2026-06-15',
     }
   ]);
 
@@ -72,8 +75,7 @@ const Tagihan = () => {
   const columns = [
     { header: 'No. Tagihan', accessor: 'id' },
     { header: 'Nama Customer', accessor: 'namaCustomer' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Blok/Unit', accessor: 'blok' },
+    { header: 'Kavling', accessor: 'blok' },
     { header: 'Pembayaran', accessor: 'pembayaran' },
     {
       header: 'Nominal',
@@ -92,6 +94,11 @@ const Tagihan = () => {
         const bg = val === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
         return <span className={`px-2 py-1 rounded-full text-xs font-bold ${bg}`}>{val}</span>;
       }
+    },
+    {
+      header: 'Reminder Selanjutnya', // <-- Menambahkan field reminder di Table
+      accessor: 'reminderBerikutnya',
+      render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
     },
   ];
 
@@ -184,7 +191,6 @@ const Tagihan = () => {
     }
   };
 
-
   const expandedRowRender = () => {
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
@@ -250,7 +256,7 @@ const Tagihan = () => {
           </div>
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan & Reminder</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <Input
@@ -279,6 +285,15 @@ const Tagihan = () => {
                 onChange={handleChange}
                 error={errors.jatuhTempo}
               />
+              <div className="md:col-span-2 mt-2">
+                <Input
+                  label="Reminder Tagihan Berikutnya (Opsional)" // <-- FIELD BARU
+                  type="date"
+                  name="reminderBerikutnya"
+                  value={formData.reminderBerikutnya}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
           </div>
 

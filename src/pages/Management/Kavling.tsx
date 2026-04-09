@@ -11,10 +11,12 @@ interface KavlingMasterData {
   perumahan: string;
   blok: string;
   nomorUnit: string;
-  tipe: string;
+  namaTipe: string; // <-- DIUBAH DARI tipe
+  luasBangunan: number; // <-- TAMBAHAN BARU
+  luasTanah: number; // <-- TAMBAHAN BARU
   hargaJual: number;
   status: string;
-  rekeningTujuan: string; // <-- TAMBAHAN BARU: Transfer ke rekening
+  rekeningTujuan: string;
   filePbg: string;
   fileSertifikatTanah: string;
   fileNopPbb: string;
@@ -25,16 +27,17 @@ const initialFormState: KavlingMasterData = {
   perumahan: '',
   blok: '',
   nomorUnit: '',
-  tipe: '',
+  namaTipe: '',
+  luasBangunan: 0,
+  luasTanah: 0,
   hargaJual: 0,
   status: 'Available',
-  rekeningTujuan: '', // <-- TAMBAHAN BARU
+  rekeningTujuan: '',
   filePbg: '',
   fileSertifikatTanah: '',
   fileNopPbb: '',
 };
 
-// Mock data bank (Sama seperti di Penjualan, agar bisa dipilih)
 const mockBankList = [
   { id: 'BSI-01', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
   { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
@@ -58,14 +61,14 @@ const Kavling = () => {
     { header: 'Perumahan', accessor: 'perumahan' },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: any, row: KavlingMasterData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Tipe', accessor: 'tipe' },
+    { header: 'Nama Tipe', accessor: 'namaTipe' },
+    { header: 'LB/LT', accessor: 'luasBangunan', render: (_: any, row: KavlingMasterData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Jual', accessor: 'hargaJual', render: (val: number) => formatRupiah(val) },
     {
       header: 'Status',
       accessor: 'status',
       render: (val: string) => {
         const getStatusStyle = (status: string) => {
-          // UPDATE: Penyesuaian warna sesuai status baru
           switch (status) {
             case 'Available': return 'bg-green-100 text-green-800';
             case 'Hold': return 'bg-yellow-100 text-yellow-800';
@@ -131,10 +134,10 @@ const Kavling = () => {
     if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.tipe.trim()) newErrors.tipe = 'Tipe wajib diisi';
+    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Nama Tipe wajib diisi';
+    if (formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan harus lebih dari 0';
+    if (formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah harus lebih dari 0';
     if (formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual harus lebih dari 0';
-    // Validasi Rekening bisa diaktifkan jika wajib
-    // if (!formData.rekeningTujuan) newErrors.rekeningTujuan = 'Rekening tujuan wajib dipilih';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -164,7 +167,6 @@ const Kavling = () => {
     }
   };
 
-  // Filter bank berdasarkan perumahan yang dipilih (jika ada)
   const filteredBanks = mockBankList.filter(b => formData.perumahan ? b.perumahan === formData.perumahan : true);
 
   return (
@@ -185,7 +187,6 @@ const Kavling = () => {
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Utama</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              {/* DYNAMIC PERUMAHAN FIELD */}
               <div className="relative">
                 {!isNewPerumahan ? (
                   <Select
@@ -235,7 +236,6 @@ const Kavling = () => {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                // UPDATE: Status pilihan sesuai request
                 options={[
                   { value: 'Available', label: 'Available' },
                   { value: 'Hold', label: 'Hold' },
@@ -245,10 +245,13 @@ const Kavling = () => {
               />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
+              <div className="md:col-span-2">
+                <Input label="Nama Tipe" name="namaTipe" value={formData.namaTipe} onChange={handleChange} error={errors.namaTipe} placeholder="Contoh: Tipe 45" />
+              </div>
+              <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} placeholder="0" />
+              <Input label="Luas Tanah (m²)" type="number" name="luasTanah" value={formData.luasTanah === 0 ? '' : formData.luasTanah} onChange={handleChange} error={errors.luasTanah} placeholder="0" />
               <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
 
-              {/* TAMBAHAN BARU: Rekening Tujuan di Kavling */}
               <div className="md:col-span-2">
                 <Select
                   label="Transfer ke Rekening"

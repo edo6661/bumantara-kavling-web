@@ -23,7 +23,7 @@ interface PenjualanData {
   hargaJual: number;
   dp: number;
   diskonPenjualan: number;
-  paketPromosi: string;
+  hargaPromosi: number; // <-- DIUBAH DARI paketPromosi string ke number
   bank: string;
   caraPembayaran: string;
   nilaiPengajuanKpr: number;
@@ -51,7 +51,7 @@ const initialFormState: PenjualanData = {
   hargaJual: 0,
   dp: 0,
   diskonPenjualan: 0,
-  paketPromosi: '',
+  hargaPromosi: 0,
   bank: '',
   caraPembayaran: '',
   nilaiPengajuanKpr: 0,
@@ -62,7 +62,6 @@ const initialFormState: PenjualanData = {
   status: 'Booked',
   agent: '',
 };
-
 
 const mockPerumahanList = ['Puri Safana'];
 
@@ -142,7 +141,17 @@ const Penjualan = () => {
       setFormData(prev => ({ ...prev, [name]: value, nilaiPengajuanKpr: 0 }));
     } else {
       const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-      setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+
+      setFormData((prev) => {
+        const updates: any = { [name]: parsedValue };
+
+        // <-- TAMBAHAN LOGIKA DP OTOMATIS 10%
+        if (name === 'hargaJual') {
+          updates.dp = (parsedValue as number) * 0.1;
+        }
+
+        return { ...prev, ...updates };
+      });
     }
 
     if (errors[name as keyof PenjualanData]) {
@@ -201,6 +210,7 @@ const Penjualan = () => {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
+
   const expandedRowRender = (row: PenjualanData) => {
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
@@ -332,7 +342,9 @@ const Penjualan = () => {
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
               <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Paket Promosi" name="paketPromosi" value={formData.paketPromosi} onChange={handleChange} />
+
+              {/* <-- DIUBAH MENJADI NUMBER (Harga Promosi) */}
+              <Input label="Harga Promosi (Rp)" type="number" name="hargaPromosi" value={formData.hargaPromosi === 0 ? '' : formData.hargaPromosi} onChange={handleChange} />
               <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} />
             </div>
           </div>
@@ -358,7 +370,7 @@ const Penjualan = () => {
                 name="dp"
                 value={formData.dp}
                 onChange={handleChange}
-                placeholder="0 jika tidak ada DP"
+                placeholder="Otomatis 10% dari Harga Jual"
               />
               <Input
                 label="Diskon Penjualan (Rp)"
