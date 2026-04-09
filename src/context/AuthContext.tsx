@@ -3,10 +3,9 @@ import { createContext, useContext } from 'react';
 export interface AuthContextType {
   isAuthenticated: boolean;
   selectedPerumahan: string;
-  login: (email: string, pass: string, perumahan: string) => boolean;
+  login: (email: string, pass: string, perumahan: string) => Promise<boolean>;
   logout: () => void;
 }
-
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {

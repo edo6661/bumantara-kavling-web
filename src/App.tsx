@@ -4,6 +4,7 @@ import PageLoader from './pages/PageLoader';
 import RootLayout from './components/layouts/RootLayout';
 import { useAuth } from './context/AuthContext';
 import { AuthProvider } from './providers/AuthProvider';
+import { QueryProvider } from './providers/QueryProvider';
 
 
 const Login = lazy(() => import('./pages/Login'));
@@ -31,33 +32,35 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-            {/* Semua route di dalam sini otomatis terproteksi */}
-            <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-              <Route index element={<Dashboard />} />
-              <Route path="management/penjualan" element={<Penjualan />} />
-              <Route path="management/kavling" element={<Kavling />} />
-              <Route path="management/notaris" element={<Notaris />} />
-              <Route path="management/bank" element={<Bank />} />
-              <Route path="customer/data-sosial" element={<DataSosial />} />
-              <Route path="customer/spr" element={<SPR />} />
-              <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-              <Route path="customer/kavling" element={<CustomerKavling />} />
-              <Route path="customer/tagihan" element={<Tagihan />} />
-              <Route path="marketing/agents" element={<Agents />} />
-              <Route path="marketing/fee-agent" element={<FeeAgent />} />
-              <Route path="proyek/spk" element={<SPK />} />
-              <Route path="proyek/progress" element={<Progress />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </AuthProvider>
+              {/* Semua route di dalam sini otomatis terproteksi */}
+              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="management/penjualan" element={<Penjualan />} />
+                <Route path="management/kavling" element={<Kavling />} />
+                <Route path="management/notaris" element={<Notaris />} />
+                <Route path="management/bank" element={<Bank />} />
+                <Route path="customer/data-sosial" element={<DataSosial />} />
+                <Route path="customer/spr" element={<SPR />} />
+                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+                <Route path="customer/kavling" element={<CustomerKavling />} />
+                <Route path="customer/tagihan" element={<Tagihan />} />
+                <Route path="marketing/agents" element={<Agents />} />
+                <Route path="marketing/fee-agent" element={<FeeAgent />} />
+                <Route path="proyek/spk" element={<SPK />} />
+                <Route path="proyek/progress" element={<Progress />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
   );
 };
 

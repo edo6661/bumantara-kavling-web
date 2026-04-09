@@ -1,20 +1,31 @@
+
 import { useState, type ReactNode } from 'react';
 import { AuthContext } from '../context/AuthContext';
+
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedPerumahan, setSelectedPerumahan] = useState('');
 
-  const login = (email: string, pass: string, perumahan: string) => {
-    if (email === 'admin@gmail.com' && pass === 'password') {
-      setIsAuthenticated(true);
-      setSelectedPerumahan(perumahan);
-      return true;
+  const login = async (email: string, pass: string, perumahan: string) => {
+    try {
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      if (email === 'admin@gmail.com' && pass === 'password') {
+        setIsAuthenticated(true);
+        setSelectedPerumahan(perumahan);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Login failed", error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
     setIsAuthenticated(false);
     setSelectedPerumahan('');
   };
