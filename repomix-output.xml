@@ -1,457 +1,4 @@
 
-<file path="src/hooks/queries/useNotaris.ts">
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  notarisService,
-  type CreateNotarisDTO,
-} from "../../services/notaris.service";
-
-export const NOTARIS_KEYS = {
-  all: ["notaris"] as const,
-};
-
-export const useGetNotaris = () => {
-  return useQuery({
-    queryKey: NOTARIS_KEYS.all,
-    queryFn: notarisService.getAll,
-  });
-};
-
-export const useCreateNotaris = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreateNotarisDTO) => notarisService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: NOTARIS_KEYS.all });
-    },
-  });
-};
-
-export const useUpdateNotaris = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: Partial<CreateNotarisDTO>;
-    }) => notarisService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: NOTARIS_KEYS.all });
-    },
-  });
-};
-
-export const useDeleteNotaris = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => notarisService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: NOTARIS_KEYS.all });
-    },
-  });
-};
-</file>
-
-<file path="src/pages/Management/NotarisOld(Correct-Flow).tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-
-interface PicNotarisData {
-  nama: string;
-  noHp: string;
-  alamat?: string;
-}
-
-interface NotarisData {
-  id: string;
-  nik: string;
-  nama: string;
-  noHp: string;
-  alamat: string;
-  pics: PicNotarisData[];
-}
-
-const initialFormState: NotarisData = {
-  id: '',
-  nik: '',
-  nama: '',
-  noHp: '',
-  alamat: '',
-  pics: [{ nama: '', noHp: '', alamat: '' }]
-};
-
-const Notaris = () => {
-  const [data, setData] = useState<NotarisData[]>([
-    {
-      id: '1',
-      nik: '3271012345678901',
-      nama: 'Notaris PPAT Budi Hartono, S.H., M.Kn.',
-      noHp: '081234567890',
-      alamat: 'Jl. Jendral Sudirman No. 45, Tangerang',
-      pics: [
-        {
-          nama: 'Siti Aminah',
-          noHp: '085612341234',
-          alamat: 'Jl. Merdeka Raya, Tangerang'
-        }
-      ]
-    }
-  ]);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<NotarisData>(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'NIK', accessor: 'nik' },
-    { header: 'Nama Notaris', accessor: 'nama' },
-    { header: 'No. Telepon / HP', accessor: 'noHp' },
-    {
-      header: 'Total PIC',
-      accessor: 'pics',
-      render: (pics: PicNotarisData[]) => `${pics?.length || 0} Orang`
-    },
-    { header: 'Alamat', accessor: 'alamat', render: (val: string) => val || '-' },
-  ];
-
-  const openModal = (item?: NotarisData) => {
-    if (item) {
-      setFormData({
-        ...item,
-        pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
-      });
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => {
-      const newPics = [...prev.pics];
-      newPics[index] = { ...newPics[index], [name]: value };
-      return { ...prev, pics: newPics };
-    });
-
-    const errorKey = `pics.${index}.${name}`;
-    if (errors[errorKey]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[errorKey];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleAddPIC = () => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
-    }));
-  };
-
-  const handleRemovePIC = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: prev.pics.filter((_, i) => i !== index)
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
-    if (formData.nik.trim().length !== 16) newErrors.nik = 'NIK harus 16 digit';
-    if (!formData.nama.trim()) newErrors.nama = 'Nama Notaris wajib diisi';
-    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-
-    const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
-    const finalData = { ...formData, pics: validPics };
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === finalData.id ? finalData : item)));
-    } else {
-      const newData = { ...finalData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: NotarisData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus data Notaris ${item.nama}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  const expandedRowRender = (row: NotarisData) => {
-
-    const relatedAjb = [
-      { id: 'PJL-01', customer: 'Budi Santoso', kavling: 'Puri Safana (A-01)' },
-      { id: 'PJL-02', customer: 'Andi Pratama', kavling: 'Puri Safana (B-12)' },
-    ];
-
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
-          Daftar AJB / Kavling yang Ditangani: <span className="text-blue-600">{row.nama}</span>
-        </h4>
-        {relatedAjb.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
-                  <th className="px-4 py-3 font-bold">Customer</th>
-                  <th className="px-4 py-3 font-bold">Kavling</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {relatedAjb.map((ajb, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-900">{ajb.id}</td>
-                    <td className="px-4 py-3">{ajb.customer}</td>
-                    <td className="px-4 py-3 font-medium">{ajb.kavling}</td>
-
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Belum ada berkas kavling yang ditangani notaris ini.
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div>
-      <DataTable
-        title="Data Notaris"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item as NotarisData)}
-        onDelete={(item) => handleDelete(item as NotarisData)}
-        expandedRowRender={expandedRowRender}
-      />
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Data Notaris" : "Tambah Data Notaris"}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Notaris</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="NIK"
-                name="nik"
-                value={formData.nik}
-                onChange={handleChange}
-                error={errors.nik}
-                placeholder="Masukkan 16 digit NIK"
-              />
-              <Input
-                label="Nama Notaris / PPAT"
-                name="nama"
-                value={formData.nama}
-                onChange={handleChange}
-                error={errors.nama}
-                placeholder="Contoh: Notaris Budi Hartono, S.H."
-              />
-              <Input
-                label="No. Telepon / HP"
-                name="noHp"
-                value={formData.noHp}
-                onChange={handleChange}
-                error={errors.noHp}
-                placeholder="08xxxxxxxxxx"
-              />
-              <div className="md:col-span-2">
-                <Input
-                  label="Alamat Lengkap (Opsional)"
-                  name="alamat"
-                  value={formData.alamat}
-                  onChange={handleChange}
-                  error={errors.alamat}
-                  placeholder="Masukkan alamat lengkap kantor notaris"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Notaris (Opsional)</h4>
-                <p className="text-xs text-gray-500">Tambahkan staf/PIC yang bisa dihubungi di notaris ini</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleAddPIC}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer"
-              >
-                + Tambah PIC
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {formData.pics.map((pic, index) => (
-                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
-                  {formData.pics.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePIC(index)}
-                      className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
-                    >
-                      Hapus
-                    </button>
-                  )}
-                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      label="Nama PIC"
-                      name="nama"
-                      value={pic.nama}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.nama`]}
-                      placeholder="Masukkan nama PIC"
-                    />
-                    <Input
-                      label="No. Telepon / HP PIC"
-                      name="noHp"
-                      value={pic.noHp}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.noHp`]}
-                      placeholder="08xxxxxxxxxx"
-                    />
-                    <div className="md:col-span-2">
-                      <Input
-                        label="Alamat PIC (Opsional)"
-                        name="alamat"
-                        value={pic.alamat || ''}
-                        onChange={(e) => handlePICChange(index, e)}
-                        error={errors[`pics.${index}.alamat`]}
-                        placeholder="Masukkan alamat PIC jika ada"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer transition-colors"
-            >
-              Simpan Data
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Notaris;
-</file>
-
-<file path="src/services/notaris.service.ts">
-import api from "../lib/axios";
-
-export interface PicNotarisData {
-  id?: number;
-  nama: string;
-  noHp: string;
-  alamat?: string;
-}
-
-export interface NotarisData {
-  id: number;
-  nama: string;
-  biayaAjb: number;
-  pics: PicNotarisData[];
-}
-
-export interface CreateNotarisDTO {
-  nama: string;
-  biayaAjb: number;
-  pics?: PicNotarisData[];
-}
-
-export const notarisService = {
-  getAll: async (): Promise<NotarisData[]> => {
-    const response = await api.get("/notaris?limit=100");
-
-    return response.data.data.items;
-  },
-
-  create: async (data: CreateNotarisDTO) => {
-    const response = await api.post("/notaris", data);
-    return response.data.data;
-  },
-
-  update: async (id: number, data: Partial<CreateNotarisDTO>) => {
-    const response = await api.patch(`/notaris/${id}`, data);
-    return response.data.data;
-  },
-
-  delete: async (id: number) => {
-    const response = await api.delete(`/notaris/${id}`);
-    return response.data;
-  },
-};
-</file>
-
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -633,39 +180,35 @@ export const useUploadCustomerDoc = () => {
 };
 </file>
 
-<file path="src/hooks/queries/useKavling.ts">
+<file path="src/hooks/queries/useNotaris.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  kavlingService,
-  type CreateKavlingDTO,
-} from "../../services/kavling.service";
+  notarisService,
+  type CreateNotarisDTO,
+} from "../../services/notaris.service";
 
-export const KAVLING_KEYS = {
-  all: ["kavlings"] as const,
-  byPerumahan: (perumahanId: number) => ["kavlings", { perumahanId }] as const,
+export const NOTARIS_KEYS = {
+  all: ["notaris"] as const,
 };
 
-export const useGetKavlings = (perumahanId?: number) => {
+export const useGetNotaris = () => {
   return useQuery({
-    queryKey: perumahanId
-      ? KAVLING_KEYS.byPerumahan(perumahanId)
-      : KAVLING_KEYS.all,
-    queryFn: () => kavlingService.getAll(perumahanId),
+    queryKey: NOTARIS_KEYS.all,
+    queryFn: notarisService.getAll,
   });
 };
 
-export const useCreateKavling = () => {
+export const useCreateNotaris = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (newData: CreateKavlingDTO) => kavlingService.create(newData),
+    mutationFn: (data: CreateNotarisDTO) => notarisService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: NOTARIS_KEYS.all });
     },
   });
 };
 
-export const useUpdateKavling = () => {
+export const useUpdateNotaris = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -673,21 +216,20 @@ export const useUpdateKavling = () => {
       data,
     }: {
       id: number;
-      data: Partial<CreateKavlingDTO>;
-    }) => kavlingService.update(id, data),
+      data: Partial<CreateNotarisDTO>;
+    }) => notarisService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: NOTARIS_KEYS.all });
     },
   });
 };
 
-export const useDeleteKavling = () => {
+export const useDeleteNotaris = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: (id: number) => kavlingService.delete(id),
+    mutationFn: (id: number) => notarisService.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: NOTARIS_KEYS.all });
     },
   });
 };
@@ -1051,69 +593,55 @@ export const customerService = {
 };
 </file>
 
-<file path="src/services/kavling.service.ts">
+<file path="src/services/notaris.service.ts">
 import api from "../lib/axios";
 
-// Ini mencerminkan KavlingEntity dari Backend
-export interface KavlingData {
-  id: number; // ID di backend adalah int
-  perumahanId: number;
-  perumahan?: { id: number; nama: string };
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaJual: number;
-  status: string;
-  rekeningTujuanId: number | null;
-  rekeningTujuan?: {
-    namaBank: string;
-    noRekening: string;
-    atasNama: string;
-  } | null;
-  filePbg: string | null;
-  fileSertifikatTanah: string | null;
-  fileNopPbb: string | null;
+export interface PicNotarisData {
+  id?: number;
+  nama: string;
+  noHp: string;
+  alamat?: string;
 }
 
-export interface CreateKavlingDTO {
-  perumahanId: number;
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaJual: number;
-  status?: string;
-  rekeningTujuanId?: number;
-  filePbg?: string;
-  fileSertifikatTanah?: string;
-  fileNopPbb?: string;
+export interface AjbDitanganiData {
+  id: string;
+  customer: string;
+  kavling: string;
+  biayaAjbTransaksi?: number; // Tambahkan properti ini
 }
 
-export const kavlingService = {
-  getAll: async (perumahanId?: number): Promise<KavlingData[]> => {
-    // Jika perumahanId ada, kirim sebagai query filter (jika backend mendukungnya)
-    const query = perumahanId
-      ? `?limit=100&perumahanId=${perumahanId}`
-      : "?limit=100";
-    const response = await api.get(`/kavling${query}`);
+export interface NotarisData {
+  id: number;
+  nama: string;
+  biayaAjb: number; // Tetap ada karena backend masih memerlukannya walau nilainya 0
+  pics: PicNotarisData[];
+  ajbDitangani?: AjbDitanganiData[]; // Array dari relasi DetailKavlingPajak
+}
+
+export interface CreateNotarisDTO {
+  nama: string;
+  biayaAjb: number;
+  pics?: PicNotarisData[];
+}
+
+export const notarisService = {
+  getAll: async (): Promise<NotarisData[]> => {
+    const response = await api.get("/notaris?limit=100");
     return response.data.data.items;
   },
 
-  create: async (data: CreateKavlingDTO) => {
-    const response = await api.post("/kavling", data);
+  create: async (data: CreateNotarisDTO) => {
+    const response = await api.post("/notaris", data);
     return response.data.data;
   },
 
-  update: async (id: number, data: Partial<CreateKavlingDTO>) => {
-    const response = await api.patch(`/kavling/${id}`, data);
+  update: async (id: number, data: Partial<CreateNotarisDTO>) => {
+    const response = await api.patch(`/notaris/${id}`, data);
     return response.data.data;
   },
 
   delete: async (id: number) => {
-    const response = await api.delete(`/kavling/${id}`);
+    const response = await api.delete(`/notaris/${id}`);
     return response.data;
   },
 };
@@ -1336,6 +864,66 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 });
+</file>
+
+<file path="src/hooks/queries/useKavling.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  kavlingService,
+  type CreateKavlingDTO,
+} from "../../services/kavling.service";
+
+export const KAVLING_KEYS = {
+  all: ["kavlings"] as const,
+  byPerumahan: (perumahanId: number) => ["kavlings", { perumahanId }] as const,
+};
+
+export const useGetKavlings = (perumahanId?: number) => {
+  return useQuery({
+    queryKey: perumahanId
+      ? KAVLING_KEYS.byPerumahan(perumahanId)
+      : KAVLING_KEYS.all,
+    queryFn: () => kavlingService.getAll(perumahanId),
+  });
+};
+
+export const useCreateKavling = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (newData: CreateKavlingDTO) => kavlingService.create(newData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useUpdateKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<CreateKavlingDTO>;
+    }) => kavlingService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteKavling = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => kavlingService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
 </file>
 
 <file path="src/index.css">
@@ -1799,6 +1387,74 @@ export const authService = {
       password: pass,
       perumahan: perumahan,
     });
+    return response.data;
+  },
+};
+</file>
+
+<file path="src/services/kavling.service.ts">
+import api from "../lib/axios";
+
+// Ini mencerminkan KavlingEntity dari Backend
+export interface KavlingData {
+  id: number; // ID di backend adalah int
+  perumahanId: number;
+  perumahan?: { id: number; nama: string };
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  hargaJual: number;
+  status: string;
+  rekeningTujuanId: number | null;
+  rekeningTujuan?: {
+    namaBank: string;
+    noRekening: string;
+    atasNama: string;
+  } | null;
+  filePbg: string | null;
+  fileSertifikatTanah: string | null;
+  fileNopPbb: string | null;
+}
+
+export interface CreateKavlingDTO {
+  perumahanId: number;
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  hargaJual: number;
+  status?: string;
+  rekeningTujuanId?: number;
+  filePbg?: string;
+  fileSertifikatTanah?: string;
+  fileNopPbb?: string;
+}
+
+export const kavlingService = {
+  getAll: async (perumahanId?: number): Promise<KavlingData[]> => {
+    // Jika perumahanId ada, kirim sebagai query filter (jika backend mendukungnya)
+    const query = perumahanId
+      ? `?limit=100&perumahanId=${perumahanId}`
+      : "?limit=100";
+    const response = await api.get(`/kavling${query}`);
+    return response.data.data.items;
+  },
+
+  create: async (data: CreateKavlingDTO) => {
+    const response = await api.post("/kavling", data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: Partial<CreateKavlingDTO>) => {
+    const response = await api.patch(`/kavling/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/kavling/${id}`);
     return response.data;
   },
 };
@@ -3584,426 +3240,6 @@ const DataSosial = () => {
 export default DataSosial;
 </file>
 
-<file path="src/pages/Customer/Kavling.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import { formatRupiah } from "../../utils/formatters";
-
-interface KavlingData {
-  id: string;
-  perumahan: string;
-  status: string;
-  lantai: string;
-  blok: string;
-  unit: string;
-  tipe: string;
-  luasBangunan: string;
-  lokasiStrategis: string;
-  tanggalAkadPpjb: string;
-  akadPpjb: string;
-  tanggalAkadAjbPpat: string;
-  tanggalPembayaranPph: string;
-  tanggalPembayaranBphtb: string;
-  pembiayaan: string;
-  sp3r: string;
-  harga: number;
-  lebihTanah: number;
-  biayaStrategis: number;
-  totalHargaJual: number;
-  nrBiayaKprAsuransi: number;
-  nrDiskonAngsuran: number;
-  nrDiskonCash: number;
-  nrBiayaBbn: number;
-  nrBiayaNotarisAjb: number;
-  nrBiayaAppraisal: number;
-  nrBiayaBphtb: number;
-  nrLainLain: number;
-  nrTotalSubsidi: number;
-  nrNilaiPenyerahan: number;
-  nrPpn: number;
-  nrBphtb: number;
-  nrPph: number;
-  pjBiayaKpr: number;
-  pjBiayaAsuransi: number;
-  pjDiskonAngsuran: number;
-  pjBiayaBbn: number;
-  pjBiayaAjb: number;
-  pjBiayaAppraisal: number;
-  pjBphtb: number;
-  pjLainLain: number;
-  pjTotalSubsidi: number;
-  pjNilaiPenyerahan: number;
-  pjPpn: number;
-  pjBphtbPajak: number;
-  pjPph: number;
-  pjTotalBphtbPph: number;
-  ajbNjopTanahPerMeter: number;
-  ajbNjopTanah: number;
-  ajbNjopBangunanPerMeter: number;
-  ajbNjopBangunan: number;
-  ajbNjopTotal: number;
-  ajbPpn: number;
-  ajbBphtb: number;
-  ajbPph: number;
-  ajbTotalBphtbPph: number;
-  ajbSelisihPajakPbb: number;
-  ajbUping: number;
-  notarisName: string;
-  notarisBiayaAjb: number;
-}
-
-const initialFormState: KavlingData = {
-  id: '',
-  perumahan: '', status: '', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', lokasiStrategis: '',
-  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
-  harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
-  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
-  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
-  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
-  notarisName: '',
-  notarisBiayaAjb: 0,
-};
-
-const mockNotaris = [
-  { id: 'NOT-001', name: 'Notaris PPAT Budi Hartono, S.H., M.Kn.' },
-  { id: 'NOT-002', name: 'Notaris Anita Wijaya, S.H.' },
-];
-
-const initialMockData: KavlingData[] = [
-  {
-    ...initialFormState,
-    id: '1',
-    perumahan: 'Puri Safana',
-    status: 'Available',
-    lantai: '1',
-    blok: 'A',
-    unit: '01',
-    tipe: '45/90',
-    luasBangunan: '45',
-    lokasiStrategis: 'Ya',
-    pembiayaan: 'KPR',
-    harga: 500000000,
-    lebihTanah: 0,
-    biayaStrategis: 15000000,
-    totalHargaJual: 515000000,
-    nrNilaiPenyerahan: 515000000,
-    pjNilaiPenyerahan: 515000000,
-    notarisName: 'Notaris PPAT Budi Hartono, S.H., M.Kn.',
-    notarisBiayaAjb: 2500000
-  },
-  {
-    ...initialFormState,
-    id: '2',
-    perumahan: 'Puri Safana',
-    status: 'Terjual',
-    lantai: '2',
-    blok: 'B',
-    unit: '12',
-    tipe: '60/120',
-    luasBangunan: '60',
-    lokasiStrategis: 'Tidak',
-    pembiayaan: 'Cash Keras',
-    harga: 850000000,
-    lebihTanah: 20000000,
-    biayaStrategis: 0,
-    totalHargaJual: 870000000,
-    nrNilaiPenyerahan: 870000000,
-    pjNilaiPenyerahan: 870000000,
-    notarisBiayaAjb: 0
-  }
-];
-
-const CustomerKavling = () => {
-  const [data, setData] = useState<KavlingData[]>(initialMockData);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<KavlingData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<KavlingData>>({});
-
-  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
-
-  const columns = [
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
-    { header: 'Tipe', accessor: 'tipe' },
-    { header: 'Total Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${val === 'Available' ? 'bg-green-100 text-green-800' : val === 'Booking' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
-          {val}
-        </span>
-      )
-    },
-  ];
-
-  const openModal = (item: KavlingData) => {
-    setFormData(item);
-    setErrors({});
-    setActiveTab('dasar');
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
-    const d = { ...currentData };
-    d.totalHargaJual = (Number(d.harga) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
-    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
-    d.nrNilaiPenyerahan = d.totalHargaJual - d.nrTotalSubsidi;
-    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
-    d.pjNilaiPenyerahan = d.totalHargaJual - d.pjTotalSubsidi;
-    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
-    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
-    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
-    return d;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-    setFormData((prev) => {
-      const updatedData = { ...prev, [name]: parsedValue };
-      return calculateDerivedFields(updatedData);
-    });
-    if (errors[name as keyof KavlingData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<KavlingData> = {};
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.unit.trim()) newErrors.unit = 'Unit wajib diisi';
-    if (!formData.tipe.trim()) newErrors.tipe = 'Tipe wajib diisi';
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) setActiveTab('dasar');
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    closeModal();
-  };
-
-  const handleDelete = (item: KavlingData) => {
-    if (window.confirm(`Hapus data kavling Blok ${item.blok}-${item.unit}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  const tabs = [
-    { id: 'dasar', label: 'Info Dasar' },
-    { id: 'harga', label: 'Harga Jual' },
-    { id: 'nilai', label: 'Nilai Rumah' },
-    { id: 'pajak', label: 'Pajak' },
-    { id: 'ajb', label: 'Keperluan AJB' },
-    { id: 'notaris', label: 'Notaris' },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <DataTable
-        title="Data Kavling Customer"
-        columns={columns}
-        data={data}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Data Kavling">
-        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`whitespace-nowrap py-2 px-4 border-b-2 font-medium text-sm transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* TAB 1: INFORMASI DASAR */}
-          {activeTab === 'dasar' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
-              <Select label="Status" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'Available', label: 'Available' }, { value: 'Booking', label: 'Booking' }, { value: 'Terjual', label: 'Terjual' }]} />
-              <div className="grid grid-cols-2 gap-2">
-                <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
-                <Input label="Unit" name="unit" value={formData.unit} onChange={handleChange} error={errors.unit} placeholder="Contoh: 01" />
-              </div>
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
-              <Input label="Lantai" name="lantai" value={formData.lantai} onChange={handleChange} />
-              <Input label="Luas Bangunan (m²)" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} />
-              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} />
-              <Select label="Pembiayaan" name="pembiayaan" value={formData.pembiayaan} onChange={handleChange} options={[{ value: 'KPR', label: 'KPR Bank' }, { value: 'Cash Keras', label: 'Cash Keras' }, { value: 'Cash Bertahap', label: 'Cash Bertahap' }]} />
-              <Input label="SP3R" name="sp3r" value={formData.sp3r} onChange={handleChange} />
-              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
-              <Input label="Akad PPJB" name="akadPpjb" value={formData.akadPpjb} onChange={handleChange} />
-              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
-            </div>
-          )}
-
-          {/* TAB 2: HARGA JUAL */}
-          {activeTab === 'harga' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Harga Standar (Rp)" type="number" name="harga" value={formData.harga || ''} onChange={handleChange} />
-              <Input label="Lebih Tanah (Rp)" type="number" name="lebihTanah" value={formData.lebihTanah || ''} onChange={handleChange} />
-              <Input label="Biaya Strategis (Rp)" type="number" name="biayaStrategis" value={formData.biayaStrategis || ''} onChange={handleChange} />
-              <div className="md:col-span-2 mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-500">Total Harga Jual</span>
-                <span className="text-xl font-bold text-gray-900">{formatRupiah(formData.totalHargaJual)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: NILAI RUMAH */}
-          {activeTab === 'nilai' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
-              <Input label="Biaya KPR & Asuransi" type="number" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi || ''} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran || ''} onChange={handleChange} />
-              <Input label="Diskon Cash & Lainnya" type="number" name="nrDiskonCash" value={formData.nrDiskonCash || ''} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="nrBiayaBbn" value={formData.nrBiayaBbn || ''} onChange={handleChange} />
-              <Input label="Biaya Notaris AJB" type="number" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb || ''} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal || ''} onChange={handleChange} />
-              <Input label="Biaya BPHTB" type="number" name="nrBiayaBphtb" value={formData.nrBiayaBphtb || ''} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="nrLainLain" value={formData.nrLainLain || ''} onChange={handleChange} />
-              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200">
-                <span className="text-sm font-medium text-gray-600">Total Subsidi & Bonus</span>
-                <span className="font-bold text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-blue-50 p-4 rounded-md flex justify-between items-center border border-blue-200 mb-4">
-                <span className="text-sm font-medium text-blue-800">Nilai Penyerahan (Setelah Subsidi)</span>
-                <span className="text-xl font-bold text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Pajak Nilai Rumah" />
-              <Input label="PPN" type="number" name="nrPpn" value={formData.nrPpn || ''} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="nrBphtb" value={formData.nrBphtb || ''} onChange={handleChange} />
-              <Input label="PPh" type="number" name="nrPph" value={formData.nrPph || ''} onChange={handleChange} />
-            </div>
-          )}
-
-          {/* TAB 4: PAJAK */}
-          {activeTab === 'pajak' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Pajak)" />
-              <Input label="Biaya KPR" type="number" name="pjBiayaKpr" value={formData.pjBiayaKpr || ''} onChange={handleChange} />
-              <Input label="Biaya Asuransi" type="number" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi || ''} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran || ''} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="pjBiayaBbn" value={formData.pjBiayaBbn || ''} onChange={handleChange} />
-              <Input label="Biaya Pembuatan AJB" type="number" name="pjBiayaAjb" value={formData.pjBiayaAjb || ''} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal || ''} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtb" value={formData.pjBphtb || ''} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="pjLainLain" value={formData.pjLainLain || ''} onChange={handleChange} />
-              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200">
-                <span className="text-sm font-medium text-gray-600">Total Subsidi & Bonus (Pajak)</span>
-                <span className="font-bold text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-blue-50 p-4 rounded-md flex justify-between items-center border border-blue-200 mb-4">
-                <span className="text-sm font-medium text-blue-800">Nilai Penyerahan (Pajak)</span>
-                <span className="text-xl font-bold text-blue-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Detail Pajak" />
-              <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn || ''} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak || ''} onChange={handleChange} />
-              <Input label="PPh" type="number" name="pjPph" value={formData.pjPph || ''} onChange={handleChange} />
-              <div className="md:col-span-2 mt-2 p-4 bg-gray-600 rounded-md flex justify-between items-center">
-                <span className="text-sm font-medium text-white">BPHTB + PPh</span>
-                <span className="font-bold text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: KEPERLUAN AJB */}
-          {activeTab === 'ajb' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
-              <Input label="NJOP Tanah per Meter" type="number" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter || ''} onChange={handleChange} />
-              <Input label="Total NJOP Tanah" type="number" name="ajbNjopTanah" value={formData.ajbNjopTanah || ''} onChange={handleChange} />
-              <Input label="NJOP Bangunan per Meter" type="number" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter || ''} onChange={handleChange} />
-              <Input label="Total NJOP Bangunan" type="number" name="ajbNjopBangunan" value={formData.ajbNjopBangunan || ''} onChange={handleChange} />
-              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200 mb-4">
-                <span className="text-sm font-medium text-gray-600">NJOP Tanah + Bangunan</span>
-                <span className="font-bold text-gray-900">{formatRupiah(formData.ajbNjopTotal)}</span>
-              </div>
-              <SectionTitle title="Kewajiban Pajak AJB" />
-              <Input label="PPN" type="number" name="ajbPpn" value={formData.ajbPpn || ''} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="ajbBphtb" value={formData.ajbBphtb || ''} onChange={handleChange} />
-              <Input label="PPh" type="number" name="ajbPph" value={formData.ajbPph || ''} onChange={handleChange} />
-              <div className="md:col-span-2 mt-2 p-4 bg-gray-600 rounded-md flex justify-between items-center">
-                <span className="text-sm font-medium text-white">BPHTB + PPh (AJB)</span>
-                <span className="font-bold text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
-              </div>
-              <SectionTitle title="Lain-lain" />
-              <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb || ''} onChange={handleChange} />
-              <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping || ''} onChange={handleChange} />
-            </div>
-          )}
-
-          {/* TAB 6: NOTARIS (TAMBAHAN BARU) */}
-          {activeTab === 'notaris' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Pemilihan Notaris" />
-              <div className="md:col-span-2">
-                <Select
-                  label="Pilih Notaris"
-                  name="notarisName"
-                  value={formData.notarisName}
-                  onChange={handleChange}
-                  options={mockNotaris.map(n => ({ value: n.name, label: n.name }))}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Input
-                  label="Biaya AJB"
-                  type="number"
-                  name="notarisBiayaAjb"
-                  value={formData.notarisBiayaAjb || ''}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* FOOTER BUTTONS */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-8">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer">
-              Batal
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer">
-              Simpan Perubahan
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-const SectionTitle = ({ title }: { title: string }) => (
-  <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2 md:col-span-2">{title}</h4>
-);
-
-export default CustomerKavling;
-</file>
-
 <file path="src/pages/Customer/KelengkapanAdministrasi.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -4485,357 +3721,6 @@ const Dashboard = () => {
 export default Dashboard;
 </file>
 
-<file path="src/pages/Management/Notaris.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-
-interface PicNotarisData {
-  nama: string;
-  noHp: string;
-  alamat?: string;
-}
-
-interface NotarisData {
-  id: string;
-  nik: string;
-  nama: string;
-  noHp: string;
-  alamat: string;
-  pics: PicNotarisData[];
-}
-
-const initialFormState: NotarisData = {
-  id: '',
-  nik: '',
-  nama: '',
-  noHp: '',
-  alamat: '',
-  pics: [{ nama: '', noHp: '', alamat: '' }]
-};
-
-const Notaris = () => {
-  const [data, setData] = useState<NotarisData[]>([
-    {
-      id: '1',
-      nik: '3271012345678901',
-      nama: 'Notaris PPAT Budi Hartono, S.H., M.Kn.',
-      noHp: '081234567890',
-      alamat: 'Jl. Jendral Sudirman No. 45, Tangerang',
-      pics: [
-        {
-          nama: 'Siti Aminah',
-          noHp: '085612341234',
-          alamat: 'Jl. Merdeka Raya, Tangerang'
-        }
-      ]
-    }
-  ]);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<NotarisData>(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'NIK', accessor: 'nik' },
-    { header: 'Nama Notaris', accessor: 'nama' },
-    { header: 'No. Telepon / HP', accessor: 'noHp' },
-    {
-      header: 'Total PIC',
-      accessor: 'pics',
-      render: (pics: PicNotarisData[]) => `${pics?.length || 0} Orang`
-    },
-    { header: 'Alamat', accessor: 'alamat', render: (val: string) => val || '-' },
-  ];
-
-  const openModal = (item?: NotarisData) => {
-    if (item) {
-      setFormData({
-        ...item,
-        pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
-      });
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => {
-      const newPics = [...prev.pics];
-      newPics[index] = { ...newPics[index], [name]: value };
-      return { ...prev, pics: newPics };
-    });
-
-    const errorKey = `pics.${index}.${name}`;
-    if (errors[errorKey]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[errorKey];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleAddPIC = () => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
-    }));
-  };
-
-  const handleRemovePIC = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: prev.pics.filter((_, i) => i !== index)
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
-    if (formData.nik.trim().length !== 16) newErrors.nik = 'NIK harus 16 digit';
-    if (!formData.nama.trim()) newErrors.nama = 'Nama Notaris wajib diisi';
-    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-
-    const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
-    const finalData = { ...formData, pics: validPics };
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === finalData.id ? finalData : item)));
-    } else {
-      const newData = { ...finalData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: NotarisData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus data Notaris ${item.nama}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  const expandedRowRender = (row: NotarisData) => {
-
-    const relatedAjb = [
-      { id: 'PJL-01', customer: 'Budi Santoso', kavling: 'Puri Safana (A-01)' },
-      { id: 'PJL-02', customer: 'Andi Pratama', kavling: 'Puri Safana (B-12)' },
-    ];
-
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
-          Daftar AJB / Kavling yang Ditangani: <span className="text-blue-600">{row.nama}</span>
-        </h4>
-        {relatedAjb.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
-                  <th className="px-4 py-3 font-bold">Customer</th>
-                  <th className="px-4 py-3 font-bold">Kavling</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {relatedAjb.map((ajb, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-900">{ajb.id}</td>
-                    <td className="px-4 py-3">{ajb.customer}</td>
-                    <td className="px-4 py-3 font-medium">{ajb.kavling}</td>
-
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Belum ada berkas kavling yang ditangani notaris ini.
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div>
-      <DataTable
-        title="Data Notaris"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item as NotarisData)}
-        onDelete={(item) => handleDelete(item as NotarisData)}
-        expandedRowRender={expandedRowRender}
-      />
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Data Notaris" : "Tambah Data Notaris"}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Notaris</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="NIK"
-                name="nik"
-                value={formData.nik}
-                onChange={handleChange}
-                error={errors.nik}
-                placeholder="Masukkan 16 digit NIK"
-              />
-              <Input
-                label="Nama Notaris / PPAT"
-                name="nama"
-                value={formData.nama}
-                onChange={handleChange}
-                error={errors.nama}
-                placeholder="Contoh: Notaris Budi Hartono, S.H."
-              />
-              <Input
-                label="No. Telepon / HP"
-                name="noHp"
-                value={formData.noHp}
-                onChange={handleChange}
-                error={errors.noHp}
-                placeholder="08xxxxxxxxxx"
-              />
-              <div className="md:col-span-2">
-                <Input
-                  label="Alamat Lengkap (Opsional)"
-                  name="alamat"
-                  value={formData.alamat}
-                  onChange={handleChange}
-                  error={errors.alamat}
-                  placeholder="Masukkan alamat lengkap kantor notaris"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Notaris (Opsional)</h4>
-                <p className="text-xs text-gray-500">Tambahkan staf/PIC yang bisa dihubungi di notaris ini</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleAddPIC}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer"
-              >
-                + Tambah PIC
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {formData.pics.map((pic, index) => (
-                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
-                  {formData.pics.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePIC(index)}
-                      className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
-                    >
-                      Hapus
-                    </button>
-                  )}
-                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      label="Nama PIC"
-                      name="nama"
-                      value={pic.nama}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.nama`]}
-                      placeholder="Masukkan nama PIC"
-                    />
-                    <Input
-                      label="No. Telepon / HP PIC"
-                      name="noHp"
-                      value={pic.noHp}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.noHp`]}
-                      placeholder="08xxxxxxxxxx"
-                    />
-                    <div className="md:col-span-2">
-                      <Input
-                        label="Alamat PIC (Opsional)"
-                        name="alamat"
-                        value={pic.alamat || ''}
-                        onChange={(e) => handlePICChange(index, e)}
-                        error={errors[`pics.${index}.alamat`]}
-                        placeholder="Masukkan alamat PIC jika ada"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer transition-colors"
-            >
-              Simpan Data
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Notaris;
-</file>
-
 <file path="src/components/Sidebar.tsx">
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -5081,6 +3966,414 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 };
 
 export default Sidebar;
+</file>
+
+<file path="src/pages/Customer/Kavling.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import { formatRupiah } from "../../utils/formatters";
+
+interface KavlingData {
+  id: string;
+  perumahan: string;
+  status: string;
+  lantai: string;
+  blok: string;
+  unit: string;
+  tipe: string;
+  luasBangunan: string;
+  lokasiStrategis: string;
+  tanggalAkadPpjb: string;
+  akadPpjb: string;
+  tanggalAkadAjbPpat: string;
+  tanggalPembayaranPph: string;
+  tanggalPembayaranBphtb: string;
+  pembiayaan: string;
+  sp3r: string;
+  harga: number;
+  lebihTanah: number;
+  biayaStrategis: number;
+  totalHargaJual: number;
+  nrBiayaKprAsuransi: number;
+  nrDiskonAngsuran: number;
+  nrDiskonCash: number;
+  nrBiayaBbn: number;
+  nrBiayaNotarisAjb: number;
+  nrBiayaAppraisal: number;
+  nrBiayaBphtb: number;
+  nrLainLain: number;
+  nrTotalSubsidi: number;
+  nrNilaiPenyerahan: number;
+  nrPpn: number;
+  nrBphtb: number;
+  nrPph: number;
+  pjBiayaKpr: number;
+  pjBiayaAsuransi: number;
+  pjDiskonAngsuran: number;
+  pjBiayaBbn: number;
+  pjBiayaAjb: number;
+  pjBiayaAppraisal: number;
+  pjBphtb: number;
+  pjLainLain: number;
+  pjTotalSubsidi: number;
+  pjNilaiPenyerahan: number;
+  pjPpn: number;
+  pjBphtbPajak: number;
+  pjPph: number;
+  pjTotalBphtbPph: number;
+  ajbNjopTanahPerMeter: number;
+  ajbNjopTanah: number;
+  ajbNjopBangunanPerMeter: number;
+  ajbNjopBangunan: number;
+  ajbNjopTotal: number;
+  ajbPpn: number;
+  ajbBphtb: number;
+  ajbPph: number;
+  ajbTotalBphtbPph: number;
+  ajbSelisihPajakPbb: number;
+  ajbUping: number;
+  notarisName: string;
+}
+
+const initialFormState: KavlingData = {
+  id: '',
+  perumahan: '', status: '', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', lokasiStrategis: '',
+  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
+  harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
+  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
+  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
+  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
+  notarisName: '',
+};
+
+const mockNotaris = [
+  { id: 'NOT-001', name: 'Notaris PPAT Budi Hartono, S.H., M.Kn.' },
+  { id: 'NOT-002', name: 'Notaris Anita Wijaya, S.H.' },
+];
+
+const initialMockData: KavlingData[] = [
+  {
+    ...initialFormState,
+    id: '1',
+    perumahan: 'Puri Safana',
+    status: 'Available',
+    lantai: '1',
+    blok: 'A',
+    unit: '01',
+    tipe: '45/90',
+    luasBangunan: '45',
+    lokasiStrategis: 'Ya',
+    pembiayaan: 'KPR',
+    harga: 500000000,
+    lebihTanah: 0,
+    biayaStrategis: 15000000,
+    totalHargaJual: 515000000,
+    nrNilaiPenyerahan: 515000000,
+    pjNilaiPenyerahan: 515000000,
+    notarisName: 'Notaris PPAT Budi Hartono, S.H., M.Kn.',
+  },
+  {
+    ...initialFormState,
+    id: '2',
+    perumahan: 'Puri Safana',
+    status: 'Terjual',
+    lantai: '2',
+    blok: 'B',
+    unit: '12',
+    tipe: '60/120',
+    luasBangunan: '60',
+    lokasiStrategis: 'Tidak',
+    pembiayaan: 'Cash Keras',
+    harga: 850000000,
+    lebihTanah: 20000000,
+    biayaStrategis: 0,
+    totalHargaJual: 870000000,
+    nrNilaiPenyerahan: 870000000,
+    pjNilaiPenyerahan: 870000000,
+  }
+];
+
+const CustomerKavling = () => {
+  const [data, setData] = useState<KavlingData[]>(initialMockData);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<KavlingData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<KavlingData>>({});
+
+  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
+
+  const columns = [
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
+    { header: 'Tipe', accessor: 'tipe' },
+    { header: 'Total Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${val === 'Available' ? 'bg-green-100 text-green-800' : val === 'Booking' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'}`}>
+          {val}
+        </span>
+      )
+    },
+  ];
+
+  const openModal = (item: KavlingData) => {
+    setFormData(item);
+    setErrors({});
+    setActiveTab('dasar');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
+    const d = { ...currentData };
+    d.totalHargaJual = (Number(d.harga) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
+    d.nrNilaiPenyerahan = d.totalHargaJual - d.nrTotalSubsidi;
+    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
+    d.pjNilaiPenyerahan = d.totalHargaJual - d.pjTotalSubsidi;
+    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
+    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
+    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
+    return d;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: parsedValue };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name as keyof KavlingData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<KavlingData> = {};
+    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.unit.trim()) newErrors.unit = 'Unit wajib diisi';
+    if (!formData.tipe.trim()) newErrors.tipe = 'Tipe wajib diisi';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) setActiveTab('dasar');
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    closeModal();
+  };
+
+  const handleDelete = (item: KavlingData) => {
+    if (window.confirm(`Hapus data kavling Blok ${item.blok}-${item.unit}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  const tabs = [
+    { id: 'dasar', label: 'Info Dasar' },
+    { id: 'harga', label: 'Harga Jual' },
+    { id: 'nilai', label: 'Nilai Rumah' },
+    { id: 'pajak', label: 'Pajak' },
+    { id: 'ajb', label: 'Keperluan AJB' },
+    { id: 'notaris', label: 'Notaris' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Data Kavling Customer"
+        columns={columns}
+        data={data}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Data Kavling">
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`whitespace-nowrap py-2 px-4 border-b-2 font-medium text-sm transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* TAB 1: INFORMASI DASAR */}
+          {activeTab === 'dasar' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} onChange={handleChange} error={errors.perumahan} />
+              <Select label="Status" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'Available', label: 'Available' }, { value: 'Booking', label: 'Booking' }, { value: 'Terjual', label: 'Terjual' }]} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
+                <Input label="Unit" name="unit" value={formData.unit} onChange={handleChange} error={errors.unit} placeholder="Contoh: 01" />
+              </div>
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
+              <Input label="Lantai" name="lantai" value={formData.lantai} onChange={handleChange} />
+              <Input label="Luas Bangunan (m²)" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} />
+              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} />
+              <Select label="Pembiayaan" name="pembiayaan" value={formData.pembiayaan} onChange={handleChange} options={[{ value: 'KPR', label: 'KPR Bank' }, { value: 'Cash Keras', label: 'Cash Keras' }, { value: 'Cash Bertahap', label: 'Cash Bertahap' }]} />
+              <Input label="SP3R" name="sp3r" value={formData.sp3r} onChange={handleChange} />
+              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
+              <Input label="Akad PPJB" name="akadPpjb" value={formData.akadPpjb} onChange={handleChange} />
+              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
+            </div>
+          )}
+
+          {/* TAB 2: HARGA JUAL */}
+          {activeTab === 'harga' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Input label="Harga Standar (Rp)" type="number" name="harga" value={formData.harga || ''} onChange={handleChange} />
+              <Input label="Lebih Tanah (Rp)" type="number" name="lebihTanah" value={formData.lebihTanah || ''} onChange={handleChange} />
+              <Input label="Biaya Strategis (Rp)" type="number" name="biayaStrategis" value={formData.biayaStrategis || ''} onChange={handleChange} />
+              <div className="md:col-span-2 mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-500">Total Harga Jual</span>
+                <span className="text-xl font-bold text-gray-900">{formatRupiah(formData.totalHargaJual)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: NILAI RUMAH */}
+          {activeTab === 'nilai' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
+              <Input label="Biaya KPR & Asuransi" type="number" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi || ''} onChange={handleChange} />
+              <Input label="Diskon Angsuran" type="number" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran || ''} onChange={handleChange} />
+              <Input label="Diskon Cash & Lainnya" type="number" name="nrDiskonCash" value={formData.nrDiskonCash || ''} onChange={handleChange} />
+              <Input label="Biaya Balik Nama Sertifikat" type="number" name="nrBiayaBbn" value={formData.nrBiayaBbn || ''} onChange={handleChange} />
+              <Input label="Biaya Notaris AJB" type="number" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb || ''} onChange={handleChange} />
+              <Input label="Biaya Appraisal" type="number" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal || ''} onChange={handleChange} />
+              <Input label="Biaya BPHTB" type="number" name="nrBiayaBphtb" value={formData.nrBiayaBphtb || ''} onChange={handleChange} />
+              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="nrLainLain" value={formData.nrLainLain || ''} onChange={handleChange} />
+              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200">
+                <span className="text-sm font-medium text-gray-600">Total Subsidi & Bonus</span>
+                <span className="font-bold text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-blue-50 p-4 rounded-md flex justify-between items-center border border-blue-200 mb-4">
+                <span className="text-sm font-medium text-blue-800">Nilai Penyerahan (Setelah Subsidi)</span>
+                <span className="text-xl font-bold text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Pajak Nilai Rumah" />
+              <Input label="PPN" type="number" name="nrPpn" value={formData.nrPpn || ''} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="nrBphtb" value={formData.nrBphtb || ''} onChange={handleChange} />
+              <Input label="PPh" type="number" name="nrPph" value={formData.nrPph || ''} onChange={handleChange} />
+            </div>
+          )}
+
+          {/* TAB 4: PAJAK */}
+          {activeTab === 'pajak' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Pajak)" />
+              <Input label="Biaya KPR" type="number" name="pjBiayaKpr" value={formData.pjBiayaKpr || ''} onChange={handleChange} />
+              <Input label="Biaya Asuransi" type="number" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi || ''} onChange={handleChange} />
+              <Input label="Diskon Angsuran" type="number" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran || ''} onChange={handleChange} />
+              <Input label="Biaya Balik Nama Sertifikat" type="number" name="pjBiayaBbn" value={formData.pjBiayaBbn || ''} onChange={handleChange} />
+              <Input label="Biaya Pembuatan AJB" type="number" name="pjBiayaAjb" value={formData.pjBiayaAjb || ''} onChange={handleChange} />
+              <Input label="Biaya Appraisal" type="number" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal || ''} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="pjBphtb" value={formData.pjBphtb || ''} onChange={handleChange} />
+              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="pjLainLain" value={formData.pjLainLain || ''} onChange={handleChange} />
+              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200">
+                <span className="text-sm font-medium text-gray-600">Total Subsidi & Bonus (Pajak)</span>
+                <span className="font-bold text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-blue-50 p-4 rounded-md flex justify-between items-center border border-blue-200 mb-4">
+                <span className="text-sm font-medium text-blue-800">Nilai Penyerahan (Pajak)</span>
+                <span className="text-xl font-bold text-blue-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Detail Pajak" />
+              <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn || ''} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak || ''} onChange={handleChange} />
+              <Input label="PPh" type="number" name="pjPph" value={formData.pjPph || ''} onChange={handleChange} />
+              <div className="md:col-span-2 mt-2 p-4 bg-gray-600 rounded-md flex justify-between items-center">
+                <span className="text-sm font-medium text-white">BPHTB + PPh</span>
+                <span className="font-bold text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: KEPERLUAN AJB */}
+          {activeTab === 'ajb' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
+              <Input label="NJOP Tanah per Meter" type="number" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter || ''} onChange={handleChange} />
+              <Input label="Total NJOP Tanah" type="number" name="ajbNjopTanah" value={formData.ajbNjopTanah || ''} onChange={handleChange} />
+              <Input label="NJOP Bangunan per Meter" type="number" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter || ''} onChange={handleChange} />
+              <Input label="Total NJOP Bangunan" type="number" name="ajbNjopBangunan" value={formData.ajbNjopBangunan || ''} onChange={handleChange} />
+              <div className="md:col-span-2 bg-gray-50 p-4 rounded-md flex justify-between items-center border border-gray-200 mb-4">
+                <span className="text-sm font-medium text-gray-600">NJOP Tanah + Bangunan</span>
+                <span className="font-bold text-gray-900">{formatRupiah(formData.ajbNjopTotal)}</span>
+              </div>
+              <SectionTitle title="Kewajiban Pajak AJB" />
+              <Input label="PPN" type="number" name="ajbPpn" value={formData.ajbPpn || ''} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="ajbBphtb" value={formData.ajbBphtb || ''} onChange={handleChange} />
+              <Input label="PPh" type="number" name="ajbPph" value={formData.ajbPph || ''} onChange={handleChange} />
+              <div className="md:col-span-2 mt-2 p-4 bg-gray-600 rounded-md flex justify-between items-center">
+                <span className="text-sm font-medium text-white">BPHTB + PPh (AJB)</span>
+                <span className="font-bold text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
+              </div>
+              <SectionTitle title="Lain-lain" />
+              <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb || ''} onChange={handleChange} />
+              <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping || ''} onChange={handleChange} />
+            </div>
+          )}
+
+          {/* TAB 6: NOTARIS (TAMBAHAN BARU) */}
+          {activeTab === 'notaris' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Pemilihan Notaris" />
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Notaris"
+                  name="notarisName"
+                  value={formData.notarisName}
+                  onChange={handleChange}
+                  options={mockNotaris.map(n => ({ value: n.name, label: n.name }))}
+                />
+              </div>
+
+            </div>
+          )}
+
+          {/* FOOTER BUTTONS */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-8">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer">
+              Simpan Perubahan
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+const SectionTitle = ({ title }: { title: string }) => (
+  <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2 md:col-span-2">{title}</h4>
+);
+
+export default CustomerKavling;
 </file>
 
 <file path="src/pages/Customer/Tagihan.tsx">
@@ -5512,6 +4805,363 @@ const Tagihan = () => {
 export default Tagihan;
 </file>
 
+<file path="src/pages/Management/Notaris.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import PageLoader from "../PageLoader";
+import { formatRupiah } from "../../utils/formatters";
+import {
+  useGetNotaris,
+  useCreateNotaris,
+  useUpdateNotaris,
+  useDeleteNotaris
+} from "../../hooks/queries/useNotaris";
+import type { NotarisData, CreateNotarisDTO, PicNotarisData } from "../../services/notaris.service";
+interface AjbDitanganiData {
+  id: string;
+  customer: string;
+  kavling: string;
+}
+type ExtendedNotarisData = NotarisData & {
+  ajbDitangani?: AjbDitanganiData[];
+};
+interface NotarisFormState {
+  id: number | '';
+  nik: string;
+  nama: string;
+  noHp: string;
+  alamat: string;
+  pics: PicNotarisData[];
+}
+const initialFormState: NotarisFormState = {
+  id: '',
+  nik: '',
+  nama: '',
+  noHp: '',
+  alamat: '',
+  pics: []
+};
+const Notaris = () => {
+  const { data: notarisData = [], isLoading } = useGetNotaris();
+  const createMutation = useCreateNotaris();
+  const updateMutation = useUpdateNotaris();
+  const deleteMutation = useDeleteNotaris();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<NotarisFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const columns = [
+    { header: 'Nama Notaris', accessor: 'nama' },
+    {
+      header: 'Kontak Utama (PIC)',
+      accessor: 'pics',
+      render: (pics: PicNotarisData[]) => pics?.[0]?.noHp || '-'
+    },
+    {
+      header: 'Total PIC',
+      accessor: 'pics',
+      render: (pics: PicNotarisData[]) => (
+        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold">
+          {pics?.length || 0} Orang
+        </span>
+      )
+    },
+  ];
+  const openModal = (item?: ExtendedNotarisData) => {
+    if (item) {
+      const mainPic = item.pics?.[0];
+      const additionalPics = item.pics?.slice(1) || [];
+      setFormData({
+        id: item.id,
+        nik: '',
+        nama: item.nama,
+        noHp: mainPic?.noHp || '',
+        alamat: mainPic?.alamat || '',
+        pics: additionalPics
+      });
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const newPics = [...prev.pics];
+      newPics[index] = { ...newPics[index], [name]: value };
+      return { ...prev, pics: newPics };
+    });
+    const errorKey = `pics.${index}.${name}`;
+    if (errors[errorKey]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
+  };
+  const handleAddPIC = () => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
+    }));
+  };
+  const handleRemovePIC = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: prev.pics.filter((_, i) => i !== index)
+    }));
+  };
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
+    if (formData.nik.trim().length !== 16) newErrors.nik = 'NIK harus 16 digit';
+    if (!formData.nama.trim()) newErrors.nama = 'Nama Notaris wajib diisi';
+    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    const additionalPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
+    const allPics = [
+      { nama: `Admin/PIC Utama ${formData.nama}`, noHp: formData.noHp, alamat: formData.alamat },
+      ...additionalPics
+    ];
+    const payload: CreateNotarisDTO = {
+      nama: formData.nama,
+      biayaAjb: 0,
+      pics: allPics,
+    };
+    try {
+      if (isEditing && formData.id !== '') {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: any) {
+      const responseData = error.response?.data;
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
+    }
+  };
+  const handleDelete = async (item: ExtendedNotarisData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus data Notaris ${item.nama}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: any) {
+        alert(error.response?.data?.message || 'Gagal menghapus data notaris');
+      }
+    }
+  };
+  const expandedRowRender = (row: ExtendedNotarisData) => {
+    const relatedAjb = row.ajbDitangani || [];
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
+          Daftar AJB / Kavling yang Ditangani: <span className="text-blue-600">{row.nama}</span>
+        </h4>
+        {relatedAjb.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
+                  <th className="px-4 py-3 font-bold">Customer</th>
+                  <th className="px-4 py-3 font-bold">Kavling</th>
+                  <th className="px-4 py-3 rounded-r-lg font-bold text-right">Biaya AJB Transaksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {relatedAjb.map((ajb, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-slate-900">{ajb.id}</td>
+                    <td className="px-4 py-3 text-slate-600">{ajb.customer}</td>
+                    <td className="px-4 py-3 font-medium text-slate-600">{ajb.kavling}</td>
+                    <td className="px-4 py-3 font-bold text-slate-900 text-right">
+                      {ajb.biayaAjbTransaksi ? formatRupiah(ajb.biayaAjbTransaksi) : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+            Belum ada berkas kavling yang ditangani notaris ini.
+          </p>
+        )}
+      </div>
+    );
+  };
+  if (isLoading) return <PageLoader />;
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Data Notaris"
+        columns={columns}
+        data={notarisData as ExtendedNotarisData[]}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item as ExtendedNotarisData)}
+        onDelete={(item) => handleDelete(item as ExtendedNotarisData)}
+        expandedRowRender={expandedRowRender}
+      />
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Data Notaris" : "Tambah Data Notaris"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Notaris</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="NIK"
+                name="nik"
+                value={formData.nik}
+                onChange={handleChange}
+                error={errors.nik}
+                placeholder="Masukkan 16 digit NIK"
+              />
+              <Input
+                label="Nama Notaris / PPAT"
+                name="nama"
+                value={formData.nama}
+                onChange={handleChange}
+                error={errors.nama}
+                placeholder="Contoh: Notaris Budi Hartono, S.H."
+              />
+              <Input
+                label="No. Telepon / HP"
+                name="noHp"
+                value={formData.noHp}
+                onChange={handleChange}
+                error={errors.noHp}
+                placeholder="08xxxxxxxxxx"
+              />
+              <div className="md:col-span-2">
+                <Input
+                  label="Alamat Lengkap (Opsional)"
+                  name="alamat"
+                  value={formData.alamat}
+                  onChange={handleChange}
+                  error={errors.alamat}
+                  placeholder="Masukkan alamat lengkap kantor notaris"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Notaris (Opsional)</h4>
+                <p className="text-xs text-gray-500">Tambahkan staf tambahan/PIC yang bisa dihubungi</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddPIC}
+                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer shadow-sm"
+              >
+                + Tambah PIC
+              </button>
+            </div>
+            <div className="space-y-4">
+              {formData.pics.map((pic, index) => (
+                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePIC(index)}
+                    className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
+                  >
+                    Hapus
+                  </button>
+                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC Tambahan #{index + 1}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Nama PIC"
+                      name="nama"
+                      value={pic.nama}
+                      onChange={(e) => handlePICChange(index, e)}
+                      error={errors[`pics.${index}.nama`]}
+                      placeholder="Masukkan nama PIC"
+                    />
+                    <Input
+                      label="No. Telepon / HP PIC"
+                      name="noHp"
+                      value={pic.noHp}
+                      onChange={(e) => handlePICChange(index, e)}
+                      error={errors[`pics.${index}.noHp`]}
+                      placeholder="08xxxxxxxxxx"
+                    />
+                    <div className="md:col-span-2">
+                      <Input
+                        label="Alamat PIC (Opsional)"
+                        name="alamat"
+                        value={pic.alamat || ''}
+                        onChange={(e) => handlePICChange(index, e)}
+                        error={errors[`pics.${index}.alamat`]}
+                        placeholder="Masukkan alamat lengkap PIC"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer transition-colors disabled:opacity-50"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+export default Notaris;
+</file>
+
 <file path="src/pages/Marketing/Agents.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -5914,6 +5564,258 @@ const Agents = () => {
 export default Agents;
 </file>
 
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+import { useAuth } from './context/AuthContext';
+import { AuthProvider } from './providers/AuthProvider';
+import { QueryProvider } from './providers/QueryProvider';
+
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const App = () => {
+  return (
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+
+              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="management/penjualan" element={<Penjualan />} />
+                <Route path="management/kavling" element={<Kavling />} />
+                <Route path="management/notaris" element={<Notaris />} />
+                <Route path="management/bank" element={<Bank />} />
+                <Route path="customer/data-sosial" element={<DataSosial />} />
+                <Route path="customer/spr" element={<SPR />} />
+                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+                <Route path="customer/kavling" element={<CustomerKavling />} />
+                <Route path="customer/tagihan" element={<Tagihan />} />
+                <Route path="marketing/agents" element={<Agents />} />
+                <Route path="marketing/fee-agent" element={<FeeAgent />} />
+                <Route path="proyek/spk" element={<SPK />} />
+                <Route path="proyek/progress" element={<Progress />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
+  );
+};
+
+export default App;
+</file>
+
+<file path="src/components/shared/DataTable.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown } from 'lucide-react';
+
+interface Column {
+  header: string;
+  accessor: string;
+  render?: (value: any, row: any) => React.ReactNode;
+}
+
+interface DataTableProps {
+  title: string;
+  columns: Column[];
+  data: any[];
+  onAdd?: () => void;
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+  expandedRowRender?: (row: any) => React.ReactNode;
+}
+
+const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowRender }: DataTableProps) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  const toggleRow = (rowIndex: number) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [rowIndex]: !prev[rowIndex],
+    }));
+  };
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return data;
+    const lowercasedTerm = searchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, searchTerm, columns]);
+
+  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-md/10">
+      <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white/50 backdrop-blur-sm">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h2>
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-full border border-slate-200/50">
+              {filteredData.length} Data
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-64 group">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all shadow-sm/5 text-slate-900 placeholder:text-slate-400"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2 rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-black/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest active:scale-95 cursor-pointer"
+            >
+              <Plus size={16} strokeWidth={3} />
+              Tambah Data
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-widest border-b border-slate-100">
+              {expandedRowRender && (
+                <th className="px-4 py-4 w-10 text-center"></th>
+              )}
+              {columns.map((col, index) => (
+                <th key={index} className="px-6 py-4 whitespace-nowrap font-bold">
+                  {col.header}
+                </th>
+              ))}
+              {(onEdit || onDelete) && (
+                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => {
+                const isExpanded = !!expandedRows[rowIndex];
+                return (
+                  <React.Fragment key={rowIndex}>
+                    <tr
+                      onClick={() => {
+                        if (expandedRowRender) toggleRow(rowIndex);
+                      }}
+                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50/80'} ${isExpanded ? 'bg-slate-50' : ''}`}
+                    >
+                      {expandedRowRender && (
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-black transition-colors">
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </td>
+                      )}
+                      {columns.map((col, colIndex) => (
+                        <td key={colIndex} className="px-6 py-4 text-slate-600 whitespace-nowrap font-medium">
+                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
+                        </td>
+                      ))}
+                      {(onEdit || onDelete) && (
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity duration-300">
+                            {onEdit && (
+                              <button
+                                onClick={() => onEdit(row)}
+                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                onClick={() => onDelete(row)}
+                                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                    {isExpanded && expandedRowRender && (
+                      <tr className="bg-slate-50/40">
+                        <td colSpan={totalCols} className="px-6 py-6 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            {expandedRowRender(row)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={totalCols} className="px-6 py-24 text-center">
+                  <div className="flex flex-col items-center max-w-xs mx-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 ring-8 ring-slate-50/30">
+                      <FileX2 size={28} className="text-slate-300" />
+                    </div>
+                    <h3 className="text-slate-900 font-bold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-400 text-xs font-medium leading-relaxed">
+                      Kami tidak dapat menemukan data yang Anda cari. Coba ubah kata kunci atau tambahkan data baru.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default DataTable;
+</file>
+
 <file path="src/pages/Management/Kavling.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -6303,258 +6205,6 @@ const Kavling = () => {
 };
 
 export default Kavling;
-</file>
-
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-import { useAuth } from './context/AuthContext';
-import { AuthProvider } from './providers/AuthProvider';
-import { QueryProvider } from './providers/QueryProvider';
-
-
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-
-const App = () => {
-  return (
-    <QueryProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-
-              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="management/penjualan" element={<Penjualan />} />
-                <Route path="management/kavling" element={<Kavling />} />
-                <Route path="management/notaris" element={<Notaris />} />
-                <Route path="management/bank" element={<Bank />} />
-                <Route path="customer/data-sosial" element={<DataSosial />} />
-                <Route path="customer/spr" element={<SPR />} />
-                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-                <Route path="customer/kavling" element={<CustomerKavling />} />
-                <Route path="customer/tagihan" element={<Tagihan />} />
-                <Route path="marketing/agents" element={<Agents />} />
-                <Route path="marketing/fee-agent" element={<FeeAgent />} />
-                <Route path="proyek/spk" element={<SPK />} />
-                <Route path="proyek/progress" element={<Progress />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryProvider>
-  );
-};
-
-export default App;
-</file>
-
-<file path="src/components/shared/DataTable.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown } from 'lucide-react';
-
-interface Column {
-  header: string;
-  accessor: string;
-  render?: (value: any, row: any) => React.ReactNode;
-}
-
-interface DataTableProps {
-  title: string;
-  columns: Column[];
-  data: any[];
-  onAdd?: () => void;
-  onEdit?: (item: any) => void;
-  onDelete?: (item: any) => void;
-  expandedRowRender?: (row: any) => React.ReactNode;
-}
-
-const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowRender }: DataTableProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-
-  const toggleRow = (rowIndex: number) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [rowIndex]: !prev[rowIndex],
-    }));
-  };
-
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return data;
-    const lowercasedTerm = searchTerm.toLowerCase();
-    return data.filter((row) => {
-      return columns.some((col) => {
-        const value = row[col.accessor];
-        if (value == null) return false;
-        return String(value).toLowerCase().includes(lowercasedTerm);
-      });
-    });
-  }, [data, searchTerm, columns]);
-
-  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
-
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-md/10">
-      <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white/50 backdrop-blur-sm">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h2>
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-full border border-slate-200/50">
-              {filteredData.length} Data
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-64 group">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
-            <input
-              type="text"
-              placeholder="Cari data..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all shadow-sm/5 text-slate-900 placeholder:text-slate-400"
-            />
-          </div>
-
-          {onAdd && (
-            <button
-              onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2 rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-black/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest active:scale-95 cursor-pointer"
-            >
-              <Plus size={16} strokeWidth={3} />
-              Tambah Data
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-widest border-b border-slate-100">
-              {expandedRowRender && (
-                <th className="px-4 py-4 w-10 text-center"></th>
-              )}
-              {columns.map((col, index) => (
-                <th key={index} className="px-6 py-4 whitespace-nowrap font-bold">
-                  {col.header}
-                </th>
-              ))}
-              {(onEdit || onDelete) && (
-                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {filteredData.length > 0 ? (
-              filteredData.map((row, rowIndex) => {
-                const isExpanded = !!expandedRows[rowIndex];
-                return (
-                  <React.Fragment key={rowIndex}>
-                    <tr
-                      onClick={() => {
-                        if (expandedRowRender) toggleRow(rowIndex);
-                      }}
-                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50/80'} ${isExpanded ? 'bg-slate-50' : ''}`}
-                    >
-                      {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-black transition-colors">
-                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                        </td>
-                      )}
-                      {columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-6 py-4 text-slate-600 whitespace-nowrap font-medium">
-                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
-                        </td>
-                      ))}
-                      {(onEdit || onDelete) && (
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity duration-300">
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(row)}
-                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
-                                title="Edit"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button
-                                onClick={() => onDelete(row)}
-                                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                    {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/40">
-                        <td colSpan={totalCols} className="px-6 py-6 border-b border-slate-100">
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                            {expandedRowRender(row)}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={totalCols} className="px-6 py-24 text-center">
-                  <div className="flex flex-col items-center max-w-xs mx-auto">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 ring-8 ring-slate-50/30">
-                      <FileX2 size={28} className="text-slate-300" />
-                    </div>
-                    <h3 className="text-slate-900 font-bold mb-1">Data tidak ditemukan</h3>
-                    <p className="text-slate-400 text-xs font-medium leading-relaxed">
-                      Kami tidak dapat menemukan data yang Anda cari. Coba ubah kata kunci atau tambahkan data baru.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-export default DataTable;
 </file>
 
 <file path="src/pages/Management/Penjualan.tsx">
