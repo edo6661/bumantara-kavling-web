@@ -5,7 +5,7 @@ import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer } from 'lucide-react';
+import { FileText, Printer, UploadCloud } from 'lucide-react';
 
 interface TagihanData {
   id: string;
@@ -17,7 +17,7 @@ interface TagihanData {
   jatuhTempo: string;
   status: string;
   fileBukti: string;
-  reminderBerikutnya: string; // <-- TAMBAHAN BARU
+  reminderBerikutnya: string;
 }
 
 const initialFormState: TagihanData = {
@@ -30,7 +30,7 @@ const initialFormState: TagihanData = {
   jatuhTempo: '',
   status: 'Belum Bayar',
   fileBukti: '',
-  reminderBerikutnya: '', // <-- TAMBAHAN BARU
+  reminderBerikutnya: '',
 };
 
 const mockCustomers = [
@@ -46,7 +46,7 @@ const Tagihan = () => {
       namaCustomer: 'Budi Santoso',
       perumahan: 'Puri Safana',
       blok: 'A-01',
-      pembayaran: 'Cicilan DP Pertama',
+      pembayaran: 'Cicilan Bertahap ke-1',
       nominal: 15000000,
       jatuhTempo: '2026-05-01',
       status: 'Lunas',
@@ -58,7 +58,7 @@ const Tagihan = () => {
       namaCustomer: 'Andi Pratama',
       perumahan: 'Puri Safana',
       blok: 'B-12',
-      pembayaran: 'Cicilan KPR Bulan ke-1',
+      pembayaran: 'Cicilan Bertahap ke-2',
       nominal: 4500000,
       jatuhTempo: '2026-05-15',
       status: 'Belum Bayar',
@@ -66,11 +66,13 @@ const Tagihan = () => {
       reminderBerikutnya: '2026-06-15',
     }
   ]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<TagihanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof TagihanData, string>>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
+  const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
+  const [printTitle, setPrintTitle] = useState('');
 
   const columns = [
     { header: 'No. Tagihan', accessor: 'id' },
@@ -96,7 +98,7 @@ const Tagihan = () => {
       }
     },
     {
-      header: 'Reminder Selanjutnya', // <-- Menambahkan field reminder di Table
+      header: 'Reminder Selanjutnya',
       accessor: 'reminderBerikutnya',
       render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
     },
@@ -122,23 +124,19 @@ const Tagihan = () => {
   const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedName = e.target.value;
     const customer = mockCustomers.find(c => c.name === selectedName);
-
     setFormData(prev => ({
       ...prev,
       namaCustomer: selectedName,
       perumahan: customer?.perumahan || '',
       blok: customer?.blok || ''
     }));
-
     if (errors.namaCustomer) setErrors(prev => ({ ...prev, namaCustomer: undefined }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-
     setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-
     if (errors[name as keyof TagihanData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -167,7 +165,6 @@ const Tagihan = () => {
     if (!formData.pembayaran.trim()) newErrors.pembayaran = 'Keterangan pembayaran wajib diisi';
     if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
     if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -175,7 +172,6 @@ const Tagihan = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     if (isEditing) {
       setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
     } else {
@@ -191,22 +187,25 @@ const Tagihan = () => {
     }
   };
 
-  const expandedRowRender = () => {
+  const expandedRowRender = (row: TagihanData) => {
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
-          <h4 className="text-sm font-bold text-slate-800">Manajemen Invoice & Cetak</h4>
+          <h4 className="text-sm font-bold text-slate-800">Manajemen Invoice & Pembayaran Tagihan</h4>
         </div>
-
         <div className="flex flex-wrap gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-md cursor-pointer">
-            <FileText size={14} />
-            Create Invoice
+          <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Tagihan'); setPrintData({ ...row, nominalCetak: row.nominal }); }} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+            <FileText size={14} /> Generate Invoice
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
-            <Printer size={14} />
-            Cetak Invoice (PDF)
-          </button>
+          {row.status === 'Lunas' ? (
+            <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Pembayaran'); setPrintData({ ...row, nominalCetak: row.nominal }); }} className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-md">
+              <Printer size={14} /> Cetak Kwitansi
+            </button>
+          ) : (
+            <button onClick={() => openModal(row)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md">
+              <UploadCloud size={14} /> Upload Bukti Bayar
+            </button>
+          )}
         </div>
       </div>
     );
@@ -223,11 +222,10 @@ const Tagihan = () => {
         onDelete={handleDelete}
         expandedRowRender={expandedRowRender}
       />
-
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={isEditing ? "Edit Tagihan" : "Buat Tagihan Baru"}
+        title={isEditing ? "Edit Tagihan / Upload Bukti" : "Buat Tagihan Baru"}
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
@@ -236,7 +234,6 @@ const Tagihan = () => {
               {formData.status}
             </span>
           </div>
-
           <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
             <Select
               label="Pilih Customer"
@@ -246,21 +243,19 @@ const Tagihan = () => {
               error={errors.namaCustomer}
               options={mockCustomers.map(c => ({ value: c.name, label: `${c.name} (${c.perumahan} - ${c.blok})` }))}
             />
-
             {formData.namaCustomer && (
               <div className="grid grid-cols-2 gap-4 mt-4">
-                <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100" />
-                <Input label="Blok/Unit" name="blok" value={formData.blok} readOnly className="bg-gray-100" />
+                <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
+                <Input label="Blok/Unit" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
               </div>
             )}
           </div>
-
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan & Reminder</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <Input
-                  label="Pembayaran"
+                  label="Pembayaran (Deskripsi)"
                   name="pembayaran"
                   value={formData.pembayaran}
                   onChange={handleChange}
@@ -287,7 +282,7 @@ const Tagihan = () => {
               />
               <div className="md:col-span-2 mt-2">
                 <Input
-                  label="Reminder Tagihan Berikutnya (Opsional)" // <-- FIELD BARU
+                  label="Reminder Tagihan Berikutnya (Opsional)"
                   type="date"
                   name="reminderBerikutnya"
                   value={formData.reminderBerikutnya}
@@ -297,23 +292,26 @@ const Tagihan = () => {
             </div>
           </div>
 
-          <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
-            <h4 className="text-sm font-semibold text-blue-900 mb-2">Bukti Pembayaran</h4>
-            <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
-              Upload bukti transfer di sini. Sistem akan otomatis mengubah status tagihan menjadi <strong className="text-green-700">LUNAS</strong>.
-            </p>
-            <FileInput
-              label="Upload Bukti Transfer"
-              accept="image/*,.pdf"
-              onChange={(e) => handleFileChange(e, 'fileBukti')}
-            />
-            {formData.fileBukti && (
-              <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                File tersimpan: {formData.fileBukti}
+          {/* Form Upload hanya muncul saat mode edit/upload bukti */}
+          {isEditing && (
+            <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
+              <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
+              <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
+                Upload bukti transfer dari pihak pelanggan di sini. Sistem akan otomatis mengubah status tagihan menjadi <strong className="text-green-700">LUNAS</strong> jika file berhasil dilampirkan.
               </p>
-            )}
-          </div>
+              <FileInput
+                label="Upload Bukti Transfer"
+                accept="image/*,.pdf"
+                onChange={(e) => handleFileChange(e, 'fileBukti')}
+              />
+              {formData.fileBukti && (
+                <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                  File tersimpan: {formData.fileBukti}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button
@@ -331,6 +329,54 @@ const Tagihan = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Modal Pratinjau Print Invoice / Kwitansi */}
+      <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
+        {printData && (
+          <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-xl" id="print-area">
+            <div className="text-center mb-8 border-b border-slate-200 pb-6">
+              <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900">{printType === 'invoice' ? 'INVOICE' : 'KWITANSI PEMBAYARAN'}</h2>
+              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.id} / BMT / {new Date().getFullYear()}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
+              <div>
+                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Diterima Dari / Kepada Yth:</p>
+                <p className="font-black text-lg text-slate-800">{printData.namaCustomer}</p>
+                <p className="text-slate-600 font-medium">{printData.perumahan} - Blok {printData.blok}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Tanggal Cetak:</p>
+                <p className="font-bold text-slate-800">{formatDate(new Date().toISOString())}</p>
+              </div>
+            </div>
+            <div className="mb-8">
+              <p className="text-slate-400 font-bold mb-2 uppercase tracking-wider text-[10px]">Keterangan Pembayaran:</p>
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl font-medium text-slate-700">
+                {printData.pembayaran || printTitle} untuk unit Kavling {printData.perumahan} Blok {printData.blok}.
+              </div>
+            </div>
+            <div className="flex justify-between items-center p-5 bg-slate-100 rounded-xl border border-slate-200">
+              <p className="font-black text-slate-700 uppercase tracking-widest text-sm">Total Nominal</p>
+              <p className="text-2xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</p>
+            </div>
+            <div className="mt-16 flex justify-end">
+              <div className="text-center">
+                <p className="text-slate-500 mb-16 font-medium">Hormat Kami,</p>
+                <p className="font-bold border-b border-slate-300 pb-1 text-slate-800">Finance Dept.</p>
+                <p className="text-xs text-slate-400 mt-1 font-bold">Bumantaraz</p>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
+          <button onClick={() => {
+            alert('Membuka browser print dialog');
+          }} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg shadow-black/10 flex items-center gap-2">
+            <Printer size={16} /> Cetak Dokumen
+          </button>
+        </div>
       </Modal>
     </div>
   );
