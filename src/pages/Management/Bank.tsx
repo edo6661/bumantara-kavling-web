@@ -3,17 +3,26 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import { useAuth } from "../../context/AuthContext";
+import {
+  useGetBankRekening,
+  useCreateBankRekening,
+  useUpdateBankRekening,
+  useDeleteBankRekening
+} from "../../hooks/queries/useBankRekening";
+import type { BankRekeningPt } from "../../services/bankRekening.service";
 
-interface BankData {
-  id: string;
+interface BankFormState {
+  id: number | '';
+  perumahanId: number | '';
   perumahan: string;
   namaBank: string;
   noRekening: string;
   atasNama: string;
 }
 
-const initialFormState: BankData = {
+const initialFormState: BankFormState = {
   id: '',
+  perumahanId: '',
   perumahan: '',
   namaBank: '',
   noRekening: '',
@@ -21,32 +30,19 @@ const initialFormState: BankData = {
 };
 
 const Bank = () => {
-  // Ambil state perumahan dari context yang dipilih saat login
   const { selectedPerumahan } = useAuth();
+  const { data: bankData = [], isLoading } = useGetBankRekening();
+  const createMutation = useCreateBankRekening();
+  const updateMutation = useUpdateBankRekening();
+  const deleteMutation = useDeleteBankRekening();
 
-  const [data, setData] = useState<BankData[]>([
-    {
-      id: '1',
-      perumahan: 'Poris 88',
-      namaBank: 'Bank BSI',
-      noRekening: '7326575644',
-      atasNama: 'PT. Bintang Safana Gajah'
-    },
-    {
-      id: '2',
-      perumahan: 'Puri Safana',
-      namaBank: 'Bank BSI',
-      noRekening: '7326573692',
-      atasNama: 'PT. Bintang Safana Mahligai'
-    }
-  ]);
-
-  // Filter data agar HANYA menampilkan bank untuk perumahan yang dipilih
-  const filteredData = data.filter(bank => bank.perumahan === selectedPerumahan);
+  const filteredData = bankData.filter(
+    bank => bank.perumahan === (selectedPerumahan?.nama || '')
+  );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<BankData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<BankData>>({});
+  const [formData, setFormData] = useState<BankFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
@@ -60,13 +56,23 @@ const Bank = () => {
     { header: 'Atas Nama (a/n)', accessor: 'atasNama' },
   ];
 
-  const openModal = (item?: BankData) => {
+  const openModal = (item?: BankRekeningPt) => {
     if (item) {
-      setFormData(item);
+      setFormData({
+        id: item.id,
+        perumahanId: item.perumahanId,
+        perumahan: item.perumahan || '',
+        namaBank: item.namaBank,
+        noRekening: item.noRekening,
+        atasNama: item.atasNama,
+      });
       setIsEditing(true);
     } else {
-      // Otomatis isi perumahan sesuai yang login
-      setFormData({ ...initialFormState, perumahan: selectedPerumahan });
+      setFormData({
+        ...initialFormState,
+        perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '',
+        perumahan: selectedPerumahan?.nama || ''
+      });
       setIsEditing(false);
     }
     setErrors({});
@@ -81,13 +87,19 @@ const Bank = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof BankData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
   const validateForm = () => {
-    const newErrors: Partial<BankData> = {};
+    const newErrors: Record<string, string> = {};
+    if (!formData.perumahanId) newErrors.perumahan = 'Perumahan wajib ada';
     if (!formData.namaBank.trim()) newErrors.namaBank = 'Nama Bank wajib diisi';
     if (!formData.noRekening.trim()) newErrors.noRekening = 'No Rekening wajib diisi';
     if (!formData.atasNama.trim()) newErrors.atasNama = 'Atas Nama wajib diisi';
@@ -96,34 +108,61 @@ const Bank = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newData = { ...formData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
+    const payload = {
+      perumahanId: Number(formData.perumahanId),
+      namaBank: formData.namaBank,
+      noRekening: formData.noRekening,
+      atasNama: formData.atasNama,
+    };
+
+    try {
+      if (isEditing && formData.id) {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: any) {
+      const responseData = error.response?.data;
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
-    closeModal();
   };
 
-  const handleDelete = (item: BankData) => {
+  const handleDelete = async (item: BankRekeningPt) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus data ${item.namaBank} - ${item.noRekening}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: any) {
+        alert(error.response?.data?.message || 'Gagal menghapus data');
+      }
     }
   };
+
+  if (isLoading) {
+    return <div className="p-4 text-slate-500">Memuat data bank...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <DataTable
-        title={`Data Bank - ${selectedPerumahan}`}
+        title={`Data Bank - ${selectedPerumahan?.nama || ''}`}
         columns={columns}
-        data={filteredData} // Gunakan data yang sudah di-filter
+        data={filteredData}
         onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
+        onEdit={(item) => openModal(item as BankRekeningPt)}
+        onDelete={(item) => handleDelete(item as BankRekeningPt)}
       />
 
       <Modal
@@ -134,7 +173,6 @@ const Bank = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
-              {/* Input dibuat readOnly karena otomatis ambil dari status login */}
               <Input
                 label="Peruntukan Perumahan"
                 name="perumahan"
@@ -174,15 +212,17 @@ const Bank = () => {
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50"
             >
-              Simpan Data
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
             </button>
           </div>
         </form>

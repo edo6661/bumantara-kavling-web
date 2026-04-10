@@ -2,14 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/shared/Input';
-import Select from '../components/shared/Select';
-import { useGetPerumahan } from '../hooks/queries/usePerumahan';
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    perumahanId: ''
   });
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [generalError, setGeneralError] = useState('');
@@ -17,10 +14,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
 
-  // Gunakan Custom Hook React Query
-  const { data: perumahanList = [], isLoading: isLoadingPerumahan } = useGetPerumahan();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
@@ -33,19 +27,7 @@ const Login = () => {
     setGeneralError('');
     setErrors({});
 
-    if (!formData.perumahanId) {
-      setErrors({ perumahanId: 'Silakan pilih perumahan terlebih dahulu' });
-      return;
-    }
-
-    const selectedPerumahanObj = perumahanList.find(p => String(p.id) === String(formData.perumahanId));
-
-    if (!selectedPerumahanObj) {
-      setGeneralError('Data perumahan tidak valid. Silakan muat ulang halaman.');
-      return;
-    }
-
-    const result = await login(formData.email, formData.password, selectedPerumahanObj);
+    const result = await login(formData.email, formData.password, { id: '1', nama: 'Puri Safana' });
 
     if (result.success) {
       navigate('/', { replace: true });
@@ -80,20 +62,6 @@ const Login = () => {
             </div>
           )}
 
-          <Select
-            label="Pilih Perumahan"
-            name="perumahanId"
-            value={formData.perumahanId}
-            onChange={handleChange}
-            error={errors.perumahanId}
-            // Disabled select jika data perumahan masih loading dari API
-            disabled={isLoadingPerumahan}
-            options={[
-              { value: '', label: isLoadingPerumahan ? 'Memuat data perumahan...' : 'Pilih opsi...' },
-              ...perumahanList.map(p => ({ value: String(p.id), label: p.nama }))
-            ]}
-          />
-
           <Input
             label="Email"
             name="email"
@@ -116,8 +84,8 @@ const Login = () => {
 
           <button
             type="submit"
-            disabled={isLoading || isLoadingPerumahan}
-            className={`w-full bg-black text-white font-bold text-sm py-3 rounded-xl transition-colors shadow-lg shadow-black/10 mt-4 flex justify-center items-center ${isLoading || isLoadingPerumahan ? 'opacity-70 cursor-not-allowed' : 'hover:bg-slate-800 cursor-pointer'}`}
+            disabled={isLoading}
+            className={`w-full bg-black text-white font-bold text-sm py-3 rounded-xl transition-colors shadow-lg shadow-black/10 mt-4 flex justify-center items-center ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-slate-800 cursor-pointer'}`}
           >
             {isLoading ? 'Memproses...' : 'Masuk Sekarang'}
           </button>

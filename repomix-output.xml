@@ -1,226 +1,221 @@
+kode frontend:
+<file path="src/hooks/queries/useAgent.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  agentService,
+  type CreateAgentDTO,
+} from "../../services/agent.service";
 
-<file path=".gitignore">
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+export const AGENT_KEYS = {
+  all: ["agents"] as const,
+};
 
-node_modules
-dist
-dist-ssr
-*.local
+export const useGetAgents = () => {
+  return useQuery({
+    queryKey: AGENT_KEYS.all,
+    queryFn: agentService.getAll,
+  });
+};
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-</file>
-
-<file path="docker-compose.yml">
-services:
-  kavling-app:
-    build: .
-    container_name: kavling-app
-    restart: unless-stopped
-    networks:
-      - proxy-network
-
-networks:
-  proxy-network:
-    external: true
-</file>
-
-<file path="eslint.config.js">
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
-    languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
+export const useCreateAgent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateAgentDTO) => agentService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AGENT_KEYS.all });
     },
-  },
-])
+  });
+};
+
+export const useUpdateAgent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<CreateAgentDTO> }) =>
+      agentService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AGENT_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteAgent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => agentService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AGENT_KEYS.all });
+    },
+  });
+};
 </file>
 
-<file path="lib/utils.ts">
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+<file path="src/hooks/queries/useBankRekening.ts">
+// src/hooks/queries/useBankRekening.ts
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  bankRekeningService,
+  type CreateBankRekeningPtDTO,
+} from "../../services/bankRekening.service";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+export const BANK_KEYS = {
+  all: ["bank-rekenings"] as const,
+};
+
+export const useGetBankRekening = () => {
+  return useQuery({
+    queryKey: BANK_KEYS.all,
+    queryFn: bankRekeningService.getAll,
+  });
+};
+
+export const useCreateBankRekening = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateBankRekeningPtDTO) =>
+      bankRekeningService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: BANK_KEYS.all });
+    },
+  });
+};
+
+export const useUpdateBankRekening = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<CreateBankRekeningPtDTO>;
+    }) => bankRekeningService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: BANK_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteBankRekening = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => bankRekeningService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: BANK_KEYS.all });
+    },
+  });
+};
+</file>
+
+<file path="src/services/agent.service.ts">
+import api from "../lib/axios";
+
+export interface PicAgentData {
+  id?: number;
+  nama: string;
+  noHp: string;
+  alamat?: string;
 }
-</file>
 
-<file path="nginx.conf">
-server {
-    listen 80;
-    server_name localhost;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
+export interface PenjualanAgentData {
+  id: number;
+  noTransaksi: string;
+  tanggal: string;
+  hargaJual: number;
+  status: string;
+  customer?: { nama: string };
+  kavling?: {
+    blok: string;
+    nomorUnit: string;
+    perumahan?: { nama: string };
+  };
 }
-</file>
 
-<file path="public/robots.txt">
-User-agent: *
-Allow: /
+export interface AgentData {
+  id: number;
+  nik: string;
+  kodeSales: string | null;
+  nama: string;
+  alamat: string | null;
+  noHp: string;
+  email: string | null;
+  status: string;
+  pics: PicAgentData[];
+  penjualan?: PenjualanAgentData[];
+}
 
-# Mencegah bot merayapi file yang tidak perlu (opsional untuk React/Vite)
-Disallow: /assets/
-Disallow: /*.json$
+export interface CreateAgentDTO {
+  nik: string;
+  nama: string;
+  alamat?: string;
+  noHp: string;
+  email?: string;
+  status?: string;
+  pics?: PicAgentData[];
+}
 
-Sitemap: https://www.famindofast.com/sitemap.xml
-</file>
-
-<file path="public/sitemap.xml">
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  
-  <url>
-    <loc>https://www.famindofast.com/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-
-  <url>
-    <loc>https://www.famindofast.com/clients</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <url>
-    <loc>https://www.famindofast.com/brand/hartindo-af31</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <url>
-    <loc>https://www.famindofast.com/brand/ballistic-app</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <url>
-    <loc>https://www.famindofast.com/brand/uss-ev</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <url>
-    <loc>https://www.famindofast.com/brand/flat-af11e</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-</urlset>
-</file>
-
-<file path="public/vite.svg">
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
-</file>
-
-<file path="README.md">
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
+export const agentService = {
+  getAll: async (): Promise<AgentData[]> => {
+    const response = await api.get("/agents?limit=100");
+    return response.data.data.items;
   },
-])
-```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
+  create: async (data: CreateAgentDTO) => {
+    const response = await api.post("/agents", data);
+    return response.data.data;
   },
-])
-```
+
+  update: async (id: number, data: Partial<CreateAgentDTO>) => {
+    const response = await api.patch(`/agents/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/agents/${id}`);
+    return response.data;
+  },
+};
+</file>
+
+<file path="src/services/bankRekening.service.ts">
+import api from "../lib/axios";
+
+export interface BankRekeningPt {
+  id: number;
+  perumahanId: number;
+  perumahan?: string;
+  namaBank: string;
+  noRekening: string;
+  atasNama: string;
+}
+
+export interface CreateBankRekeningPtDTO {
+  perumahanId: number;
+  namaBank: string;
+  noRekening: string;
+  atasNama: string;
+}
+
+export const bankRekeningService = {
+  getAll: async (): Promise<BankRekeningPt[]> => {
+    const response = await api.get("/bank-rekening?limit=100");
+    return response.data.data.items;
+  },
+
+  create: async (data: CreateBankRekeningPtDTO) => {
+    const response = await api.post("/bank-rekening", data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: Partial<CreateBankRekeningPtDTO>) => {
+    const response = await api.patch(`/bank-rekening/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/bank-rekening/${id}`);
+    return response.data;
+  },
+};
 </file>
 
 <file path="src/hooks/queries/useKavling.ts">
@@ -622,37 +617,6 @@ export const storage = {
 };
 </file>
 
-<file path="tsconfig.app.json">
-{
-  "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-    "target": "ES2022",
-    "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "types": ["vite/client"],
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-    "jsx": "react-jsx",
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
-  },
-  "include": ["src"]
-}
-</file>
-
 <file path="tsconfig.json">
 {
   "files": [],
@@ -660,35 +624,6 @@ export const storage = {
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ]
-}
-</file>
-
-<file path="tsconfig.node.json">
-{
-  "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-    "target": "ES2023",
-    "lib": ["ES2023"],
-    "module": "ESNext",
-    "types": ["node"],
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
-  },
-  "include": ["vite.config.ts"]
 }
 </file>
 
@@ -701,66 +636,6 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 });
-</file>
-
-<file path=".env.development">
-VITE_API_URL=http://localhost:3000/api/v1
-</file>
-
-<file path="Dockerfile">
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-COPY package.json package-lock.json* ./
-RUN npm install
-
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-</file>
-
-<file path="index.html">
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>Kavling Bumantara</title>
-    <meta name="title" content="Kavling Bumantara" />
-    <meta name="description" content="Kavling Bumantara" />
-    <meta name="author" content="Kavling Bumantara" />
-    <meta name="robots" content="index, follow" />
-
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Kavling Bumantara" />
-    <meta property="og:description" content="Kavling Bumantara" />
-    <meta property="og:site_name" content="Kavling Bumantara" />
-    <meta property="og:locale" content="en_US" />
-
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="Kavling Bumantara" />
-    <meta property="twitter:description" content="Kavling Bumantara" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
 </file>
 
 <file path="src/index.css">
@@ -1685,17 +1560,26 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import { useAuth } from "../../context/AuthContext";
+import {
+  useGetBankRekening,
+  useCreateBankRekening,
+  useUpdateBankRekening,
+  useDeleteBankRekening
+} from "../../hooks/queries/useBankRekening";
+import type { BankRekeningPt } from "../../services/bankRekening.service";
 
-interface BankData {
-  id: string;
+interface BankFormState {
+  id: number | '';
+  perumahanId: number | '';
   perumahan: string;
   namaBank: string;
   noRekening: string;
   atasNama: string;
 }
 
-const initialFormState: BankData = {
+const initialFormState: BankFormState = {
   id: '',
+  perumahanId: '',
   perumahan: '',
   namaBank: '',
   noRekening: '',
@@ -1703,32 +1587,19 @@ const initialFormState: BankData = {
 };
 
 const Bank = () => {
-  // Ambil state perumahan dari context yang dipilih saat login
   const { selectedPerumahan } = useAuth();
+  const { data: bankData = [], isLoading } = useGetBankRekening();
+  const createMutation = useCreateBankRekening();
+  const updateMutation = useUpdateBankRekening();
+  const deleteMutation = useDeleteBankRekening();
 
-  const [data, setData] = useState<BankData[]>([
-    {
-      id: '1',
-      perumahan: 'Poris 88',
-      namaBank: 'Bank BSI',
-      noRekening: '7326575644',
-      atasNama: 'PT. Bintang Safana Gajah'
-    },
-    {
-      id: '2',
-      perumahan: 'Puri Safana',
-      namaBank: 'Bank BSI',
-      noRekening: '7326573692',
-      atasNama: 'PT. Bintang Safana Mahligai'
-    }
-  ]);
-
-  // Filter data agar HANYA menampilkan bank untuk perumahan yang dipilih
-  const filteredData = data.filter(bank => bank.perumahan === selectedPerumahan);
+  const filteredData = bankData.filter(
+    bank => bank.perumahan === (selectedPerumahan?.nama || '')
+  );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<BankData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<BankData>>({});
+  const [formData, setFormData] = useState<BankFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
@@ -1742,13 +1613,23 @@ const Bank = () => {
     { header: 'Atas Nama (a/n)', accessor: 'atasNama' },
   ];
 
-  const openModal = (item?: BankData) => {
+  const openModal = (item?: BankRekeningPt) => {
     if (item) {
-      setFormData(item);
+      setFormData({
+        id: item.id,
+        perumahanId: item.perumahanId,
+        perumahan: item.perumahan || '',
+        namaBank: item.namaBank,
+        noRekening: item.noRekening,
+        atasNama: item.atasNama,
+      });
       setIsEditing(true);
     } else {
-      // Otomatis isi perumahan sesuai yang login
-      setFormData({ ...initialFormState, perumahan: selectedPerumahan });
+      setFormData({
+        ...initialFormState,
+        perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '',
+        perumahan: selectedPerumahan?.nama || ''
+      });
       setIsEditing(false);
     }
     setErrors({});
@@ -1763,13 +1644,19 @@ const Bank = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof BankData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
   const validateForm = () => {
-    const newErrors: Partial<BankData> = {};
+    const newErrors: Record<string, string> = {};
+    if (!formData.perumahanId) newErrors.perumahan = 'Perumahan wajib ada';
     if (!formData.namaBank.trim()) newErrors.namaBank = 'Nama Bank wajib diisi';
     if (!formData.noRekening.trim()) newErrors.noRekening = 'No Rekening wajib diisi';
     if (!formData.atasNama.trim()) newErrors.atasNama = 'Atas Nama wajib diisi';
@@ -1778,34 +1665,61 @@ const Bank = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newData = { ...formData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
+    const payload = {
+      perumahanId: Number(formData.perumahanId),
+      namaBank: formData.namaBank,
+      noRekening: formData.noRekening,
+      atasNama: formData.atasNama,
+    };
+
+    try {
+      if (isEditing && formData.id) {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: any) {
+      const responseData = error.response?.data;
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
-    closeModal();
   };
 
-  const handleDelete = (item: BankData) => {
+  const handleDelete = async (item: BankRekeningPt) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus data ${item.namaBank} - ${item.noRekening}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: any) {
+        alert(error.response?.data?.message || 'Gagal menghapus data');
+      }
     }
   };
+
+  if (isLoading) {
+    return <div className="p-4 text-slate-500">Memuat data bank...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <DataTable
-        title={`Data Bank - ${selectedPerumahan}`}
+        title={`Data Bank - ${selectedPerumahan?.nama || ''}`}
         columns={columns}
-        data={filteredData} // Gunakan data yang sudah di-filter
+        data={filteredData}
         onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
+        onEdit={(item) => openModal(item as BankRekeningPt)}
+        onDelete={(item) => handleDelete(item as BankRekeningPt)}
       />
 
       <Modal
@@ -1816,7 +1730,6 @@ const Bank = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2">
-              {/* Input dibuat readOnly karena otomatis ambil dari status login */}
               <Input
                 label="Peruntukan Perumahan"
                 name="perumahan"
@@ -1856,15 +1769,17 @@ const Bank = () => {
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50"
             >
-              Simpan Data
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
             </button>
           </div>
         </form>
@@ -3205,396 +3120,36 @@ const SPR = () => {
 export default SPR;
 </file>
 
-<file path="src/pages/Customer/Tagihan.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud } from 'lucide-react';
-interface TagihanData {
-  id: string;
-  namaCustomer: string;
-  perumahan: string;
-  blok: string;
-  pembayaran: string;
-  nominal: number;
-  jatuhTempo: string;
-  status: string;
-  fileBukti: string;
-  reminderBerikutnya: string;
-}
-const initialFormState: TagihanData = {
-  id: '',
-  namaCustomer: '',
-  perumahan: '',
-  blok: '',
-  pembayaran: '',
-  nominal: 0,
-  jatuhTempo: '',
-  status: 'Belum Bayar',
-  fileBukti: '',
-  reminderBerikutnya: '',
-};
-const mockCustomers = [
-  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A-01' },
-  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B-12' },
-  { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C-05' },
-];
-const Tagihan = () => {
-  const [data, setData] = useState<TagihanData[]>([
-    {
-      id: 'INV-001',
-      namaCustomer: 'Budi Santoso',
-      perumahan: 'Puri Safana',
-      blok: 'A-01',
-      pembayaran: 'Cicilan Bertahap ke-1',
-      nominal: 15000000,
-      jatuhTempo: '2026-05-01',
-      status: 'Lunas',
-      fileBukti: 'bukti_tf_budi.pdf',
-      reminderBerikutnya: '',
-    },
-    {
-      id: 'INV-002',
-      namaCustomer: 'Andi Pratama',
-      perumahan: 'Puri Safana',
-      blok: 'B-12',
-      pembayaran: 'Cicilan Bertahap ke-2',
-      nominal: 4500000,
-      jatuhTempo: '2026-05-15',
-      status: 'Belum Bayar',
-      fileBukti: '',
-      reminderBerikutnya: '2026-06-15',
-    }
-  ]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<TagihanData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof TagihanData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-  const [printData, setPrintData] = useState<any>(null);
-  const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
-  const [printTitle, setPrintTitle] = useState('');
-  const columns = [
-    { header: 'No. Tagihan', accessor: 'id' },
-    { header: 'Nama Customer', accessor: 'namaCustomer' },
-    { header: 'Kavling', accessor: 'blok' },
-    { header: 'Pembayaran', accessor: 'pembayaran' },
-    {
-      header: 'Nominal',
-      accessor: 'nominal',
-      render: (val: number) => <span className="font-bold text-slate-800">{formatRupiah(val)}</span>
-    },
-    {
-      header: 'Jatuh Tempo',
-      accessor: 'jatuhTempo',
-      render: (val: string) => formatDate(val)
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => {
-        const bg = val === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-        return <span className={`px-2 py-1 rounded-full text-xs font-bold ${bg}`}>{val}</span>;
-      }
-    },
-    {
-      header: 'Reminder Selanjutnya',
-      accessor: 'reminderBerikutnya',
-      render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
-    },
-  ];
-  const openModal = (item?: TagihanData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedName = e.target.value;
-    const customer = mockCustomers.find(c => c.name === selectedName);
-    setFormData(prev => ({
-      ...prev,
-      namaCustomer: selectedName,
-      perumahan: customer?.perumahan || '',
-      blok: customer?.blok || ''
-    }));
-    if (errors.namaCustomer) setErrors(prev => ({ ...prev, namaCustomer: undefined }));
-  };
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-    if (errors[name as keyof TagihanData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        [fieldName]: file.name,
-        status: 'Lunas'
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [fieldName]: '',
-        status: 'Belum Bayar'
-      }));
-    }
-  };
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof TagihanData, string>> = {};
-    if (!formData.namaCustomer) newErrors.namaCustomer = 'Customer wajib dipilih';
-    if (!formData.pembayaran.trim()) newErrors.pembayaran = 'Keterangan pembayaran wajib diisi';
-    if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
-    if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newId = `INV-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-  const handleDelete = (item: TagihanData) => {
-    if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-  const expandedRowRender = (row: TagihanData) => {
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
-        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
-          <h4 className="text-sm font-bold text-slate-800">Manajemen Invoice & Pembayaran Tagihan</h4>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Tagihan'); setPrintData({ ...row, nominalCetak: row.nominal }); }} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
-            <FileText size={14} /> Generate Invoice
-          </button>
-          {row.status === 'Lunas' ? (
-            <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Pembayaran'); setPrintData({ ...row, nominalCetak: row.nominal }); }} className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-md">
-              <Printer size={14} /> Cetak Kwitansi
-            </button>
-          ) : (
-            <button onClick={() => openModal(row)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md">
-              <UploadCloud size={14} /> Upload Bukti Bayar
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Data Tagihan Customer"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-        expandedRowRender={expandedRowRender}
-      />
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Tagihan" : "Buat Tagihan Baru"}
-      >
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
-            <span className="text-sm font-semibold text-gray-800">Status Pembayaran</span>
-            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${formData.status === 'Lunas' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
-              {formData.status}
-            </span>
-          </div>
-          <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
-            <Select
-              label="Pilih Customer"
-              name="namaCustomer"
-              value={formData.namaCustomer}
-              onChange={handleCustomerChange}
-              error={errors.namaCustomer}
-              options={mockCustomers.map(c => ({ value: c.name, label: `${c.name} (${c.perumahan} - ${c.blok})` }))}
-            />
-            {formData.namaCustomer && (
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
-                <Input label="Blok/Unit" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
-              </div>
-            )}
-          </div>
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan & Reminder</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Input
-                  label="Pembayaran (Deskripsi)"
-                  name="pembayaran"
-                  value={formData.pembayaran}
-                  onChange={handleChange}
-                  error={errors.pembayaran}
-                  placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP"
-                />
-              </div>
-              <Input
-                label="Nominal (Rp)"
-                type="number"
-                name="nominal"
-                value={formData.nominal === 0 ? '' : formData.nominal}
-                onChange={handleChange}
-                error={errors.nominal}
-                placeholder="0"
-              />
-              <Input
-                label="Jatuh Tempo"
-                type="date"
-                name="jatuhTempo"
-                value={formData.jatuhTempo}
-                onChange={handleChange}
-                error={errors.jatuhTempo}
-              />
-              <div className="md:col-span-2 mt-2">
-                <Input
-                  label="Reminder Tagihan Berikutnya (Opsional)"
-                  type="date"
-                  name="reminderBerikutnya"
-                  value={formData.reminderBerikutnya}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
-            <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
-            <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
-              Upload bukti transfer dari pihak pelanggan di sini. Sistem akan otomatis mengubah status tagihan menjadi <strong className="text-green-700">LUNAS</strong> jika file berhasil dilampirkan.
-            </p>
-            <FileInput
-              label="Upload Bukti Transfer"
-              accept="image/*,.pdf"
-              onChange={(e) => handleFileChange(e, 'fileBukti')}
-            />
-            {formData.fileBukti && (
-              <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                File tersimpan: {formData.fileBukti}
-              </p>
-            )}
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer"
-            >
-              Simpan Tagihan
-            </button>
-          </div>
-        </form>
-      </Modal>
-      {/* Modal Pratinjau Print Invoice / Kwitansi */}
-      <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
-        {printData && (
-          <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-xl" id="print-area">
-            <div className="text-center mb-8 border-b border-slate-200 pb-6">
-              <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900">{printType === 'invoice' ? 'INVOICE' : 'KWITANSI PEMBAYARAN'}</h2>
-              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.id} / BMT / {new Date().getFullYear()}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
-              <div>
-                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Diterima Dari / Kepada Yth:</p>
-                <p className="font-black text-lg text-slate-800">{printData.namaCustomer}</p>
-                <p className="text-slate-600 font-medium">{printData.perumahan} - Blok {printData.blok}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Tanggal Cetak:</p>
-                <p className="font-bold text-slate-800">{formatDate(new Date().toISOString())}</p>
-              </div>
-            </div>
-            <div className="mb-8">
-              <p className="text-slate-400 font-bold mb-2 uppercase tracking-wider text-[10px]">Keterangan Pembayaran:</p>
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl font-medium text-slate-700">
-                {printData.pembayaran || printTitle} untuk unit Kavling {printData.perumahan} Blok {printData.blok}.
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-5 bg-slate-100 rounded-xl border border-slate-200">
-              <p className="font-black text-slate-700 uppercase tracking-widest text-sm">Total Nominal</p>
-              <p className="text-2xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</p>
-            </div>
-            <div className="mt-16 flex justify-end">
-              <div className="text-center">
-                <p className="text-slate-500 mb-16 font-medium">Hormat Kami,</p>
-                <p className="font-bold border-b border-slate-300 pb-1 text-slate-800">Finance Dept.</p>
-                <p className="text-xs text-slate-400 mt-1 font-bold">Bumantaraz</p>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-          <button onClick={() => {
-            alert('Membuka browser print dialog (Simulasi)');
-          }} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg shadow-black/10 flex items-center gap-2">
-            <Printer size={16} /> Cetak Dokumen
-          </button>
-        </div>
-      </Modal>
-    </div>
-  );
-};
-export default Tagihan;
-</file>
-
 <file path="src/pages/Marketing/Agents.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import { formatRupiah } from "../../utils/formatters";
+import {
+  useGetAgents,
+  useCreateAgent,
+  useUpdateAgent,
+  useDeleteAgent
+} from "../../hooks/queries/useAgent";
+import type {
+  AgentData,
+  PicAgentData,
+  CreateAgentDTO,
+  PenjualanAgentData
+} from "../../services/agent.service";
 
-interface PICData {
-  nama: string;
-  noHp: string;
-  alamat: string;
-}
-
-interface AgentData {
-  id: string;
+interface AgentFormState {
+  id: number | '';
   nik: string;
   nama: string;
   alamat: string;
   noHp: string;
   email: string;
-  pics: PICData[];
+  pics: PicAgentData[];
 }
 
-const initialFormState: AgentData = {
+const initialFormState: AgentFormState = {
   id: '',
   nik: '',
   nama: '',
@@ -3605,28 +3160,14 @@ const initialFormState: AgentData = {
 };
 
 const Agents = () => {
-
-  const [data, setData] = useState<AgentData[]>([
-    {
-      id: '1',
-      nik: '3671012345670001',
-      nama: 'Andi Pratama',
-      alamat: 'Jl. Sudirman No. 10, Jakarta',
-      noHp: '081234567890',
-      email: 'andi@example.com',
-      pics: [
-        {
-          nama: 'Budi Santoso',
-          noHp: '081987654321',
-          alamat: 'Jl. Melati No. 5, Jakarta'
-        }
-      ]
-    }
-  ]);
+  const { data: agentData = [], isLoading } = useGetAgents();
+  const createMutation = useCreateAgent();
+  const updateMutation = useUpdateAgent();
+  const deleteMutation = useDeleteAgent();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<AgentData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<AgentData>>({});
+  const [formData, setFormData] = useState<AgentFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
@@ -3636,19 +3177,24 @@ const Agents = () => {
     {
       header: 'Total PIC',
       accessor: 'pics',
-      render: (pics: PICData[]) => (
+      render: (pics: PicAgentData[]) => (
         <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold">
           {pics?.length || 0} Orang
         </span>
       )
     },
-    { header: 'Alamat', accessor: 'alamat' },
+    { header: 'Alamat', accessor: 'alamat', render: (val: string | null) => val || '-' },
   ];
 
   const openModal = (item?: AgentData) => {
     if (item) {
       setFormData({
-        ...item,
+        id: item.id,
+        nik: item.nik,
+        nama: item.nama,
+        alamat: item.alamat || '',
+        noHp: item.noHp,
+        email: item.email || '',
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
       setIsEditing(true);
@@ -3668,8 +3214,13 @@ const Agents = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof AgentData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
@@ -3680,6 +3231,15 @@ const Agents = () => {
       newPics[index] = { ...newPics[index], [name]: value };
       return { ...prev, pics: newPics };
     });
+
+    const errorKey = `pics.${index}.${name}`;
+    if (errors[errorKey]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
   };
 
   const handleAddPIC = () => {
@@ -3697,69 +3257,101 @@ const Agents = () => {
   };
 
   const validateForm = () => {
-    const newErrors: Partial<AgentData> = {};
+    const newErrors: Record<string, string> = {};
     if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
+    if (formData.nik.trim().length !== 16) newErrors.nik = 'NIK harus 16 digit';
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    if (!formData.email.trim()) newErrors.email = 'Email wajib diisi';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newData = { ...formData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
+    const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
+
+    const payload: CreateAgentDTO = {
+      nik: formData.nik,
+      nama: formData.nama,
+      noHp: formData.noHp,
+      email: formData.email || undefined,
+      alamat: formData.alamat || undefined,
+      pics: validPics.length > 0 ? validPics : undefined,
+    };
+
+    try {
+      if (isEditing && formData.id) {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: any) {
+      const responseData = error.response?.data;
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
-    closeModal();
   };
 
-  const handleDelete = (item: AgentData) => {
+  const handleDelete = async (item: AgentData) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: any) {
+        alert(error.response?.data?.message || 'Gagal menghapus agen');
+      }
     }
   };
 
-  // Fungsi untuk me-render data relasi di bawah baris tabel
   const expandedRowRender = (row: AgentData) => {
-    // Simulasi data penjualan yang terkait dengan agent ini (Nantinya diganti dengan data dari API)
-    const relatedSales = [
-      { id: 'TRX-001', tanggal: '2026-03-15', customer: 'Budi Santoso', kavling: 'Puri Safana (A-01)', komisi: 5000000, status: 'Lunas' },
-      { id: 'TRX-002', tanggal: '2026-04-02', customer: 'Siti Aminah', kavling: 'Puri Safana (C-05)', komisi: 4500000, status: 'Pending' },
-    ];
+    const relatedSales = row.penjualan || [];
 
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span></h4>
+        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
+          Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span>
+        </h4>
         {relatedSales.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-xs text-slate-500 uppercase bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
+                  <th className="px-4 py-3 rounded-l-lg font-bold">No. Transaksi</th>
                   <th className="px-4 py-3 font-bold">Tanggal</th>
                   <th className="px-4 py-3 font-bold">Customer</th>
                   <th className="px-4 py-3 font-bold">Kavling</th>
-                  <th className="px-4 py-3 text-right font-bold">Estimasi Komisi</th>
-                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Status Pembayaran</th>
+                  <th className="px-4 py-3 text-right font-bold">Nilai Penjualan (Rp)</th>
+                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {relatedSales.map((sale, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-900">{sale.id}</td>
-                    <td className="px-4 py-3 text-slate-500">{sale.tanggal}</td>
-                    <td className="px-4 py-3">{sale.customer}</td>
-                    <td className="px-4 py-3 font-medium">{sale.kavling}</td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-700">{formatRupiah(sale.komisi)}</td>
+                {relatedSales.map((sale: PenjualanAgentData) => (
+                  <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-slate-900">{sale.noTransaksi}</td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {new Date(sale.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-3">{sale.customer?.nama || '-'}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {sale.kavling?.perumahan?.nama} ({sale.kavling?.blok}-{sale.kavling?.nomorUnit})
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-700">
+                      {formatRupiah(sale.hargaJual)}
+                    </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${sale.status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${sale.status.toUpperCase() === 'LUNAS' ? 'bg-green-100 text-green-700' :
+                        sale.status.toUpperCase() === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
                         {sale.status}
                       </span>
                     </td>
@@ -3769,21 +3361,25 @@ const Agents = () => {
             </table>
           </div>
         ) : (
-          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">Belum ada riwayat penjualan untuk agent ini.</p>
+          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+            Belum ada riwayat penjualan untuk agent ini.
+          </p>
         )}
       </div>
     );
   };
 
+  if (isLoading) return <div className="p-4 text-slate-500">Memuat data agen...</div>;
+
   return (
     <div className="space-y-6">
       <DataTable
-        title="Data Agent"
+        title="Data Agent Marketing"
         columns={columns}
-        data={data}
+        data={agentData}
         onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
+        onEdit={(item) => openModal(item as AgentData)}
+        onDelete={(item) => handleDelete(item as AgentData)}
         expandedRowRender={expandedRowRender}
       />
 
@@ -3810,7 +3406,7 @@ const Agents = () => {
                 value={formData.nama}
                 onChange={handleChange}
                 error={errors.nama}
-                placeholder="Masukkan nama"
+                placeholder="Masukkan nama agent"
               />
               <Input
                 label="No. WhatsApp / HP"
@@ -3821,7 +3417,7 @@ const Agents = () => {
                 placeholder="08xxxxxxxxxx"
               />
               <Input
-                label="Email"
+                label="Email (Opsional)"
                 name="email"
                 type="email"
                 value={formData.email}
@@ -3831,10 +3427,11 @@ const Agents = () => {
               />
               <div className="md:col-span-2">
                 <Input
-                  label="Alamat Lengkap"
+                  label="Alamat Lengkap (Opsional)"
                   name="alamat"
                   value={formData.alamat}
                   onChange={handleChange}
+                  error={errors.alamat}
                   placeholder="Masukkan alamat lengkap agent"
                 />
               </div>
@@ -3844,8 +3441,8 @@ const Agents = () => {
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent</h4>
-                <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk agent ini</p>
+                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent (Opsional)</h4>
+                <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk di bawah agent ini</p>
               </div>
               <button
                 type="button"
@@ -3876,6 +3473,7 @@ const Agents = () => {
                       name="nama"
                       value={pic.nama}
                       onChange={(e) => handlePICChange(index, e)}
+                      error={errors[`pics.${index}.nama`]}
                       placeholder="Masukkan nama PIC"
                     />
                     <Input
@@ -3883,14 +3481,16 @@ const Agents = () => {
                       name="noHp"
                       value={pic.noHp}
                       onChange={(e) => handlePICChange(index, e)}
+                      error={errors[`pics.${index}.noHp`]}
                       placeholder="08xxxxxxxxxx"
                     />
                     <div className="md:col-span-2">
                       <Input
-                        label="Alamat PIC"
+                        label="Alamat PIC (Opsional)"
                         name="alamat"
-                        value={pic.alamat}
+                        value={pic.alamat || ''}
                         onChange={(e) => handlePICChange(index, e)}
+                        error={errors[`pics.${index}.alamat`]}
                         placeholder="Masukkan alamat lengkap PIC"
                       />
                     </div>
@@ -3904,15 +3504,17 @@ const Agents = () => {
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50"
             >
-              Simpan Data
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
             </button>
           </div>
         </form>
@@ -4614,6 +4216,394 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
 };
 
 export default Modal;
+</file>
+
+<file path="src/pages/Customer/Tagihan.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import { FileText, Printer, UploadCloud } from 'lucide-react';
+
+interface TagihanData {
+  id: string;
+  namaCustomer: string;
+  perumahan: string;
+  blok: string;
+  pembayaran: string;
+  nominal: number;
+  jatuhTempo: string;
+  status: string;
+  fileBukti: string;
+  reminderBerikutnya: string;
+}
+
+const initialFormState: TagihanData = {
+  id: '',
+  namaCustomer: '',
+  perumahan: '',
+  blok: '',
+  pembayaran: '',
+  nominal: 0,
+  jatuhTempo: '',
+  status: 'Belum Bayar',
+  fileBukti: '',
+  reminderBerikutnya: '',
+};
+
+const mockCustomers = [
+  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A-01' },
+  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B-12' },
+  { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C-05' },
+];
+
+const Tagihan = () => {
+  const [data, setData] = useState<TagihanData[]>([
+    {
+      id: 'INV-001',
+      namaCustomer: 'Budi Santoso',
+      perumahan: 'Puri Safana',
+      blok: 'A-01',
+      pembayaran: 'Cicilan Bertahap ke-1',
+      nominal: 15000000,
+      jatuhTempo: '2026-05-01',
+      status: 'Lunas',
+      fileBukti: 'bukti_tf_budi.pdf',
+      reminderBerikutnya: '',
+    },
+    {
+      id: 'INV-002',
+      namaCustomer: 'Andi Pratama',
+      perumahan: 'Puri Safana',
+      blok: 'B-12',
+      pembayaran: 'Cicilan Bertahap ke-2',
+      nominal: 4500000,
+      jatuhTempo: '2026-05-15',
+      status: 'Belum Bayar',
+      fileBukti: '',
+      reminderBerikutnya: '2026-06-15',
+    }
+  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<TagihanData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof TagihanData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
+  const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
+  const [printTitle, setPrintTitle] = useState('');
+
+  const columns = [
+    { header: 'No. Tagihan', accessor: 'id' },
+    { header: 'Nama Customer', accessor: 'namaCustomer' },
+    { header: 'Kavling', accessor: 'blok' },
+    { header: 'Pembayaran', accessor: 'pembayaran' },
+    {
+      header: 'Nominal',
+      accessor: 'nominal',
+      render: (val: number) => <span className="font-bold text-slate-800">{formatRupiah(val)}</span>
+    },
+    {
+      header: 'Jatuh Tempo',
+      accessor: 'jatuhTempo',
+      render: (val: string) => formatDate(val)
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        const bg = val === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+        return <span className={`px-2 py-1 rounded-full text-xs font-bold ${bg}`}>{val}</span>;
+      }
+    },
+    {
+      header: 'Reminder Selanjutnya',
+      accessor: 'reminderBerikutnya',
+      render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
+    },
+  ];
+
+  const openModal = (item?: TagihanData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedName = e.target.value;
+    const customer = mockCustomers.find(c => c.name === selectedName);
+    setFormData(prev => ({
+      ...prev,
+      namaCustomer: selectedName,
+      perumahan: customer?.perumahan || '',
+      blok: customer?.blok || ''
+    }));
+    if (errors.namaCustomer) setErrors(prev => ({ ...prev, namaCustomer: undefined }));
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    if (errors[name as keyof TagihanData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({
+        ...prev,
+        [fieldName]: file.name,
+        status: 'Lunas'
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [fieldName]: '',
+        status: 'Belum Bayar'
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof TagihanData, string>> = {};
+    if (!formData.namaCustomer) newErrors.namaCustomer = 'Customer wajib dipilih';
+    if (!formData.pembayaran.trim()) newErrors.pembayaran = 'Keterangan pembayaran wajib diisi';
+    if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
+    if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `INV-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: TagihanData) => {
+    if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  const expandedRowRender = (row: TagihanData) => {
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+          <h4 className="text-sm font-bold text-slate-800">Manajemen Invoice & Pembayaran Tagihan</h4>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Tagihan'); setPrintData({ ...row, nominalCetak: row.nominal }); }} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+            <FileText size={14} /> Generate Invoice
+          </button>
+          {row.status === 'Lunas' ? (
+            <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Pembayaran'); setPrintData({ ...row, nominalCetak: row.nominal }); }} className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-md">
+              <Printer size={14} /> Cetak Kwitansi
+            </button>
+          ) : (
+            <button onClick={() => openModal(row)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md">
+              <UploadCloud size={14} /> Upload Bukti Bayar
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Data Tagihan Customer"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+        expandedRowRender={expandedRowRender}
+      />
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Tagihan / Upload Bukti" : "Buat Tagihan Baru"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
+            <span className="text-sm font-semibold text-gray-800">Status Pembayaran</span>
+            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${formData.status === 'Lunas' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
+              {formData.status}
+            </span>
+          </div>
+          <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
+            <Select
+              label="Pilih Customer"
+              name="namaCustomer"
+              value={formData.namaCustomer}
+              onChange={handleCustomerChange}
+              error={errors.namaCustomer}
+              options={mockCustomers.map(c => ({ value: c.name, label: `${c.name} (${c.perumahan} - ${c.blok})` }))}
+            />
+            {formData.namaCustomer && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
+                <Input label="Blok/Unit" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
+              </div>
+            )}
+          </div>
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan & Reminder</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Input
+                  label="Pembayaran (Deskripsi)"
+                  name="pembayaran"
+                  value={formData.pembayaran}
+                  onChange={handleChange}
+                  error={errors.pembayaran}
+                  placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP"
+                />
+              </div>
+              <Input
+                label="Nominal (Rp)"
+                type="number"
+                name="nominal"
+                value={formData.nominal === 0 ? '' : formData.nominal}
+                onChange={handleChange}
+                error={errors.nominal}
+                placeholder="0"
+              />
+              <Input
+                label="Jatuh Tempo"
+                type="date"
+                name="jatuhTempo"
+                value={formData.jatuhTempo}
+                onChange={handleChange}
+                error={errors.jatuhTempo}
+              />
+              <div className="md:col-span-2 mt-2">
+                <Input
+                  label="Reminder Tagihan Berikutnya (Opsional)"
+                  type="date"
+                  name="reminderBerikutnya"
+                  value={formData.reminderBerikutnya}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Form Upload hanya muncul saat mode edit/upload bukti */}
+          {isEditing && (
+            <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
+              <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
+              <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
+                Upload bukti transfer dari pihak pelanggan di sini. Sistem akan otomatis mengubah status tagihan menjadi <strong className="text-green-700">LUNAS</strong> jika file berhasil dilampirkan.
+              </p>
+              <FileInput
+                label="Upload Bukti Transfer"
+                accept="image/*,.pdf"
+                onChange={(e) => handleFileChange(e, 'fileBukti')}
+              />
+              {formData.fileBukti && (
+                <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                  File tersimpan: {formData.fileBukti}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              Simpan Tagihan
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal Pratinjau Print Invoice / Kwitansi */}
+      <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
+        {printData && (
+          <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-xl" id="print-area">
+            <div className="text-center mb-8 border-b border-slate-200 pb-6">
+              <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900">{printType === 'invoice' ? 'INVOICE' : 'KWITANSI PEMBAYARAN'}</h2>
+              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.id} / BMT / {new Date().getFullYear()}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
+              <div>
+                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Diterima Dari / Kepada Yth:</p>
+                <p className="font-black text-lg text-slate-800">{printData.namaCustomer}</p>
+                <p className="text-slate-600 font-medium">{printData.perumahan} - Blok {printData.blok}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Tanggal Cetak:</p>
+                <p className="font-bold text-slate-800">{formatDate(new Date().toISOString())}</p>
+              </div>
+            </div>
+            <div className="mb-8">
+              <p className="text-slate-400 font-bold mb-2 uppercase tracking-wider text-[10px]">Keterangan Pembayaran:</p>
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl font-medium text-slate-700">
+                {printData.pembayaran || printTitle} untuk unit Kavling {printData.perumahan} Blok {printData.blok}.
+              </div>
+            </div>
+            <div className="flex justify-between items-center p-5 bg-slate-100 rounded-xl border border-slate-200">
+              <p className="font-black text-slate-700 uppercase tracking-widest text-sm">Total Nominal</p>
+              <p className="text-2xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</p>
+            </div>
+            <div className="mt-16 flex justify-end">
+              <div className="text-center">
+                <p className="text-slate-500 mb-16 font-medium">Hormat Kami,</p>
+                <p className="font-bold border-b border-slate-300 pb-1 text-slate-800">Finance Dept.</p>
+                <p className="text-xs text-slate-400 mt-1 font-bold">Bumantaraz</p>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
+          <button onClick={() => {
+            alert('Membuka browser print dialog');
+          }} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg shadow-black/10 flex items-center gap-2">
+            <Printer size={16} /> Cetak Dokumen
+          </button>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default Tagihan;
 </file>
 
 <file path="src/pages/Dashboard.tsx">
@@ -5728,7 +5718,8 @@ import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import { formatDate, formatRupiah } from "../../utils/formatters";
-import { FileText, Receipt, Printer } from 'lucide-react';
+import { FileText, Receipt, Printer, UploadCloud } from 'lucide-react';
+
 interface PenjualanData {
   id: string;
   tanggal: string;
@@ -5756,7 +5747,10 @@ interface PenjualanData {
   status: string;
   agent: string;
   jumlahCicilanTerbayar?: number;
+  fileBuktiBooking?: string;
+  fileBuktiDp?: string;
 }
+
 const initialFormState: PenjualanData = {
   id: '',
   tanggal: '',
@@ -5783,8 +5777,12 @@ const initialFormState: PenjualanData = {
   bookingFee: 5000000,
   status: 'Booked',
   agent: '',
+  fileBuktiBooking: '',
+  fileBuktiDp: '',
 };
+
 const mockPerumahanList = ['Puri Safana'];
+
 const Penjualan = () => {
   const [data, setData] = useState<PenjualanData[]>([
     {
@@ -5798,7 +5796,9 @@ const Penjualan = () => {
       caraPembayaran: 'KPR',
       status: 'Booking',
       agent: 'Andi Pratama',
-      jumlahCicilanTerbayar: 2
+      jumlahCicilanTerbayar: 2,
+      fileBuktiBooking: 'bukti_booking_budi.pdf',
+      fileBuktiDp: ''
     }
   ]);
   const [agentList, setAgentList] = useState<string[]>(['Andi Pratama', 'Rina Wijaya']);
@@ -5810,6 +5810,7 @@ const Penjualan = () => {
   const [printData, setPrintData] = useState<any>(null);
   const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
   const [printTitle, setPrintTitle] = useState('');
+
   const columns = [
     { header: 'ID Penjualan', accessor: 'id' },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
@@ -5827,6 +5828,7 @@ const Penjualan = () => {
       )
     },
   ];
+
   const openModal = (item?: PenjualanData) => {
     if (item) {
       setFormData(item);
@@ -5847,11 +5849,13 @@ const Penjualan = () => {
     setErrors({});
     setIsModalOpen(true);
   };
+
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
     setIsNewAgent(false);
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     if (name === 'caraPembayaran' && value !== 'KPR') {
@@ -5870,12 +5874,14 @@ const Penjualan = () => {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
     }
   };
+
   const validateForm = () => {
     const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
@@ -5892,6 +5898,7 @@ const Penjualan = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -5908,11 +5915,13 @@ const Penjualan = () => {
     }
     closeModal();
   };
+
   const handleDelete = (item: PenjualanData) => {
     if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
       setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
+
   const expandedRowRender = (row: PenjualanData) => {
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
@@ -5926,21 +5935,36 @@ const Penjualan = () => {
           <div>
             <h5 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Tindakan Dokumen (DP & Booking)</h5>
             <div className="flex flex-col gap-2">
+              {/* BOOKING */}
               <div className="flex items-center gap-2">
                 <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Booking Fee'); setPrintData({ ...row, nominalCetak: row.bookingFee }); }} className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
                   <FileText size={14} /> Invoice Booking
                 </button>
-                <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Booking Fee'); setPrintData({ ...row, nominalCetak: row.bookingFee }); }} className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
-                  <Receipt size={14} /> Kwitansi Booking
-                </button>
+                {row.fileBuktiBooking ? (
+                  <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Booking Fee'); setPrintData({ ...row, nominalCetak: row.bookingFee }); }} className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
+                    <Receipt size={14} /> Kwitansi Booking
+                  </button>
+                ) : (
+                  <button onClick={() => openModal(row)} className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                    <UploadCloud size={14} /> Upload Bukti
+                  </button>
+                )}
               </div>
+
+              {/* DOWN PAYMENT */}
               <div className="flex items-center gap-2">
                 <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Down Payment (DP)'); setPrintData({ ...row, nominalCetak: row.dp }); }} className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
                   <FileText size={14} /> Invoice DP
                 </button>
-                <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Down Payment (DP)'); setPrintData({ ...row, nominalCetak: row.dp }); }} className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
-                  <Receipt size={14} /> Kwitansi DP
-                </button>
+                {row.fileBuktiDp ? (
+                  <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Down Payment (DP)'); setPrintData({ ...row, nominalCetak: row.dp }); }} className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
+                    <Receipt size={14} /> Kwitansi DP
+                  </button>
+                ) : (
+                  <button onClick={() => openModal(row)} className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
+                    <UploadCloud size={14} /> Upload Bukti
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -5956,6 +5980,7 @@ const Penjualan = () => {
       </div>
     );
   };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
@@ -5967,7 +5992,7 @@ const Penjualan = () => {
         onDelete={handleDelete}
         expandedRowRender={expandedRowRender}
       />
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan" : "Tambah Penjualan Baru"}>
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan / Upload Bukti" : "Tambah Penjualan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
@@ -6127,6 +6152,24 @@ const Penjualan = () => {
               />
             </div>
           </div>
+
+          {/* Form Upload Transfer hanya muncul di mode EDIT */}
+          {isEditing && (
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+              <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">6. Upload Bukti Transfer</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <FileInput label="Bukti Transfer Booking" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileBuktiBooking')} />
+                  {formData.fileBuktiBooking && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileBuktiBooking}</p>}
+                </div>
+                <div>
+                  <FileInput label="Bukti Transfer DP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileBuktiDp')} />
+                  {formData.fileBuktiDp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileBuktiDp}</p>}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
               Batal
@@ -6137,6 +6180,7 @@ const Penjualan = () => {
           </div>
         </form>
       </Modal>
+
       {/* Modal Pratinjau Print Invoice / Kwitansi */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
@@ -6187,6 +6231,7 @@ const Penjualan = () => {
     </div>
   );
 };
+
 export default Penjualan;
 </file>
 
