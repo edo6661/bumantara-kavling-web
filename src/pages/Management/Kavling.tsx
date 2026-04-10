@@ -11,9 +11,9 @@ interface KavlingMasterData {
   perumahan: string;
   blok: string;
   nomorUnit: string;
-  namaTipe: string; // <-- DIUBAH DARI tipe
-  luasBangunan: number; // <-- TAMBAHAN BARU
-  luasTanah: number; // <-- TAMBAHAN BARU
+  namaTipe: string;
+  luasBangunan: number;
+  luasTanah: number;
   hargaJual: number;
   status: string;
   rekeningTujuan: string;
@@ -43,6 +43,13 @@ const mockBankList = [
   { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
 ];
 
+const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
+  Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
+  Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
+  Aruna: { lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
+  Ansara: { lb: 36, lt: [60, 103, 120, 122, 132, 143] }
+};
+
 const Kavling = () => {
   const [data, setData] = useState<KavlingMasterData[]>([]);
 
@@ -59,7 +66,7 @@ const Kavling = () => {
 
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan' },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: any, row: KavlingMasterData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Nama Tipe', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: any, row: KavlingMasterData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
@@ -115,7 +122,17 @@ const Kavling = () => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
 
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    setFormData((prev) => {
+      const updates: Partial<KavlingMasterData> = { [name]: parsedValue };
+
+      if (name === 'namaTipe') {
+        const selectedKavling = KAVLING_DATA[value];
+        updates.luasBangunan = selectedKavling ? selectedKavling.lb : 0;
+        updates.luasTanah = 0;
+      }
+
+      return { ...prev, ...updates } as KavlingMasterData;
+    });
 
     if (errors[name as keyof KavlingMasterData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
@@ -246,10 +263,40 @@ const Kavling = () => {
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
               <div className="md:col-span-2">
-                <Input label="Nama Tipe" name="namaTipe" value={formData.namaTipe} onChange={handleChange} error={errors.namaTipe} placeholder="Contoh: Tipe 45" />
+                <Select
+                  label="Nama Tipe"
+                  name="namaTipe"
+                  value={formData.namaTipe}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: '-- Pilih Tipe --' },
+                    ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))
+                  ]}
+                  error={errors.namaTipe}
+                />
               </div>
-              <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} placeholder="0" />
-              <Input label="Luas Tanah (m²)" type="number" name="luasTanah" value={formData.luasTanah === 0 ? '' : formData.luasTanah} onChange={handleChange} error={errors.luasTanah} placeholder="0" />
+              <Input
+                label="Luas Bangunan (m²)"
+                type="number"
+                name="luasBangunan"
+                value={formData.luasBangunan || ''}
+                onChange={handleChange}
+                error={errors.luasBangunan}
+                readOnly
+              />
+              <Select
+                label="Luas Tanah (m²)"
+                name="luasTanah"
+                value={formData.luasTanah || ''}
+                onChange={handleChange}
+                error={errors.luasTanah}
+                options={[
+                  { value: '', label: '-- Pilih LT --' },
+                  ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe]
+                    ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }))
+                    : [])
+                ]}
+              />
               <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
 
               <div className="md:col-span-2">
