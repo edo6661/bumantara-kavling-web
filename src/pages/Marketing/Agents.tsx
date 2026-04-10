@@ -9,12 +9,8 @@ import {
   useUpdateAgent,
   useDeleteAgent
 } from "../../hooks/queries/useAgent";
-import type {
-  AgentData,
-  PicAgentData,
-  CreateAgentDTO,
-  PenjualanAgentData
-} from "../../services/agent.service";
+import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
+
 
 interface AgentFormState {
   id: number | '';

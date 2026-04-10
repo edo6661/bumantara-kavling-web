@@ -142,7 +142,7 @@ const Notaris = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Filter out empty PICs before saving
+
     const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
     const finalData = { ...formData, pics: validPics };
 
@@ -162,7 +162,7 @@ const Notaris = () => {
   };
 
   const expandedRowRender = (row: NotarisData) => {
-    // Simulasi data AJB/Kavling yang ditangani notaris ini
+
     const relatedAjb = [
       { id: 'PJL-01', customer: 'Budi Santoso', kavling: 'Puri Safana (A-01)' },
       { id: 'PJL-02', customer: 'Andi Pratama', kavling: 'Puri Safana (B-12)' },
