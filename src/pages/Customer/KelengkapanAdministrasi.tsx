@@ -1,306 +1,182 @@
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
-import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
-import Input from "../../components/shared/Input";
-
-interface AdministrasiData {
-  id: string;
-  customerId: string;
-  customerName: string;
-  perumahan: string;
-  blok: string;
-  tipe: string;
-  unit: string;
-  fileKtp: string;
-  fileKk: string;
-  fileNpwp: string;
-}
-
-const initialFormState: AdministrasiData = {
-  id: '',
-  customerId: '',
-  customerName: '',
-  perumahan: '',
-  blok: '',
-  tipe: '',
-  unit: '',
-  fileKtp: '',
-  fileKk: '',
-  fileNpwp: '',
-};
-
-// Mock data customer yang diperkaya dengan data pembelian unitnya
-const mockCustomers = [
-  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A', tipe: '45/90', unit: '01' },
-  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B', tipe: '60/120', unit: '12' },
-  { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C', tipe: '36/72', unit: '05' },
-  { id: 'CUST-004', name: 'Rina Wijaya', perumahan: 'Puri Safana', blok: 'D', tipe: '45/90', unit: '08' },
-];
-
+import PageLoader from "../PageLoader";
+import { useGetCustomers, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
+import type { CustomerData, CustomerDocType } from "../../services/customer.service";
+import { XCircle, FileUp, ImageIcon, ZoomIn } from "lucide-react";
 const KelengkapanAdministrasi = () => {
-
-  const [data, setData] = useState<AdministrasiData[]>([
-    {
-      id: '1',
-      customerId: 'CUST-001',
-      customerName: 'Budi Santoso',
-      perumahan: 'Puri Safana',
-      blok: 'A',
-      tipe: '45/90',
-      unit: '01',
-      fileKtp: 'KTP_Budi.pdf',
-      fileKk: 'KK_Budi.pdf',
-      fileNpwp: '',
-    }
-  ]);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<AdministrasiData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<AdministrasiData>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
+  const { data: customers = [], isLoading } = useGetCustomers();
+  const uploadMutation = useUploadCustomerDoc();
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const renderTableThumbnail = (url: string | null) => {
+    if (!url) return (
+      <div className="flex items-center gap-2 text-red-400 font-medium text-[10px] uppercase tracking-wider">
+        <XCircle size={14} /> Kosong
+      </div>
+    );
+    return (
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          setPreviewImage(url);
+        }}
+        className="relative w-12 h-8 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group"
+      >
+        <img src={url} alt="Dokumen" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <ZoomIn size={12} className="text-white" />
+        </div>
+      </div>
+    );
+  };
   const columns = [
-    { header: 'Nama Customer', accessor: 'customerName' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    {
-      header: 'Kavling',
-      accessor: 'blok',
-      render: (_: any, row: AdministrasiData) => (
-        <span className="font-medium text-slate-700">Blok {row.blok} - {row.unit} (Tipe {row.tipe})</span>
-      )
-    },
+    { header: 'Nama Customer', accessor: 'nama' },
     {
       header: 'KTP',
       accessor: 'fileKtp',
-      render: (val: string) => val ? <span className="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded border border-green-200">Ada</span> : <span className="text-red-400 text-xs">-</span>
+      render: (val: string | null) => renderTableThumbnail(val)
     },
     {
-      header: 'Kartu Keluarga',
+      header: 'KK',
       accessor: 'fileKk',
-      render: (val: string) => val ? <span className="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded border border-green-200">Ada</span> : <span className="text-red-400 text-xs">-</span>
+      render: (val: string | null) => renderTableThumbnail(val)
     },
     {
       header: 'NPWP',
       accessor: 'fileNpwp',
-      render: (val: string) => val ? <span className="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded border border-green-200">Ada</span> : <span className="text-red-400 text-xs">-</span>
+      render: (val: string | null) => renderTableThumbnail(val)
     },
   ];
-
-  const openModal = (item?: AdministrasiData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedId = e.target.value;
-    const selectedCustomer = mockCustomers.find(c => c.id === selectedId);
-
-    // Auto-fill data perumahan saat customer dipilih
-    setFormData((prev) => ({
-      ...prev,
-      customerId: selectedId,
-      customerName: selectedCustomer ? selectedCustomer.name : '',
-      perumahan: selectedCustomer ? selectedCustomer.perumahan : '',
-      blok: selectedCustomer ? selectedCustomer.blok : '',
-      tipe: selectedCustomer ? selectedCustomer.tipe : '',
-      unit: selectedCustomer ? selectedCustomer.unit : '',
-    }));
-
-    if (errors.customerId) {
-      setErrors((prev) => ({ ...prev, customerId: undefined }));
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof AdministrasiData) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: CustomerDocType) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    if (!file || !selectedCustomer) return;
+    if (!file.type.startsWith('image/')) {
+      alert("Hanya file gambar yang diperbolehkan!");
+      e.target.value = "";
+      return;
+    }
+    try {
+      await uploadMutation.mutateAsync({
+        id: selectedCustomer.id,
+        docType,
+        file
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal mengunggah gambar");
     }
   };
-
-  const validateForm = () => {
-    const newErrors: Partial<AdministrasiData> = {};
-    if (!formData.customerId) newErrors.customerId = 'Customer wajib dipilih';
-    if (!formData.perumahan) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.unit) newErrors.unit = 'Unit wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newData = { ...formData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: AdministrasiData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus data administrasi untuk ${item.customerName}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
+  if (isLoading) return <PageLoader />;
   return (
     <div className="space-y-6">
       <DataTable
-        title="Data Kelengkapan Administrasi"
+        title="Administrasi Berkas Gambar"
         columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
+        data={customers}
+        onEdit={(item) => {
+          setSelectedCustomer(item as CustomerData);
+          setIsManageModalOpen(true);
+        }}
       />
-
+      {/* MODAL 1: KELOLA & UPLOAD */}
       <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Kelengkapan Administrasi" : "Tambah Kelengkapan Administrasi"}
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        title={`Manajemen Berkas: ${selectedCustomer?.nama}`}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Pilih Customer</h4>
-            <Select
-              label="Pilih Customer Pembeli"
-              name="customerId"
-              value={formData.customerId}
-              onChange={handleCustomerChange}
-              error={errors.customerId}
-              options={mockCustomers.map(c => ({ value: c.id, label: c.name }))}
-              disabled={isEditing}
-            />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(['fileKtp', 'fileKk', 'fileNpwp'] as CustomerDocType[]).map((type) => (
+              <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  {type.replace('file', '')}
+                </span>
+                {/* Box Preview di dalam Form */}
+                <div
+                  onClick={() => selectedCustomer?.[type] && setPreviewImage(selectedCustomer[type])}
+                  className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all
+                    ${selectedCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'}`}
+                >
+                  {selectedCustomer?.[type] ? (
+                    <>
+                      <img
+                        src={selectedCustomer[type]!}
+                        alt={type}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <ZoomIn size={20} className="text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-slate-400">
+                      <ImageIcon size={24} strokeWidth={1.5} />
+                      <span className="text-[9px] font-bold">KOSONG</span>
+                    </div>
+                  )}
+                </div>
+                <FileInput
+                  label="Ganti Gambar"
+                  accept="image/*"
+                  onChange={(e) => handleUpload(e, type)}
+                  disabled={uploadMutation.isPending}
+                />
+              </div>
+            ))}
           </div>
-
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <h4 className="text-sm font-semibold text-blue-900 mb-4 border-b border-blue-200 pb-2">2. Detail Unit Pembelian</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Input
-                  label="Nama Perumahan"
-                  name="perumahan"
-                  value={formData.perumahan}
-                  onChange={handleChange}
-                  error={errors.perumahan}
-                  placeholder="Contoh: Puri Safana"
-                />
-              </div>
-              <Input
-                label="Blok"
-                name="blok"
-                value={formData.blok}
-                onChange={handleChange}
-                error={errors.blok}
-                placeholder="Contoh: A"
-              />
-              <Input
-                label="Nomor Unit"
-                name="unit"
-                value={formData.unit}
-                onChange={handleChange}
-                error={errors.unit}
-                placeholder="Contoh: 01"
-              />
-              <div className="md:col-span-2">
-                <Input
-                  label="Tipe Bangunan (Opsional)"
-                  name="tipe"
-                  value={formData.tipe}
-                  onChange={handleChange}
-                  placeholder="Contoh: 45/90"
-                />
-              </div>
+          {uploadMutation.isPending && (
+            <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-xs animate-pulse">
+              <FileUp size={16} /> Sedang Menyinkronkan...
             </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Upload Berkas Legal</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border border-gray-200 p-3 rounded-lg bg-white shadow-sm">
-                <FileInput
-                  label="Upload KTP"
-                  accept="image/*,.pdf"
-                  onChange={(e) => handleFileChange(e, 'fileKtp')}
-                />
-                {formData.fileKtp && (
-                  <p className="text-xs text-green-600 mt-1 truncate">
-                    File tersimpan: <span className="font-medium">{formData.fileKtp}</span>
-                  </p>
-                )}
-              </div>
-
-              <div className="border border-gray-200 p-3 rounded-lg bg-white shadow-sm">
-                <FileInput
-                  label="Upload Kartu Keluarga (KK)"
-                  accept="image/*,.pdf"
-                  onChange={(e) => handleFileChange(e, 'fileKk')}
-                />
-                {formData.fileKk && (
-                  <p className="text-xs text-green-600 mt-1 truncate">
-                    File tersimpan: <span className="font-medium">{formData.fileKk}</span>
-                  </p>
-                )}
-              </div>
-
-              <div className="border border-gray-200 p-3 rounded-lg bg-white shadow-sm md:col-span-2">
-                <FileInput
-                  label="Upload NPWP (Opsional)"
-                  accept="image/*,.pdf"
-                  onChange={(e) => handleFileChange(e, 'fileNpwp')}
-                />
-                {formData.fileNpwp && (
-                  <p className="text-xs text-green-600 mt-1 truncate">
-                    File tersimpan: <span className="font-medium">{formData.fileNpwp}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+          )}
+          <div className="flex justify-end pt-4 border-t">
             <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
+              onClick={() => setIsManageModalOpen(false)}
+              className="px-8 py-2 bg-black text-white rounded-xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-800 cursor-pointer"
             >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer shadow-lg shadow-black/10"
-            >
-              Simpan Administrasi
+              Simpan & Tutup
             </button>
           </div>
-        </form>
+        </div>
+      </Modal>
+      {/* MODAL 2: LIGHTBOX (PREVIEW BESAR) */}
+      <Modal
+        isOpen={!!previewImage}
+        onClose={() => setPreviewImage(null)}
+        title="Pratinjau Dokumen"
+      >
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              <img
+                src={previewImage}
+                alt="Preview Full"
+                className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain"
+              />
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a
+              href={previewImage || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+            >
+              Buka Tab Baru
+            </a>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
 };
-
 export default KelengkapanAdministrasi;

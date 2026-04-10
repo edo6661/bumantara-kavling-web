@@ -1,25 +1,18 @@
+// src/pages/Customer/DataSosial.tsx
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
+import PageLoader from "../PageLoader";
+import {
+  useGetCustomers,
+  useCreateCustomer,
+  useUpdateCustomer,
+  useDeleteCustomer
+} from "../../hooks/queries/useCustomer";
+import type { CustomerData, CreateCustomerDTO } from "../../services/customer.service";
 
-
-interface CustomerData {
-  id: string;
-  nikKtp: string;
-  nama: string;
-  noHp: string;
-  email: string;
-  pekerjaan: string;
-  perusahaan: string;
-  bank: string;
-  alamatKtp: string;
-  alamatTinggal: string;
-  alamatKoresponden: string;
-}
-
-const initialFormState: CustomerData = {
-  id: '',
+const initialFormState: CreateCustomerDTO = {
   nikKtp: '',
   nama: '',
   noHp: '',
@@ -33,103 +26,96 @@ const initialFormState: CustomerData = {
 };
 
 const DataSosial = () => {
-
-  const [data, setData] = useState<CustomerData[]>([
-    {
-      id: '1',
-      nama: 'Budi Santoso',
-      alamatKtp: 'Jl. Merdeka No. 1, Tangerang',
-      alamatTinggal: 'Jl. Merdeka No. 1, Tangerang',
-      alamatKoresponden: 'Jl. Merdeka No. 1, Tangerang',
-      nikKtp: '3671012345670001',
-      noHp: '081234567890',
-      email: 'budi@example.com',
-      pekerjaan: 'Pegawai Swasta',
-      perusahaan: 'PT Maju Jaya',
-      bank: 'BCA'
-    }
-  ]);
+  const { data: customers = [], isLoading } = useGetCustomers();
+  const createMutation = useCreateCustomer();
+  const updateMutation = useUpdateCustomer();
+  const deleteMutation = useDeleteCustomer();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<CustomerData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<CustomerData>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
+  const [formData, setFormData] = useState<CreateCustomerDTO>(initialFormState);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof CreateCustomerDTO, string>>>({});
 
   const columns = [
     { header: 'NIK', accessor: 'nikKtp' },
     { header: 'Nama Lengkap', accessor: 'nama' },
     { header: 'No. WhatsApp', accessor: 'noHp' },
-    { header: 'Pekerjaan', accessor: 'pekerjaan' },
-    { header: 'Bank', accessor: 'bank' },
+    { header: 'Pekerjaan', accessor: 'pekerjaan', render: (val: string) => val || '-' },
+    { header: 'Bank', accessor: 'bank', render: (val: string) => val || '-' },
   ];
 
   const openModal = (item?: CustomerData) => {
     if (item) {
-      setFormData(item);
-      setIsEditing(true);
+      setFormData({
+        nikKtp: item.nikKtp,
+        nama: item.nama,
+        noHp: item.noHp,
+        email: item.email || '',
+        pekerjaan: item.pekerjaan || '',
+        perusahaan: item.perusahaan || '',
+        bank: item.bank || '',
+        alamatKtp: item.alamatKtp,
+        alamatTinggal: item.alamatTinggal || '',
+        alamatKoresponden: item.alamatKoresponden || ''
+      });
+      setEditingId(item.id);
     } else {
       setFormData(initialFormState);
-      setIsEditing(false);
+      setEditingId(null);
     }
     setErrors({});
     setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (errors[name as keyof CustomerData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name as keyof CreateCustomerDTO]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
   const validateForm = () => {
-    const newErrors: Partial<CustomerData> = {};
+    const newErrors: Partial<Record<keyof CreateCustomerDTO, string>> = {};
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.nikKtp.trim() || formData.nikKtp.length !== 16) {
-      newErrors.nikKtp = 'NIK wajib diisi 16 digit';
-    }
+    if (formData.nikKtp.length !== 16) newErrors.nikKtp = 'NIK harus 16 digit';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    if (!formData.email.trim()) newErrors.email = 'Email wajib diisi';
     if (!formData.alamatKtp.trim()) newErrors.alamatKtp = 'Alamat KTP wajib diisi';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-
-      const newData = { ...formData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: CustomerData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus data ${item.nama}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({ id: editingId, data: formData });
+      } else {
+        await createMutation.mutateAsync(formData);
+      }
+      setIsModalOpen(false);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal menyimpan data");
     }
   };
+
+  const handleDelete = async (item: CustomerData) => {
+    if (window.confirm(`Hapus data ${item.nama}?`)) {
+      await deleteMutation.mutateAsync(item.id);
+    }
+  };
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="space-y-6">
       <DataTable
         title="Data Sosial Customer"
         columns={columns}
-        data={data}
+        data={customers}
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item as CustomerData)}
         onDelete={(item) => handleDelete(item as CustomerData)}
@@ -137,102 +123,26 @@ const DataSosial = () => {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Data Sosial Customer" : "Tambah Data Sosial Customer"}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? "Edit Data Sosial" : "Tambah Data Sosial"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Nama Sesuai KTP"
-              name="nama"
-              value={formData.nama}
-              onChange={handleChange}
-              error={errors.nama}
-              placeholder="Masukkan nama lengkap"
-            />
-            <Input
-              label="NIK"
-              name="nikKtp"
-              value={formData.nikKtp}
-              onChange={handleChange}
-              error={errors.nikKtp}
-              placeholder="Masukkan 16 digit NIK"
-            />
-            <Input
-              label="No. WhatsApp / HP"
-              name="noHp"
-              value={formData.noHp}
-              onChange={handleChange}
-              error={errors.noHp}
-              placeholder="08xxxxxxxxxx"
-            />
-            <Input
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={errors.email}
-              placeholder="email@example.com"
-            />
-            <Input
-              label="Pekerjaan"
-              name="pekerjaan"
-              value={formData.pekerjaan}
-              onChange={handleChange}
-              placeholder="PNS / Swasta / Wiraswasta"
-            />
-            <Input
-              label="Perusahaan"
-              name="perusahaan"
-              value={formData.perusahaan}
-              onChange={handleChange}
-              placeholder="Nama Perusahaan"
-            />
-            <Input
-              label="Bank / Bank KPR"
-              name="bank"
-              value={formData.bank}
-              onChange={handleChange}
-              placeholder="BCA / Mandiri / BTN"
-            />
-            <Input
-              label="Alamat Sesuai KTP"
-              name="alamatKtp"
-              value={formData.alamatKtp}
-              onChange={handleChange}
-              error={errors.alamatKtp}
-              placeholder="Masukkan alamat KTP"
-            />
-            <Input
-              label="Alamat Tinggal Sekarang"
-              name="alamatTinggal"
-              value={formData.alamatTinggal}
-              onChange={handleChange}
-              placeholder="Masukkan alamat domisili"
-            />
-            <Input
-              label="Alamat Korespondensi"
-              name="alamatKoresponden"
-              value={formData.alamatKoresponden}
-              onChange={handleChange}
-              placeholder="Masukkan alamat surat-menyurat"
-            />
+            <Input label="Nama Sesuai KTP" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
+            <Input label="NIK (16 Digit)" name="nikKtp" value={formData.nikKtp} onChange={handleChange} error={errors.nikKtp} maxLength={16} />
+            <Input label="No. WhatsApp" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} />
+            <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} />
+            <Input label="Pekerjaan" name="pekerjaan" value={formData.pekerjaan} onChange={handleChange} />
+            <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
+            <Input label="Bank" name="bank" value={formData.bank} onChange={handleChange} />
+            <Input label="Alamat KTP" name="alamatKtp" value={formData.alamatKtp} onChange={handleChange} error={errors.alamatKtp} />
+            <Input label="Alamat Tinggal" name="alamatTinggal" value={formData.alamatTinggal} onChange={handleChange} />
+            <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
           </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded hover:bg-gray-800 cursor-pointer"
-            >
-              Simpan Data
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm text-gray-700 bg-white border rounded-md hover:bg-gray-50">Batal</button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50">
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
             </button>
           </div>
         </form>
