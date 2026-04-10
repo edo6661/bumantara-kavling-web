@@ -66,7 +66,6 @@ interface KavlingData {
   ajbSelisihPajakPbb: number;
   ajbUping: number;
   notarisName: string;
-  notarisBiayaAjb: number;
 }
 
 const initialFormState: KavlingData = {
@@ -78,7 +77,6 @@ const initialFormState: KavlingData = {
   pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
   ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
   notarisName: '',
-  notarisBiayaAjb: 0,
 };
 
 const mockNotaris = [
@@ -106,7 +104,6 @@ const initialMockData: KavlingData[] = [
     nrNilaiPenyerahan: 515000000,
     pjNilaiPenyerahan: 515000000,
     notarisName: 'Notaris PPAT Budi Hartono, S.H., M.Kn.',
-    notarisBiayaAjb: 2500000
   },
   {
     ...initialFormState,
@@ -126,7 +123,6 @@ const initialMockData: KavlingData[] = [
     totalHargaJual: 870000000,
     nrNilaiPenyerahan: 870000000,
     pjNilaiPenyerahan: 870000000,
-    notarisBiayaAjb: 0
   }
 ];
 
@@ -383,15 +379,7 @@ const CustomerKavling = () => {
                   options={mockNotaris.map(n => ({ value: n.name, label: n.name }))}
                 />
               </div>
-              <div className="md:col-span-2">
-                <Input
-                  label="Biaya AJB"
-                  type="number"
-                  name="notarisBiayaAjb"
-                  value={formData.notarisBiayaAjb || ''}
-                  onChange={handleChange}
-                />
-              </div>
+
             </div>
           )}
 

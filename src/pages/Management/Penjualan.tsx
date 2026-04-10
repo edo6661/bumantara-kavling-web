@@ -122,7 +122,7 @@ const Penjualan = () => {
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
     { header: 'Nama Customer', accessor: 'nama' },
     { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Kavling', accessor: 'blok', render: (_: any, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Kavling', accessor: 'blok', render: (_: unknown, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
     {
       header: 'Status',
@@ -166,7 +166,7 @@ const Penjualan = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
 
-    let finalValue: any = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+    const finalValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
 
     setFormData((prev) => {
       const updates: any = { [name]: finalValue };

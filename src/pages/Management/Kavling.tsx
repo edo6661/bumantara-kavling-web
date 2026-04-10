@@ -5,43 +5,49 @@ import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import { formatRupiah } from "../../utils/formatters";
+import { useAuth } from "../../context/AuthContext";
+import {
+  useGetKavlings,
+  useCreateKavling,
+  useUpdateKavling,
+  useDeleteKavling
+} from "../../hooks/queries/useKavling";
+import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
+import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
+import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
+import { isAxiosError } from 'axios';
 
-interface KavlingMasterData {
-  id: string;
-  perumahan: string;
+interface KavlingFormState {
+  id: number | '';
+  perumahanId: number | '';
   blok: string;
   nomorUnit: string;
   namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaJual: number;
+  luasBangunan: number | '';
+  luasTanah: number | '';
+  hargaJual: number | '';
   status: string;
-  rekeningTujuan: string;
+  rekeningTujuanId: number | '';
   filePbg: string;
   fileSertifikatTanah: string;
   fileNopPbb: string;
 }
 
-const initialFormState: KavlingMasterData = {
+const initialFormState: KavlingFormState = {
   id: '',
-  perumahan: '',
+  perumahanId: '',
   blok: '',
   nomorUnit: '',
   namaTipe: '',
-  luasBangunan: 0,
-  luasTanah: 0,
-  hargaJual: 0,
-  status: 'Available',
-  rekeningTujuan: '',
+  luasBangunan: '',
+  luasTanah: '',
+  hargaJual: '',
+  status: 'AVAILABLE',
+  rekeningTujuanId: '',
   filePbg: '',
   fileSertifikatTanah: '',
   fileNopPbb: '',
 };
-
-const mockBankList = [
-  { id: 'BSI-01', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326575644', atasNama: 'PT. Bintang Safana Gajah' },
-  { id: 'BSI-02', perumahan: 'Puri Safana', namaBank: 'Bank BSI', noRekening: '7326573692', atasNama: 'PT. Bintang Safana Mahligai' }
-];
 
 const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
   Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
@@ -51,36 +57,37 @@ const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
 };
 
 const Kavling = () => {
-  const [data, setData] = useState<KavlingMasterData[]>([]);
+  const { selectedPerumahan } = useAuth();
 
-  const [perumahanList, setPerumahanList] = useState<string[]>([
-    'Puri Safana',
-  ]);
+  const { data: perumahanList = [] } = useGetPerumahan();
+  const { data: bankList = [] } = useGetBankRekening();
+  const { data: kavlingData = [], isLoading } = useGetKavlings(selectedPerumahan ? Number(selectedPerumahan.id) : undefined);
 
-  const [isNewPerumahan, setIsNewPerumahan] = useState(false);
+  const createMutation = useCreateKavling();
+  const updateMutation = useUpdateKavling();
+  const deleteMutation = useDeleteKavling();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<KavlingMasterData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof KavlingMasterData, string>>>({});
+  const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
   const columns = [
-    { header: 'Perumahan', accessor: 'perumahan' },
-
-    { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: any, row: KavlingMasterData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
+    { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Nama Tipe', accessor: 'namaTipe' },
-    { header: 'LB/LT', accessor: 'luasBangunan', render: (_: any, row: KavlingMasterData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
+    { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Jual', accessor: 'hargaJual', render: (val: number) => formatRupiah(val) },
     {
       header: 'Status',
       accessor: 'status',
       render: (val: string) => {
         const getStatusStyle = (status: string) => {
-          switch (status) {
-            case 'Available': return 'bg-green-100 text-green-800';
-            case 'Hold': return 'bg-yellow-100 text-yellow-800';
-            case 'Booking': return 'bg-blue-100 text-blue-800';
-            case 'Terjual': return 'bg-red-100 text-red-800';
+          switch (status?.toUpperCase()) {
+            case 'AVAILABLE': return 'bg-green-100 text-green-800';
+            case 'HOLD': return 'bg-yellow-100 text-yellow-800';
+            case 'BOOKING': return 'bg-blue-100 text-blue-800';
+            case 'TERJUAL': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
           }
         };
@@ -93,20 +100,30 @@ const Kavling = () => {
     },
   ];
 
-  const openModal = (item?: KavlingMasterData) => {
+  const openModal = (item?: KavlingData) => {
     if (item) {
-      setFormData(item);
+      setFormData({
+        id: item.id,
+        perumahanId: item.perumahanId,
+        blok: item.blok,
+        nomorUnit: item.nomorUnit,
+        namaTipe: item.namaTipe,
+        luasBangunan: item.luasBangunan,
+        luasTanah: item.luasTanah,
+        hargaJual: item.hargaJual,
+        status: item.status,
+        rekeningTujuanId: item.rekeningTujuanId || '',
+        filePbg: item.filePbg || '',
+        fileSertifikatTanah: item.fileSertifikatTanah || '',
+        fileNopPbb: item.fileNopPbb || '',
+      });
       setIsEditing(true);
-
-      if (!perumahanList.includes(item.perumahan)) {
-        setIsNewPerumahan(true);
-      } else {
-        setIsNewPerumahan(false);
-      }
     } else {
-      setFormData(initialFormState);
+      setFormData({
+        ...initialFormState,
+        perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '',
+      });
       setIsEditing(false);
-      setIsNewPerumahan(false);
     }
     setErrors({});
     setIsModalOpen(true);
@@ -115,27 +132,30 @@ const Kavling = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
-    setIsNewPerumahan(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+    const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
 
     setFormData((prev) => {
-      const updates: Partial<KavlingMasterData> = { [name]: parsedValue };
+      const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
 
       if (name === 'namaTipe') {
         const selectedKavling = KAVLING_DATA[value];
-        updates.luasBangunan = selectedKavling ? selectedKavling.lb : 0;
-        updates.luasTanah = 0;
+        updates.luasBangunan = selectedKavling ? selectedKavling.lb : '';
+        updates.luasTanah = '';
       }
 
-      return { ...prev, ...updates } as KavlingMasterData;
+      return { ...prev, ...updates };
     });
 
-    if (errors[name as keyof KavlingMasterData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
@@ -147,106 +167,108 @@ const Kavling = () => {
   };
 
   const validateForm = () => {
-    const newErrors: Partial<Record<keyof KavlingMasterData, string>> = {};
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    const newErrors: Record<string, string> = {};
+    if (!formData.perumahanId) newErrors.perumahanId = 'Perumahan wajib dipilih';
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
     if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Nama Tipe wajib diisi';
-    if (formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan harus lebih dari 0';
-    if (formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah harus lebih dari 0';
-    if (formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual harus lebih dari 0';
+    if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
+    if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
+    if (formData.hargaJual === '' || formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual tidak valid';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (isNewPerumahan && formData.perumahan.trim() !== '') {
-      if (!perumahanList.includes(formData.perumahan)) {
-        setPerumahanList(prev => [...prev, formData.perumahan]);
+    const payload: CreateKavlingDTO = {
+      perumahanId: Number(formData.perumahanId),
+      blok: formData.blok,
+      nomorUnit: formData.nomorUnit,
+      namaTipe: formData.namaTipe,
+      luasBangunan: Number(formData.luasBangunan),
+      luasTanah: Number(formData.luasTanah),
+      hargaJual: Number(formData.hargaJual),
+      status: formData.status,
+      rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
+      filePbg: formData.filePbg || undefined,
+      fileSertifikatTanah: formData.fileSertifikatTanah || undefined,
+      fileNopPbb: formData.fileNopPbb || undefined,
+    };
+
+    try {
+      if (isEditing && formData.id !== '') {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: unknown) {
+
+      if (isAxiosError(error) && error.response) {
+        const responseData = error.response.data;
+
+        if (responseData?.error && Array.isArray(responseData.error)) {
+          const backendErrors: Record<string, string> = {};
+          responseData.error.forEach((err: { field: string; message: string }) => {
+            backendErrors[err.field] = err.message;
+          });
+          setErrors(backendErrors);
+        }
+      } else {
+
+        alert('Terjadi kesalahan yang tidak diketahui. Periksa koneksi Anda.');
       }
     }
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      setData((prev) => [...prev, { ...formData, id: Date.now().toString() }]);
-    }
-    closeModal();
   };
 
-  const handleDelete = (item: KavlingMasterData) => {
+  const handleDelete = async (item: KavlingData) => {
     if (window.confirm(`Hapus data kavling Blok ${item.blok} - ${item.nomorUnit}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: unknown) {
+        console.error(error)
+        alert('Gagal menghapus Kavling');
+      }
     }
   };
 
-  const filteredBanks = mockBankList.filter(b => formData.perumahan ? b.perumahan === formData.perumahan : true);
+  const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
+
+  if (isLoading) return <div className="p-4 text-slate-500 font-medium">Memuat data kavling...</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title="Master Data Kavling"
+        title={`Master Data Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
         columns={columns}
-        data={data}
+        data={kavlingData}
         onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
+        onEdit={(item) => openModal(item as KavlingData)}
+        onDelete={(item) => handleDelete(item as KavlingData)}
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
         <form onSubmit={handleSubmit} className="space-y-4">
-
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Utama</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-              <div className="relative">
-                {!isNewPerumahan ? (
-                  <Select
-                    label="Perumahan"
-                    name="perumahan"
-                    value={formData.perumahan}
-                    onChange={(e) => {
-                      if (e.target.value === 'NEW') {
-                        setIsNewPerumahan(true);
-                        setFormData((prev) => ({ ...prev, perumahan: '' }));
-                      } else {
-                        handleChange(e);
-                      }
-                    }}
-                    options={[
-                      ...perumahanList.map(p => ({ value: p, label: p })),
-                      { value: 'NEW', label: '+ Tambah Perumahan Baru...' }
-                    ]}
-                    error={errors.perumahan}
-                  />
-                ) : (
-                  <div className="relative animate-in fade-in zoom-in-95 duration-200">
-                    <Input
-                      label="Nama Perumahan Baru"
-                      name="perumahan"
-                      value={formData.perumahan}
-                      onChange={handleChange}
-                      error={errors.perumahan}
-                      placeholder="Ketik nama perumahan..."
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsNewPerumahan(false);
-                        setFormData((prev) => ({ ...prev, perumahan: '' }));
-                      }}
-                      className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                    >
-                      Batal Tambah
-                    </button>
-                  </div>
-                )}
-              </div>
+              <Select
+                label="Perumahan"
+                name="perumahanId"
+                value={formData.perumahanId}
+                onChange={handleChange}
+                options={[
+                  { value: '', label: '-- Pilih Perumahan --' },
+                  ...perumahanList.map(p => ({ value: p.id, label: p.nama }))
+                ]}
+                error={errors.perumahanId}
+                disabled={isEditing}
+              />
 
               <Select
                 label="Status"
@@ -254,14 +276,15 @@ const Kavling = () => {
                 value={formData.status}
                 onChange={handleChange}
                 options={[
-                  { value: 'Available', label: 'Available' },
-                  { value: 'Hold', label: 'Hold' },
-                  { value: 'Booking', label: 'Booking' },
-                  { value: 'Terjual', label: 'Terjual' }
+                  { value: 'AVAILABLE', label: 'Available' },
+                  { value: 'HOLD', label: 'Hold' },
+                  { value: 'BOOKING', label: 'Booking' },
+                  { value: 'TERJUAL', label: 'Terjual' }
                 ]}
               />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
+
               <div className="md:col-span-2">
                 <Select
                   label="Nama Tipe"
@@ -275,19 +298,21 @@ const Kavling = () => {
                   error={errors.namaTipe}
                 />
               </div>
+
               <Input
                 label="Luas Bangunan (m²)"
                 type="number"
                 name="luasBangunan"
-                value={formData.luasBangunan || ''}
+                value={formData.luasBangunan}
                 onChange={handleChange}
                 error={errors.luasBangunan}
                 readOnly
               />
+
               <Select
                 label="Luas Tanah (m²)"
                 name="luasTanah"
-                value={formData.luasTanah || ''}
+                value={formData.luasTanah}
                 onChange={handleChange}
                 error={errors.luasTanah}
                 options={[
@@ -297,22 +322,23 @@ const Kavling = () => {
                     : [])
                 ]}
               />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual === 0 ? '' : formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
+
+              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
 
               <div className="md:col-span-2">
                 <Select
                   label="Transfer ke Rekening"
-                  name="rekeningTujuan"
-                  value={formData.rekeningTujuan}
+                  name="rekeningTujuanId"
+                  value={formData.rekeningTujuanId}
                   onChange={handleChange}
                   options={[
-                    { value: '', label: 'Pilih Rekening Pembayaran...' },
+                    { value: '', label: 'Pilih Rekening Pembayaran (Opsional)...' },
                     ...filteredBanks.map(b => ({
                       value: b.id,
                       label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
                     }))
                   ]}
-                  error={errors.rekeningTujuan}
+                  error={errors.rekeningTujuanId}
                 />
               </div>
             </div>
@@ -337,11 +363,20 @@ const Kavling = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50"
+            >
               Batal
             </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
-              Simpan Kavling
+            <button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Kavling'}
             </button>
           </div>
         </form>

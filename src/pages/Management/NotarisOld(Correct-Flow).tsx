@@ -2,76 +2,71 @@ import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
-import PageLoader from "../PageLoader";
-import { formatRupiah } from "../../utils/formatters";
-import {
-  useGetNotaris,
-  useCreateNotaris,
-  useUpdateNotaris,
-  useDeleteNotaris
-} from "../../hooks/queries/useNotaris";
-import type { NotarisData, CreateNotarisDTO, PicNotarisData } from "../../services/notaris.service";
-interface AjbDitanganiData {
-  id: string;
-  customer: string;
-  kavling: string;
+
+interface PicNotarisData {
+  nama: string;
+  noHp: string;
+  alamat?: string;
 }
-type ExtendedNotarisData = NotarisData & {
-  ajbDitangani?: AjbDitanganiData[];
-};
-interface NotarisFormState {
-  id: number | '';
+
+interface NotarisData {
+  id: string;
   nik: string;
   nama: string;
   noHp: string;
   alamat: string;
   pics: PicNotarisData[];
 }
-const initialFormState: NotarisFormState = {
+
+const initialFormState: NotarisData = {
   id: '',
   nik: '',
   nama: '',
   noHp: '',
   alamat: '',
-  pics: []
+  pics: [{ nama: '', noHp: '', alamat: '' }]
 };
+
 const Notaris = () => {
-  const { data: notarisData = [], isLoading } = useGetNotaris();
-  const createMutation = useCreateNotaris();
-  const updateMutation = useUpdateNotaris();
-  const deleteMutation = useDeleteNotaris();
+  const [data, setData] = useState<NotarisData[]>([
+    {
+      id: '1',
+      nik: '3271012345678901',
+      nama: 'Notaris PPAT Budi Hartono, S.H., M.Kn.',
+      noHp: '081234567890',
+      alamat: 'Jl. Jendral Sudirman No. 45, Tangerang',
+      pics: [
+        {
+          nama: 'Siti Aminah',
+          noHp: '085612341234',
+          alamat: 'Jl. Merdeka Raya, Tangerang'
+        }
+      ]
+    }
+  ]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<NotarisFormState>(initialFormState);
+  const [formData, setFormData] = useState<NotarisData>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
+
   const columns = [
+    { header: 'NIK', accessor: 'nik' },
     { header: 'Nama Notaris', accessor: 'nama' },
-    {
-      header: 'Kontak Utama (PIC)',
-      accessor: 'pics',
-      render: (pics: PicNotarisData[]) => pics?.[0]?.noHp || '-'
-    },
+    { header: 'No. Telepon / HP', accessor: 'noHp' },
     {
       header: 'Total PIC',
       accessor: 'pics',
-      render: (pics: PicNotarisData[]) => (
-        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold">
-          {pics?.length || 0} Orang
-        </span>
-      )
+      render: (pics: PicNotarisData[]) => `${pics?.length || 0} Orang`
     },
+    { header: 'Alamat', accessor: 'alamat', render: (val: string) => val || '-' },
   ];
-  const openModal = (item?: ExtendedNotarisData) => {
+
+  const openModal = (item?: NotarisData) => {
     if (item) {
-      const mainPic = item.pics?.[0];
-      const additionalPics = item.pics?.slice(1) || [];
       setFormData({
-        id: item.id,
-        nik: '',
-        nama: item.nama,
-        noHp: mainPic?.noHp || '',
-        alamat: mainPic?.alamat || '',
-        pics: additionalPics
+        ...item,
+        pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
       setIsEditing(true);
     } else {
@@ -81,13 +76,16 @@ const Notaris = () => {
     setErrors({});
     setIsModalOpen(true);
   };
+
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -96,6 +94,7 @@ const Notaris = () => {
       });
     }
   };
+
   const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -103,6 +102,7 @@ const Notaris = () => {
       newPics[index] = { ...newPics[index], [name]: value };
       return { ...prev, pics: newPics };
     });
+
     const errorKey = `pics.${index}.${name}`;
     if (errors[errorKey]) {
       setErrors((prev) => {
@@ -112,71 +112,62 @@ const Notaris = () => {
       });
     }
   };
+
   const handleAddPIC = () => {
     setFormData((prev) => ({
       ...prev,
       pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
     }));
   };
+
   const handleRemovePIC = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       pics: prev.pics.filter((_, i) => i !== index)
     }));
   };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
     if (formData.nik.trim().length !== 16) newErrors.nik = 'NIK harus 16 digit';
     if (!formData.nama.trim()) newErrors.nama = 'Nama Notaris wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    const additionalPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
-    const allPics = [
-      { nama: `Admin/PIC Utama ${formData.nama}`, noHp: formData.noHp, alamat: formData.alamat },
-      ...additionalPics
-    ];
-    const payload: CreateNotarisDTO = {
-      nama: formData.nama,
-      biayaAjb: 0,
-      pics: allPics,
-    };
-    try {
-      if (isEditing && formData.id !== '') {
-        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
-      closeModal();
-    } catch (error: any) {
-      const responseData = error.response?.data;
-      if (responseData?.error && Array.isArray(responseData.error)) {
-        const backendErrors: Record<string, string> = {};
-        responseData.error.forEach((err: { field: string; message: string }) => {
-          backendErrors[err.field] = err.message;
-        });
-        setErrors(backendErrors);
-      } else {
-        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
-      }
+
+
+    const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
+    const finalData = { ...formData, pics: validPics };
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === finalData.id ? finalData : item)));
+    } else {
+      const newData = { ...finalData, id: Date.now().toString() };
+      setData((prev) => [...prev, newData]);
     }
+    closeModal();
   };
-  const handleDelete = async (item: ExtendedNotarisData) => {
+
+  const handleDelete = (item: NotarisData) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus data Notaris ${item.nama}?`)) {
-      try {
-        await deleteMutation.mutateAsync(item.id);
-      } catch (error: any) {
-        alert(error.response?.data?.message || 'Gagal menghapus data notaris');
-      }
+      setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
-  const expandedRowRender = (row: ExtendedNotarisData) => {
-    const relatedAjb = row.ajbDitangani || [];
+
+  const expandedRowRender = (row: NotarisData) => {
+
+    const relatedAjb = [
+      { id: 'PJL-01', customer: 'Budi Santoso', kavling: 'Puri Safana (A-01)' },
+      { id: 'PJL-02', customer: 'Andi Pratama', kavling: 'Puri Safana (B-12)' },
+    ];
+
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
         <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
@@ -190,18 +181,15 @@ const Notaris = () => {
                   <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
                   <th className="px-4 py-3 font-bold">Customer</th>
                   <th className="px-4 py-3 font-bold">Kavling</th>
-                  <th className="px-4 py-3 rounded-r-lg font-bold text-right">Biaya AJB Transaksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {relatedAjb.map((ajb, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-4 py-3 font-medium text-slate-900">{ajb.id}</td>
-                    <td className="px-4 py-3 text-slate-600">{ajb.customer}</td>
-                    <td className="px-4 py-3 font-medium text-slate-600">{ajb.kavling}</td>
-                    <td className="px-4 py-3 font-bold text-slate-900 text-right">
-                      {ajb.biayaAjbTransaksi ? formatRupiah(ajb.biayaAjbTransaksi) : '-'}
-                    </td>
+                    <td className="px-4 py-3">{ajb.customer}</td>
+                    <td className="px-4 py-3 font-medium">{ajb.kavling}</td>
+
                   </tr>
                 ))}
               </tbody>
@@ -215,24 +203,25 @@ const Notaris = () => {
       </div>
     );
   };
-  if (isLoading) return <PageLoader />;
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div>
       <DataTable
         title="Data Notaris"
         columns={columns}
-        data={notarisData as ExtendedNotarisData[]}
+        data={data}
         onAdd={() => openModal()}
-        onEdit={(item) => openModal(item as ExtendedNotarisData)}
-        onDelete={(item) => handleDelete(item as ExtendedNotarisData)}
+        onEdit={(item) => openModal(item as NotarisData)}
+        onDelete={(item) => handleDelete(item as NotarisData)}
         expandedRowRender={expandedRowRender}
       />
+
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
         title={isEditing ? "Edit Data Notaris" : "Tambah Data Notaris"}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Notaris</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -272,31 +261,36 @@ const Notaris = () => {
               </div>
             </div>
           </div>
+
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Notaris (Opsional)</h4>
-                <p className="text-xs text-gray-500">Tambahkan staf tambahan/PIC yang bisa dihubungi</p>
+                <p className="text-xs text-gray-500">Tambahkan staf/PIC yang bisa dihubungi di notaris ini</p>
               </div>
               <button
                 type="button"
                 onClick={handleAddPIC}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer shadow-sm"
+                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer"
               >
                 + Tambah PIC
               </button>
             </div>
+
             <div className="space-y-4">
               {formData.pics.map((pic, index) => (
                 <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePIC(index)}
-                    className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
-                  >
-                    Hapus
-                  </button>
-                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC Tambahan #{index + 1}</p>
+                  {formData.pics.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePIC(index)}
+                      className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                       label="Nama PIC"
@@ -321,7 +315,7 @@ const Notaris = () => {
                         value={pic.alamat || ''}
                         onChange={(e) => handlePICChange(index, e)}
                         error={errors[`pics.${index}.alamat`]}
-                        placeholder="Masukkan alamat lengkap PIC"
+                        placeholder="Masukkan alamat PIC jika ada"
                       />
                     </div>
                   </div>
@@ -329,21 +323,20 @@ const Notaris = () => {
               ))}
             </div>
           </div>
+
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button
               type="button"
               onClick={closeModal}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer transition-colors"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer transition-colors"
             >
-              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+              Simpan Data
             </button>
           </div>
         </form>
@@ -351,4 +344,5 @@ const Notaris = () => {
     </div>
   );
 };
+
 export default Notaris;
