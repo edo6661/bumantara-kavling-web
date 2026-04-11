@@ -4,19 +4,14 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
 import { formatDate, formatRupiah } from "../../utils/formatters";
 import { FileText, Receipt, Printer, UploadCloud } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
-import PageLoader from "../PageLoader";
-
-
-import { useGetPenjualan, useCreatePenjualan } from "../../hooks/queries/usePenjualan";
-import { useGetAgents } from "../../hooks/queries/useAgent";
-import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 
 interface PenjualanData {
-  id?: string;
+  id: string;
   tanggal: string;
   nama: string;
   alamat: string;
@@ -80,6 +75,8 @@ const initialFormState: PenjualanData = {
   fileBuktiDp: '',
 };
 
+const mockPerumahanList = ['Puri Safana'];
+
 const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
   Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
   Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
@@ -88,19 +85,34 @@ const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
 };
 
 const Penjualan = () => {
+  const [data, setData] = useState<PenjualanData[]>([
+    {
+      ...initialFormState,
+      id: 'TRX-001',
+      tanggal: '2026-04-09',
+      nama: 'Budi Santoso',
+      alamat: 'Jl. Merdeka No. 45, Tangerang',
+      noTelepon: '081234567890',
+      perumahan: 'Puri Safana',
+      blok: 'A',
+      tipe: 'Asvara',
+      nomorUnit: '01',
+      caraPembayaran: 'KPR',
+      bank: 'BCA',
+      status: 'Booking',
+      agent: 'Andi Pratama',
+      jumlahCicilanTerbayar: 2,
+      fileBuktiBooking: 'bukti_booking_budi.pdf',
+      fileBuktiDp: ''
+    }
+  ]);
 
-  const { data: penjualanData = [], isLoading } = useGetPenjualan();
-  const { data: agentData = [] } = useGetAgents();
-  const { data: perumahanData = [] } = useGetPerumahan();
-
-  const createMutation = useCreatePenjualan();
-
+  const [agentList, setAgentList] = useState<string[]>(['Andi Pratama', 'Rina Wijaya']);
   const [isNewAgent, setIsNewAgent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
-
-
+  const [isEditing, setIsEditing] = useState(false);
   const [printData, setPrintData] = useState<any>(null);
   const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
   const [printTitle, setPrintTitle] = useState('');
@@ -116,19 +128,30 @@ const Penjualan = () => {
       header: 'Status',
       accessor: 'status',
       render: (val: string) => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
           {val}
         </span>
       )
     },
   ];
 
-  const openModal = () => {
-    setFormData({
-      ...initialFormState,
-      tanggal: new Date().toISOString().split('T')[0]
-    });
-    setIsNewAgent(false);
+  const openModal = (item?: PenjualanData) => {
+    if (item) {
+      setFormData({ ...item });
+      setIsEditing(true);
+      if (item.agent && !agentList.includes(item.agent)) {
+        setIsNewAgent(true);
+      } else {
+        setIsNewAgent(false);
+      }
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+      setIsNewAgent(false);
+    }
     setErrors({});
     setIsModalOpen(true);
   };
@@ -142,6 +165,7 @@ const Penjualan = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+
     const finalValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
 
     setFormData((prev) => {
@@ -169,11 +193,16 @@ const Penjualan = () => {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.noIdentitas.trim() || formData.noIdentitas.length < 16) newErrors.noIdentitas = 'NIK minimal 16 digit';
     if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
@@ -191,65 +220,140 @@ const Penjualan = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const createAndDownloadPDF = async (data: PenjualanData, title: string, nominal: number) => {
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.width = '800px';
+
+    const docType = title.toLowerCase().includes('kwitansi') ? 'KWITANSI' : 'INVOICE';
+    const labelKepada = docType === 'KWITANSI' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:';
+    const labelTotal = docType === 'KWITANSI' ? 'Total Pembayaran' : 'Total Tagihan';
+
+    container.innerHTML = `
+      <div style="padding: 40px; background-color: white; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 24px; margin-bottom: 32px;">
+          <div>
+            <h2 style="font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; margin: 0;">${docType}</h2>
+            <p style="color: #64748b; font-size: 14px; margin-top: 8px; font-weight: 500;">No: ${data.id} / BMT / 2026</p>
+            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Tanggal: ${formatDate(data.tanggal || new Date().toISOString())}</p>
+          </div>
+          <div style="text-align: right;">
+            <h3 style="margin: 0; font-size: 18px; color: #0f172a;">BUMANTARA</h3>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b;">Divisi Marketing & Keuangan</p>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 32px;">
+          <div style="max-width: 50%;">
+            <p style="font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px 0; font-weight: bold;">${labelKepada}</p>
+            <p style="font-size: 16px; font-weight: bold; color: #0f172a; margin: 0 0 4px 0;">${data.nama}</p>
+            <p style="font-size: 14px; margin: 0 0 4px 0;">${data.noTelepon || '-'}</p>
+            <p style="font-size: 14px; margin: 0; line-height: 1.5;">${data.alamat || '-'}</p>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 32px;">
+          <thead>
+            <tr>
+              <th style="padding: 12px 16px; text-align: left; background-color: #f1f5f9; color: #475569; font-size: 12px; text-transform: uppercase; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">Deskripsi Pembayaran</th>
+              <th style="padding: 12px 16px; text-align: right; background-color: #f1f5f9; color: #475569; font-size: 12px; text-transform: uppercase; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">Jumlah</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 24px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top;">
+                <p style="font-size: 15px; font-weight: bold; color: #0f172a; margin: 0 0 8px 0;">${title}</p>
+                <p style="font-size: 14px; color: #475569; margin: 0 0 4px 0;">Perumahan: <strong>${data.perumahan}</strong></p>
+                <p style="font-size: 14px; color: #475569; margin: 0 0 4px 0;">Kavling: <strong>Blok ${data.blok} - No. ${data.nomorUnit}</strong> ${data.tipe ? `(Tipe ${data.tipe})` : ''}</p>
+                <p style="font-size: 14px; color: #475569; margin: 0;">Skema Pembayaran: <strong>${data.caraPembayaran}</strong> ${data.bank ? `(${data.bank})` : ''}</p>
+              </td>
+              <td style="padding: 24px 16px; border-bottom: 1px solid #e2e8f0; text-align: right; vertical-align: top; font-size: 16px; font-weight: bold; color: #0f172a;">
+                ${formatRupiah(nominal)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 48px;">
+          <div style="width: 300px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <span style="font-size: 14px; font-weight: bold; color: #475569; text-transform: uppercase;">${labelTotal}</span>
+              <span style="font-size: 20px; font-weight: 900; color: #0f172a;">${formatRupiah(nominal)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; text-align: center;">
+          <div style="width: 200px;">
+            <p style="font-size: 14px; color: #475569; margin: 0 0 80px 0;">Tangerang, ${formatDate(data.tanggal || new Date().toISOString())}</p>
+            <p style="font-size: 14px; font-weight: bold; color: #0f172a; margin: 0; text-decoration: underline;">Divisi Keuangan</p>
+            <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">Bumantara</p>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(container);
 
     try {
-      const payload = {
-        noIdentitas: formData.noIdentitas,
-        nama: formData.nama,
-        noTelepon: formData.noTelepon,
-        alamat: formData.alamat,
-        perusahaan: formData.perusahaan || undefined,
-        alamatKoresponden: formData.alamatKoresponden || undefined,
-        perumahan: formData.perumahan,
-        blok: formData.blok,
-        nomorUnit: formData.nomorUnit,
-        tipe: formData.tipe,
-        luasBangunan: Number(formData.luasBangunan),
-        luasTanah: Number(formData.luasTanah),
-        tanggal: formData.tanggal,
-        hargaJual: Number(formData.hargaJual),
-        hargaPromosi: Number(formData.hargaPromosi) || undefined,
-        diskonPenjualan: Number(formData.diskonPenjualan) || undefined,
-        dp: Number(formData.dp) || undefined,
-        bookingFee: Number(formData.bookingFee) || undefined,
-        caraPembayaran: formData.caraPembayaran,
-        bank: formData.bank || undefined,
-        nilaiPengajuanKpr: Number(formData.nilaiPengajuanKpr) || undefined,
-        agent: formData.agent,
-      };
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const element = container.firstElementChild as HTMLElement;
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1.0,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
 
-      const result = await createMutation.mutateAsync(payload);
-      closeModal();
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
 
-
-      if (result) {
-        setPrintData({ ...formData, id: result.noTransaksi, nominalCetak: formData.bookingFee });
-        setPrintType('invoice');
-        setPrintTitle('Invoice Booking Fee');
-      }
-
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan penjualan.');
-    }
-  };
-
-  const handlePrintPDF = async () => {
-    const element = document.getElementById('print-area');
-    if (!element) return;
-
-    try {
-      const dataUrl = await htmlToImage.toPng(element, { quality: 1.0, pixelRatio: 2, backgroundColor: '#ffffff' });
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
 
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${printTitle.replace(/\s+/g, '_')}_${printData?.id}.pdf`);
+
+      const fileName = `${title.replace(/\s+/g, '_')}_${data.id}.pdf`;
+      pdf.save(fileName);
     } catch (error) {
-      alert('Terjadi kesalahan saat memproses PDF.');
+      console.error('Gagal membuat PDF otomatis:', error);
+    } finally {
+      document.body.removeChild(container);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isNewAgent && formData.agent.trim() !== '') {
+      if (!agentList.includes(formData.agent)) {
+        setAgentList(prev => [...prev, formData.agent]);
+      }
+    }
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? { ...formData } : item)));
+      closeModal();
+    } else {
+      const nextNumber = data.length > 0 ? Math.max(...data.map(d => parseInt(d.id.split('-')[1]))) + 1 : 1;
+      const newId = `TRX-${String(nextNumber).padStart(3, '0')}`;
+      const newData = { ...formData, id: newId };
+      setData((prev) => [...prev, newData]);
+
+      closeModal();
+
+      await createAndDownloadPDF(newData, 'Invoice Booking Fee', newData.bookingFee);
+      await createAndDownloadPDF(newData, 'Invoice Down Payment', newData.dp);
+    }
+  };
+
+  const handleDelete = (item: PenjualanData) => {
+    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
 
@@ -310,7 +414,7 @@ const Penjualan = () => {
                 </>
               ) : (
                 <button
-                  onClick={() => alert("Fitur Upload Bukti Booking akan diarahkan ke form Tagihan")}
+                  onClick={() => openModal(row)}
                   className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md"
                 >
                   <UploadCloud size={14} /> Upload Bukti Booking
@@ -354,7 +458,7 @@ const Penjualan = () => {
                 </>
               ) : (
                 <button
-                  onClick={() => alert("Fitur Upload Bukti DP akan diarahkan ke form Tagihan")}
+                  onClick={() => openModal(row)}
                   className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md"
                 >
                   <UploadCloud size={14} /> Upload Bukti DP
@@ -367,21 +471,51 @@ const Penjualan = () => {
     );
   };
 
-  if (isLoading) return <PageLoader />;
+  const handlePrintPDF = async () => {
+    const element = document.getElementById('print-area');
+    if (!element) return;
+
+    try {
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1.0,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        fontEmbedCSS: ''
+      });
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
+
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      const fileName = `${printTitle ? printTitle.replace(/\s+/g, '_') : 'Dokumen'}_${printData?.id || 'BMT'}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Gagal membuat PDF:', error);
+      alert('Terjadi kesalahan saat memproses PDF.');
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
         title="Data Penjualan"
         columns={columns}
-        data={penjualanData}
+        data={data}
         onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
         expandedRowRender={expandedRowRender}
       />
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Tambah Penjualan Baru">
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan / Upload Bukti" : "Tambah Penjualan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-6">
-
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -402,7 +536,7 @@ const Penjualan = () => {
                     error={errors.agent}
                     options={[
                       { value: '', label: '-- Pilih Agent --' },
-                      ...agentData.map((a: any) => ({ value: a.nama, label: a.nama })),
+                      ...agentList.map(a => ({ value: a, label: a })),
                       { value: 'NEW', label: '+ Tambah Agent Baru...' }
                     ]}
                   />
@@ -430,11 +564,14 @@ const Penjualan = () => {
                 )}
               </div>
               <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} />
+              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
               <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
-              <Input label="Perusahaan (Opsional)" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
+              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
               <div className="md:col-span-2">
-                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} />
+                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
               </div>
             </div>
           </div>
@@ -450,10 +587,11 @@ const Penjualan = () => {
                 error={errors.perumahan}
                 options={[
                   { value: '', label: '-- Pilih Perumahan --' },
-                  ...perumahanData.map((p: any) => ({ value: p.nama, label: p.nama }))
+                  ...mockPerumahanList.map(p => ({ value: p, label: p }))
                 ]}
               />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
+
               <Select
                 label="Tipe Kavling"
                 name="tipe"
@@ -464,6 +602,7 @@ const Penjualan = () => {
                   ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))
                 ]}
               />
+
               <Select
                 label="Luas Tanah (LT)"
                 name="luasTanah"
@@ -476,8 +615,16 @@ const Penjualan = () => {
                     : [])
                 ]}
               />
-              <Input label="Luas Bangunan (LB)" name="luasBangunan" type="number" value={formData.luasBangunan || ''} readOnly />
+
+              <Input
+                label="Luas Bangunan (LB)"
+                name="luasBangunan"
+                type="number"
+                value={formData.luasBangunan || ''}
+                readOnly
+              />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
+              <Input label="Harga Promosi (Rp)" type="number" name="hargaPromosi" value={formData.hargaPromosi || ''} onChange={handleChange} />
               <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} />
             </div>
           </div>
@@ -498,8 +645,21 @@ const Penjualan = () => {
                 ]}
                 error={errors.caraPembayaran}
               />
-              <Input label="Down Payment (DP) - Rp" type="number" name="dp" value={formData.dp || ''} onChange={handleChange} placeholder="Otomatis 10% dari Harga Jual" />
-              <Input label="Diskon Penjualan (Rp)" type="number" name="diskonPenjualan" value={formData.diskonPenjualan || ''} onChange={handleChange} />
+              <Input
+                label="Down Payment (DP) - Rp"
+                type="number"
+                name="dp"
+                value={formData.dp || ''}
+                onChange={handleChange}
+                placeholder="Otomatis 10% dari Harga Jual"
+              />
+              <Input
+                label="Diskon Penjualan (Rp)"
+                type="number"
+                name="diskonPenjualan"
+                value={formData.diskonPenjualan || ''}
+                onChange={handleChange}
+              />
             </div>
             {formData.caraPembayaran && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
@@ -525,18 +685,65 @@ const Penjualan = () => {
             )}
           </div>
 
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
+                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
+                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
+              </div>
+              <div>
+                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
+                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Booking Fee (Fixed Rp)"
+                type="number"
+                name="bookingFee"
+                value={formData.bookingFee}
+                readOnly
+                className="bg-gray-200 cursor-not-allowed text-black px-4 py-2 rounded-md"
+              />
+            </div>
+          </div>
+
+          {isEditing && (
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+              <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">6. Upload Bukti Transfer</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <FileInput label="Bukti Transfer Booking" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileBuktiBooking')} />
+                  {formData.fileBuktiBooking && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileBuktiBooking}</p>}
+                </div>
+                <div>
+                  <FileInput label="Bukti Transfer DP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileBuktiDp')} />
+                  {formData.fileBuktiDp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileBuktiDp}</p>}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
               Batal
             </button>
-            <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50">
-              {createMutation.isPending ? 'Memproses...' : 'Simpan Penjualan'}
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer">
+              Simpan Penjualan
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* MODAL PRINT PDF */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="p-8 bg-white border border-slate-200 rounded-xl" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
@@ -546,7 +753,7 @@ const Penjualan = () => {
                 <h2 className="text-3xl font-black uppercase tracking-widest text-slate-900 m-0">
                   {printType === 'invoice' ? 'INVOICE' : 'KWITANSI'}
                 </h2>
-                <p className="text-slate-500 text-sm mt-2 font-medium">No: {printData.id} / BMT / {new Date().getFullYear()}</p>
+                <p className="text-slate-500 text-sm mt-2 font-medium">No: {printData.id} / BMT / 2026</p>
                 <p className="text-slate-500 text-sm mt-1">Tanggal: {formatDate(printData.tanggal || new Date().toISOString())}</p>
               </div>
               <div className="text-right">
@@ -603,7 +810,7 @@ const Penjualan = () => {
             </div>
 
             {/* Signature Section */}
-            <div className="flex justify-end text-center mt-20">
+            <div className="flex justify-end text-center">
               <div className="w-[200px]">
                 <p className="text-sm text-slate-600 m-0 mb-20">Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}</p>
                 <p className="text-sm font-bold text-slate-900 m-0 underline">Divisi Keuangan</p>
@@ -614,7 +821,7 @@ const Penjualan = () => {
         )}
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
           <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg flex items-center gap-2">
+          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg shadow-black/10 flex items-center gap-2">
             <Printer size={16} /> Download PDF
           </button>
         </div>
