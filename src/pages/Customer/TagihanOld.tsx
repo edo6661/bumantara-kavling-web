@@ -4,81 +4,113 @@ import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
-import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import { FileText, Printer, UploadCloud, Edit2, Trash2 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
-import {
-  useGetTagihans,
-  useCreateTagihan,
-  useUpdateTagihan,
-  useDeleteTagihan,
-  useUploadBuktiTagihan
-} from "../../hooks/queries/useTagihan";
-import { useGetCustomers } from "../../hooks/queries/useCustomer";
-import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
-import type { TagihanData } from "../../services/tagihan.service";
-interface TagihanFormState {
-  id: number | '';
-  customerId: number | '';
-  penjualanId: number | '';
+
+interface TagihanData {
+  id: string;
+  namaCustomer: string;
+  perumahan: string;
+  blok: string;
   pembayaran: string;
-  nominal: number | '';
+  nominal: number;
   jatuhTempo: string;
   status: string;
-  fileBukti: string | File;
+  fileBukti: string;
   reminderBerikutnya: string;
 }
-const initialFormState: TagihanFormState = {
+
+const initialFormState: TagihanData = {
   id: '',
-  customerId: '',
-  penjualanId: '',
+  namaCustomer: '',
+  perumahan: '',
+  blok: '',
   pembayaran: '',
-  nominal: '',
+  nominal: 0,
   jatuhTempo: '',
-  status: 'BELUM_BAYAR',
+  status: 'Belum Bayar',
   fileBukti: '',
   reminderBerikutnya: '',
 };
+
+const mockCustomers = [
+  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A-01' },
+  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B-12' },
+  { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C-05' },
+];
+
 const Tagihan = () => {
-  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
-  const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
-  const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 100 });
-  const createMutation = useCreateTagihan();
-  const updateMutation = useUpdateTagihan();
-  const deleteMutation = useDeleteTagihan();
-  const uploadBuktiMutation = useUploadBuktiTagihan();
+  const [data, setData] = useState<TagihanData[]>([
+    {
+      id: 'INV-001',
+      namaCustomer: 'Budi Santoso',
+      perumahan: 'Puri Safana',
+      blok: 'A-01',
+      pembayaran: 'Cicilan Bertahap ke-1',
+      nominal: 15000000,
+      jatuhTempo: '2026-05-01',
+      status: 'Lunas',
+      fileBukti: 'bukti_tf_budi.pdf',
+      reminderBerikutnya: '',
+    },
+    {
+      id: 'INV-002',
+      namaCustomer: 'Budi Santoso',
+      perumahan: 'Puri Safana',
+      blok: 'A-01',
+      pembayaran: 'Cicilan Bertahap ke-2',
+      nominal: 15000000,
+      jatuhTempo: '2026-06-01',
+      status: 'Belum Bayar',
+      fileBukti: '',
+      reminderBerikutnya: '2026-05-25',
+    },
+    {
+      id: 'INV-003',
+      namaCustomer: 'Andi Pratama',
+      perumahan: 'Puri Safana',
+      blok: 'B-12',
+      pembayaran: 'Pembayaran DP',
+      nominal: 4500000,
+      jatuhTempo: '2026-05-15',
+      status: 'Belum Bayar',
+      fileBukti: '',
+      reminderBerikutnya: '2026-05-10',
+    }
+  ]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<TagihanFormState>(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<TagihanData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof TagihanData, string>>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [printData, setPrintData] = useState<any>(null);
   const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
   const [printTitle, setPrintTitle] = useState('');
-  const formatDateForInput = (dateString?: string | null) => {
-    if (!dateString) return '';
-    return dateString.split('T')[0];
-  };
+
   const groupedData = useMemo(() => {
     const groups: Record<string, any> = {};
-    tagihans.forEach((item) => {
+    data.forEach(item => {
       if (!groups[item.namaCustomer]) {
         groups[item.namaCustomer] = {
           id: item.namaCustomer,
           namaCustomer: item.namaCustomer,
-          kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
+          kavling: `${item.perumahan} - Blok ${item.blok}`,
           reminderSelanjutnya: '',
           cicilan: []
         };
       }
-      if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
+
+      if (item.status !== 'Lunas' && item.reminderBerikutnya) {
         groups[item.namaCustomer].reminderSelanjutnya = item.reminderBerikutnya;
       }
+
       groups[item.namaCustomer].cicilan.push(item);
     });
     return Object.values(groups);
-  }, [tagihans]);
+  }, [data]);
+
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer' },
     { header: 'Kavling', accessor: 'kavling' },
@@ -88,114 +120,96 @@ const Tagihan = () => {
       render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
     },
   ];
+
   const openModal = (item?: TagihanData, defaultCustomerName?: string) => {
     if (item) {
-      setFormData({
-        id: item.id,
-        customerId: item.customerId,
-        penjualanId: item.penjualanId,
-        pembayaran: item.pembayaran,
-        nominal: item.nominal,
-        jatuhTempo: formatDateForInput(item.jatuhTempo),
-        status: item.status,
-        fileBukti: item.fileBukti || '',
-        reminderBerikutnya: formatDateForInput(item.reminderBerikutnya),
-      });
+      setFormData(item);
       setIsEditing(true);
     } else {
-      const defaultCust = customers.find(c => c.nama === defaultCustomerName);
+      const defaultCust = mockCustomers.find(c => c.name === defaultCustomerName);
       setFormData({
         ...initialFormState,
-        customerId: defaultCust?.id || '',
+        namaCustomer: defaultCust?.name || '',
+        perumahan: defaultCust?.perumahan || '',
+        blok: defaultCust?.blok || ''
       });
       setIsEditing(false);
     }
     setErrors({});
     setIsModalOpen(true);
   };
+
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
   };
+
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedName = e.target.value;
+    const customer = mockCustomers.find(c => c.name === selectedName);
+    setFormData(prev => ({
+      ...prev,
+      namaCustomer: selectedName,
+      perumahan: customer?.perumahan || '',
+      blok: customer?.blok || ''
+    }));
+    if (errors.namaCustomer) setErrors(prev => ({ ...prev, namaCustomer: undefined }));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
     setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+    if (errors[name as keyof TagihanData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData((prev) => ({
         ...prev,
-        fileBukti: file,
-        status: 'LUNAS'
+        [fieldName]: file.name,
+        status: 'Lunas'
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [fieldName]: '',
+        status: 'Belum Bayar'
       }));
     }
   };
+
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.customerId) newErrors.customerId = 'Customer wajib dipilih';
-    if (!formData.penjualanId) newErrors.penjualanId = 'Kavling/Penjualan wajib dipilih';
+    const newErrors: Partial<Record<keyof TagihanData, string>> = {};
+    if (!formData.namaCustomer) newErrors.namaCustomer = 'Customer wajib dipilih';
     if (!formData.pembayaran.trim()) newErrors.pembayaran = 'Keterangan pembayaran wajib diisi';
-    if (!formData.nominal || Number(formData.nominal) <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
+    if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
     if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  const handleSubmit = async (e: React.FormEvent) => {
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    try {
-      let currentTagihanId = formData.id;
-      if (isEditing && formData.id) {
-        await updateMutation.mutateAsync({
-          id: Number(formData.id),
-          data: {
-            pembayaran: formData.pembayaran,
-            nominal: Number(formData.nominal),
-            jatuhTempo: formData.jatuhTempo,
-            status: formData.status,
-            reminderBerikutnya: formData.reminderBerikutnya || undefined,
-          }
-        });
-      } else {
-        const result = await createMutation.mutateAsync({
-          customerId: Number(formData.customerId),
-          penjualanId: Number(formData.penjualanId),
-          pembayaran: formData.pembayaran,
-          nominal: Number(formData.nominal),
-          jatuhTempo: formData.jatuhTempo,
-          reminderBerikutnya: formData.reminderBerikutnya || undefined,
-        });
-        currentTagihanId = result.id;
-      }
-      if (formData.fileBukti instanceof File && currentTagihanId) {
-        await uploadBuktiMutation.mutateAsync({
-          id: Number(currentTagihanId),
-          file: formData.fileBukti
-        });
-      }
-      closeModal();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `INV-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
     }
+    closeModal();
   };
-  const handleDelete = async (item: TagihanData) => {
+
+  const handleDelete = (item: TagihanData) => {
     if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
-      try {
-        await deleteMutation.mutateAsync(item.id);
-      } catch (error: any) {
-        alert(error.response?.data?.message || 'Gagal menghapus tagihan');
-      }
+      setData((prev) => prev.filter((d) => d.id !== item.id));
     }
   };
+
   const expandedRowRender = (row: any) => {
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
@@ -205,11 +219,12 @@ const Tagihan = () => {
           </h4>
           <button
             onClick={() => openModal(undefined, row.namaCustomer)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition"
           >
             + Tambah Cicilan
           </button>
         </div>
+
         <div className="space-y-3">
           {row.cicilan
             .sort((a: TagihanData, b: TagihanData) => a.jatuhTempo.localeCompare(b.jatuhTempo))
@@ -217,38 +232,38 @@ const Tagihan = () => {
               <div key={c.id} className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4 transition hover:border-blue-200">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1.5">
-                    <span className="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded">{c.noTagihan}</span>
+                    <span className="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded">{c.id}</span>
                     <h5 className="font-bold text-slate-800 text-sm">{c.pembayaran}</h5>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === 'LUNAS' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
-                      {c.status.replace('_', ' ')}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                      {c.status}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-4 text-xs text-slate-600 font-medium mt-2">
                     <p>Jatuh Tempo: <span className="text-slate-900 font-bold">{formatDate(c.jatuhTempo)}</span></p>
                     <p>Nominal: <span className="text-slate-900 font-bold">{formatRupiah(c.nominal)}</span></p>
-                    {c.fileBukti && (
-                      <p>Bukti: <a href={c.fileBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Lihat File</a></p>
-                    )}
+                    {c.fileBukti && <p>Bukti: <span className="text-blue-600">{c.fileBukti}</span></p>}
                   </div>
                 </div>
+
                 <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer" title="Edit Cicilan">
+                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit Cicilan">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer" title="Hapus Cicilan">
+                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus Cicilan">
                     <Trash2 size={16} />
                   </button>
                   <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                  {c.status === 'LUNAS' ? (
-                    <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Pembayaran'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition shadow-md cursor-pointer">
+
+                  {c.status === 'Lunas' ? (
+                    <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Pembayaran'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition shadow-md">
                       <Printer size={14} /> Kwitansi
                     </button>
                   ) : (
                     <>
-                      <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Tagihan'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer">
+                      <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Tagihan'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition">
                         <FileText size={14} /> Invoice
                       </button>
-                      <button onClick={() => openModal(c)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md cursor-pointer">
+                      <button onClick={() => openModal(c)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md">
                         <UploadCloud size={14} /> Upload Bukti
                       </button>
                     </>
@@ -263,24 +278,33 @@ const Tagihan = () => {
   const handlePrintPDF = async () => {
     const element = document.getElementById('print-area');
     if (!element) return;
+
     try {
       const dataUrl = await htmlToImage.toPng(element, {
         quality: 1.0,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
+        fontEmbedCSS: '',
       });
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
+
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      const fileName = `${printTitle.replace(/\s+/g, '_')}_${printData?.noTagihan || 'BMT'}.pdf`;
+
+      const fileName = `${printTitle ? printTitle.replace(/\s+/g, '_') : 'Dokumen'}_${printData?.id || 'BMT'}.pdf`;
       pdf.save(fileName);
     } catch (error) {
       console.error('Gagal membuat PDF:', error);
       alert('Terjadi kesalahan saat memproses PDF.');
     }
   };
-  if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
@@ -290,43 +314,29 @@ const Tagihan = () => {
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
       />
+
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Tagihan / Upload Bukti" : "Buat Tagihan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
             <span className="text-sm font-semibold text-gray-800">Status Pembayaran</span>
-            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${formData.status === 'LUNAS' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'}`}>
-              {formData.status.replace('_', ' ')}
+            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${formData.status === 'Lunas' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'}`}>
+              {formData.status}
             </span>
           </div>
           <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
             <Select
               label="Pilih Customer"
-              name="customerId"
-              value={formData.customerId}
-              onChange={handleChange}
-              error={errors.customerId}
-              disabled={isEditing}
-              options={[
-                { value: '', label: '-- Pilih Customer --' },
-                ...customers.map(c => ({ value: c.id, label: `${c.nama} (NIK: ${c.nikKtp})` }))
-              ]}
+              name="namaCustomer"
+              value={formData.namaCustomer}
+              onChange={handleCustomerChange}
+              error={errors.namaCustomer}
+              options={mockCustomers.map(c => ({ value: c.name, label: `${c.name} (${c.perumahan} - ${c.blok})` }))}
             />
-            {formData.customerId && (
-              <Select
-                label="Pilih Kavling / Penjualan"
-                name="penjualanId"
-                value={formData.penjualanId}
-                onChange={handleChange}
-                error={errors.penjualanId}
-                disabled={isEditing}
-                options={[
-                  { value: '', label: '-- Pilih Kavling Terkait --' },
-                  ...penjualanList.map((p: any) => ({
-                    value: p.id,
-                    label: `${p.perumahan} - Blok ${p.blok}-${p.unit} (Rp ${(p.totalHargaJual / 1000000).toFixed(0)} Jt)`
-                  }))
-                ]}
-              />
+            {formData.namaCustomer && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
+                <Input label="Blok/Unit" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
+              </div>
             )}
           </div>
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
@@ -335,64 +345,48 @@ const Tagihan = () => {
               <div className="md:col-span-2">
                 <Input label="Pembayaran (Deskripsi)" name="pembayaran" value={formData.pembayaran} onChange={handleChange} error={errors.pembayaran} placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP" />
               </div>
-              <Input label="Nominal (Rp)" type="number" name="nominal" value={formData.nominal} onChange={handleChange} error={errors.nominal} placeholder="0" />
+              <Input label="Nominal (Rp)" type="number" name="nominal" value={formData.nominal === 0 ? '' : formData.nominal} onChange={handleChange} error={errors.nominal} placeholder="0" />
               <Input label="Jatuh Tempo" type="date" name="jatuhTempo" value={formData.jatuhTempo} onChange={handleChange} error={errors.jatuhTempo} />
               <div className="md:col-span-2 mt-2">
                 <Input label="Reminder Tagihan Berikutnya (Opsional)" type="date" name="reminderBerikutnya" value={formData.reminderBerikutnya} onChange={handleChange} />
               </div>
             </div>
           </div>
+
           {isEditing && (
             <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
               <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
               <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
                 Upload bukti transfer dari pihak pelanggan di sini. Sistem otomatis mengubah status menjadi <strong className="text-green-700">LUNAS</strong>.
               </p>
-              <FileInput label="Upload Bukti Transfer" accept="image/*" onChange={handleFileChange} />
-              {formData.fileBukti && typeof formData.fileBukti === 'string' && (
+              <FileInput label="Upload Bukti Transfer" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileBukti')} />
+              {formData.fileBukti && (
                 <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
-                  <FileText size={14} /> File saat ini sudah diupload
-                </p>
-              )}
-              {formData.fileBukti instanceof File && (
-                <p className="text-xs text-blue-600 mt-2 truncate flex items-center gap-1 font-medium bg-blue-50 p-2 rounded border border-blue-100">
-                  <UploadCloud size={14} /> File siap diupload: {formData.fileBukti.name}
+                  <FileText size={14} /> File tersimpan: {formData.fileBukti}
                 </p>
               )}
             </div>
           )}
+
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition cursor-pointer disabled:opacity-50"
-            >
-              {(createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending) ? 'Menyimpan...' : 'Simpan Tagihan'}
-            </button>
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Batal</button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition">Simpan Tagihan</button>
           </div>
         </form>
       </Modal>
-      {/* MODAL PRINT PDF */}
+
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-xl" id="print-area">
             <div className="text-center mb-8 border-b border-slate-200 pb-6">
               <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900">{printType === 'invoice' ? 'INVOICE' : 'KWITANSI PEMBAYARAN'}</h2>
-              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.noTagihan}</p>
+              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.id} / BMT / {new Date().getFullYear()}</p>
             </div>
             <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
               <div>
                 <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Diterima Dari / Kepada Yth:</p>
                 <p className="font-black text-lg text-slate-800">{printData.namaCustomer}</p>
-                <p className="text-slate-600 font-medium">Kavling {printData.perumahan} - Blok {printData.blok}-{printData.nomorUnit}</p>
+                <p className="text-slate-600 font-medium">{printData.perumahan} - Blok {printData.blok}</p>
               </div>
               <div className="text-right">
                 <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Tanggal Cetak:</p>
@@ -402,7 +396,7 @@ const Tagihan = () => {
             <div className="mb-8">
               <p className="text-slate-400 font-bold mb-2 uppercase tracking-wider text-[10px]">Keterangan Pembayaran:</p>
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl font-medium text-slate-700">
-                {printData.pembayaran} untuk unit Kavling {printData.perumahan} Blok {printData.blok}-{printData.nomorUnit}.
+                {printData.pembayaran || printTitle} untuk unit Kavling {printData.perumahan} Blok {printData.blok}.
               </div>
             </div>
             <div className="flex justify-between items-center p-5 bg-slate-100 rounded-xl border border-slate-200">
@@ -419,8 +413,8 @@ const Tagihan = () => {
           </div>
         )}
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 cursor-pointer">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center gap-2 cursor-pointer">
+          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50">Tutup</button>
+          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center gap-2">
             <Printer size={16} /> Download PDF
           </button>
         </div>
@@ -428,4 +422,5 @@ const Tagihan = () => {
     </div>
   );
 };
+
 export default Tagihan;
