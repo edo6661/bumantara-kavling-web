@@ -1,8 +1,7 @@
 import api from "../lib/axios";
 
-// Ini mencerminkan KavlingEntity dari Backend
 export interface KavlingData {
-  id: number; // ID di backend adalah int
+  id: number;
   perumahanId: number;
   perumahan?: { id: number; nama: string };
   blok: string;
@@ -40,7 +39,6 @@ export interface CreateKavlingDTO {
 
 export const kavlingService = {
   getAll: async (perumahanId?: number): Promise<KavlingData[]> => {
-    // Jika perumahanId ada, kirim sebagai query filter (jika backend mendukungnya)
     const query = perumahanId
       ? `?limit=100&perumahanId=${perumahanId}`
       : "?limit=100";
