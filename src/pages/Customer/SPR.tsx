@@ -1,175 +1,61 @@
-import React, { useState } from 'react';
+import React from 'react';
 import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-
-interface SPRData {
-  id: string;
-  nama: string;
-  noTelepon: string;
-  perumahan: string;
-  blok: string;
-}
-
-const initialFormState: SPRData = {
-  id: '',
-  nama: '',
-  noTelepon: '',
-  perumahan: '',
-  blok: '',
-};
+import PageLoader from "../PageLoader";
+import { FileText, Clock } from 'lucide-react';
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { formatRupiah } from "../../utils/formatters";
 
 const SPR = () => {
-  const [data, setData] = useState<SPRData[]>([
-    {
-      id: '1',
-      nama: 'Budi Santoso',
-      noTelepon: '081234567890',
-      perumahan: 'Puri Safana',
-      blok: 'A-01',
-    }
-  ]);
+  // 1. Ambil data penjualan dari API menggunakan hook yang sudah ada
+  const { data: penjualanData = [], isLoading } = useGetPenjualan();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<SPRData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<SPRData>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
+  // 2. Definisikan Kolom Tabel
   const columns = [
-    { header: 'Nama', accessor: 'nama' },
-    { header: 'No Telepon', accessor: 'noTelepon' },
+    { header: 'No. Transaksi', accessor: 'id' },
+    { header: 'Nama Customer', accessor: 'nama' },
     { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Blok', accessor: 'blok' },
     {
-      header: 'File SPR',
-      accessor: 'filePdfSpr',
-      render: (val: string) => val ? (
-        <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-1 rounded">{val}</span>
+      header: 'Kavling',
+      accessor: 'blok',
+      render: (_: unknown, row: any) => <span className="font-medium text-slate-700">{row.blok} - {row.nomorUnit}</span>
+    },
+    {
+      header: 'Harga Jual',
+      accessor: 'hargaJual',
+      render: (val: number) => formatRupiah(val)
+    },
+    {
+      header: 'Dokumen SPR',
+      accessor: 'fileSpr',
+      render: (val: string | null) => val ? (
+        <a
+          href={val}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors w-max shadow-sm"
+        >
+          <FileText size={14} /> Lihat PDF SPR
+        </a>
       ) : (
-        <span className="text-gray-400 text-xs">- Belum ada -</span>
+        <span className="text-amber-700 text-xs font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5 w-max">
+          <Clock size={14} /> Menunggu Bukti Booking
+        </span>
       )
     },
   ];
 
-  const openModal = (item?: SPRData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof SPRData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<SPRData> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.noTelepon.trim()) newErrors.noTelepon = 'No Telepon wajib diisi';
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newData = { ...formData, id: Date.now().toString() };
-      setData((prev) => [...prev, newData]);
-    }
-    closeModal();
-  };
+  if (isLoading) return <PageLoader />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Kita tidak lagi mengirimkan props onAdd, onEdit, onDelete 
+        karena tabel ini sekarang bersifat Read-Only hasil otomasi sistem.
+      */}
       <DataTable
-        title="Data Surat Pesanan Rumah (SPR)"
+        title="Dokumen Surat Pesanan Rumah (SPR)"
         columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-      // onDelete sengaja tidak diteruskan agar tombol hapus tidak muncul
+        data={penjualanData}
       />
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Data SPR" : "Tambah Data SPR"}
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Nama Lengkap"
-              name="nama"
-              value={formData.nama}
-              onChange={handleChange}
-              error={errors.nama}
-              placeholder="Masukkan nama lengkap"
-            />
-            <Input
-              label="No Telepon / HP"
-              name="noTelepon"
-              value={formData.noTelepon}
-              onChange={handleChange}
-              error={errors.noTelepon}
-              placeholder="08xxxxxxxxxx"
-            />
-            <Input
-              label="Perumahan"
-              name="perumahan"
-              value={formData.perumahan}
-              onChange={handleChange}
-              error={errors.perumahan}
-              placeholder="Nama perumahan"
-            />
-            <Input
-              label="Blok / Unit"
-              name="blok"
-              value={formData.blok}
-              onChange={handleChange}
-              error={errors.blok}
-              placeholder="Contoh: A-01"
-            />
-          </div>
-
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer"
-            >
-              Simpan Data
-            </button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };

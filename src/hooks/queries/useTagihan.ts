@@ -4,6 +4,7 @@ import {
   type CreateTagihanDTO,
   type UpdateTagihanDTO,
 } from "../../services/tagihan.service";
+import { PENJUALAN_KEYS } from "./usePenjualan";
 
 export const TAGIHAN_KEYS = {
   all: ["tagihans"] as const,
@@ -67,6 +68,7 @@ export const useUploadBuktiTagihan = () => {
       tagihanService.uploadBukti(id, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
     },
   });
 };

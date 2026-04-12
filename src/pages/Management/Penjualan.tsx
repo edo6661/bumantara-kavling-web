@@ -46,6 +46,7 @@ interface PenjualanData {
   jumlahCicilanTerbayar?: number;
   fileBuktiBooking?: string;
   fileBuktiDp?: string;
+  fileSpr?: string | null;
 }
 
 const initialFormState: PenjualanData = {
