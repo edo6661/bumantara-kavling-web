@@ -203,7 +203,17 @@ const Tagihan = () => {
       }
       closeModal();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+      const responseData = error.response?.data;
+
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
   };
   const handleDelete = async (item: TagihanData) => {

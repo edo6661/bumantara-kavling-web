@@ -60,6 +60,8 @@ const FeeAgent = () => {
   const [selectedAgent, setSelectedAgent] = useState<string>("");
   const [selectedKavling, setSelectedKavling] = useState<string>("");
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return "";
     return dateString.split("T")[0];
@@ -136,12 +138,14 @@ const FeeAgent = () => {
     });
     setSelectedAgent(item.namaAgent);
     setSelectedKavling(item.kavling);
+    setErrors({});
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
+    setErrors({});
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,6 +153,13 @@ const FeeAgent = () => {
     const parsedValue =
       type === "number" ? (value === "" ? "" : Number(value)) : value;
     setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleFileChange = (
@@ -158,6 +169,13 @@ const FeeAgent = () => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData((prev) => ({ ...prev, [fieldName]: file }));
+      if (errors[fieldName]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[fieldName];
+          return newErrors;
+        });
+      }
     }
   };
 
@@ -217,7 +235,17 @@ const FeeAgent = () => {
 
       closeModal();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal menyimpan data fee");
+      const responseData = error.response?.data;
+
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
   };
 
@@ -327,6 +355,7 @@ const FeeAgent = () => {
                 type="number"
                 value={formData.bookingNominal}
                 onChange={handleChange}
+                error={errors.bookingNominal}
                 placeholder="Contoh: 1000000"
               />
               <Input
@@ -334,12 +363,14 @@ const FeeAgent = () => {
                 name="bookingTanggal"
                 type="date"
                 value={formData.bookingTanggal}
+                error={errors.bookingTanggal}
                 onChange={handleChange}
               />
               <FileInput
                 label="Bukti Transfer"
                 accept="image/*,.pdf"
                 onChange={(e) => handleFileChange(e, "bookingBukti")}
+                error={errors.bookingBukti}
               />
             </div>
             {formData.bookingBukti &&
@@ -360,6 +391,7 @@ const FeeAgent = () => {
                 name="closingNominal"
                 type="number"
                 value={formData.closingNominal}
+                error={errors.closingNominal}
                 onChange={handleChange}
                 placeholder="Contoh: 2500000"
               />
@@ -369,6 +401,7 @@ const FeeAgent = () => {
                 type="date"
                 value={formData.closingTanggal}
                 onChange={handleChange}
+                error={errors.closingBukti}
               />
               <FileInput
                 label="Bukti Transfer"
@@ -395,6 +428,7 @@ const FeeAgent = () => {
                 type="number"
                 value={formData.marketingNominal}
                 onChange={handleChange}
+                error={errors.marketingNominal}
                 placeholder="Contoh: 5000000"
               />
               <Input
@@ -403,11 +437,13 @@ const FeeAgent = () => {
                 type="date"
                 value={formData.marketingTanggal}
                 onChange={handleChange}
+                error={errors.marketingTanggal}
               />
               <FileInput
                 label="Bukti Transfer"
                 accept="image/*,.pdf"
                 onChange={(e) => handleFileChange(e, "marketingBukti")}
+                error={errors.marketingBukti}
               />
             </div>
             {formData.marketingBukti &&

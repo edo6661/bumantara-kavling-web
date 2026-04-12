@@ -90,7 +90,7 @@ const CustomerKavling = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<KavlingData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<KavlingData>>({});
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
   const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
 
@@ -161,14 +161,17 @@ const CustomerKavling = () => {
       const updatedData = { ...prev, [name]: parsedValue };
       return calculateDerivedFields(updatedData);
     });
-
-    if (errors[name as keyof KavlingData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
   const validateForm = () => {
-    const newErrors: Partial<KavlingData> = {};
+    const newErrors: Record<string, string> = {};
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -245,7 +248,17 @@ const CustomerKavling = () => {
       await updateMutation.mutateAsync({ id: formData.id, data: payload });
       closeModal();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Terjadi kesalahan saat menyimpan data");
+      const responseData = error.response?.data;
+
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
   };
 
@@ -295,10 +308,10 @@ const CustomerKavling = () => {
                 <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
                 <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
               </div>
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} placeholder="Contoh: 45/90" />
-              <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} />
-              <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} />
-              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} />
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
+              <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} error={errors.lantai} />
+              <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
+              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
               <Select label="Pembiayaan" name="pembiayaan" value={formData.pembiayaan || ''} onChange={handleChange} options={[{ value: 'KPR', label: 'KPR Bank' }, { value: 'CASH KERAS', label: 'Cash Keras' }, { value: 'CASH BERTAHAP', label: 'Cash Bertahap' }]} />
               <Select label="SP3R" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
               <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />

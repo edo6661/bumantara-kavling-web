@@ -22,6 +22,7 @@ interface PenjualanData {
   alamat: string;
   noTelepon: string;
   noIdentitas: string;
+  alasanBatal?: string | null;
   perusahaan: string;
   alamatKoresponden: string;
   perumahan: string;
@@ -239,7 +240,17 @@ const Penjualan = () => {
       }
 
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan penjualan.');
+      const responseData = error.response?.data;
+
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
   };
 
@@ -296,7 +307,6 @@ const Penjualan = () => {
     }
   }; const uploadBuktiMutation = useUploadBuktiPenjualan();
 
-  // 3. Tambahkan fungsi handler untuk file input
   const handleUploadBukti = async (id: string, type: "booking" | "dp", e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -310,13 +320,32 @@ const Penjualan = () => {
   };
 
   const expandedRowRender = (row: PenjualanData) => {
+    if (row.status === 'BATAL') {
+      return (
+        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+          <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
+            <span className="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800">
+              Status: BATAL
+            </span>
+          </div>
+          <div className="p-4 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm flex items-start gap-3">
+            <Ban size={20} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-bold mb-1">Transaksi ini telah dibatalkan.</p>
+              <p className="font-medium text-red-600">Alasan: {row.alasanBatal || 'Tidak ada alasan yang dicantumkan.'}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
           <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
 
           <div className="flex items-center gap-3">
-            {row.status === 'BOOKED' && (
+            {((row.status === 'BOOKED' || row.status === 'PROSES')) && (
               <button
                 onClick={() => {
                   setCancelData({ id: row.id!, alasanBatal: '' });
