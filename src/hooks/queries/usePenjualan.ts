@@ -24,3 +24,15 @@ export const useCreatePenjualan = () => {
     },
   });
 };
+
+export const useCancelPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, alasanBatal }: { id: string; alasanBatal: string }) =>
+      penjualanService.cancel(id, alasanBatal),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+    },
+  });
+};

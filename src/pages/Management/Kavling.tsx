@@ -75,7 +75,7 @@ const Kavling = () => {
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
     { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Nama Tipe', accessor: 'namaTipe' },
+    { header: 'Tipe Rumah', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Jual', accessor: 'hargaJual', render: (val: number) => formatRupiah(val) },
     {
@@ -171,7 +171,7 @@ const Kavling = () => {
     if (!formData.perumahanId) newErrors.perumahanId = 'Perumahan wajib dipilih';
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Nama Tipe wajib diisi';
+    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe Rumah wajib diisi';
     if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
     if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
     if (formData.hargaJual === '' || formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual tidak valid';
@@ -287,7 +287,7 @@ const Kavling = () => {
 
               <div className="md:col-span-2">
                 <Select
-                  label="Nama Tipe"
+                  label="Tipe Rumah"
                   name="namaTipe"
                   value={formData.namaTipe}
                   onChange={handleChange}

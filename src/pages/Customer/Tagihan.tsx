@@ -63,22 +63,30 @@ const Tagihan = () => {
   const groupedData = useMemo(() => {
     const groups: Record<string, any> = {};
     tagihans.forEach((item) => {
-      if (!groups[item.namaCustomer]) {
-        groups[item.namaCustomer] = {
-          id: item.namaCustomer,
+      // PERUBAHAN: Gunakan penjualanId sebagai key pemisah grup, bukan namaCustomer
+      const groupKey = `${item.customerId}_${item.penjualanId}`;
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          id: groupKey,
+          customerId: item.customerId, // Simpan untuk auto-fill modal
+          penjualanId: item.penjualanId, // Simpan untuk auto-fill modal
           namaCustomer: item.namaCustomer,
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
           reminderSelanjutnya: '',
           cicilan: []
         };
       }
+
       if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
-        groups[item.namaCustomer].reminderSelanjutnya = item.reminderBerikutnya;
+        groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
       }
-      groups[item.namaCustomer].cicilan.push(item);
+
+      groups[groupKey].cicilan.push(item);
     });
     return Object.values(groups);
   }, [tagihans]);
+
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer' },
     { header: 'Kavling', accessor: 'kavling' },
@@ -88,7 +96,7 @@ const Tagihan = () => {
       render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
     },
   ];
-  const openModal = (item?: TagihanData, defaultCustomerName?: string) => {
+  const openModal = (item?: TagihanData, parentGroup?: TagihanData) => {
     if (item) {
       setFormData({
         id: item.id,
@@ -102,12 +110,16 @@ const Tagihan = () => {
         reminderBerikutnya: formatDateForInput(item.reminderBerikutnya),
       });
       setIsEditing(true);
-    } else {
-      const defaultCust = customers.find(c => c.nama === defaultCustomerName);
+    } else if (parentGroup) {
+      // Jika di-klik dari "+ Tambah Cicilan", auto-fill Customer & Kavling
       setFormData({
         ...initialFormState,
-        customerId: defaultCust?.id || '',
+        customerId: parentGroup.customerId,
+        penjualanId: parentGroup.penjualanId,
       });
+      setIsEditing(false);
+    } else {
+      setFormData(initialFormState);
       setIsEditing(false);
     }
     setErrors({});
@@ -204,7 +216,7 @@ const Tagihan = () => {
             <FileText size={16} className="text-blue-600" /> Detail Cicilan & Tagihan
           </h4>
           <button
-            onClick={() => openModal(undefined, row.namaCustomer)}
+            onClick={() => openModal(undefined, row)}
             className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer"
           >
             + Tambah Cicilan

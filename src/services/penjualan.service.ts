@@ -37,4 +37,10 @@ export const penjualanService = {
     const response = await api.post("/penjualan", data);
     return response.data.data;
   },
+  cancel: async (noTransaksi: string, alasanBatal: string) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
+      alasanBatal,
+    });
+    return response.data.data;
+  },
 };

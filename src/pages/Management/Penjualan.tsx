@@ -5,13 +5,13 @@ import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import { formatDate, formatRupiah } from "../../utils/formatters";
-import { FileText, Receipt, Printer, UploadCloud } from 'lucide-react';
+import { FileText, Receipt, Printer, UploadCloud, Ban } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
 
-import { useGetPenjualan, useCreatePenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 
@@ -161,7 +161,7 @@ const Penjualan = () => {
         updates.luasBangunan = selectedKavling ? selectedKavling.lb : 0;
         updates.luasTanah = 0;
 
-        // Otomatisasi Diskon Penjualan
+
         const tipeKavling = String(finalValue).toLowerCase();
         if (["ansara", "adara", "asvara"].includes(tipeKavling)) {
           updates.diskonPenjualan = 6000000;
@@ -260,6 +260,7 @@ const Penjualan = () => {
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${printTitle.replace(/\s+/g, '_')}_${printData?.id}.pdf`);
     } catch (error) {
+      console.error(error)
       alert('Terjadi kesalahan saat memproses PDF.');
     }
   };
@@ -275,14 +276,52 @@ const Penjualan = () => {
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const cancelMutation = useCancelPenjualan();
+
+
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
+
+
+  const handleCancelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cancelData.alasanBatal.length < 5) {
+      alert("Alasan pembatalan minimal 5 karakter.");
+      return;
+    }
+
+    try {
+      await cancelMutation.mutateAsync({ id: cancelData.id, alasanBatal: cancelData.alasanBatal });
+      setIsCancelModalOpen(false);
+      setCancelData({ id: '', alasanBatal: '' });
+      alert("Penjualan berhasil dibatalkan dan status kavling kembali Available.");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal membatalkan penjualan.");
+    }
+  };
+
   const expandedRowRender = (row: PenjualanData) => {
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
           <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
-          <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold border border-blue-100 uppercase tracking-wider">
-            Status: {row.status}
-          </span>
+
+          <div className="flex items-center gap-3">
+            {row.status === 'BOOKED' && (
+              <button
+                onClick={() => {
+                  setCancelData({ id: row.id!, alasanBatal: '' });
+                  setIsCancelModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-md text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
+              >
+                <Ban size={12} /> Batalkan Transaksi
+              </button>
+            )}
+            <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${row.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-700'}`}>
+              Status: {row.status}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -629,6 +668,27 @@ const Penjualan = () => {
             <Printer size={16} /> Download PDF
           </button>
         </div>
+      </Modal>
+      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Batalkan Penjualan">
+        <form onSubmit={handleCancelSubmit} className="space-y-4">
+          <div className="p-4 bg-red-50 text-red-800 border border-red-100 rounded-xl text-sm font-medium">
+            <strong>Peringatan!</strong> Membatalkan penjualan akan mengubah status transaksi ini menjadi "Batal" dan mengembalikan status Kavling menjadi "Available".
+          </div>
+          <Input
+            label="Alasan Pembatalan"
+            name="alasanBatal"
+            value={cancelData.alasanBatal}
+            onChange={(e) => setCancelData({ ...cancelData, alasanBatal: e.target.value })}
+            placeholder="Contoh: Customer mengundurkan diri / BI Checking ditolak"
+            required
+          />
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button type="button" onClick={() => setIsCancelModalOpen(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
+            <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-lg disabled:opacity-50">
+              {cancelMutation.isPending ? "Memproses..." : "Konfirmasi Batal"}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
