@@ -43,4 +43,20 @@ export const penjualanService = {
     });
     return response.data.data;
   },
+  uploadBukti: async (
+    noTransaksi: string,
+    type: "booking" | "dp",
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("fileBukti", file);
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/upload/${type}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data.data;
+  },
 };

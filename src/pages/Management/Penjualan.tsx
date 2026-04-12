@@ -11,7 +11,7 @@ import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
 
-import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 
@@ -294,6 +294,19 @@ const Penjualan = () => {
     } catch (error: any) {
       alert(error.response?.data?.message || "Gagal membatalkan penjualan.");
     }
+  }; const uploadBuktiMutation = useUploadBuktiPenjualan();
+
+  // 3. Tambahkan fungsi handler untuk file input
+  const handleUploadBukti = async (id: string, type: "booking" | "dp", e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await uploadBuktiMutation.mutateAsync({ id, type, file });
+      alert(`Bukti ${type === "booking" ? "Booking" : "DP"} berhasil diunggah! SPR akan otomatis di-generate (jika booking).`);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal mengunggah bukti");
+    }
   };
 
   const expandedRowRender = (row: PenjualanData) => {
@@ -355,12 +368,10 @@ const Penjualan = () => {
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => alert("Fitur Upload Bukti Booking akan diarahkan ke form Tagihan")}
-                  className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md"
-                >
-                  <UploadCloud size={14} /> Upload Bukti Booking
-                </button>
+                <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                  <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Booking"}
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
+                </label>
               )}
             </div>
           </div>
@@ -399,12 +410,10 @@ const Penjualan = () => {
                   </button>
                 </>
               ) : (
-                <button
-                  onClick={() => alert("Fitur Upload Bukti DP akan diarahkan ke form Tagihan")}
-                  className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md"
-                >
-                  <UploadCloud size={14} /> Upload Bukti DP
-                </button>
+                <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                  <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti DP"}
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'dp', e)} disabled={uploadBuktiMutation.isPending} />
+                </label>
               )}
             </div>
           </div>

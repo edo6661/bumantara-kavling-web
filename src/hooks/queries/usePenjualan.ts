@@ -36,3 +36,21 @@ export const useCancelPenjualan = () => {
     },
   });
 };
+export const useUploadBuktiPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      type,
+      file,
+    }: {
+      id: string;
+      type: "booking" | "dp";
+      file: File;
+    }) => penjualanService.uploadBukti(id, type, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+    },
+  });
+};

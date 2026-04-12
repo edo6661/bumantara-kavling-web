@@ -95,6 +95,7 @@ const CustomerKavling = () => {
   const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
 
   const columns = [
+    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
     { header: 'Perumahan', accessor: 'perumahan' },
     { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
     { header: 'Tipe', accessor: 'tipe' },

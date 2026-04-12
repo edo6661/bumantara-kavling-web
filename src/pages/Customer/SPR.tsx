@@ -9,6 +9,8 @@ const SPR = () => {
   // 1. Ambil data penjualan dari API menggunakan hook yang sudah ada
   const { data: penjualanData = [], isLoading } = useGetPenjualan();
 
+
+
   // 2. Definisikan Kolom Tabel
   const columns = [
     { header: 'No. Transaksi', accessor: 'id' },
@@ -43,18 +45,15 @@ const SPR = () => {
       )
     },
   ];
-
+  const activeSprData = penjualanData.filter((p: any) => p.status !== 'BATAL');
   if (isLoading) return <PageLoader />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Kita tidak lagi mengirimkan props onAdd, onEdit, onDelete 
-        karena tabel ini sekarang bersifat Read-Only hasil otomasi sistem.
-      */}
       <DataTable
         title="Dokumen Surat Pesanan Rumah (SPR)"
         columns={columns}
-        data={penjualanData}
+        data={activeSprData}
       />
     </div>
   );

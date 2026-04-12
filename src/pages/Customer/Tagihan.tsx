@@ -96,6 +96,7 @@ const Tagihan = () => {
       render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
     },
   ];
+  const [isAutoFilled, setIsAutoFilled] = useState(false);
   const openModal = (item?: TagihanData, parentGroup?: TagihanData) => {
     if (item) {
       setFormData({
@@ -110,6 +111,7 @@ const Tagihan = () => {
         reminderBerikutnya: formatDateForInput(item.reminderBerikutnya),
       });
       setIsEditing(true);
+      setIsAutoFilled(false);
     } else if (parentGroup) {
       // Jika di-klik dari "+ Tambah Cicilan", auto-fill Customer & Kavling
       setFormData({
@@ -118,6 +120,7 @@ const Tagihan = () => {
         penjualanId: parentGroup.penjualanId,
       });
       setIsEditing(false);
+      setIsAutoFilled(true);
     } else {
       setFormData(initialFormState);
       setIsEditing(false);
@@ -125,6 +128,10 @@ const Tagihan = () => {
     setErrors({});
     setIsModalOpen(true);
   };
+  const filteredPenjualanList = useMemo(() => {
+    if (!formData.customerId) return [];
+    return penjualanList.filter((p: any) => p.customerId === formData.customerId);
+  }, [formData.customerId, penjualanList]);
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
@@ -317,7 +324,7 @@ const Tagihan = () => {
               value={formData.customerId}
               onChange={handleChange}
               error={errors.customerId}
-              disabled={isEditing}
+              disabled={isEditing || isAutoFilled}
               options={[
                 { value: '', label: '-- Pilih Customer --' },
                 ...customers.map(c => ({ value: c.id, label: `${c.nama} (NIK: ${c.nikKtp})` }))
@@ -330,10 +337,10 @@ const Tagihan = () => {
                 value={formData.penjualanId}
                 onChange={handleChange}
                 error={errors.penjualanId}
-                disabled={isEditing}
+                disabled={isEditing || isAutoFilled}
                 options={[
                   { value: '', label: '-- Pilih Kavling Terkait --' },
-                  ...penjualanList.map((p: any) => ({
+                  ...filteredPenjualanList.map((p: any) => ({
                     value: p.id,
                     label: `${p.perumahan} - Blok ${p.blok}-${p.unit} (Rp ${(p.totalHargaJual / 1000000).toFixed(0)} Jt)`
                   }))

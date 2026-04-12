@@ -1,4 +1,4 @@
-kode frontend;
+kode frontend:
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -314,35 +314,6 @@ export const useDeleteNotaris = () => {
     mutationFn: (id: number) => notarisService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NOTARIS_KEYS.all });
-    },
-  });
-};
-</file>
-
-<file path="src/hooks/queries/usePenjualan.ts">
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  penjualanService,
-  type CreatePenjualanDTO,
-} from "../../services/penjualan.service";
-
-export const PENJUALAN_KEYS = {
-  all: ["penjualan"] as const,
-};
-
-export const useGetPenjualan = (params?: Record<string, unknown>) => {
-  return useQuery({
-    queryKey: [...PENJUALAN_KEYS.all, params],
-    queryFn: () => penjualanService.getAll(params),
-  });
-};
-
-export const useCreatePenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreatePenjualanDTO) => penjualanService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
     },
   });
 };
@@ -2766,49 +2737,6 @@ export const notarisService = {
 };
 </file>
 
-<file path="src/services/penjualan.service.ts">
-import api from "../lib/axios";
-
-export interface CreatePenjualanDTO {
-  noIdentitas: string;
-  nama: string;
-  noTelepon: string;
-  alamat: string;
-  perusahaan?: string;
-  alamatKoresponden?: string;
-  perumahan: string;
-  blok: string;
-  nomorUnit: string;
-  tipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  tanggal: string;
-  hargaJual: number;
-  hargaPromosi?: number;
-  diskonPenjualan?: number;
-  dp?: number;
-  bookingFee?: number;
-  caraPembayaran: string;
-  bank?: string;
-  nilaiPengajuanKpr?: number;
-  agent: string;
-}
-
-export const penjualanService = {
-  getAll: async (params?: Record<string, unknown>) => {
-    const response = await api.get("/penjualan", {
-      params: { limit: 100, ...params },
-    });
-    return response.data.data.items;
-  },
-
-  create: async (data: CreatePenjualanDTO) => {
-    const response = await api.post("/penjualan", data);
-    return response.data.data;
-  },
-};
-</file>
-
 <file path="src/services/perumahan.service.ts">
 import api from "../lib/axios";
 import type { Perumahan } from "../types/models/perumahan";
@@ -3167,6 +3095,47 @@ export const useDeleteKavling = () => {
 };
 </file>
 
+<file path="src/hooks/queries/usePenjualan.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  penjualanService,
+  type CreatePenjualanDTO,
+} from "../../services/penjualan.service";
+
+export const PENJUALAN_KEYS = {
+  all: ["penjualan"] as const,
+};
+
+export const useGetPenjualan = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: [...PENJUALAN_KEYS.all, params],
+    queryFn: () => penjualanService.getAll(params),
+  });
+};
+
+export const useCreatePenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreatePenjualanDTO) => penjualanService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
+};
+
+export const useCancelPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, alasanBatal }: { id: string; alasanBatal: string }) =>
+      penjualanService.cancel(id, alasanBatal),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+    },
+  });
+};
+</file>
+
 <file path="src/hooks/queries/useTagihan.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -3452,6 +3421,55 @@ export const authService = {
       perumahan: perumahan,
     });
     return response.data;
+  },
+};
+</file>
+
+<file path="src/services/penjualan.service.ts">
+import api from "../lib/axios";
+
+export interface CreatePenjualanDTO {
+  noIdentitas: string;
+  nama: string;
+  noTelepon: string;
+  alamat: string;
+  perusahaan?: string;
+  alamatKoresponden?: string;
+  perumahan: string;
+  blok: string;
+  nomorUnit: string;
+  tipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  tanggal: string;
+  hargaJual: number;
+  hargaPromosi?: number;
+  diskonPenjualan?: number;
+  dp?: number;
+  bookingFee?: number;
+  caraPembayaran: string;
+  bank?: string;
+  nilaiPengajuanKpr?: number;
+  agent: string;
+}
+
+export const penjualanService = {
+  getAll: async (params?: Record<string, unknown>) => {
+    const response = await api.get("/penjualan", {
+      params: { limit: 100, ...params },
+    });
+    return response.data.data.items;
+  },
+
+  create: async (data: CreatePenjualanDTO) => {
+    const response = await api.post("/penjualan", data);
+    return response.data.data;
+  },
+  cancel: async (noTransaksi: string, alasanBatal: string) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
+      alasanBatal,
+    });
+    return response.data.data;
   },
 };
 </file>
@@ -7642,22 +7660,30 @@ const Tagihan = () => {
   const groupedData = useMemo(() => {
     const groups: Record<string, any> = {};
     tagihans.forEach((item) => {
-      if (!groups[item.namaCustomer]) {
-        groups[item.namaCustomer] = {
-          id: item.namaCustomer,
+      // PERUBAHAN: Gunakan penjualanId sebagai key pemisah grup, bukan namaCustomer
+      const groupKey = `${item.customerId}_${item.penjualanId}`;
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          id: groupKey,
+          customerId: item.customerId, // Simpan untuk auto-fill modal
+          penjualanId: item.penjualanId, // Simpan untuk auto-fill modal
           namaCustomer: item.namaCustomer,
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
           reminderSelanjutnya: '',
           cicilan: []
         };
       }
+
       if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
-        groups[item.namaCustomer].reminderSelanjutnya = item.reminderBerikutnya;
+        groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
       }
-      groups[item.namaCustomer].cicilan.push(item);
+
+      groups[groupKey].cicilan.push(item);
     });
     return Object.values(groups);
   }, [tagihans]);
+
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer' },
     { header: 'Kavling', accessor: 'kavling' },
@@ -7667,7 +7693,7 @@ const Tagihan = () => {
       render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
     },
   ];
-  const openModal = (item?: TagihanData, defaultCustomerName?: string) => {
+  const openModal = (item?: TagihanData, parentGroup?: TagihanData) => {
     if (item) {
       setFormData({
         id: item.id,
@@ -7681,12 +7707,16 @@ const Tagihan = () => {
         reminderBerikutnya: formatDateForInput(item.reminderBerikutnya),
       });
       setIsEditing(true);
-    } else {
-      const defaultCust = customers.find(c => c.nama === defaultCustomerName);
+    } else if (parentGroup) {
+      // Jika di-klik dari "+ Tambah Cicilan", auto-fill Customer & Kavling
       setFormData({
         ...initialFormState,
-        customerId: defaultCust?.id || '',
+        customerId: parentGroup.customerId,
+        penjualanId: parentGroup.penjualanId,
       });
+      setIsEditing(false);
+    } else {
+      setFormData(initialFormState);
       setIsEditing(false);
     }
     setErrors({});
@@ -7783,7 +7813,7 @@ const Tagihan = () => {
             <FileText size={16} className="text-blue-600" /> Detail Cicilan & Tagihan
           </h4>
           <button
-            onClick={() => openModal(undefined, row.namaCustomer)}
+            onClick={() => openModal(undefined, row)}
             className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer"
           >
             + Tambah Cicilan
@@ -8340,7 +8370,7 @@ const Kavling = () => {
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
     { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Nama Tipe', accessor: 'namaTipe' },
+    { header: 'Tipe Rumah', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Jual', accessor: 'hargaJual', render: (val: number) => formatRupiah(val) },
     {
@@ -8436,7 +8466,7 @@ const Kavling = () => {
     if (!formData.perumahanId) newErrors.perumahanId = 'Perumahan wajib dipilih';
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Nama Tipe wajib diisi';
+    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe Rumah wajib diisi';
     if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
     if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
     if (formData.hargaJual === '' || formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual tidak valid';
@@ -8552,7 +8582,7 @@ const Kavling = () => {
 
               <div className="md:col-span-2">
                 <Select
-                  label="Nama Tipe"
+                  label="Tipe Rumah"
                   name="namaTipe"
                   value={formData.namaTipe}
                   onChange={handleChange}
@@ -8661,13 +8691,13 @@ import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import { formatDate, formatRupiah } from "../../utils/formatters";
-import { FileText, Receipt, Printer, UploadCloud } from 'lucide-react';
+import { FileText, Receipt, Printer, UploadCloud, Ban } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
 
-import { useGetPenjualan, useCreatePenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 
@@ -8808,16 +8838,12 @@ const Penjualan = () => {
         updates.dp = Number(finalValue) * 0.1;
       }
 
-      if (name === 'caraPembayaran' && finalValue !== 'KPR') {
-        updates.nilaiPengajuanKpr = 0;
-      }
-
       if (name === 'tipe') {
         const selectedKavling = KAVLING_DATA[String(finalValue)];
         updates.luasBangunan = selectedKavling ? selectedKavling.lb : 0;
         updates.luasTanah = 0;
 
-        // Otomatisasi Diskon Penjualan
+
         const tipeKavling = String(finalValue).toLowerCase();
         if (["ansara", "adara", "asvara"].includes(tipeKavling)) {
           updates.diskonPenjualan = 6000000;
@@ -8916,6 +8942,7 @@ const Penjualan = () => {
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${printTitle.replace(/\s+/g, '_')}_${printData?.id}.pdf`);
     } catch (error) {
+      console.error(error)
       alert('Terjadi kesalahan saat memproses PDF.');
     }
   };
@@ -8931,14 +8958,52 @@ const Penjualan = () => {
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const cancelMutation = useCancelPenjualan();
+
+
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
+
+
+  const handleCancelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cancelData.alasanBatal.length < 5) {
+      alert("Alasan pembatalan minimal 5 karakter.");
+      return;
+    }
+
+    try {
+      await cancelMutation.mutateAsync({ id: cancelData.id, alasanBatal: cancelData.alasanBatal });
+      setIsCancelModalOpen(false);
+      setCancelData({ id: '', alasanBatal: '' });
+      alert("Penjualan berhasil dibatalkan dan status kavling kembali Available.");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal membatalkan penjualan.");
+    }
+  };
+
   const expandedRowRender = (row: PenjualanData) => {
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
           <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
-          <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold border border-blue-100 uppercase tracking-wider">
-            Status: {row.status}
-          </span>
+
+          <div className="flex items-center gap-3">
+            {row.status === 'BOOKED' && (
+              <button
+                onClick={() => {
+                  setCancelData({ id: row.id!, alasanBatal: '' });
+                  setIsCancelModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-md text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
+              >
+                <Ban size={12} /> Batalkan Transaksi
+              </button>
+            )}
+            <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${row.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-700'}`}>
+              Status: {row.status}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -9178,16 +9243,14 @@ const Penjualan = () => {
                   placeholder="Contoh: BCA, BSI, Mandiri"
                   error={errors.bank}
                 />
-                {formData.caraPembayaran === 'KPR' && (
-                  <Input
-                    label="Nilai Pengajuan KPR (Rp)"
-                    type="number"
-                    name="nilaiPengajuanKpr"
-                    value={formData.nilaiPengajuanKpr || ''}
-                    onChange={handleChange}
-                    error={errors.nilaiPengajuanKpr}
-                  />
-                )}
+                <Input
+                  label={formData.caraPembayaran === 'KPR' ? "Nilai Pengajuan KPR (Rp)" : "Nilai Pengajuan Plafon (Rp)"}
+                  type="number"
+                  name="nilaiPengajuanKpr"
+                  value={formData.nilaiPengajuanKpr || ''}
+                  onChange={handleChange}
+                  error={errors.nilaiPengajuanKpr}
+                />
               </div>
             )}
           </div>
@@ -9285,6 +9348,27 @@ const Penjualan = () => {
             <Printer size={16} /> Download PDF
           </button>
         </div>
+      </Modal>
+      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Batalkan Penjualan">
+        <form onSubmit={handleCancelSubmit} className="space-y-4">
+          <div className="p-4 bg-red-50 text-red-800 border border-red-100 rounded-xl text-sm font-medium">
+            <strong>Peringatan!</strong> Membatalkan penjualan akan mengubah status transaksi ini menjadi "Batal" dan mengembalikan status Kavling menjadi "Available".
+          </div>
+          <Input
+            label="Alasan Pembatalan"
+            name="alasanBatal"
+            value={cancelData.alasanBatal}
+            onChange={(e) => setCancelData({ ...cancelData, alasanBatal: e.target.value })}
+            placeholder="Contoh: Customer mengundurkan diri / BI Checking ditolak"
+            required
+          />
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button type="button" onClick={() => setIsCancelModalOpen(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
+            <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-lg disabled:opacity-50">
+              {cancelMutation.isPending ? "Memproses..." : "Konfirmasi Batal"}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
