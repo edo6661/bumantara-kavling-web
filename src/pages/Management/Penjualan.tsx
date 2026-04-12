@@ -157,9 +157,19 @@ const Penjualan = () => {
       }
 
       if (name === 'tipe') {
-        const selectedKavling = KAVLING_DATA[finalValue];
+        const selectedKavling = KAVLING_DATA[String(finalValue)];
         updates.luasBangunan = selectedKavling ? selectedKavling.lb : 0;
         updates.luasTanah = 0;
+
+        // Otomatisasi Diskon Penjualan
+        const tipeKavling = String(finalValue).toLowerCase();
+        if (["ansara", "adara", "asvara"].includes(tipeKavling)) {
+          updates.diskonPenjualan = 6000000;
+        } else if (tipeKavling === "aruna") {
+          updates.diskonPenjualan = 10000000;
+        } else {
+          updates.diskonPenjualan = 0;
+        }
       }
 
       return { ...prev, ...updates };
