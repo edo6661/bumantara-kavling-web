@@ -152,10 +152,6 @@ const Penjualan = () => {
         updates.dp = Number(finalValue) * 0.1;
       }
 
-      if (name === 'caraPembayaran' && finalValue !== 'KPR') {
-        updates.nilaiPengajuanKpr = 0;
-      }
-
       if (name === 'tipe') {
         const selectedKavling = KAVLING_DATA[String(finalValue)];
         updates.luasBangunan = selectedKavling ? selectedKavling.lb : 0;
@@ -561,16 +557,14 @@ const Penjualan = () => {
                   placeholder="Contoh: BCA, BSI, Mandiri"
                   error={errors.bank}
                 />
-                {formData.caraPembayaran === 'KPR' && (
-                  <Input
-                    label="Nilai Pengajuan KPR (Rp)"
-                    type="number"
-                    name="nilaiPengajuanKpr"
-                    value={formData.nilaiPengajuanKpr || ''}
-                    onChange={handleChange}
-                    error={errors.nilaiPengajuanKpr}
-                  />
-                )}
+                <Input
+                  label={formData.caraPembayaran === 'KPR' ? "Nilai Pengajuan KPR (Rp)" : "Nilai Pengajuan Plafon (Rp)"}
+                  type="number"
+                  name="nilaiPengajuanKpr"
+                  value={formData.nilaiPengajuanKpr || ''}
+                  onChange={handleChange}
+                  error={errors.nilaiPengajuanKpr}
+                />
               </div>
             )}
           </div>
