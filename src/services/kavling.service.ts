@@ -20,6 +20,13 @@ export interface KavlingData {
   filePbg: string | null;
   fileSertifikatTanah: string | null;
   fileNopPbb: string | null;
+  // Tambahkan relasi penjualan untuk membaca data pembeli
+  penjualan?: {
+    customer?: {
+      nama: string;
+      noHp: string;
+    };
+  }[];
 }
 
 export interface CreateKavlingDTO {

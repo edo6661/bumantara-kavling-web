@@ -11,6 +11,7 @@ import {
   useUpdateFeeAgent,
   useUploadBuktiFee,
 } from "../../hooks/queries/useFeeAgent";
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import type { FeeAgentData } from "../../services/feeAgent.service";
 
 interface FeeFormState {
@@ -39,7 +40,6 @@ const initialFormState: FeeFormState = {
   marketingBukti: "",
 };
 
-
 interface GroupedAgentFee {
   agentId: number;
   namaAgent: string;
@@ -52,6 +52,9 @@ interface GroupedAgentFee {
 
 const FeeAgent = () => {
   const { data: feeData = [], isLoading } = useGetFeeAgents();
+  // Fetch Data Penjualan untuk keperluan detail Modal
+  const { data: penjualanList = [] } = useGetPenjualan();
+
   const updateMutation = useUpdateFeeAgent();
   const uploadMutation = useUploadBuktiFee();
 
@@ -62,11 +65,14 @@ const FeeAgent = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // State untuk Detail Penjualan
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
+
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return "";
     return dateString.split("T")[0];
   };
-
 
   const groupedData = useMemo(() => {
     const groups: Record<number, GroupedAgentFee> = {};
@@ -94,9 +100,8 @@ const FeeAgent = () => {
     return Object.values(groups);
   }, [feeData]);
 
-
   const columns = [
-    { header: "Nama Agent", accessor: "namaAgent" },
+    { header: "Nama Agent", accessor: "namaAgent", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
     {
       header: "Total Penjualan",
       accessor: "totalPenjualan",
@@ -183,7 +188,6 @@ const FeeAgent = () => {
     e.preventDefault();
 
     try {
-
       await updateMutation.mutateAsync({
         id: Number(formData.id),
         data: {
@@ -195,7 +199,6 @@ const FeeAgent = () => {
           marketingTanggal: formData.marketingTanggal || undefined,
         },
       });
-
 
       const uploadPromises = [];
 
@@ -234,6 +237,7 @@ const FeeAgent = () => {
       }
 
       closeModal();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const responseData = error.response?.data;
 
@@ -272,8 +276,18 @@ const FeeAgent = () => {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {row.rincianPenjualan.map((feeData) => (
-                  <tr key={feeData.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-slate-900">{feeData.namaCustomer}</td>
+                  <tr
+                    key={feeData.id}
+                    onClick={() => {
+                      // Cari data lengkap dari list penjualan berdasarkan noTransaksi
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const detail = penjualanList.find((p: any) => p.id === feeData.noTransaksi);
+                      setSelectedDetailPenjualan(detail || feeData);
+                    }}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    title="Klik untuk melihat detail penjualan"
+                  >
+                    <td className="px-4 py-3 font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{feeData.namaCustomer}</td>
                     <td className="px-4 py-3 text-slate-600">{feeData.kavling}</td>
                     <td className="px-4 py-3 font-medium text-slate-500">{feeData.noTransaksi}</td>
                     <td className="px-4 py-3 font-medium text-slate-900 text-right">
@@ -287,8 +301,11 @@ const FeeAgent = () => {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button
-                        onClick={() => openModal(feeData)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition cursor-pointer mx-auto"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Mencegah tr onclick terpanggil
+                          openModal(feeData);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition cursor-pointer mx-auto shadow-sm"
                       >
                         <Edit2 size={14} /> Kelola
                       </button>
@@ -316,7 +333,6 @@ const FeeAgent = () => {
         columns={columns}
         data={groupedData}
         expandedRowRender={expandedRowRender}
-
       />
 
       <Modal
@@ -475,6 +491,62 @@ const FeeAgent = () => {
           </div>
         </form>
       </Modal>
+
+      {/* MODAL DETAIL PENJUALAN */}
+      <Modal isOpen={!!selectedDetailPenjualan} onClose={() => setSelectedDetailPenjualan(null)} title="Informasi Transaksi Penjualan">
+        {selectedDetailPenjualan && (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+              <div className="flex justify-between items-start mb-4 border-b border-slate-200 pb-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
+                  <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.namaCustomer || '-'}</p>
+                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.id || selectedDetailPenjualan.noTransaksi}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${(selectedDetailPenjualan.status || 'PROSES') === 'LUNAS' ? 'bg-green-100 text-green-800' :
+                    (selectedDetailPenjualan.status || '') === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                    {selectedDetailPenjualan.status || 'PROSES'}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-y-5 gap-x-4">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kavling</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.perumahan || selectedDetailPenjualan.kavling?.split(' ')?.[0] || '-'} Blok {selectedDetailPenjualan.blok || selectedDetailPenjualan.kavling?.split('Blok ')?.[1] || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.caraPembayaran?.replace('_', ' ') || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
+                  <p className="text-sm font-bold text-blue-700">
+                    {selectedDetailPenjualan.hargaJual ? formatRupiah(selectedDetailPenjualan.hargaJual) : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tanggal Transaksi</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.tanggal ? new Date(selectedDetailPenjualan.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setSelectedDetailPenjualan(null)} className="px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer shadow-md">
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 };

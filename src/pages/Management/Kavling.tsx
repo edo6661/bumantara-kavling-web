@@ -6,6 +6,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import { formatRupiah } from "../../utils/formatters";
 import { useAuth } from "../../context/AuthContext";
+import { UserCircle } from "lucide-react";
 import {
   useGetKavlings,
   useCreateKavling,
@@ -42,7 +43,7 @@ const initialFormState: KavlingFormState = {
   luasBangunan: '',
   luasTanah: '',
   hargaJual: '',
-  status: 'AVAILABLE',
+  status: 'AVAILABLE', // Default Status Sesuai UnitStatus Prisma
   rekeningTujuanId: '',
   filePbg: '',
   fileSertifikatTanah: '',
@@ -82,23 +83,48 @@ const Kavling = () => {
       header: 'Status',
       accessor: 'status',
       render: (val: string) => {
-        const getStatusStyle = (status: string) => {
-          switch (status?.toUpperCase()) {
-            case 'AVAILABLE': return 'bg-green-100 text-green-800';
-            case 'HOLD': return 'bg-yellow-100 text-yellow-800';
-            case 'BOOKING': return 'bg-blue-100 text-blue-800';
-            case 'TERJUAL': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
-          }
-        };
+        const statusStr = val?.toUpperCase();
+        let bgClass = 'bg-gray-100 text-gray-800 border-gray-200';
+        if (statusStr === 'AVAILABLE') bgClass = 'bg-green-100 text-green-800 border-green-200';
+        if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
+        if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+
         return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusStyle(val)}`}>
+          <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>
             {val}
           </span>
         );
       }
     },
   ];
+
+  // FUNGSI BARU: Untuk menampilkan detail pembeli saat baris (TR) diklik
+  const expandedRowRender = (row: KavlingData) => {
+    const activeSale = row.penjualan?.[0]; // Backend sudah mengirim relasi penjualan yang tidak BATAL
+    const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
+
+    return (
+      <div className="p-4 bg-slate-50/50 border-t border-slate-100 shadow-inner">
+        {isBookedOrSold && activeSale ? (
+          <div className="flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-4 rounded-xl max-w-lg">
+            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+              <UserCircle size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Informasi Pemesan / Pembeli</p>
+              <p className="text-base font-black text-blue-900">{activeSale.customer?.nama || 'Tidak diketahui'}</p>
+              <p className="text-sm font-medium text-blue-700 mt-0.5">No. HP: {activeSale.customer?.noHp || '-'}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-4 bg-white border border-slate-200 rounded-xl max-w-lg">
+            <p className="text-sm text-slate-500 italic">Belum ada data pemesan aktif untuk kavling ini.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const openModal = (item?: KavlingData) => {
     if (item) {
@@ -192,7 +218,7 @@ const Kavling = () => {
       luasBangunan: Number(formData.luasBangunan),
       luasTanah: Number(formData.luasTanah),
       hargaJual: Number(formData.hargaJual),
-      status: formData.status,
+      status: formData.status, // Pastikan mengirim status yang valid (AVAILABLE, BOOKING, dll)
       rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
       filePbg: formData.filePbg || undefined,
       fileSertifikatTanah: formData.fileSertifikatTanah || undefined,
@@ -207,19 +233,18 @@ const Kavling = () => {
       }
       closeModal();
     } catch (error: unknown) {
-
       if (isAxiosError(error) && error.response) {
         const responseData = error.response.data;
-
         if (responseData?.error && Array.isArray(responseData.error)) {
           const backendErrors: Record<string, string> = {};
           responseData.error.forEach((err: { field: string; message: string }) => {
             backendErrors[err.field] = err.message;
           });
           setErrors(backendErrors);
+        } else {
+          alert(responseData?.message || 'Gagal menyimpan kavling.');
         }
       } else {
-
         alert('Terjadi kesalahan yang tidak diketahui. Periksa koneksi Anda.');
       }
     }
@@ -231,14 +256,14 @@ const Kavling = () => {
         await deleteMutation.mutateAsync(item.id);
       } catch (error: unknown) {
         console.error(error)
-        alert('Gagal menghapus Kavling');
+        alert('Gagal menghapus Kavling, pastikan kavling ini belum pernah terjadi transaksi.');
       }
     }
   };
 
   const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
 
-  if (isLoading) return <div className="p-4 text-slate-500 font-medium">Memuat data kavling...</div>;
+  if (isLoading) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -249,6 +274,7 @@ const Kavling = () => {
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item as KavlingData)}
         onDelete={(item) => handleDelete(item as KavlingData)}
+        expandedRowRender={expandedRowRender} // Menerapkan fitur expand
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
@@ -271,10 +297,11 @@ const Kavling = () => {
               />
 
               <Select
-                label="Status"
+                label="Status Kavling"
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
+                // Hanya status yang valid sesuai Enum UnitStatus Backend
                 options={[
                   { value: 'AVAILABLE', label: 'Available' },
                   { value: 'HOLD', label: 'Hold' },

@@ -9,8 +9,8 @@ import {
   useUpdateAgent,
   useDeleteAgent
 } from "../../hooks/queries/useAgent";
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
-
 
 interface AgentFormState {
   id: number | '';
@@ -34,6 +34,9 @@ const initialFormState: AgentFormState = {
 
 const Agents = () => {
   const { data: agentData = [], isLoading } = useGetAgents();
+  // Ambil data penjualan untuk detail
+  const { data: penjualanList = [] } = useGetPenjualan();
+
   const createMutation = useCreateAgent();
   const updateMutation = useUpdateAgent();
   const deleteMutation = useDeleteAgent();
@@ -43,9 +46,13 @@ const Agents = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
+  // State untuk Detail Penjualan
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
+
   const columns = [
     { header: 'NIK', accessor: 'nik' },
-    { header: 'Nama Agent', accessor: 'nama' },
+    { header: 'Nama Agent', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
     { header: 'No. WhatsApp', accessor: 'noHp' },
     {
       header: 'Total PIC',
@@ -104,15 +111,6 @@ const Agents = () => {
       newPics[index] = { ...newPics[index], [name]: value };
       return { ...prev, pics: newPics };
     });
-
-    const errorKey = `pics.${index}.${name}`;
-    if (errors[errorKey]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[errorKey];
-        return newErrors;
-      });
-    }
   };
 
   const handleAddPIC = () => {
@@ -145,7 +143,6 @@ const Agents = () => {
     if (!validateForm()) return;
 
     const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
-
     const payload: CreateAgentDTO = {
       nik: formData.nik,
       nama: formData.nama,
@@ -162,17 +159,9 @@ const Agents = () => {
         await createMutation.mutateAsync(payload);
       }
       closeModal();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      const responseData = error.response?.data;
-      if (responseData?.error && Array.isArray(responseData.error)) {
-        const backendErrors: Record<string, string> = {};
-        responseData.error.forEach((err: { field: string; message: string }) => {
-          backendErrors[err.field] = err.message;
-        });
-        setErrors(backendErrors);
-      } else {
-        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
-      }
+      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
     }
   };
 
@@ -180,6 +169,7 @@ const Agents = () => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
       try {
         await deleteMutation.mutateAsync(item.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         alert(error.response?.data?.message || 'Gagal menghapus agen');
       }
@@ -209,13 +199,23 @@ const Agents = () => {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {relatedSales.map((sale: PenjualanAgentData) => (
-                  <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-900">{sale.noTransaksi}</td>
+                  <tr
+                    key={sale.id}
+                    onClick={() => {
+                      // Cari data lengkap dari list penjualan berdasarkan noTransaksi
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const detail = penjualanList.find((p: any) => p.id === sale.noTransaksi);
+                      setSelectedDetailPenjualan(detail || sale);
+                    }}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    title="Klik untuk melihat detail"
+                  >
+                    <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{sale.noTransaksi}</td>
                     <td className="px-4 py-3 text-slate-500">
                       {new Date(sale.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="px-4 py-3">{sale.customer?.nama || '-'}</td>
-                    <td className="px-4 py-3 font-medium">
+                    <td className="px-4 py-3 font-medium">{sale.customer?.nama || '-'}</td>
+                    <td className="px-4 py-3">
                       {sale.kavling?.perumahan?.nama} ({sale.kavling?.blok}-{sale.kavling?.nomorUnit})
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-slate-700">
@@ -242,7 +242,7 @@ const Agents = () => {
     );
   };
 
-  if (isLoading) return <div className="p-4 text-slate-500">Memuat data agen...</div>;
+  if (isLoading) return <div className="p-4 text-slate-500 font-medium flex justify-center h-40 items-center">Memuat data agen...</div>;
 
   return (
     <div className="space-y-6">
@@ -256,57 +256,17 @@ const Agents = () => {
         expandedRowRender={expandedRowRender}
       />
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}
-      >
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="NIK"
-                name="nik"
-                value={formData.nik}
-                onChange={handleChange}
-                error={errors.nik}
-                placeholder="Masukkan 16 digit NIK"
-              />
-              <Input
-                label="Nama Lengkap"
-                name="nama"
-                value={formData.nama}
-                onChange={handleChange}
-                error={errors.nama}
-                placeholder="Masukkan nama agent"
-              />
-              <Input
-                label="No. WhatsApp / HP"
-                name="noHp"
-                value={formData.noHp}
-                onChange={handleChange}
-                error={errors.noHp}
-                placeholder="08xxxxxxxxxx"
-              />
-              <Input
-                label="Email (Opsional)"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                error={errors.email}
-                placeholder="email@example.com"
-              />
+              <Input label="NIK" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan 16 digit NIK" />
+              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Masukkan nama agent" />
+              <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
+              <Input label="Email (Opsional)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
               <div className="md:col-span-2">
-                <Input
-                  label="Alamat Lengkap (Opsional)"
-                  name="alamat"
-                  value={formData.alamat}
-                  onChange={handleChange}
-                  error={errors.alamat}
-                  placeholder="Masukkan alamat lengkap agent"
-                />
+                <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
               </div>
             </div>
           </div>
@@ -317,11 +277,7 @@ const Agents = () => {
                 <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent (Opsional)</h4>
                 <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk di bawah agent ini</p>
               </div>
-              <button
-                type="button"
-                onClick={handleAddPIC}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer"
-              >
+              <button type="button" onClick={handleAddPIC} className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer">
                 + Tambah PIC
               </button>
             </div>
@@ -330,42 +286,15 @@ const Agents = () => {
               {formData.pics.map((pic, index) => (
                 <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
                   {formData.pics.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePIC(index)}
-                      className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
-                    >
-                      Hapus
-                    </button>
+                    <button type="button" onClick={() => handleRemovePIC(index)} className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Hapus</button>
                   )}
                   <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      label="Nama PIC"
-                      name="nama"
-                      value={pic.nama}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.nama`]}
-                      placeholder="Masukkan nama PIC"
-                    />
-                    <Input
-                      label="No. Telepon / HP PIC"
-                      name="noHp"
-                      value={pic.noHp}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.noHp`]}
-                      placeholder="08xxxxxxxxxx"
-                    />
+                    <Input label="Nama PIC" name="nama" value={pic.nama} onChange={(e) => handlePICChange(index, e)} placeholder="Masukkan nama PIC" />
+                    <Input label="No. Telepon / HP PIC" name="noHp" value={pic.noHp} onChange={(e) => handlePICChange(index, e)} placeholder="08xxxxxxxxxx" />
                     <div className="md:col-span-2">
-                      <Input
-                        label="Alamat PIC (Opsional)"
-                        name="alamat"
-                        value={pic.alamat || ''}
-                        onChange={(e) => handlePICChange(index, e)}
-                        error={errors[`pics.${index}.alamat`]}
-                        placeholder="Masukkan alamat lengkap PIC"
-                      />
+                      <Input label="Alamat PIC (Opsional)" name="alamat" value={pic.alamat || ''} onChange={(e) => handlePICChange(index, e)} placeholder="Masukkan alamat lengkap PIC" />
                     </div>
                   </div>
                 </div>
@@ -374,24 +303,71 @@ const Agents = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50"
-            >
+            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50">
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50"
-            >
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50">
               {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
             </button>
           </div>
         </form>
       </Modal>
+
+      {/* MODAL DETAIL PENJUALAN */}
+      <Modal isOpen={!!selectedDetailPenjualan} onClose={() => setSelectedDetailPenjualan(null)} title="Informasi Transaksi Penjualan">
+        {selectedDetailPenjualan && (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+              <div className="flex justify-between items-start mb-4 border-b border-slate-200 pb-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
+                  <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}</p>
+                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.id || selectedDetailPenjualan.noTransaksi}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :
+                      selectedDetailPenjualan.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                    {selectedDetailPenjualan.status}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-y-5 gap-x-4">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kavling</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.perumahan || selectedDetailPenjualan.kavling?.perumahan?.nama} - Blok {selectedDetailPenjualan.blok || selectedDetailPenjualan.kavling?.blok} No. {selectedDetailPenjualan.nomorUnit || selectedDetailPenjualan.kavling?.nomorUnit}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.caraPembayaran?.replace('_', ' ') || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
+                  <p className="text-sm font-bold text-blue-700">
+                    {selectedDetailPenjualan.hargaJual ? formatRupiah(selectedDetailPenjualan.hargaJual) : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tanggal Transaksi</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.tanggal ? new Date(selectedDetailPenjualan.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setSelectedDetailPenjualan(null)} className="px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer shadow-md">
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 };
