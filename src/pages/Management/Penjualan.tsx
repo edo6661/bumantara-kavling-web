@@ -88,8 +88,8 @@ const Penjualan = () => {
   const { data: penjualanData = [], isLoading } = useGetPenjualan();
   const { data: agentData = [] } = useGetAgents();
   const { data: perumahanData = [] } = useGetPerumahan();
-  const { data: kavlingList = [] } = useGetKavlings(); // <-- Ambil Data DB
-
+  const { data: kavlingResponse } = useGetKavlings({ limit: 500 });
+  const kavlingList = kavlingResponse?.items || [];
   const createMutation = useCreatePenjualan();
   const cancelMutation = useCancelPenjualan();
   const uploadBuktiMutation = useUploadBuktiPenjualan();

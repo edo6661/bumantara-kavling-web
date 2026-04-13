@@ -20,7 +20,6 @@ export interface KavlingData {
   filePbg: string | null;
   fileSertifikatTanah: string | null;
   fileNopPbb: string | null;
-  // Tambahkan relasi penjualan untuk membaca data pembeli
   penjualan?: {
     customer?: {
       nama: string;
@@ -43,6 +42,7 @@ export interface CreateKavlingDTO {
   fileSertifikatTanah?: string;
   fileNopPbb?: string;
 }
+
 export interface PaginationMeta {
   page: number;
   limit: number;
@@ -50,6 +50,7 @@ export interface PaginationMeta {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+  summary?: Record<string, number>;
 }
 
 export interface KavlingResponse {
@@ -63,7 +64,9 @@ export interface GetKavlingParams {
   search?: string;
   perumahanId?: number;
   status?: string;
+  orderBy?: string;
 }
+
 export const kavlingService = {
   getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {
     const response = await api.get("/kavling", {

@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
-import { UserCircle } from "lucide-react";
+import {
+  UserCircle,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  ArrowUpDown,
+  PieChart,
+  CheckCircle2,
+  Clock,
+  Ban,
+  Building2
+} from "lucide-react";
 
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -46,7 +57,7 @@ const initialFormState: KavlingFormState = {
   luasBangunan: '',
   luasTanah: '',
   hargaJual: '',
-  status: 'AVAILABLE', // Default Status Sesuai UnitStatus Prisma
+  status: 'AVAILABLE',
   rekeningTujuanId: '',
   filePbg: '',
   fileSertifikatTanah: '',
@@ -63,26 +74,33 @@ const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
 const Kavling = () => {
   const { selectedPerumahan } = useAuth();
 
+  // === Expand / Shrink State ===
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+
   // === LOGIC URL PARAMS ===
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
-  const limit = 10; // Sesuaikan limit per halaman
+  const statusFilter = searchParams.get('status') || '';
+  const orderBy = searchParams.get('orderBy') || ''; // Format backend: field:direction
+  const limit = 10;
 
   const { data: perumahanList = [] } = useGetPerumahan();
   const { data: bankList = [] } = useGetBankRekening();
 
-  // Gunakan parameter objek untuk fetch API berdasarkan page dan search
   const { data: kavlingResponse, isLoading } = useGetKavlings({
     page,
     limit,
     search,
-    perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined
+    perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
+    status: statusFilter !== '' ? statusFilter : undefined,
+    orderBy: orderBy !== '' ? orderBy : undefined
   });
 
-  // Ekstrak data dan meta dari response
   const kavlingData = kavlingResponse?.items || [];
   const meta = kavlingResponse?.meta;
+  const summary = meta?.summary || {};
 
   const createMutation = useCreateKavling();
   const updateMutation = useUpdateKavling();
@@ -103,12 +121,27 @@ const Kavling = () => {
 
   const handleSearchChange = (newSearch: string) => {
     setSearchParams(prev => {
-      if (newSearch) {
-        prev.set('search', newSearch);
-      } else {
-        prev.delete('search');
-      }
-      prev.set('page', '1'); // Reset ke halaman 1 saat pencarian berubah
+      if (newSearch) prev.set('search', newSearch);
+      else prev.delete('search');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('status', e.target.value);
+      else prev.delete('status');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value);
+      else prev.delete('orderBy');
+      prev.set('page', '1');
       return prev;
     });
   };
@@ -140,7 +173,7 @@ const Kavling = () => {
   ];
 
   const expandedRowRender = (row: KavlingData) => {
-    const activeSale = row.penjualan?.[0]; // Backend sudah mengirim relasi penjualan yang tidak BATAL
+    const activeSale = row.penjualan?.[0];
     const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
 
     return (
@@ -205,13 +238,11 @@ const Kavling = () => {
 
     setFormData((prev) => {
       const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
-
       if (name === 'namaTipe') {
         const selectedKavling = KAVLING_DATA[value];
         updates.luasBangunan = selectedKavling ? selectedKavling.lb : '';
         updates.luasTanah = '';
       }
-
       return { ...prev, ...updates };
     });
 
@@ -302,20 +333,117 @@ const Kavling = () => {
 
   const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
 
-  if (isLoading) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
+  if (isLoading && !kavlingData.length) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+
+      {/* SUMMARY CARD */}
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+        <div
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <PieChart size={18} className="text-slate-600" />
+            <h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Unit Kavling</h3>
+          </div>
+          {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </div>
+
+        {isSummaryExpanded && (
+          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Building2 size={16} className="text-slate-600" /></div>
+                <p className="text-xs font-bold text-slate-500 uppercase">Total Unit</p>
+              </div>
+              <p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p>
+            </div>
+            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div>
+                <p className="text-xs font-bold text-green-700 uppercase">Available</p>
+              </div>
+              <p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
+                <p className="text-xs font-bold text-blue-700 uppercase">Booking</p>
+              </div>
+              <p className="text-2xl font-black text-blue-800">{summary['BOOKING'] || 0}</p>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center"><Ban size={16} className="text-yellow-600" /></div>
+                <p className="text-xs font-bold text-yellow-700 uppercase">Hold / Terjual</p>
+              </div>
+              <p className="text-2xl font-black text-yellow-800">{(summary['HOLD'] || 0) + (summary['TERJUAL'] || 0)}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* FILTER & SORT CARD */}
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+        <div
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <Filter size={18} className="text-slate-600" />
+            <h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3>
+          </div>
+          {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </div>
+
+        {isFilterExpanded && (
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Status</label>
+              <select
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+              >
+                <option value="">Semua Status</option>
+                <option value="AVAILABLE">Tersedia (Available)</option>
+                <option value="BOOKING">Booking</option>
+                <option value="TERJUAL">Terjual</option>
+                <option value="HOLD">Ditahan (Hold)</option>
+              </select>
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
+
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
+              <select
+                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                value={orderBy}
+                onChange={handleSortChange}
+              >
+                <option value="">Terbaru (Default)</option>
+                <option value="hargaJual:asc">Harga: Rendah ke Tinggi</option>
+                <option value="hargaJual:desc">Harga: Tinggi ke Rendah</option>
+                <option value="luasBangunan:desc">Luas Bangunan: Terbesar</option>
+                <option value="blok:asc">Blok: A - Z</option>
+              </select>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <DataTable
-        title={`Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
+        title={`Manajemen Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
         columns={columns}
         data={kavlingData}
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item as KavlingData)}
         onDelete={(item) => handleDelete(item as KavlingData)}
         expandedRowRender={expandedRowRender}
-
-        // === PROPS UNTUK SERVER SIDE PAGINATION ===
         serverSide={true}
         searchTerm={search}
         onSearchChange={handleSearchChange}
