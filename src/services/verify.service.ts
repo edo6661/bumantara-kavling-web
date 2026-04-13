@@ -9,8 +9,21 @@ export interface VerifyInvoiceData {
   tanggalDibuat: string;
   customer: {
     nama: string;
+    noHp: string;
+    alamat: string;
   };
-  kavling: string;
+  kavling: {
+    perumahan: string;
+    blok: string;
+    nomorUnit: string;
+    tipe: string;
+  };
+  transaksi: {
+    caraPembayaran: string;
+    bank: string;
+    hargaJual: number;
+    sisaBelumDibayar: number;
+  };
 }
 
 export interface VerifySprData {
@@ -18,9 +31,14 @@ export interface VerifySprData {
   tanggalTransaksi: string;
   status: string;
   hargaJual: number;
+  dp: number;
+  bookingFee: number;
   caraPembayaran: string;
+  bank: string;
   customer: {
     nama: string;
+    noHp: string;
+    alamat: string;
   };
   kavling: {
     perumahan: string;
@@ -30,7 +48,7 @@ export interface VerifySprData {
 }
 
 export interface VerifyDocumentResponse {
-  type: "INVOICE" | "SPR";
+  type: "INVOICE" | "KWITANSI" | "SPR";
   data: VerifyInvoiceData | VerifySprData;
 }
 

@@ -401,6 +401,25 @@ export const useGetPerumahan = () => {
 };
 </file>
 
+<file path="src/hooks/queries/useVerify.ts">
+import { useQuery } from "@tanstack/react-query";
+import { verifyService } from "../../services/verify.service";
+
+export const VERIFY_KEYS = {
+  detail: (id: string) => ["verify-document", id] as const,
+};
+
+export const useVerifyDocument = (id: string) => {
+  return useQuery({
+    queryKey: VERIFY_KEYS.detail(id),
+    queryFn: () => verifyService.verifyDocument(id),
+    enabled: !!id,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+};
+</file>
+
 <file path="src/hooks/useCrud.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/axios";
@@ -2455,6 +2474,170 @@ const FeeAgent = () => {
 export default FeeAgent;
 </file>
 
+<file path="src/pages/Public/VerifyDocument.tsx">
+import React from 'react';
+import { useParams } from 'react-router-dom';
+import {
+  CheckCircle2,
+  FileText,
+  User,
+  Building2,
+  CalendarClock,
+  CreditCard,
+  AlertCircle
+} from 'lucide-react';
+import { useVerifyDocument } from '../../hooks/queries/useVerify';
+import type { VerifyInvoiceData, VerifySprData } from '../../services/verify.service';
+import { formatDate, formatRupiah } from '../../utils/formatters';
+const VerifyDocument = () => {
+  const { id } = useParams<{ id: string }>();
+  const { data: documentData, isLoading, isError } = useVerifyDocument(id || '');
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p className="text-slate-500 animate-pulse">Memverifikasi Dokumen...</p>
+      </div>
+    );
+  }
+  if (isError || !documentData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center">
+        <AlertCircle size={48} className="text-red-500 mb-4" />
+        <h2 className="text-xl font-bold text-slate-900">Dokumen Tidak Valid</h2>
+        <p className="text-sm text-slate-500 max-w-xs mt-2">
+          Maaf, kami tidak dapat menemukan data dokumen dengan nomor seri tersebut di dalam sistem Bumantara.
+        </p>
+      </div>
+    );
+  }
+  const { type, data } = documentData;
+  const renderInvoice = (invData: VerifyInvoiceData) => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Status Pembayaran</p>
+        <span className={`inline-block px-4 py-1.5 rounded-lg text-sm font-bold tracking-widest uppercase shadow-sm ${invData.status === 'LUNAS'
+          ? 'bg-green-100 text-green-700 border border-green-200'
+          : 'bg-orange-100 text-orange-700 border border-orange-200'
+          }`}>
+          {invData.status}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <FileText size={12} /> Keterangan Tagihan
+          </p>
+          <p className="text-base font-bold text-slate-900">{invData.pembayaran}</p>
+        </div>
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <User size={12} /> Customer
+          </p>
+          <p className="text-base font-bold text-slate-900">{invData.customer.nama}</p>
+        </div>
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <Building2 size={12} /> Unit Kavling
+          </p>
+          <p className="text-sm font-semibold text-slate-800">{invData.kavling}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+              <CalendarClock size={12} /> Jatuh Tempo
+            </p>
+            <p className="text-sm font-semibold text-slate-800">{formatDate(invData.jatuhTempo)}</p>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+              <CreditCard size={12} /> Nominal
+            </p>
+            <p className="text-sm font-black text-slate-900">{formatRupiah(invData.nominal)}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+  const renderSpr = (sprData: VerifySprData) => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Status Penjualan</p>
+        <span className={`inline-block px-4 py-1.5 rounded-lg text-sm font-bold tracking-widest uppercase shadow-sm ${sprData.status === 'BATAL'
+          ? 'bg-red-100 text-red-700 border border-red-200'
+          : 'bg-blue-100 text-blue-700 border border-blue-200'
+          }`}>
+          {sprData.status}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <User size={12} /> Customer / Pemesan
+          </p>
+          <p className="text-base font-bold text-slate-900">{sprData.customer.nama}</p>
+        </div>
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <Building2 size={12} /> Unit Dipesan
+          </p>
+          <p className="text-sm font-bold text-slate-900">{sprData.kavling.perumahan}</p>
+          <p className="text-sm text-slate-600">{sprData.kavling.blokUnit} - Tipe {sprData.kavling.tipe}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+              <CalendarClock size={12} /> Tgl. Transaksi
+            </p>
+            <p className="text-sm font-semibold text-slate-800">{formatDate(sprData.tanggalTransaksi)}</p>
+          </div>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+              <CreditCard size={12} /> Metode
+            </p>
+            <p className="text-sm font-bold text-slate-900">{sprData.caraPembayaran}</p>
+          </div>
+        </div>
+        <div className="bg-slate-900 p-5 rounded-xl shadow-md mt-2">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Harga Jual Kesepakatan</p>
+          <p className="text-2xl font-black text-white">{formatRupiah(sprData.hargaJual)}</p>
+        </div>
+      </div>
+    </div>
+  );
+  return (
+    <div className="max-w-md mx-auto my-8 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+      <div className="p-6 md:p-8">
+        {/* Header Status Valid */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4 shadow-sm ring-8 ring-emerald-50">
+            <CheckCircle2 size={28} className="text-emerald-600" />
+          </div>
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">Dokumen Valid & Resmi</h2>
+          <p className="text-xs text-slate-500 mt-1.5 max-w-[250px] leading-relaxed">
+            Dokumen ini diterbitkan secara sah oleh sistem.
+          </p>
+        </div>
+        {/* Info Nomor Dokumen */}
+        <div className="mb-6 pb-6 border-b border-dashed border-slate-200 text-center">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nomor Dokumen</p>
+          <p className="text-sm font-mono font-bold text-slate-800 bg-slate-100 py-2 px-4 rounded-lg inline-block border border-slate-200">
+            {data.noDokumen}
+          </p>
+        </div>
+        {/* Konten Spesifik berdasarkan Tipe (SPR / Invoice) */}
+        {type === 'INVOICE' ? renderInvoice(data as VerifyInvoiceData) : renderSpr(data as VerifySprData)}
+      </div>
+      {/* Footer */}
+      <div className="bg-slate-50 p-4 border-t border-slate-100 text-center">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Diterbitkan Oleh</p>
+        <h3 className="font-black text-sm text-slate-800 tracking-tight mt-0.5">BUMANTARA</h3>
+      </div>
+    </div>
+  );
+};
+export default VerifyDocument;
+</file>
+
 <file path="src/providers/QueryProvider.tsx">
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -2932,6 +3115,51 @@ export const tagihanService = {
     const response = await api.patch(`/tagihan/${id}/upload-bukti`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+    return response.data.data;
+  },
+};
+</file>
+
+<file path="src/services/verify.service.ts">
+import api from "../lib/axios";
+
+export interface VerifyInvoiceData {
+  noDokumen: string;
+  pembayaran: string;
+  nominal: number;
+  jatuhTempo: string;
+  status: string;
+  tanggalDibuat: string;
+  customer: {
+    nama: string;
+  };
+  kavling: string;
+}
+
+export interface VerifySprData {
+  noDokumen: string;
+  tanggalTransaksi: string;
+  status: string;
+  hargaJual: number;
+  caraPembayaran: string;
+  customer: {
+    nama: string;
+  };
+  kavling: {
+    perumahan: string;
+    blokUnit: string;
+    tipe: string;
+  };
+}
+
+export interface VerifyDocumentResponse {
+  type: "INVOICE" | "SPR";
+  data: VerifyInvoiceData | VerifySprData;
+}
+
+export const verifyService = {
+  verifyDocument: async (id: string): Promise<VerifyDocumentResponse> => {
+    const response = await api.get(`/verify/${id}`);
     return response.data.data;
   },
 };
@@ -7328,75 +7556,6 @@ export const kavlingService = {
 };
 </file>
 
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-import { useAuth } from './context/AuthContext';
-import { AuthProvider } from './providers/AuthProvider';
-import { QueryProvider } from './providers/QueryProvider';
-
-
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-
-const App = () => {
-  return (
-    <QueryProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-
-              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="management/penjualan" element={<Penjualan />} />
-                <Route path="management/kavling" element={<Kavling />} />
-                <Route path="management/notaris" element={<Notaris />} />
-                <Route path="management/bank" element={<Bank />} />
-                <Route path="customer/data-sosial" element={<DataSosial />} />
-                <Route path="customer/spr" element={<SPR />} />
-                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-                <Route path="customer/kavling" element={<CustomerKavling />} />
-                <Route path="customer/tagihan" element={<Tagihan />} />
-                <Route path="marketing/agents" element={<Agents />} />
-                <Route path="marketing/fee-agent" element={<FeeAgent />} />
-                <Route path="proyek/spk" element={<SPK />} />
-                <Route path="proyek/progress" element={<Progress />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryProvider>
-  );
-};
-
-export default App;
-</file>
-
 <file path="src/pages/Customer/SPR.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useState } from 'react';
@@ -7641,6 +7800,76 @@ const SPR = () => {
 };
 
 export default SPR;
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+import { useAuth } from './context/AuthContext';
+import { AuthProvider } from './providers/AuthProvider';
+import { QueryProvider } from './providers/QueryProvider';
+
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const App = () => {
+  return (
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/verify/:id" element={<VerifyDocument />} />
+
+              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="management/penjualan" element={<Penjualan />} />
+                <Route path="management/kavling" element={<Kavling />} />
+                <Route path="management/notaris" element={<Notaris />} />
+                <Route path="management/bank" element={<Bank />} />
+                <Route path="customer/data-sosial" element={<DataSosial />} />
+                <Route path="customer/spr" element={<SPR />} />
+                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+                <Route path="customer/kavling" element={<CustomerKavling />} />
+                <Route path="customer/tagihan" element={<Tagihan />} />
+                <Route path="marketing/agents" element={<Agents />} />
+                <Route path="marketing/fee-agent" element={<FeeAgent />} />
+                <Route path="proyek/spk" element={<SPK />} />
+                <Route path="proyek/progress" element={<Progress />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
+  );
+};
+
+export default App;
 </file>
 
 <file path="src/components/shared/DataTable.tsx">
@@ -8469,6 +8698,598 @@ const SectionTitle = ({ title }: { title: string }) => (
 export default CustomerKavling;
 </file>
 
+<file path="src/pages/Management/Kavling.tsx">
+import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { isAxiosError } from 'axios';
+import {
+  UserCircle,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  ArrowUpDown,
+  PieChart,
+  CheckCircle2,
+  Clock,
+  Ban,
+  Building2
+} from "lucide-react";
+
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatRupiah } from "../../utils/formatters";
+import { useAuth } from "../../context/AuthContext";
+
+import {
+  useGetKavlings,
+  useCreateKavling,
+  useUpdateKavling,
+  useDeleteKavling
+} from "../../hooks/queries/useKavling";
+import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
+import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
+import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
+
+interface KavlingFormState {
+  id: number | '';
+  perumahanId: number | '';
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number | '';
+  luasTanah: number | '';
+  hargaJual: number | '';
+  status: string;
+  rekeningTujuanId: number | '';
+  filePbg: string;
+  fileSertifikatTanah: string;
+  fileNopPbb: string;
+}
+
+const initialFormState: KavlingFormState = {
+  id: '',
+  perumahanId: '',
+  blok: '',
+  nomorUnit: '',
+  namaTipe: '',
+  luasBangunan: '',
+  luasTanah: '',
+  hargaJual: '',
+  status: 'AVAILABLE',
+  rekeningTujuanId: '',
+  filePbg: '',
+  fileSertifikatTanah: '',
+  fileNopPbb: '',
+};
+
+const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
+  Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
+  Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
+  Aruna: { lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
+  Ansara: { lb: 36, lt: [60, 103, 120, 122, 132, 143] }
+};
+
+const Kavling = () => {
+  const { selectedPerumahan } = useAuth();
+
+  // === Expand / Shrink State ===
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+
+  // === LOGIC URL PARAMS ===
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') || '';
+  const orderBy = searchParams.get('orderBy') || ''; // Format backend: field:direction
+  const limit = 10;
+
+  const { data: perumahanList = [] } = useGetPerumahan();
+  const { data: bankList = [] } = useGetBankRekening();
+
+  const { data: kavlingResponse, isLoading } = useGetKavlings({
+    page,
+    limit,
+    search,
+    perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
+    status: statusFilter !== '' ? statusFilter : undefined,
+    orderBy: orderBy !== '' ? orderBy : undefined
+  });
+
+  const kavlingData = kavlingResponse?.items || [];
+  const meta = kavlingResponse?.meta;
+  const summary = meta?.summary || {};
+
+  const createMutation = useCreateKavling();
+  const updateMutation = useUpdateKavling();
+  const deleteMutation = useDeleteKavling();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  // === HANDLER URL PARAMS ===
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => {
+      prev.set('page', String(newPage));
+      return prev;
+    });
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch);
+      else prev.delete('search');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('status', e.target.value);
+      else prev.delete('status');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value);
+      else prev.delete('orderBy');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const columns = [
+    { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
+    { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Tipe Rumah', accessor: 'namaTipe' },
+    { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
+    { header: 'Harga Jual', accessor: 'hargaJual', render: (val: number) => formatRupiah(val) },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        const statusStr = val?.toUpperCase();
+        let bgClass = 'bg-gray-100 text-gray-800 border-gray-200';
+        if (statusStr === 'AVAILABLE') bgClass = 'bg-green-100 text-green-800 border-green-200';
+        if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
+        if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+
+        return (
+          <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>
+            {val}
+          </span>
+        );
+      }
+    },
+  ];
+
+  const expandedRowRender = (row: KavlingData) => {
+    const activeSale = row.penjualan?.[0];
+    const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
+
+    return (
+      <div className="p-4 bg-slate-50/50 border-t border-slate-100 shadow-inner">
+        {isBookedOrSold && activeSale ? (
+          <div className="flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-4 rounded-xl max-w-lg">
+            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+              <UserCircle size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Informasi Pemesan / Pembeli</p>
+              <p className="text-base font-black text-blue-900">{activeSale.customer?.nama || 'Tidak diketahui'}</p>
+              <p className="text-sm font-medium text-blue-700 mt-0.5">No. HP: {activeSale.customer?.noHp || '-'}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-4 bg-white border border-slate-200 rounded-xl max-w-lg">
+            <p className="text-sm text-slate-500 italic">Belum ada data pemesan aktif untuk kavling ini.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const openModal = (item?: KavlingData) => {
+    if (item) {
+      setFormData({
+        id: item.id,
+        perumahanId: item.perumahanId,
+        blok: item.blok,
+        nomorUnit: item.nomorUnit,
+        namaTipe: item.namaTipe,
+        luasBangunan: item.luasBangunan,
+        luasTanah: item.luasTanah,
+        hargaJual: item.hargaJual,
+        status: item.status,
+        rekeningTujuanId: item.rekeningTujuanId || '',
+        filePbg: item.filePbg || '',
+        fileSertifikatTanah: item.fileSertifikatTanah || '',
+        fileNopPbb: item.fileNopPbb || '',
+      });
+      setIsEditing(true);
+    } else {
+      setFormData({
+        ...initialFormState,
+        perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '',
+      });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
+
+    setFormData((prev) => {
+      const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
+      if (name === 'namaTipe') {
+        const selectedKavling = KAVLING_DATA[value];
+        updates.luasBangunan = selectedKavling ? selectedKavling.lb : '';
+        updates.luasTanah = '';
+      }
+      return { ...prev, ...updates };
+    });
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.perumahanId) newErrors.perumahanId = 'Perumahan wajib dipilih';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
+    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe Rumah wajib diisi';
+    if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
+    if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
+    if (formData.hargaJual === '' || formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual tidak valid';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const payload: CreateKavlingDTO = {
+      perumahanId: Number(formData.perumahanId),
+      blok: formData.blok,
+      nomorUnit: formData.nomorUnit,
+      namaTipe: formData.namaTipe,
+      luasBangunan: Number(formData.luasBangunan),
+      luasTanah: Number(formData.luasTanah),
+      hargaJual: Number(formData.hargaJual),
+      status: formData.status,
+      rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
+      filePbg: formData.filePbg || undefined,
+      fileSertifikatTanah: formData.fileSertifikatTanah || undefined,
+      fileNopPbb: formData.fileNopPbb || undefined,
+    };
+
+    try {
+      if (isEditing && formData.id !== '') {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response) {
+        const responseData = error.response.data;
+        if (responseData?.error && Array.isArray(responseData.error)) {
+          const backendErrors: Record<string, string> = {};
+          responseData.error.forEach((err: { field: string; message: string }) => {
+            backendErrors[err.field] = err.message;
+          });
+          setErrors(backendErrors);
+        } else {
+          alert(responseData?.message || 'Gagal menyimpan kavling.');
+        }
+      } else {
+        alert('Terjadi kesalahan yang tidak diketahui. Periksa koneksi Anda.');
+      }
+    }
+  };
+
+  const handleDelete = async (item: KavlingData) => {
+    if (window.confirm(`Hapus data kavling Blok ${item.blok} - ${item.nomorUnit}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: unknown) {
+        console.error(error)
+        alert('Gagal menghapus Kavling, pastikan kavling ini belum pernah terjadi transaksi.');
+      }
+    }
+  };
+
+  const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
+
+  if (isLoading && !kavlingData.length) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+
+      {/* SUMMARY CARD */}
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+        <div
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <PieChart size={18} className="text-slate-600" />
+            <h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Unit Kavling</h3>
+          </div>
+          {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </div>
+
+        {isSummaryExpanded && (
+          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Building2 size={16} className="text-slate-600" /></div>
+                <p className="text-xs font-bold text-slate-500 uppercase">Total Unit</p>
+              </div>
+              <p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p>
+            </div>
+            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div>
+                <p className="text-xs font-bold text-green-700 uppercase">Available</p>
+              </div>
+              <p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
+                <p className="text-xs font-bold text-blue-700 uppercase">Booking</p>
+              </div>
+              <p className="text-2xl font-black text-blue-800">{summary['BOOKING'] || 0}</p>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center"><Ban size={16} className="text-yellow-600" /></div>
+                <p className="text-xs font-bold text-yellow-700 uppercase">Hold / Terjual</p>
+              </div>
+              <p className="text-2xl font-black text-yellow-800">{(summary['HOLD'] || 0) + (summary['TERJUAL'] || 0)}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* FILTER & SORT CARD */}
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+        <div
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <Filter size={18} className="text-slate-600" />
+            <h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3>
+          </div>
+          {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </div>
+
+        {isFilterExpanded && (
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Status</label>
+              <select
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+              >
+                <option value="">Semua Status</option>
+                <option value="AVAILABLE">Tersedia (Available)</option>
+                <option value="BOOKING">Booking</option>
+                <option value="TERJUAL">Terjual</option>
+                <option value="HOLD">Ditahan (Hold)</option>
+              </select>
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
+
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
+              <select
+                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                value={orderBy}
+                onChange={handleSortChange}
+              >
+                <option value="">Terbaru (Default)</option>
+                <option value="hargaJual:asc">Harga: Rendah ke Tinggi</option>
+                <option value="hargaJual:desc">Harga: Tinggi ke Rendah</option>
+                <option value="luasBangunan:desc">Luas Bangunan: Terbesar</option>
+                <option value="blok:asc">Blok: A - Z</option>
+              </select>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <DataTable
+        title={`Manajemen Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
+        columns={columns}
+        data={kavlingData}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item as KavlingData)}
+        onDelete={(item) => handleDelete(item as KavlingData)}
+        expandedRowRender={expandedRowRender}
+        serverSide={true}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Utama</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <Select
+                label="Perumahan"
+                name="perumahanId"
+                value={formData.perumahanId}
+                onChange={handleChange}
+                options={[
+                  { value: '', label: '-- Pilih Perumahan --' },
+                  ...perumahanList.map(p => ({ value: p.id, label: p.nama }))
+                ]}
+                error={errors.perumahanId}
+                disabled={isEditing}
+              />
+
+              <Select
+                label="Status Kavling"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                options={[
+                  { value: 'AVAILABLE', label: 'Available' },
+                  { value: 'HOLD', label: 'Hold' },
+                  { value: 'BOOKING', label: 'Booking' },
+                  { value: 'TERJUAL', label: 'Terjual' }
+                ]}
+              />
+              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
+              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
+
+              <div className="md:col-span-2">
+                <Select
+                  label="Tipe Rumah"
+                  name="namaTipe"
+                  value={formData.namaTipe}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: '-- Pilih Tipe --' },
+                    ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))
+                  ]}
+                  error={errors.namaTipe}
+                />
+              </div>
+
+              <Input
+                label="Luas Bangunan (m²)"
+                type="number"
+                name="luasBangunan"
+                value={formData.luasBangunan}
+                onChange={handleChange}
+                error={errors.luasBangunan}
+                readOnly
+              />
+
+              <Select
+                label="Luas Tanah (m²)"
+                name="luasTanah"
+                value={formData.luasTanah}
+                onChange={handleChange}
+                error={errors.luasTanah}
+                options={[
+                  { value: '', label: '-- Pilih LT --' },
+                  ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe]
+                    ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }))
+                    : [])
+                ]}
+              />
+
+              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
+
+              <div className="md:col-span-2">
+                <Select
+                  label="Transfer ke Rekening"
+                  name="rekeningTujuanId"
+                  value={formData.rekeningTujuanId}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: 'Pilih Rekening Pembayaran (Opsional)...' },
+                    ...filteredBanks.map(b => ({
+                      value: b.id,
+                      label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
+                    }))
+                  ]}
+                  error={errors.rekeningTujuanId}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Upload Dokumen (Opsional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <FileInput label="Upload File PBG" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'filePbg')} />
+                {formData.filePbg && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.filePbg}</p>}
+              </div>
+              <div>
+                <FileInput label="Sertifikat Tanah" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileSertifikatTanah')} />
+                {formData.fileSertifikatTanah && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileSertifikatTanah}</p>}
+              </div>
+              <div>
+                <FileInput label="NOP PBB" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNopPbb')} />
+                {formData.fileNopPbb && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileNopPbb}</p>}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Kavling'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Kavling;
+</file>
+
 <file path="src/pages/Customer/Tagihan.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
@@ -9154,7 +9975,9 @@ const Tagihan = () => {
             <div className="flex justify-between items-end mt-16 pt-8">
               <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
                 <QRCode
-                  value={`https://bumantara.com/verify/${printData.noTagihan}`}
+                  // [PERBAIKAN] Pastikan value mengarah ke domain production Anda nantinya.
+                  // Gunakan window.location.origin agar dinamis (localhost saat dev, domain asli saat prod)
+                  value={`${window.location.origin}/verify/${printData.noTagihan}`}
                   size={72}
                   level="H"
                 />
@@ -9293,598 +10116,6 @@ const Tagihan = () => {
 };
 
 export default Tagihan;
-</file>
-
-<file path="src/pages/Management/Kavling.tsx">
-import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { isAxiosError } from 'axios';
-import {
-  UserCircle,
-  ChevronDown,
-  ChevronUp,
-  Filter,
-  ArrowUpDown,
-  PieChart,
-  CheckCircle2,
-  Clock,
-  Ban,
-  Building2
-} from "lucide-react";
-
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatRupiah } from "../../utils/formatters";
-import { useAuth } from "../../context/AuthContext";
-
-import {
-  useGetKavlings,
-  useCreateKavling,
-  useUpdateKavling,
-  useDeleteKavling
-} from "../../hooks/queries/useKavling";
-import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
-import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
-import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
-
-interface KavlingFormState {
-  id: number | '';
-  perumahanId: number | '';
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number | '';
-  luasTanah: number | '';
-  hargaJual: number | '';
-  status: string;
-  rekeningTujuanId: number | '';
-  filePbg: string;
-  fileSertifikatTanah: string;
-  fileNopPbb: string;
-}
-
-const initialFormState: KavlingFormState = {
-  id: '',
-  perumahanId: '',
-  blok: '',
-  nomorUnit: '',
-  namaTipe: '',
-  luasBangunan: '',
-  luasTanah: '',
-  hargaJual: '',
-  status: 'AVAILABLE',
-  rekeningTujuanId: '',
-  filePbg: '',
-  fileSertifikatTanah: '',
-  fileNopPbb: '',
-};
-
-const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
-  Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
-  Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
-  Aruna: { lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
-  Ansara: { lb: 36, lt: [60, 103, 120, 122, 132, 143] }
-};
-
-const Kavling = () => {
-  const { selectedPerumahan } = useAuth();
-
-  // === Expand / Shrink State ===
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
-  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
-
-  // === LOGIC URL PARAMS ===
-  const [searchParams, setSearchParams] = useSearchParams();
-  const page = Number(searchParams.get('page')) || 1;
-  const search = searchParams.get('search') || '';
-  const statusFilter = searchParams.get('status') || '';
-  const orderBy = searchParams.get('orderBy') || ''; // Format backend: field:direction
-  const limit = 10;
-
-  const { data: perumahanList = [] } = useGetPerumahan();
-  const { data: bankList = [] } = useGetBankRekening();
-
-  const { data: kavlingResponse, isLoading } = useGetKavlings({
-    page,
-    limit,
-    search,
-    perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
-    status: statusFilter !== '' ? statusFilter : undefined,
-    orderBy: orderBy !== '' ? orderBy : undefined
-  });
-
-  const kavlingData = kavlingResponse?.items || [];
-  const meta = kavlingResponse?.meta;
-  const summary = meta?.summary || {};
-
-  const createMutation = useCreateKavling();
-  const updateMutation = useUpdateKavling();
-  const deleteMutation = useDeleteKavling();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  // === HANDLER URL PARAMS ===
-  const handlePageChange = (newPage: number) => {
-    setSearchParams(prev => {
-      prev.set('page', String(newPage));
-      return prev;
-    });
-  };
-
-  const handleSearchChange = (newSearch: string) => {
-    setSearchParams(prev => {
-      if (newSearch) prev.set('search', newSearch);
-      else prev.delete('search');
-      prev.set('page', '1');
-      return prev;
-    });
-  };
-
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSearchParams(prev => {
-      if (e.target.value) prev.set('status', e.target.value);
-      else prev.delete('status');
-      prev.set('page', '1');
-      return prev;
-    });
-  };
-
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSearchParams(prev => {
-      if (e.target.value) prev.set('orderBy', e.target.value);
-      else prev.delete('orderBy');
-      prev.set('page', '1');
-      return prev;
-    });
-  };
-
-  const columns = [
-    { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
-    { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Tipe Rumah', accessor: 'namaTipe' },
-    { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
-    { header: 'Harga Jual', accessor: 'hargaJual', render: (val: number) => formatRupiah(val) },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => {
-        const statusStr = val?.toUpperCase();
-        let bgClass = 'bg-gray-100 text-gray-800 border-gray-200';
-        if (statusStr === 'AVAILABLE') bgClass = 'bg-green-100 text-green-800 border-green-200';
-        if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-        if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
-        if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-
-        return (
-          <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>
-            {val}
-          </span>
-        );
-      }
-    },
-  ];
-
-  const expandedRowRender = (row: KavlingData) => {
-    const activeSale = row.penjualan?.[0];
-    const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
-
-    return (
-      <div className="p-4 bg-slate-50/50 border-t border-slate-100 shadow-inner">
-        {isBookedOrSold && activeSale ? (
-          <div className="flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-4 rounded-xl max-w-lg">
-            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-              <UserCircle size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Informasi Pemesan / Pembeli</p>
-              <p className="text-base font-black text-blue-900">{activeSale.customer?.nama || 'Tidak diketahui'}</p>
-              <p className="text-sm font-medium text-blue-700 mt-0.5">No. HP: {activeSale.customer?.noHp || '-'}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center p-4 bg-white border border-slate-200 rounded-xl max-w-lg">
-            <p className="text-sm text-slate-500 italic">Belum ada data pemesan aktif untuk kavling ini.</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const openModal = (item?: KavlingData) => {
-    if (item) {
-      setFormData({
-        id: item.id,
-        perumahanId: item.perumahanId,
-        blok: item.blok,
-        nomorUnit: item.nomorUnit,
-        namaTipe: item.namaTipe,
-        luasBangunan: item.luasBangunan,
-        luasTanah: item.luasTanah,
-        hargaJual: item.hargaJual,
-        status: item.status,
-        rekeningTujuanId: item.rekeningTujuanId || '',
-        filePbg: item.filePbg || '',
-        fileSertifikatTanah: item.fileSertifikatTanah || '',
-        fileNopPbb: item.fileNopPbb || '',
-      });
-      setIsEditing(true);
-    } else {
-      setFormData({
-        ...initialFormState,
-        perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '',
-      });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
-
-    setFormData((prev) => {
-      const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
-      if (name === 'namaTipe') {
-        const selectedKavling = KAVLING_DATA[value];
-        updates.luasBangunan = selectedKavling ? selectedKavling.lb : '';
-        updates.luasTanah = '';
-      }
-      return { ...prev, ...updates };
-    });
-
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.perumahanId) newErrors.perumahanId = 'Perumahan wajib dipilih';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe Rumah wajib diisi';
-    if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
-    if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
-    if (formData.hargaJual === '' || formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual tidak valid';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    const payload: CreateKavlingDTO = {
-      perumahanId: Number(formData.perumahanId),
-      blok: formData.blok,
-      nomorUnit: formData.nomorUnit,
-      namaTipe: formData.namaTipe,
-      luasBangunan: Number(formData.luasBangunan),
-      luasTanah: Number(formData.luasTanah),
-      hargaJual: Number(formData.hargaJual),
-      status: formData.status,
-      rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
-      filePbg: formData.filePbg || undefined,
-      fileSertifikatTanah: formData.fileSertifikatTanah || undefined,
-      fileNopPbb: formData.fileNopPbb || undefined,
-    };
-
-    try {
-      if (isEditing && formData.id !== '') {
-        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
-      closeModal();
-    } catch (error: unknown) {
-      if (isAxiosError(error) && error.response) {
-        const responseData = error.response.data;
-        if (responseData?.error && Array.isArray(responseData.error)) {
-          const backendErrors: Record<string, string> = {};
-          responseData.error.forEach((err: { field: string; message: string }) => {
-            backendErrors[err.field] = err.message;
-          });
-          setErrors(backendErrors);
-        } else {
-          alert(responseData?.message || 'Gagal menyimpan kavling.');
-        }
-      } else {
-        alert('Terjadi kesalahan yang tidak diketahui. Periksa koneksi Anda.');
-      }
-    }
-  };
-
-  const handleDelete = async (item: KavlingData) => {
-    if (window.confirm(`Hapus data kavling Blok ${item.blok} - ${item.nomorUnit}?`)) {
-      try {
-        await deleteMutation.mutateAsync(item.id);
-      } catch (error: unknown) {
-        console.error(error)
-        alert('Gagal menghapus Kavling, pastikan kavling ini belum pernah terjadi transaksi.');
-      }
-    }
-  };
-
-  const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
-
-  if (isLoading && !kavlingData.length) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-
-      {/* SUMMARY CARD */}
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-        <div
-          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
-          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-        >
-          <div className="flex items-center gap-2">
-            <PieChart size={18} className="text-slate-600" />
-            <h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Unit Kavling</h3>
-          </div>
-          {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
-        </div>
-
-        {isSummaryExpanded && (
-          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
-            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Building2 size={16} className="text-slate-600" /></div>
-                <p className="text-xs font-bold text-slate-500 uppercase">Total Unit</p>
-              </div>
-              <p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p>
-            </div>
-            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div>
-                <p className="text-xs font-bold text-green-700 uppercase">Available</p>
-              </div>
-              <p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p>
-            </div>
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
-                <p className="text-xs font-bold text-blue-700 uppercase">Booking</p>
-              </div>
-              <p className="text-2xl font-black text-blue-800">{summary['BOOKING'] || 0}</p>
-            </div>
-            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center"><Ban size={16} className="text-yellow-600" /></div>
-                <p className="text-xs font-bold text-yellow-700 uppercase">Hold / Terjual</p>
-              </div>
-              <p className="text-2xl font-black text-yellow-800">{(summary['HOLD'] || 0) + (summary['TERJUAL'] || 0)}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* FILTER & SORT CARD */}
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-        <div
-          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
-          onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-        >
-          <div className="flex items-center gap-2">
-            <Filter size={18} className="text-slate-600" />
-            <h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3>
-          </div>
-          {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
-        </div>
-
-        {isFilterExpanded && (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
-            <div className="relative">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Status</label>
-              <select
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
-                value={statusFilter}
-                onChange={handleStatusFilterChange}
-              >
-                <option value="">Semua Status</option>
-                <option value="AVAILABLE">Tersedia (Available)</option>
-                <option value="BOOKING">Booking</option>
-                <option value="TERJUAL">Terjual</option>
-                <option value="HOLD">Ditahan (Hold)</option>
-              </select>
-              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
-            </div>
-
-            <div className="relative">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
-              <select
-                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
-                value={orderBy}
-                onChange={handleSortChange}
-              >
-                <option value="">Terbaru (Default)</option>
-                <option value="hargaJual:asc">Harga: Rendah ke Tinggi</option>
-                <option value="hargaJual:desc">Harga: Tinggi ke Rendah</option>
-                <option value="luasBangunan:desc">Luas Bangunan: Terbesar</option>
-                <option value="blok:asc">Blok: A - Z</option>
-              </select>
-              <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
-              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <DataTable
-        title={`Manajemen Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
-        columns={columns}
-        data={kavlingData}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item as KavlingData)}
-        onDelete={(item) => handleDelete(item as KavlingData)}
-        expandedRowRender={expandedRowRender}
-        serverSide={true}
-        searchTerm={search}
-        onSearchChange={handleSearchChange}
-        page={page}
-        totalPages={meta?.totalPages || 1}
-        onPageChange={handlePageChange}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Utama</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-              <Select
-                label="Perumahan"
-                name="perumahanId"
-                value={formData.perumahanId}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih Perumahan --' },
-                  ...perumahanList.map(p => ({ value: p.id, label: p.nama }))
-                ]}
-                error={errors.perumahanId}
-                disabled={isEditing}
-              />
-
-              <Select
-                label="Status Kavling"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                options={[
-                  { value: 'AVAILABLE', label: 'Available' },
-                  { value: 'HOLD', label: 'Hold' },
-                  { value: 'BOOKING', label: 'Booking' },
-                  { value: 'TERJUAL', label: 'Terjual' }
-                ]}
-              />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
-
-              <div className="md:col-span-2">
-                <Select
-                  label="Tipe Rumah"
-                  name="namaTipe"
-                  value={formData.namaTipe}
-                  onChange={handleChange}
-                  options={[
-                    { value: '', label: '-- Pilih Tipe --' },
-                    ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))
-                  ]}
-                  error={errors.namaTipe}
-                />
-              </div>
-
-              <Input
-                label="Luas Bangunan (m²)"
-                type="number"
-                name="luasBangunan"
-                value={formData.luasBangunan}
-                onChange={handleChange}
-                error={errors.luasBangunan}
-                readOnly
-              />
-
-              <Select
-                label="Luas Tanah (m²)"
-                name="luasTanah"
-                value={formData.luasTanah}
-                onChange={handleChange}
-                error={errors.luasTanah}
-                options={[
-                  { value: '', label: '-- Pilih LT --' },
-                  ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe]
-                    ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }))
-                    : [])
-                ]}
-              />
-
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
-
-              <div className="md:col-span-2">
-                <Select
-                  label="Transfer ke Rekening"
-                  name="rekeningTujuanId"
-                  value={formData.rekeningTujuanId}
-                  onChange={handleChange}
-                  options={[
-                    { value: '', label: 'Pilih Rekening Pembayaran (Opsional)...' },
-                    ...filteredBanks.map(b => ({
-                      value: b.id,
-                      label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
-                    }))
-                  ]}
-                  error={errors.rekeningTujuanId}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Upload Dokumen (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload File PBG" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'filePbg')} />
-                {formData.filePbg && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.filePbg}</p>}
-              </div>
-              <div>
-                <FileInput label="Sertifikat Tanah" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileSertifikatTanah')} />
-                {formData.fileSertifikatTanah && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileSertifikatTanah}</p>}
-              </div>
-              <div>
-                <FileInput label="NOP PBB" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNopPbb')} />
-                {formData.fileNopPbb && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileNopPbb}</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Kavling'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Kavling;
 </file>
 
 <file path="src/pages/Management/Penjualan.tsx">
@@ -10761,7 +10992,8 @@ const Penjualan = () => {
             <div className="flex justify-between items-end mt-16 pt-8">
               <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
                 <QRCode
-                  value={`https://bumantara.com/verify/${printData.id}`}
+                  // [PERBAIKAN] Gunakan window.location.origin dan arahkan ke noTransaksi
+                  value={`${window.location.origin}/verify/${printData.id}`}
                   size={72}
                   level="H"
                 />

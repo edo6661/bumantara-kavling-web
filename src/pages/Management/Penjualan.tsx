@@ -871,8 +871,16 @@ const Penjualan = () => {
             <div className="flex justify-between items-end mt-16 pt-8">
               <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
                 <QRCode
-                  // [PERBAIKAN] Gunakan window.location.origin dan arahkan ke noTransaksi
-                  value={`${window.location.origin}/verify/${printData.id}`}
+                  // PERBAIKAN DI SINI:
+                  // Kita cek judulnya, jika mengandung 'Booking Fee' maka arahkan ke INV-BF
+                  // Jika mengandung 'Down Payment' arahkan ke INV-DP
+                  // Jika tidak keduanya, arahkan ke TRX (SPR)
+                  value={`${window.location.origin}/verify/${printTitle.includes('Booking Fee')
+                    ? `INV-BF-${printData.id}`
+                    : printTitle.includes('Down Payment')
+                      ? `INV-DP-${printData.id}`
+                      : printData.id
+                    }`}
                   size={72}
                   level="H"
                 />
