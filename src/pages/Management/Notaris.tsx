@@ -11,14 +11,18 @@ import {
   useDeleteNotaris
 } from "../../hooks/queries/useNotaris";
 import type { NotarisData, CreateNotarisDTO, PicNotarisData } from "../../services/notaris.service";
+
 interface AjbDitanganiData {
   id: string;
   customer: string;
   kavling: string;
+  biayaAjbTransaksi?: number;
 }
+
 type ExtendedNotarisData = NotarisData & {
   ajbDitangani?: AjbDitanganiData[];
 };
+
 interface NotarisFormState {
   id: number | '';
   nik: string;
@@ -27,6 +31,7 @@ interface NotarisFormState {
   alamat: string;
   pics: PicNotarisData[];
 }
+
 const initialFormState: NotarisFormState = {
   id: '',
   nik: '',
@@ -35,15 +40,21 @@ const initialFormState: NotarisFormState = {
   alamat: '',
   pics: []
 };
+
 const Notaris = () => {
   const { data: notarisData = [], isLoading } = useGetNotaris();
   const createMutation = useCreateNotaris();
   const updateMutation = useUpdateNotaris();
   const deleteMutation = useDeleteNotaris();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<NotarisFormState>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
+
+  // State untuk Modal Detail AJB
+  const [selectedAjb, setSelectedAjb] = useState<AjbDitanganiData | null>(null);
+
   const columns = [
     { header: 'Nama Notaris', accessor: 'nama' },
     {
@@ -61,6 +72,7 @@ const Notaris = () => {
       )
     },
   ];
+
   const openModal = (item?: ExtendedNotarisData) => {
     if (item) {
       const mainPic = item.pics?.[0];
@@ -81,10 +93,12 @@ const Notaris = () => {
     setErrors({});
     setIsModalOpen(true);
   };
+
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -96,6 +110,7 @@ const Notaris = () => {
       });
     }
   };
+
   const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => {
@@ -112,18 +127,21 @@ const Notaris = () => {
       });
     }
   };
+
   const handleAddPIC = () => {
     setFormData((prev) => ({
       ...prev,
       pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
     }));
   };
+
   const handleRemovePIC = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       pics: prev.pics.filter((_, i) => i !== index)
     }));
   };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
@@ -133,6 +151,7 @@ const Notaris = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -166,6 +185,7 @@ const Notaris = () => {
       }
     }
   };
+
   const handleDelete = async (item: ExtendedNotarisData) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus data Notaris ${item.nama}?`)) {
       try {
@@ -175,6 +195,7 @@ const Notaris = () => {
       }
     }
   };
+
   const expandedRowRender = (row: ExtendedNotarisData) => {
     const relatedAjb = row.ajbDitangani || [];
     return (
@@ -195,9 +216,13 @@ const Notaris = () => {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {relatedAjb.map((ajb, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-slate-900">{ajb.id}</td>
-                    <td className="px-4 py-3 text-slate-600">{ajb.customer}</td>
+                  <tr
+                    key={idx}
+                    onClick={() => setSelectedAjb(ajb)}
+                    className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600">{ajb.id}</td>
+                    <td className="px-4 py-3 text-slate-600 group-hover:text-slate-900">{ajb.customer}</td>
                     <td className="px-4 py-3 font-medium text-slate-600">{ajb.kavling}</td>
                     <td className="px-4 py-3 font-bold text-slate-900 text-right">
                       {ajb.biayaAjbTransaksi ? formatRupiah(ajb.biayaAjbTransaksi) : '-'}
@@ -215,7 +240,9 @@ const Notaris = () => {
       </div>
     );
   };
+
   if (isLoading) return <PageLoader />;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
@@ -227,6 +254,7 @@ const Notaris = () => {
         onDelete={(item) => handleDelete(item as ExtendedNotarisData)}
         expandedRowRender={expandedRowRender}
       />
+
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
@@ -341,12 +369,49 @@ const Notaris = () => {
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
             >
               {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* MODAL DETAIL AJB */}
+      <Modal isOpen={!!selectedAjb} onClose={() => setSelectedAjb(null)} title="Detail Transaksi AJB">
+        {selectedAjb && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">No. Transaksi Penjualan</p>
+                <p className="text-sm font-black text-slate-900">{selectedAjb.id}</p>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 shadow-sm">
+                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Biaya AJB Transaksi</p>
+                <p className="text-xl font-black text-blue-700">
+                  {selectedAjb.biayaAjbTransaksi ? formatRupiah(selectedAjb.biayaAjbTransaksi) : 'Rp 0'}
+                </p>
+              </div>
+            </div>
+            <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
+              <p className="text-base font-bold text-slate-800">{selectedAjb.customer}</p>
+
+              <div className="h-px w-full bg-slate-100 my-4"></div>
+
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Kavling / Unit Dibeli</p>
+              <p className="text-sm font-bold text-slate-700">{selectedAjb.kavling}</p>
+            </div>
+            <div className="flex justify-end pt-4 border-t border-slate-100 mt-4">
+              <button
+                onClick={() => setSelectedAjb(null)}
+                className="px-6 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-xl cursor-pointer hover:bg-slate-800 transition-colors shadow-md"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

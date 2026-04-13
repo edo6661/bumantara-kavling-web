@@ -48,6 +48,7 @@ interface PenjualanData {
   fileBuktiBooking?: string;
   fileBuktiDp?: string;
   fileSpr?: string | null;
+  progressCicilan?: string;
 }
 
 const initialFormState: PenjualanData = {
@@ -113,6 +114,15 @@ const Penjualan = () => {
     { header: 'Nama Customer', accessor: 'nama' },
     { header: 'Perumahan', accessor: 'perumahan' },
     { header: 'Kavling', accessor: 'blok', render: (_: unknown, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    {
+      header: 'Progress Cicilan',
+      accessor: 'progressCicilan',
+      render: (val: string) => (
+        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-md">
+          {val || '-'}
+        </span>
+      )
+    },
     { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
     {
       header: 'Status',

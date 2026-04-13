@@ -1,184 +1,4 @@
-This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
-
-<file_summary>
-This section contains a summary of this file.
-
-<purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
-It is designed to be easily consumable by AI systems for analysis, code review,
-or other automated processes.
-</purpose>
-
-<file_format>
-The content is organized as follows:
-1. This summary section
-2. Repository information
-3. Directory structure
-4. Repository files (if enabled)
-5. Multiple file entries, each consisting of:
-  - File path as an attribute
-  - Full contents of the file
-</file_format>
-
-<usage_guidelines>
-- This file should be treated as read-only. Any changes should be made to the
-  original repository files, not this packed version.
-- When processing this file, use the file path to distinguish
-  between different files in the repository.
-- Be aware that this file may contain sensitive information. Handle it with
-  the same level of security as you would the original repository.
-</usage_guidelines>
-
-<notes>
-- Some files may have been excluded based on .gitignore rules and Repomix's configuration
-- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json, prisma/schema.prisma
-- Files matching these patterns are excluded: **/*.test.ts
-- Files matching patterns in .gitignore are excluded
-- Files matching default ignore patterns are excluded
-- Files are sorted by Git change count (files with more changes are at the bottom)
-</notes>
-
-</file_summary>
-
-<directory_structure>
-package.json
-src/App.tsx
-src/components/layouts/RootLayout.tsx
-src/components/Navbar.tsx
-src/components/shared/DataTable.tsx
-src/components/shared/FileInput.tsx
-src/components/shared/Input.tsx
-src/components/shared/Modal.tsx
-src/components/shared/Select.tsx
-src/components/Sidebar.tsx
-src/context/AuthContext.tsx
-src/hooks/queries/useAgent.ts
-src/hooks/queries/useBankRekening.ts
-src/hooks/queries/useCustomer.ts
-src/hooks/queries/useCustomerKavling.ts
-src/hooks/queries/useDashboard.ts
-src/hooks/queries/useFeeAgent.ts
-src/hooks/queries/useKavling.ts
-src/hooks/queries/useNotaris.ts
-src/hooks/queries/usePenjualan.ts
-src/hooks/queries/usePerumahan.ts
-src/hooks/queries/useTagihan.ts
-src/hooks/useCrud.ts
-src/hooks/useForm.ts
-src/index.css
-src/lib/axios.ts
-src/main.tsx
-src/pages/Customer/DataSosial.tsx
-src/pages/Customer/Kavling.tsx
-src/pages/Customer/KelengkapanAdministrasi.tsx
-src/pages/Customer/OldKavling.tsx
-src/pages/Customer/SPR.tsx
-src/pages/Customer/Tagihan.tsx
-src/pages/Customer/TagihanOld.tsx
-src/pages/Dashboard.tsx
-src/pages/Home.tsx
-src/pages/Login.tsx
-src/pages/Management/Bank.tsx
-src/pages/Management/Kavling.tsx
-src/pages/Management/Notaris.tsx
-src/pages/Management/OldPenjualan.tsx
-src/pages/Management/Penjualan.tsx
-src/pages/Marketing/Agents.tsx
-src/pages/Marketing/FeeAgent.tsx
-src/pages/Marketing/OldFeeAgent.tsx
-src/pages/PageLoader.tsx
-src/pages/Proyek/Progress.tsx
-src/pages/Proyek/SPK.tsx
-src/pages/TimMarketing/TimMarketing.tsx
-src/providers/AuthProvider.tsx
-src/providers/QueryProvider.tsx
-src/services/agent.service.ts
-src/services/auth.service.ts
-src/services/bankRekening.service.ts
-src/services/customer.service.ts
-src/services/customerKavling.service.ts
-src/services/dashboard.service.ts
-src/services/feeAgent.service.ts
-src/services/kavling.service.ts
-src/services/notaris.service.ts
-src/services/penjualan.service.ts
-src/services/perumahan.service.ts
-src/services/tagihan.service.ts
-src/types/api_response.ts
-src/types/common.ts
-src/types/models/agent.ts
-src/types/models/perumahan.ts
-src/types/models/user.ts
-src/utils/errorHandler.ts
-src/utils/formatters.ts
-src/utils/storage.ts
-tsconfig.json
-vite.config.ts
-</directory_structure>
-
-<files>
-This section contains the contents of the repository's files.
-
-<file path="src/hooks/queries/useDashboard.ts">
-import { useQuery } from "@tanstack/react-query";
-import { dashboardService } from "../../services/dashboard.service";
-
-export const DASHBOARD_KEYS = {
-  summary: ["dashboard-summary"] as const,
-};
-
-export const useGetDashboardSummary = () => {
-  return useQuery({
-    queryKey: DASHBOARD_KEYS.summary,
-    queryFn: dashboardService.getSummary,
-  });
-};
-</file>
-
-<file path="src/services/dashboard.service.ts">
-import api from "../lib/axios";
-
-export interface DashboardData {
-  stats: {
-    totalPendapatan: number;
-    kavlingTerjual: number;
-    totalKavling: number;
-    tagihanJatuhTempo: number;
-    customerJatuhTempo: number;
-    proyekAktif: number;
-    rataRataProgress: number;
-  };
-  recentTransactions: {
-    id: string;
-    customer: string;
-    kavling: string;
-    type: string;
-    amount: number;
-    status: string;
-    date: string;
-  }[];
-  progressData: any[];
-  topAgents: {
-    name: string;
-    closing: number;
-    feeStatus: string;
-  }[];
-  documentAlerts: {
-    customer: string;
-    kavling: string;
-    missing: string[];
-  }[];
-}
-
-export const dashboardService = {
-  getSummary: async (): Promise<DashboardData> => {
-    const response = await api.get("/dashboard/summary");
-    return response.data.data;
-  },
-};
-</file>
-
+kode frontend:
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -389,6 +209,22 @@ export const useUpdateCustomerKavling = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KAVLING_KEYS.all });
     },
+  });
+};
+</file>
+
+<file path="src/hooks/queries/useDashboard.ts">
+import { useQuery } from "@tanstack/react-query";
+import { dashboardService } from "../../services/dashboard.service";
+
+export const DASHBOARD_KEYS = {
+  summary: ["dashboard-summary"] as const,
+};
+
+export const useGetDashboardSummary = () => {
+  return useQuery({
+    queryKey: DASHBOARD_KEYS.summary,
+    queryFn: dashboardService.getSummary,
   });
 };
 </file>
@@ -2795,6 +2631,49 @@ export const customerKavlingService = {
 
   update: async (id: string | number, data: Record<string, unknown>) => {
     const response = await api.patch(`/customer-kavling/${id}`, data);
+    return response.data.data;
+  },
+};
+</file>
+
+<file path="src/services/dashboard.service.ts">
+import api from "../lib/axios";
+
+export interface DashboardData {
+  stats: {
+    totalPendapatan: number;
+    kavlingTerjual: number;
+    totalKavling: number;
+    tagihanJatuhTempo: number;
+    customerJatuhTempo: number;
+    proyekAktif: number;
+    rataRataProgress: number;
+  };
+  recentTransactions: {
+    id: string;
+    customer: string;
+    kavling: string;
+    type: string;
+    amount: number;
+    status: string;
+    date: string;
+  }[];
+  progressData: any[];
+  topAgents: {
+    name: string;
+    closing: number;
+    feeStatus: string;
+  }[];
+  documentAlerts: {
+    customer: string;
+    kavling: string;
+    missing: string[];
+  }[];
+}
+
+export const dashboardService = {
+  getSummary: async (): Promise<DashboardData> => {
+    const response = await api.get("/dashboard/summary");
     return response.data.data;
   },
 };
@@ -5578,6 +5457,253 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
 export default Modal;
 </file>
 
+<file path="src/components/Sidebar.tsx">
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  UserCircle,
+  FolderKanban,
+  ChevronDown,
+  X,
+  ChevronRight
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const menuItems = [
+  {
+    title: 'Dashboard',
+    path: '/',
+    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
+  },
+  {
+    title: 'Management',
+    icon: <Briefcase size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Penjualan', path: '/management/penjualan' },
+      { title: 'Kavling', path: '/management/kavling' },
+      { title: 'Notaris', path: '/management/notaris' },
+      { title: 'Bank', path: '/management/bank' },
+    ],
+  },
+  {
+    title: 'Customer',
+    icon: <Users size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Data Sosial', path: '/customer/data-sosial' },
+      { title: 'SPR', path: '/customer/spr' },
+      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
+      { title: 'Kavling', path: '/customer/kavling' },
+      { title: 'Tagihan', path: '/customer/tagihan' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    icon: <UserCircle size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Agents', path: '/marketing/agents' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent' },
+    ],
+  },
+  {
+    title: 'Proyek',
+    icon: <FolderKanban size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'SPK', path: '/proyek/spk' },
+      { title: 'Progress', path: '/proyek/progress' },
+    ],
+  },
+];
+
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+}
+
+const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
+  const location = useLocation();
+
+  // State untuk kontrol expand/shrink
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    const initialOpenMenus: Record<string, boolean> = {};
+    menuItems.forEach(item => {
+      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
+        initialOpenMenus[item.title] = true;
+      }
+    });
+    return initialOpenMenus;
+  });
+
+  const handleMenuClick = (title: string) => {
+    // Jika shrink aktif dan user klik menu, otomatis expand agar submenu terlihat
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setOpenMenus((prev) => ({ ...prev, [title]: true }));
+    } else {
+      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+    }
+  };
+
+  const checkActive = (path?: string, submenus?: { path: string }[]) => {
+    if (path && location.pathname === path) return true;
+    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
+    return false;
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <aside
+        /* PERBAIKAN: 
+          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
+          - Base class selalu merender state "Expanded" (untuk Mobile).
+          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
+        */
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
+          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
+          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
+        `}
+      >
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
+        >
+          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
+              B
+            </div>
+            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
+              Bumantaraz
+            </span>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
+          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
+            Main Menu
+          </p>
+
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const hasSubmenus = !!item.submenus;
+              const isActive = checkActive(item.path, item.submenus);
+              const isOpenMenu = openMenus[item.title];
+
+              return (
+                <div key={item.title} className="relative">
+                  {hasSubmenus ? (
+                    <>
+                      <button
+                        onClick={() => handleMenuClick(item.title)}
+                        title={!isExpanded ? item.title : undefined}
+                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
+                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                      >
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
+                            {item.icon}
+                          </span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                        <ChevronDown
+                          size={14}
+                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
+                            ${isOpenMenu ? 'rotate-180' : ''}
+                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
+                        />
+                      </button>
+
+                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
+                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
+                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
+                      `}>
+                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
+                          {item.submenus!.map((sub) => {
+                            return (
+                              <NavLink
+                                key={sub.title}
+                                to={sub.path}
+                                className={({ isActive: linkActive }) => `
+                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
+                                  ${linkActive
+                                    ? 'bg-black text-white shadow-md shadow-black/10'
+                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
+                                `}
+                              >
+                                {sub.title}
+                              </NavLink>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <NavLink
+                      to={item.path!}
+                      title={!isExpanded ? item.title : undefined}
+                      className={({ isActive: linkActive }) =>
+                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
+                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                        ${linkActive
+                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
+                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                        }`
+                      }
+                    >
+                      {({ isActive: linkActive }) => (
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
+                            {item.icon}
+                          </span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                      )}
+                    </NavLink>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Sidebar;
+</file>
+
 <file path="src/pages/Customer/DataSosial.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -6033,6 +6159,71 @@ const KelengkapanAdministrasi = () => {
 export default KelengkapanAdministrasi;
 </file>
 
+<file path="src/pages/Customer/SPR.tsx">
+import React from 'react';
+import DataTable from "../../components/shared/DataTable";
+import PageLoader from "../PageLoader";
+import { FileText, Clock } from 'lucide-react';
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { formatRupiah } from "../../utils/formatters";
+
+const SPR = () => {
+  // 1. Ambil data penjualan dari API menggunakan hook yang sudah ada
+  const { data: penjualanData = [], isLoading } = useGetPenjualan();
+
+
+
+  // 2. Definisikan Kolom Tabel
+  const columns = [
+    { header: 'No. Transaksi', accessor: 'id' },
+    { header: 'Nama Customer', accessor: 'nama' },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    {
+      header: 'Kavling',
+      accessor: 'blok',
+      render: (_: unknown, row: any) => <span className="font-medium text-slate-700">{row.blok} - {row.nomorUnit}</span>
+    },
+    {
+      header: 'Harga Jual',
+      accessor: 'hargaJual',
+      render: (val: number) => formatRupiah(val)
+    },
+    {
+      header: 'Dokumen SPR',
+      accessor: 'fileSpr',
+      render: (val: string | null) => val ? (
+        <a
+          href={val}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors w-max shadow-sm"
+        >
+          <FileText size={14} /> Lihat PDF SPR
+        </a>
+      ) : (
+        <span className="text-amber-700 text-xs font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5 w-max">
+          <Clock size={14} /> Menunggu Bukti Booking
+        </span>
+      )
+    },
+  ];
+  const activeSprData = penjualanData.filter((p: any) => p.status !== 'BATAL');
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Dokumen Surat Pesanan Rumah (SPR)"
+        columns={columns}
+        data={activeSprData}
+      />
+    </div>
+  );
+};
+
+export default SPR;
+</file>
+
 <file path="src/pages/Dashboard.tsx">
 import { useNavigate } from 'react-router-dom';
 import {
@@ -6306,318 +6497,6 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-</file>
-
-<file path="src/components/Sidebar.tsx">
-import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Briefcase,
-  Users,
-  UserCircle,
-  FolderKanban,
-  ChevronDown,
-  X,
-  ChevronRight
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-const menuItems = [
-  {
-    title: 'Dashboard',
-    path: '/',
-    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
-  },
-  {
-    title: 'Management',
-    icon: <Briefcase size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Penjualan', path: '/management/penjualan' },
-      { title: 'Kavling', path: '/management/kavling' },
-      { title: 'Notaris', path: '/management/notaris' },
-      { title: 'Bank', path: '/management/bank' },
-    ],
-  },
-  {
-    title: 'Customer',
-    icon: <Users size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial' },
-      { title: 'SPR', path: '/customer/spr' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
-      { title: 'Kavling', path: '/customer/kavling' },
-      { title: 'Tagihan', path: '/customer/tagihan' },
-    ],
-  },
-  {
-    title: 'Marketing',
-    icon: <UserCircle size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Agents', path: '/marketing/agents' },
-      { title: 'Fee Agent', path: '/marketing/fee-agent' },
-    ],
-  },
-  {
-    title: 'Proyek',
-    icon: <FolderKanban size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'SPK', path: '/proyek/spk' },
-      { title: 'Progress', path: '/proyek/progress' },
-    ],
-  },
-];
-
-interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-}
-
-const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
-  const location = useLocation();
-
-  // State untuk kontrol expand/shrink
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
-    const initialOpenMenus: Record<string, boolean> = {};
-    menuItems.forEach(item => {
-      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
-        initialOpenMenus[item.title] = true;
-      }
-    });
-    return initialOpenMenus;
-  });
-
-  const handleMenuClick = (title: string) => {
-    // Jika shrink aktif dan user klik menu, otomatis expand agar submenu terlihat
-    if (!isExpanded) {
-      setIsExpanded(true);
-      setOpenMenus((prev) => ({ ...prev, [title]: true }));
-    } else {
-      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-    }
-  };
-
-  const checkActive = (path?: string, submenus?: { path: string }[]) => {
-    if (path && location.pathname === path) return true;
-    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
-    return false;
-  };
-
-  return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      <aside
-        /* PERBAIKAN: 
-          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
-          - Base class selalu merender state "Expanded" (untuk Mobile).
-          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
-        */
-        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
-          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
-          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
-        `}
-      >
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
-        >
-          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
-        </button>
-
-        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
-              B
-            </div>
-            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
-              Bumantaraz
-            </span>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
-          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
-            Main Menu
-          </p>
-
-          <nav className="space-y-1">
-            {menuItems.map((item) => {
-              const hasSubmenus = !!item.submenus;
-              const isActive = checkActive(item.path, item.submenus);
-              const isOpenMenu = openMenus[item.title];
-
-              return (
-                <div key={item.title} className="relative">
-                  {hasSubmenus ? (
-                    <>
-                      <button
-                        onClick={() => handleMenuClick(item.title)}
-                        title={!isExpanded ? item.title : undefined}
-                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
-                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-                      >
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                        <ChevronDown
-                          size={14}
-                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
-                            ${isOpenMenu ? 'rotate-180' : ''}
-                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
-                        />
-                      </button>
-
-                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
-                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
-                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
-                      `}>
-                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
-                          {item.submenus!.map((sub) => {
-                            return (
-                              <NavLink
-                                key={sub.title}
-                                to={sub.path}
-                                className={({ isActive: linkActive }) => `
-                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
-                                  ${linkActive
-                                    ? 'bg-black text-white shadow-md shadow-black/10'
-                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
-                                `}
-                              >
-                                {sub.title}
-                              </NavLink>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <NavLink
-                      to={item.path!}
-                      title={!isExpanded ? item.title : undefined}
-                      className={({ isActive: linkActive }) =>
-                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
-                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                        ${linkActive
-                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
-                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                        }`
-                      }
-                    >
-                      {({ isActive: linkActive }) => (
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                      )}
-                    </NavLink>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
-    </>
-  );
-};
-
-export default Sidebar;
-</file>
-
-<file path="src/pages/Customer/SPR.tsx">
-import React from 'react';
-import DataTable from "../../components/shared/DataTable";
-import PageLoader from "../PageLoader";
-import { FileText, Clock } from 'lucide-react';
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { formatRupiah } from "../../utils/formatters";
-
-const SPR = () => {
-  // 1. Ambil data penjualan dari API menggunakan hook yang sudah ada
-  const { data: penjualanData = [], isLoading } = useGetPenjualan();
-
-
-
-  // 2. Definisikan Kolom Tabel
-  const columns = [
-    { header: 'No. Transaksi', accessor: 'id' },
-    { header: 'Nama Customer', accessor: 'nama' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    {
-      header: 'Kavling',
-      accessor: 'blok',
-      render: (_: unknown, row: any) => <span className="font-medium text-slate-700">{row.blok} - {row.nomorUnit}</span>
-    },
-    {
-      header: 'Harga Jual',
-      accessor: 'hargaJual',
-      render: (val: number) => formatRupiah(val)
-    },
-    {
-      header: 'Dokumen SPR',
-      accessor: 'fileSpr',
-      render: (val: string | null) => val ? (
-        <a
-          href={val}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors w-max shadow-sm"
-        >
-          <FileText size={14} /> Lihat PDF SPR
-        </a>
-      ) : (
-        <span className="text-amber-700 text-xs font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5 w-max">
-          <Clock size={14} /> Menunggu Bukti Booking
-        </span>
-      )
-    },
-  ];
-  const activeSprData = penjualanData.filter((p: any) => p.status !== 'BATAL');
-  if (isLoading) return <PageLoader />;
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Dokumen Surat Pesanan Rumah (SPR)"
-        columns={columns}
-        data={activeSprData}
-      />
-    </div>
-  );
-};
-
-export default SPR;
 </file>
 
 <file path="src/pages/Management/Notaris.tsx">
@@ -8390,7 +8269,7 @@ const Kavling = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title={`Master Data Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
+        title={`Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
         columns={columns}
         data={kavlingData}
         onAdd={() => openModal()}
@@ -9207,7 +9086,7 @@ const Tagihan = () => {
                   <p className="text-sm font-semibold text-slate-800">{detailPenjualanData?.pembiayaan?.replace('_', ' ') || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase">Harga Kavling Dasar</p>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Harga Jual</p>
                   <p className="text-sm font-bold text-blue-700">{detailPenjualanData ? formatRupiah(detailPenjualanData.harga) : '-'}</p>
                 </div>
               </div>
@@ -9218,7 +9097,7 @@ const Tagihan = () => {
                 <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3 border-b border-indigo-100 pb-2">Rincian Finansial Transaksi</h4>
                 <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600 font-medium">Nilai Jual Dasar:</span>
+                    <span className="text-sm text-slate-600 font-medium">Harga Jual:</span>
                     <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.harga || 0)}</span>
                   </div>
                   <div className="flex justify-between">
@@ -9231,7 +9110,7 @@ const Tagihan = () => {
                   </div>
                   <div className="flex justify-between items-center col-span-2 mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
                     <span className="text-sm font-bold text-slate-700">Total Harga Keseluruhan:</span>
-                    <span className="text-lg font-black text-slate-900">{formatRupiah(detailPenjualanData.totalHargaJual || 0)}</span>
+                    <span className="text-lg font-black text-slate-900">{formatRupiah((detailPenjualanData.harga + detailPenjualanData.lebihTanah + detailPenjualanData.biayaStrategis) || 0)}</span>
                   </div>
                 </div>
               </div>

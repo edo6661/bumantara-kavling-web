@@ -350,7 +350,7 @@ const CustomerKavling = () => {
           {activeTab === 'dasar' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'BOOKED', label: 'Booked' }, { value: 'PROSES', label: 'Proses' }, { value: 'TERJUAL', label: 'Terjual' }, { value: 'LUNAS', label: 'Lunas' }]} />
+              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'BOOKING', label: 'Booked' }, { value: 'HOLD', label: 'Hold' }, { value: 'TERJUAL', label: 'Terjual' }, { value: 'LUNAS', label: 'Lunas' }]} />
               <div className="grid grid-cols-2 gap-2">
                 <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
                 <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
