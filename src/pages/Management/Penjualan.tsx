@@ -13,8 +13,9 @@ import PageLoader from "../PageLoader";
 import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
-import { useGetKavlings } from "../../hooks/queries/useKavling"; // <-- Import Hook Kavling
+import { useGetKavlings } from "../../hooks/queries/useKavling";
 import CurrencyInput from "../../components/shared/CurrencyInput";
+import QRCode from "react-qr-code";
 interface PenjualanData {
   id?: string;
   tanggal: string;
@@ -107,11 +108,11 @@ const Penjualan = () => {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
 
-  // === LOGIC FILTER KAVLING (AUTO-FILL) ===
+
   const availableKavlings = useMemo(() => {
     return kavlingList.filter(k =>
       k.perumahan?.nama === formData.perumahan &&
-      // Tampilkan yang AVAILABLE atau yang SAAT INI sedang diedit
+
       (k.status === 'AVAILABLE' || (isEditing && k.blok === formData.blok && k.nomorUnit === formData.nomorUnit))
     );
   }, [kavlingList, formData.perumahan, isEditing, formData.blok, formData.nomorUnit]);
@@ -129,7 +130,7 @@ const Penjualan = () => {
       .sort();
   }, [availableKavlings, formData.blok]);
 
-  // === HANDLERS ===
+
   const columns = [
     { header: 'ID Penjualan', accessor: 'id' },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
@@ -192,7 +193,7 @@ const Penjualan = () => {
         updates.dp = Number(finalValue) * 0.1;
       }
 
-      // Jika perumahan diubah, reset blok dan unit
+
       if (name === 'perumahan') {
         updates.blok = '';
         updates.nomorUnit = '';
@@ -213,7 +214,7 @@ const Penjualan = () => {
   const handleCurrencyChange = (name: string, value: number) => {
     setFormData((prev) => {
       const updates: any = { [name]: value };
-      // Auto kalkulasi DP 10% jika Harga Jual diubah
+
       if (name === 'hargaJual') {
         updates.dp = value * 0.1;
       }
@@ -387,6 +388,32 @@ const Penjualan = () => {
       console.error(error)
       alert('Terjadi kesalahan saat memproses PDF.');
     }
+  };
+  const handleShareWA = () => {
+    if (!printData) return;
+
+    const phone = (printData.noTelepon || '').replace(/[^0-9]/g, '');
+    if (!phone) {
+      alert('Nomor telepon customer tidak valid / kosong.');
+      return;
+    }
+    const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
+
+    // Link menuju halaman verifikasi/invoice web
+    const documentLink = `https://bumantara.com/verify/${printData.id}`;
+
+    let message = `Halo Bapak/Ibu *${printData.nama}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*.\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
+
+    if (printTitle.includes('Booking Fee')) {
+      const sisa = (printData.hargaJual || 0) - (printData.nominalCetak || 0);
+      message += `\n\nHarga Jual Kavling: *${formatRupiah(printData.hargaJual || 0)}*\nSisa Belum Dibayar: *${formatRupiah(sisa)}*`;
+    }
+
+    // Sisipkan link dokumen agar bisa diklik customer
+    message += `\n\n🔗 *Lihat & Unduh Dokumen PDF:*\n${documentLink}`;
+    message += `\n\n_Mohon lampirkan bukti transfer jika sudah melakukan pembayaran ke rekening PT._\n\nTerima Kasih,\n*Finance Bumantara*`;
+
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const sendToWhatsApp = (row: any, type: string) => {
@@ -762,6 +789,7 @@ const Penjualan = () => {
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="p-8 bg-white border border-slate-200 rounded-xl" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+
             {/* Header */}
             <div className="flex justify-between items-start border-b-2 border-slate-200 pb-6 mb-8">
               <div>
@@ -803,7 +831,7 @@ const Penjualan = () => {
                     <p className="text-base font-bold text-slate-900 m-0 mb-2">{printTitle}</p>
                     <p className="text-sm text-slate-600 m-0 mb-1">Perumahan: <strong>{printData.perumahan}</strong></p>
                     <p className="text-sm text-slate-600 m-0 mb-1">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
-                    <p className="text-sm text-slate-600 m-0">Skema Pembayaran: <strong>{printData.caraPembayaran}</strong> {printData.bank ? `(${printData.bank})` : ''}</p>
+                    <p className="text-sm text-slate-600 m-0">Skema Pembayaran: <strong>{printData.caraPembayaran?.replace('_', ' ')}</strong> {printData.bank ? `(${printData.bank})` : ''}</p>
                   </td>
                   <td className="py-6 px-4 border-b border-slate-200 text-right align-top text-lg font-bold text-slate-900">
                     {formatRupiah(printData.nominalCetak || 0)}
@@ -812,10 +840,25 @@ const Penjualan = () => {
               </tbody>
             </table>
 
-            {/* Total Section */}
-            <div className="flex justify-end mb-12">
-              <div className="w-[300px]">
-                <div className="flex justify-between items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
+            {/* Total Section dengan Sisa Belum Dibayar (Khusus Invoice Booking Fee) */}
+            <div className="flex justify-end mb-8">
+              <div className="w-[350px]">
+                {printTitle.includes('Booking Fee') && (
+                  <div className="mb-4 space-y-2 p-4 bg-slate-50/80 rounded-lg border border-slate-200">
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-wide">
+                      <span>Harga Jual Unit</span>
+                      <span className="text-slate-800 text-sm">{formatRupiah(printData.hargaJual || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-wide">
+                      <span>Sisa Belum Dibayar</span>
+                      <span className="text-orange-600 text-sm">
+                        {formatRupiah((printData.hargaJual || 0) - (printData.nominalCetak || 0))}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center p-4 bg-slate-100 rounded-lg border border-slate-200">
                   <span className="text-sm font-bold text-slate-600 uppercase">
                     {printType === 'kwitansi' ? 'Total Pembayaran' : 'Total Tagihan'}
                   </span>
@@ -824,19 +867,35 @@ const Penjualan = () => {
               </div>
             </div>
 
-            {/* Signature Section */}
-            <div className="flex justify-end text-center mt-20">
-              <div className="w-[200px]">
-                <p className="text-sm text-slate-600 m-0 mb-20">Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}</p>
+            {/* Signature & QR Code Section */}
+            <div className="flex justify-between items-end mt-16 pt-8">
+              <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
+                <QRCode
+                  value={`https://bumantara.com/verify/${printData.id}`}
+                  size={72}
+                  level="H"
+                />
+                <span className="text-[8px] text-slate-400 mt-2 font-bold tracking-widest uppercase">Validasi Dokumen</span>
+              </div>
+
+              <div className="text-center w-[200px]">
+                <p className="text-sm text-slate-600 m-0 mb-16">Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}</p>
                 <p className="text-sm font-bold text-slate-900 m-0 underline">Divisi Keuangan</p>
                 <p className="text-xs text-slate-500 mt-1 m-0">Bumantara</p>
               </div>
             </div>
           </div>
         )}
+
+        {/* Modal Action Buttons */}
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg flex items-center gap-2">
+          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">
+            Tutup
+          </button>
+          <button onClick={handleShareWA} className="px-5 py-2 bg-green-500 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-green-600 shadow-md shadow-green-500/20 flex items-center gap-2 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.004-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z" /></svg> Kirim via WA
+          </button>
+          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg flex items-center gap-2 transition-colors">
             <Printer size={16} /> Download PDF
           </button>
         </div>

@@ -2,7 +2,7 @@
 import React, { useRef, useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import PageLoader from "../PageLoader";
-import { FileText, Clock, PenTool, AlertCircle } from 'lucide-react';
+import { FileText, Clock, PenTool, AlertCircle, Share2 } from 'lucide-react';
 import { useGetPenjualan, useUploadSignature } from "../../hooks/queries/usePenjualan";
 import { formatRupiah } from "../../utils/formatters";
 import Modal from "../../components/shared/Modal";
@@ -61,6 +61,22 @@ const SPR = () => {
     }
   };
 
+  const handleShareWASpr = (row: any) => {
+    const phone = (row.noTelepon || '').replace(/[^0-9]/g, '');
+    if (!phone) {
+      alert('Nomor telepon customer tidak valid / kosong.');
+      return;
+    }
+    const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
+
+    // Ambil URL PDF dari Cloudinary jika ada, jika tidak pakai link verifikasi
+    const documentLink = row.fileSpr ? row.fileSpr : `https://bumantara.com/verify/${row.id}`;
+
+    const message = `Halo Bapak/Ibu *${row.nama}*,\n\nBerikut kami sampaikan dokumen *Surat Pesanan Rumah (SPR)* untuk unit Kavling *${row.perumahan} Blok ${row.blok}-${row.nomorUnit}*.\n\n🔗 *Unduh Dokumen SPR:*\n${documentLink}\n\nTerima Kasih,\n*Bumantara*`;
+
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const columns = [
     { header: 'No. Transaksi', accessor: 'id' },
     { header: 'Nama Customer', accessor: 'nama' },
@@ -79,18 +95,26 @@ const SPR = () => {
       header: 'Dokumen SPR',
       accessor: 'fileSpr',
       render: (val: string | null, row: any) => (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {val ? (
-            <a
-              href={val}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors w-max shadow-sm"
-            >
-              <FileText size={14} /> Lihat PDF SPR
-            </a>
+            <>
+              <a
+                href={val}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors shadow-sm"
+              >
+                <FileText size={14} /> Lihat PDF
+              </a>
+              <button
+                onClick={() => handleShareWASpr(row)}
+                className="flex items-center gap-1.5 text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 hover:text-white transition-colors shadow-sm cursor-pointer"
+              >
+                <Share2 size={14} /> Kirim WA
+              </button>
+            </>
           ) : (
-            <span className="text-amber-700 text-xs font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5 w-max">
+            <span className="text-amber-700 text-xs font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5">
               <Clock size={14} /> Menunggu SPR
             </span>
           )}
@@ -104,16 +128,15 @@ const SPR = () => {
                 sebagai: 'Pemesan'
               });
               setIsTtdModalOpen(true);
-
               setTimeout(() => clearSignature(), 100);
             }}
-            className="flex items-center gap-1.5 bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors w-max shadow-sm cursor-pointer"
+            className="flex items-center gap-1.5 bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
           >
             <PenTool size={14} /> TTD Digital
           </button>
         </div>
       )
-    },
+    }
   ];
 
   const activeSprData = penjualanData.filter((p: any) => p.status !== 'BATAL');
