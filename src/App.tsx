@@ -22,7 +22,7 @@ const Agents = lazy(() => import('./pages/Marketing/Agents'));
 const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
 const Progress = lazy(() => import('./pages/Proyek/Progress'));
-
+const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -38,6 +38,7 @@ const App = () => {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/verify/:id" element={<VerifyDocument />} />
 
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />

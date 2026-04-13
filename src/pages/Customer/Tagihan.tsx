@@ -682,7 +682,9 @@ const Tagihan = () => {
             <div className="flex justify-between items-end mt-16 pt-8">
               <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
                 <QRCode
-                  value={`https://bumantara.com/verify/${printData.noTagihan}`}
+                  // [PERBAIKAN] Pastikan value mengarah ke domain production Anda nantinya.
+                  // Gunakan window.location.origin agar dinamis (localhost saat dev, domain asli saat prod)
+                  value={`${window.location.origin}/verify/${printData.noTagihan}`}
                   size={72}
                   level="H"
                 />

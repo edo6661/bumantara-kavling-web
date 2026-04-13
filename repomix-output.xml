@@ -1,4 +1,54 @@
-KODE FRONTEND:
+kode frontend:
+
+<file path="src/components/shared/CurrencyInput.tsx">
+import React from 'react';
+interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
+  label: string;
+  error?: string;
+  value: number | string;
+  onValueChange: (name: string, value: number) => void;
+  name: string;
+}
+const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
+  const displayValue = value === 0 || value === '' ? '' : new Intl.NumberFormat('id-ID').format(Number(value));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const numericValue = rawValue ? Number(rawValue) : 0;
+    onValueChange(name, numericValue);
+  };
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <span className="text-slate-500 font-medium text-sm">Rp</span>
+        </div>
+        <input
+          type="text"
+          name={name}
+          value={displayValue}
+          onChange={handleChange}
+          className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border bg-white transition-all duration-300 outline-none text-slate-900 placeholder:text-slate-400 shadow-sm/50
+            ${error
+              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
+              : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black'
+            }`}
+          {...props}
+        />
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+export default CurrencyInput;
+</file>
+
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -4655,55 +4705,6 @@ export const penjualanService = {
 };
 </file>
 
-<file path="package.json">
-{
-  "name": "bumantara-kavling",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.2.0",
-    "@tanstack/react-query": "^5.96.2",
-    "axios": "^1.15.0",
-    "clsx": "^2.1.1",
-    "framer-motion": "^12.38.0",
-    "html-to-image": "^1.11.13",
-    "i18next": "^25.8.11",
-    "jspdf": "^4.2.1",
-    "lucide-react": "^0.575.0",
-    "motion": "^12.34.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.2",
-    "react-signature-canvas": "^1.1.0-alpha.2",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@tanstack/react-query-devtools": "^5.96.2",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
-    "@types/react-signature-canvas": "^1.0.7",
-    "@vitejs/plugin-react-swc": "^4.2.2",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
-  }
-}
-</file>
-
 <file path="src/components/Navbar.tsx">
 import { Menu, Building } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -4934,6 +4935,56 @@ export const useUploadSignature = () => {
     },
   });
 };
+</file>
+
+<file path="package.json">
+{
+  "name": "bumantara-kavling",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.0",
+    "@tanstack/react-query": "^5.96.2",
+    "axios": "^1.15.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "html-to-image": "^1.11.13",
+    "i18next": "^25.8.11",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^0.575.0",
+    "motion": "^12.34.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-qr-code": "^2.0.18",
+    "react-router-dom": "^7.13.2",
+    "react-signature-canvas": "^1.1.0-alpha.2",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tanstack/react-query-devtools": "^5.96.2",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-signature-canvas": "^1.0.7",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.3.1"
+  }
+}
 </file>
 
 <file path="src/components/Sidebar.tsx">
@@ -7277,12 +7328,81 @@ export const kavlingService = {
 };
 </file>
 
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+import { useAuth } from './context/AuthContext';
+import { AuthProvider } from './providers/AuthProvider';
+import { QueryProvider } from './providers/QueryProvider';
+
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const App = () => {
+  return (
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+
+              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="management/penjualan" element={<Penjualan />} />
+                <Route path="management/kavling" element={<Kavling />} />
+                <Route path="management/notaris" element={<Notaris />} />
+                <Route path="management/bank" element={<Bank />} />
+                <Route path="customer/data-sosial" element={<DataSosial />} />
+                <Route path="customer/spr" element={<SPR />} />
+                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+                <Route path="customer/kavling" element={<CustomerKavling />} />
+                <Route path="customer/tagihan" element={<Tagihan />} />
+                <Route path="marketing/agents" element={<Agents />} />
+                <Route path="marketing/fee-agent" element={<FeeAgent />} />
+                <Route path="proyek/spk" element={<SPK />} />
+                <Route path="proyek/progress" element={<Progress />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
+  );
+};
+
+export default App;
+</file>
+
 <file path="src/pages/Customer/SPR.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import PageLoader from "../PageLoader";
-import { FileText, Clock, PenTool, AlertCircle } from 'lucide-react';
+import { FileText, Clock, PenTool, AlertCircle, Share2 } from 'lucide-react';
 import { useGetPenjualan, useUploadSignature } from "../../hooks/queries/usePenjualan";
 import { formatRupiah } from "../../utils/formatters";
 import Modal from "../../components/shared/Modal";
@@ -7341,6 +7461,22 @@ const SPR = () => {
     }
   };
 
+  const handleShareWASpr = (row: any) => {
+    const phone = (row.noTelepon || '').replace(/[^0-9]/g, '');
+    if (!phone) {
+      alert('Nomor telepon customer tidak valid / kosong.');
+      return;
+    }
+    const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
+
+    // Ambil URL PDF dari Cloudinary jika ada, jika tidak pakai link verifikasi
+    const documentLink = row.fileSpr ? row.fileSpr : `https://bumantara.com/verify/${row.id}`;
+
+    const message = `Halo Bapak/Ibu *${row.nama}*,\n\nBerikut kami sampaikan dokumen *Surat Pesanan Rumah (SPR)* untuk unit Kavling *${row.perumahan} Blok ${row.blok}-${row.nomorUnit}*.\n\n🔗 *Unduh Dokumen SPR:*\n${documentLink}\n\nTerima Kasih,\n*Bumantara*`;
+
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const columns = [
     { header: 'No. Transaksi', accessor: 'id' },
     { header: 'Nama Customer', accessor: 'nama' },
@@ -7359,18 +7495,26 @@ const SPR = () => {
       header: 'Dokumen SPR',
       accessor: 'fileSpr',
       render: (val: string | null, row: any) => (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {val ? (
-            <a
-              href={val}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors w-max shadow-sm"
-            >
-              <FileText size={14} /> Lihat PDF SPR
-            </a>
+            <>
+              <a
+                href={val}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors shadow-sm"
+              >
+                <FileText size={14} /> Lihat PDF
+              </a>
+              <button
+                onClick={() => handleShareWASpr(row)}
+                className="flex items-center gap-1.5 text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 hover:text-white transition-colors shadow-sm cursor-pointer"
+              >
+                <Share2 size={14} /> Kirim WA
+              </button>
+            </>
           ) : (
-            <span className="text-amber-700 text-xs font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5 w-max">
+            <span className="text-amber-700 text-xs font-bold bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 flex items-center gap-1.5">
               <Clock size={14} /> Menunggu SPR
             </span>
           )}
@@ -7384,16 +7528,15 @@ const SPR = () => {
                 sebagai: 'Pemesan'
               });
               setIsTtdModalOpen(true);
-
               setTimeout(() => clearSignature(), 100);
             }}
-            className="flex items-center gap-1.5 bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors w-max shadow-sm cursor-pointer"
+            className="flex items-center gap-1.5 bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
           >
             <PenTool size={14} /> TTD Digital
           </button>
         </div>
       )
-    },
+    }
   ];
 
   const activeSprData = penjualanData.filter((p: any) => p.status !== 'BATAL');
@@ -7498,75 +7641,6 @@ const SPR = () => {
 };
 
 export default SPR;
-</file>
-
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-import { useAuth } from './context/AuthContext';
-import { AuthProvider } from './providers/AuthProvider';
-import { QueryProvider } from './providers/QueryProvider';
-
-
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-
-const App = () => {
-  return (
-    <QueryProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-
-              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="management/penjualan" element={<Penjualan />} />
-                <Route path="management/kavling" element={<Kavling />} />
-                <Route path="management/notaris" element={<Notaris />} />
-                <Route path="management/bank" element={<Bank />} />
-                <Route path="customer/data-sosial" element={<DataSosial />} />
-                <Route path="customer/spr" element={<SPR />} />
-                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-                <Route path="customer/kavling" element={<CustomerKavling />} />
-                <Route path="customer/tagihan" element={<Tagihan />} />
-                <Route path="marketing/agents" element={<Agents />} />
-                <Route path="marketing/fee-agent" element={<FeeAgent />} />
-                <Route path="proyek/spk" element={<SPK />} />
-                <Route path="proyek/progress" element={<Progress />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryProvider>
-  );
-};
-
-export default App;
 </file>
 
 <file path="src/components/shared/DataTable.tsx">
@@ -8408,7 +8482,8 @@ import { formatRupiah, formatDate } from "../../utils/formatters";
 import { FileText, Printer, UploadCloud, Edit2, Trash2, Eye, ZoomIn } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
-
+import CurrencyInput from "../../components/shared/CurrencyInput";
+import QRCode from "react-qr-code";
 import {
   useGetTagihans,
   useCreateTagihan,
@@ -8641,6 +8716,38 @@ const Tagihan = () => {
         return newErrors;
       });
     }
+  };
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleShareWA = () => {
+    if (!printData) return;
+
+    // Fallback jika noTelepon tidak ada di printData, kita ambil dari data customer
+    const targetCustomer = customers.find(c => c.id === printData.customerId);
+    const phone = (printData.noTelepon || targetCustomer?.noHp || '').replace(/[^0-9]/g, '');
+
+    if (!phone) {
+      alert('Nomor telepon customer tidak ditemukan.');
+      return;
+    }
+    const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
+    const documentLink = `https://bumantara.com/verify/${printData.noTagihan}`;
+
+    let message = `Halo Bapak/Ibu *${printData.namaCustomer}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk tagihan *${printData.pembayaran}* (Unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*).\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
+
+    message += `\n\n🔗 *Lihat & Unduh Dokumen PDF:*\n${documentLink}`;
+    message += `\n\n_Mohon abaikan pesan ini jika Bapak/Ibu sudah melakukan pembayaran._\n\nTerima Kasih,\n*Finance Bumantara*`;
+
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -8931,7 +9038,14 @@ const Tagihan = () => {
               <div className="md:col-span-2">
                 <Input label="Pembayaran (Deskripsi)" name="pembayaran" value={formData.pembayaran} onChange={handleChange} error={errors.pembayaran} placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP" />
               </div>
-              <Input label="Nominal (Rp)" type="number" name="nominal" value={formData.nominal} onChange={handleChange} error={errors.nominal} placeholder="0" />
+              <CurrencyInput
+                label="Nominal"
+                name="nominal"
+                value={formData.nominal}
+                onValueChange={handleCurrencyChange}
+                error={errors.nominal}
+                placeholder="0"
+              />
               <Input label="Jatuh Tempo" type="date" name="jatuhTempo" value={formData.jatuhTempo} onChange={handleChange} error={errors.jatuhTempo} />
               <div className="md:col-span-2 mt-2">
                 <Input label="Reminder Tagihan Berikutnya (Opsional)" type="date" name="reminderBerikutnya" value={formData.reminderBerikutnya} onChange={handleChange} />
@@ -8981,43 +9095,86 @@ const Tagihan = () => {
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-xl" id="print-area">
-            <div className="text-center mb-8 border-b border-slate-200 pb-6">
-              <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900">{printType === 'invoice' ? 'INVOICE' : 'KWITANSI PEMBAYARAN'}</h2>
-              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.noTagihan}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
+            <div className="flex justify-between items-start border-b-2 border-slate-200 pb-6 mb-8">
               <div>
-                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Diterima Dari / Kepada Yth:</p>
-                <p className="font-black text-lg text-slate-800">{printData.namaCustomer}</p>
-                <p className="text-slate-600 font-medium">Kavling {printData.perumahan} - Blok {printData.blok}-{printData.nomorUnit}</p>
+                <h2 className="text-3xl font-black uppercase tracking-widest text-slate-900 m-0">
+                  {printType === 'invoice' ? 'INVOICE' : 'KWITANSI'}
+                </h2>
+                <p className="text-slate-500 text-sm mt-2 font-medium">{printTitle} - No: {printData.noTagihan}</p>
+                <p className="text-slate-500 text-sm mt-1">Tanggal: {formatDate(printData.tanggal || new Date().toISOString())}</p>
               </div>
               <div className="text-right">
-                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Tanggal Cetak:</p>
-                <p className="font-bold text-slate-800">{formatDate(new Date().toISOString())}</p>
+                <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
+                <p className="m-0 mt-1 text-xs text-slate-500">Divisi Marketing & Keuangan</p>
               </div>
             </div>
-            <div className="mb-8">
-              <p className="text-slate-400 font-bold mb-2 uppercase tracking-wider text-[10px]">Keterangan Pembayaran:</p>
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl font-medium text-slate-700">
-                {printData.pembayaran} untuk unit Kavling {printData.perumahan} Blok {printData.blok}-{printData.nomorUnit}.
+
+            <div className="flex justify-between mb-8">
+              <div className="max-w-[50%]">
+                <p className="text-xs text-slate-400 font-bold mb-1 uppercase tracking-wider">
+                  {printType === 'kwitansi' ? 'Diterima Dari:' : 'Kepada Yth:'}
+                </p>
+                <p className="font-black text-lg text-slate-800 m-0 mb-1">{printData.namaCustomer}</p>
+                <p className="text-slate-600 font-medium m-0">Kavling {printData.perumahan} - Blok {printData.blok}-{printData.nomorUnit}</p>
               </div>
             </div>
-            <div className="flex justify-between items-center p-5 bg-slate-100 rounded-xl border border-slate-200">
-              <p className="font-black text-slate-700 uppercase tracking-widest text-sm">Total Nominal</p>
-              <p className="text-2xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</p>
+
+            <table className="w-full border-collapse mb-8">
+              <thead>
+                <tr>
+                  <th className="py-3 px-4 text-left bg-slate-50 text-slate-600 text-xs uppercase border-y border-slate-300">Deskripsi Pembayaran</th>
+                  <th className="py-3 px-4 text-right bg-slate-50 text-slate-600 text-xs uppercase border-y border-slate-300">Jumlah</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="py-6 px-4 border-b border-slate-200 align-top">
+                    <p className="text-base font-bold text-slate-900 m-0 mb-2">{printData.pembayaran}</p>
+                    <p className="text-sm text-slate-600 m-0">Pembayaran untuk unit Kavling {printData.perumahan} Blok {printData.blok}-{printData.nomorUnit}.</p>
+                  </td>
+                  <td className="py-6 px-4 border-b border-slate-200 text-right align-top text-lg font-bold text-slate-900">
+                    {formatRupiah(printData.nominalCetak || 0)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="flex justify-end mb-8">
+              <div className="w-[350px]">
+                <div className="flex justify-between items-center p-4 bg-slate-100 rounded-lg border border-slate-200">
+                  <span className="text-sm font-bold text-slate-600 uppercase">
+                    {printType === 'kwitansi' ? 'Total Pembayaran' : 'Total Tagihan'}
+                  </span>
+                  <span className="text-xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</span>
+                </div>
+              </div>
             </div>
-            <div className="mt-16 flex justify-end">
-              <div className="text-center">
-                <p className="text-slate-500 mb-16 font-medium">Hormat Kami,</p>
-                <p className="font-bold border-b border-slate-300 pb-1 text-slate-800">Finance Dept.</p>
-                <p className="text-xs text-slate-400 mt-1 font-bold">Bumantaraz</p>
+
+            {/* Signature & QR Code */}
+            <div className="flex justify-between items-end mt-16 pt-8">
+              <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
+                <QRCode
+                  value={`https://bumantara.com/verify/${printData.noTagihan}`}
+                  size={72}
+                  level="H"
+                />
+                <span className="text-[8px] text-slate-400 mt-2 font-bold tracking-widest uppercase">Validasi Dokumen</span>
+              </div>
+
+              <div className="text-center w-[200px]">
+                <p className="text-sm text-slate-600 m-0 mb-16">Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}</p>
+                <p className="text-sm font-bold text-slate-900 m-0 underline">Finance Dept.</p>
+                <p className="text-xs text-slate-400 mt-1 m-0">Bumantara</p>
               </div>
             </div>
           </div>
         )}
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
           <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg flex items-center gap-2">
+          <button onClick={handleShareWA} className="px-5 py-2 bg-green-500 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-green-600 flex items-center gap-2">
+            Kirim via WA
+          </button>
+          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 flex items-center gap-2">
             <Printer size={16} /> Download PDF
           </button>
         </div>
@@ -9746,8 +9903,9 @@ import PageLoader from "../PageLoader";
 import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
-import { useGetKavlings } from "../../hooks/queries/useKavling"; // <-- Import Hook Kavling
-
+import { useGetKavlings } from "../../hooks/queries/useKavling";
+import CurrencyInput from "../../components/shared/CurrencyInput";
+import QRCode from "react-qr-code";
 interface PenjualanData {
   id?: string;
   tanggal: string;
@@ -9840,11 +9998,11 @@ const Penjualan = () => {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
 
-  // === LOGIC FILTER KAVLING (AUTO-FILL) ===
+
   const availableKavlings = useMemo(() => {
     return kavlingList.filter(k =>
       k.perumahan?.nama === formData.perumahan &&
-      // Tampilkan yang AVAILABLE atau yang SAAT INI sedang diedit
+
       (k.status === 'AVAILABLE' || (isEditing && k.blok === formData.blok && k.nomorUnit === formData.nomorUnit))
     );
   }, [kavlingList, formData.perumahan, isEditing, formData.blok, formData.nomorUnit]);
@@ -9862,7 +10020,7 @@ const Penjualan = () => {
       .sort();
   }, [availableKavlings, formData.blok]);
 
-  // === HANDLERS ===
+
   const columns = [
     { header: 'ID Penjualan', accessor: 'id' },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
@@ -9925,7 +10083,7 @@ const Penjualan = () => {
         updates.dp = Number(finalValue) * 0.1;
       }
 
-      // Jika perumahan diubah, reset blok dan unit
+
       if (name === 'perumahan') {
         updates.blok = '';
         updates.nomorUnit = '';
@@ -9936,6 +10094,20 @@ const Penjualan = () => {
         updates.dp = 0;
       }
 
+      return { ...prev, ...updates };
+    });
+
+    if (errors[name as keyof PenjualanData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => {
+      const updates: any = { [name]: value };
+
+      if (name === 'hargaJual') {
+        updates.dp = value * 0.1;
+      }
       return { ...prev, ...updates };
     });
 
@@ -10106,6 +10278,32 @@ const Penjualan = () => {
       console.error(error)
       alert('Terjadi kesalahan saat memproses PDF.');
     }
+  };
+  const handleShareWA = () => {
+    if (!printData) return;
+
+    const phone = (printData.noTelepon || '').replace(/[^0-9]/g, '');
+    if (!phone) {
+      alert('Nomor telepon customer tidak valid / kosong.');
+      return;
+    }
+    const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
+
+    // Link menuju halaman verifikasi/invoice web
+    const documentLink = `https://bumantara.com/verify/${printData.id}`;
+
+    let message = `Halo Bapak/Ibu *${printData.nama}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*.\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
+
+    if (printTitle.includes('Booking Fee')) {
+      const sisa = (printData.hargaJual || 0) - (printData.nominalCetak || 0);
+      message += `\n\nHarga Jual Kavling: *${formatRupiah(printData.hargaJual || 0)}*\nSisa Belum Dibayar: *${formatRupiah(sisa)}*`;
+    }
+
+    // Sisipkan link dokumen agar bisa diklik customer
+    message += `\n\n🔗 *Lihat & Unduh Dokumen PDF:*\n${documentLink}`;
+    message += `\n\n_Mohon lampirkan bukti transfer jika sudah melakukan pembayaran ke rekening PT._\n\nTerima Kasih,\n*Finance Bumantara*`;
+
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const sendToWhatsApp = (row: any, type: string) => {
@@ -10402,13 +10600,13 @@ const Penjualan = () => {
               </div>
 
               {/* Harga Jual - Editable */}
-              <Input
-                label="Harga Jual (Rp)"
-                type="number"
+              <CurrencyInput
+                label="Harga Jual"
                 name="hargaJual"
-                value={formData.hargaJual || ''}
-                onChange={handleChange}
+                value={formData.hargaJual}
+                onValueChange={handleCurrencyChange}
                 error={errors.hargaJual}
+                placeholder="0"
               />
             </div>
           </div>
@@ -10429,8 +10627,20 @@ const Penjualan = () => {
                 ]}
                 error={errors.caraPembayaran}
               />
-              <Input label="Down Payment (DP) - Rp" type="number" name="dp" value={formData.dp || ''} onChange={handleChange} placeholder="Otomatis 10% dari Harga Jual" />
-              <Input label="Diskon Penjualan (Rp)" type="number" name="diskonPenjualan" value={formData.diskonPenjualan || ''} onChange={handleChange} />
+              <CurrencyInput
+                label="Down Payment (DP)"
+                name="dp"
+                value={formData.dp}
+                onValueChange={handleCurrencyChange}
+                placeholder="Otomatis 10% dari Harga Jual"
+              />
+              <CurrencyInput
+                label="Diskon Penjualan"
+                name="diskonPenjualan"
+                value={formData.diskonPenjualan}
+                onValueChange={handleCurrencyChange}
+                placeholder="0"
+              />
             </div>
             {formData.caraPembayaran && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
@@ -10442,13 +10652,13 @@ const Penjualan = () => {
                   placeholder="Contoh: BCA, BSI, Mandiri"
                   error={errors.bank}
                 />
-                <Input
-                  label={formData.caraPembayaran === 'KPR' ? "Nilai Pengajuan KPR (Rp)" : "Nilai Pengajuan Plafon (Rp)"}
-                  type="number"
+                <CurrencyInput
+                  label={formData.caraPembayaran === 'KPR' ? "Nilai Pengajuan KPR" : "Nilai Pengajuan Plafon"}
                   name="nilaiPengajuanKpr"
-                  value={formData.nilaiPengajuanKpr || ''}
-                  onChange={handleChange}
+                  value={formData.nilaiPengajuanKpr}
+                  onValueChange={handleCurrencyChange}
                   error={errors.nilaiPengajuanKpr}
+                  placeholder="0"
                 />
               </div>
             )}
@@ -10469,6 +10679,7 @@ const Penjualan = () => {
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="p-8 bg-white border border-slate-200 rounded-xl" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
+
             {/* Header */}
             <div className="flex justify-between items-start border-b-2 border-slate-200 pb-6 mb-8">
               <div>
@@ -10510,7 +10721,7 @@ const Penjualan = () => {
                     <p className="text-base font-bold text-slate-900 m-0 mb-2">{printTitle}</p>
                     <p className="text-sm text-slate-600 m-0 mb-1">Perumahan: <strong>{printData.perumahan}</strong></p>
                     <p className="text-sm text-slate-600 m-0 mb-1">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
-                    <p className="text-sm text-slate-600 m-0">Skema Pembayaran: <strong>{printData.caraPembayaran}</strong> {printData.bank ? `(${printData.bank})` : ''}</p>
+                    <p className="text-sm text-slate-600 m-0">Skema Pembayaran: <strong>{printData.caraPembayaran?.replace('_', ' ')}</strong> {printData.bank ? `(${printData.bank})` : ''}</p>
                   </td>
                   <td className="py-6 px-4 border-b border-slate-200 text-right align-top text-lg font-bold text-slate-900">
                     {formatRupiah(printData.nominalCetak || 0)}
@@ -10519,10 +10730,25 @@ const Penjualan = () => {
               </tbody>
             </table>
 
-            {/* Total Section */}
-            <div className="flex justify-end mb-12">
-              <div className="w-[300px]">
-                <div className="flex justify-between items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
+            {/* Total Section dengan Sisa Belum Dibayar (Khusus Invoice Booking Fee) */}
+            <div className="flex justify-end mb-8">
+              <div className="w-[350px]">
+                {printTitle.includes('Booking Fee') && (
+                  <div className="mb-4 space-y-2 p-4 bg-slate-50/80 rounded-lg border border-slate-200">
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-wide">
+                      <span>Harga Jual Unit</span>
+                      <span className="text-slate-800 text-sm">{formatRupiah(printData.hargaJual || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-wide">
+                      <span>Sisa Belum Dibayar</span>
+                      <span className="text-orange-600 text-sm">
+                        {formatRupiah((printData.hargaJual || 0) - (printData.nominalCetak || 0))}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center p-4 bg-slate-100 rounded-lg border border-slate-200">
                   <span className="text-sm font-bold text-slate-600 uppercase">
                     {printType === 'kwitansi' ? 'Total Pembayaran' : 'Total Tagihan'}
                   </span>
@@ -10531,19 +10757,35 @@ const Penjualan = () => {
               </div>
             </div>
 
-            {/* Signature Section */}
-            <div className="flex justify-end text-center mt-20">
-              <div className="w-[200px]">
-                <p className="text-sm text-slate-600 m-0 mb-20">Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}</p>
+            {/* Signature & QR Code Section */}
+            <div className="flex justify-between items-end mt-16 pt-8">
+              <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
+                <QRCode
+                  value={`https://bumantara.com/verify/${printData.id}`}
+                  size={72}
+                  level="H"
+                />
+                <span className="text-[8px] text-slate-400 mt-2 font-bold tracking-widest uppercase">Validasi Dokumen</span>
+              </div>
+
+              <div className="text-center w-[200px]">
+                <p className="text-sm text-slate-600 m-0 mb-16">Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}</p>
                 <p className="text-sm font-bold text-slate-900 m-0 underline">Divisi Keuangan</p>
                 <p className="text-xs text-slate-500 mt-1 m-0">Bumantara</p>
               </div>
             </div>
           </div>
         )}
+
+        {/* Modal Action Buttons */}
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg flex items-center gap-2">
+          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">
+            Tutup
+          </button>
+          <button onClick={handleShareWA} className="px-5 py-2 bg-green-500 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-green-600 shadow-md shadow-green-500/20 flex items-center gap-2 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.004-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z" /></svg> Kirim via WA
+          </button>
+          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg flex items-center gap-2 transition-colors">
             <Printer size={16} /> Download PDF
           </button>
         </div>

@@ -871,7 +871,8 @@ const Penjualan = () => {
             <div className="flex justify-between items-end mt-16 pt-8">
               <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
                 <QRCode
-                  value={`https://bumantara.com/verify/${printData.id}`}
+                  // [PERBAIKAN] Gunakan window.location.origin dan arahkan ke noTransaksi
+                  value={`${window.location.origin}/verify/${printData.id}`}
                   size={72}
                   level="H"
                 />
