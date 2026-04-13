@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -86,7 +87,7 @@ const Tagihan = () => {
         groups[groupKey] = {
           id: groupKey,
           customerId: item.customerId,
-          penjualanId: item.penjualanId, // Pastikan atribut ini tidak hilang
+          penjualanId: item.penjualanId,
           namaCustomer: item.namaCustomer,
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
           reminderSelanjutnya: '',
@@ -147,10 +148,10 @@ const Tagihan = () => {
     if (!formData.customerId) return [];
     return penjualanList.filter((p: any) => Number(p.customerId) === Number(formData.customerId));
   }, [formData.customerId, penjualanList]);
+
   const detailPenjualanData = useMemo(() => {
     if (!selectedDetailRow) return null;
 
-    // 1. Cegah error jika API PenjualanList belum selesai di-fetch atau kosong
     if (!penjualanList || penjualanList.length === 0) {
       return {
         tipe: 'Memuat...',
@@ -163,13 +164,9 @@ const Tagihan = () => {
       };
     }
 
-    // 2. Ambil ID Penjualan dari grup, jika gagal ambil dari item cicilan pertamanya
     const targetPenjualanId = selectedDetailRow.penjualanId || selectedDetailRow.cicilan?.[0]?.penjualanId;
-
-    // 3. Eksekusi pencarian dengan konversi String agar tipe Int dan String pasti Match
     const found = penjualanList.find((p: any) => String(p.id) === String(targetPenjualanId));
 
-    // 4. Jika KETEMU, petakan datanya. Pastikan fallback ke angka 0 jika detail pajak belum diisi
     if (found) {
       return {
         ...found,
@@ -183,7 +180,6 @@ const Tagihan = () => {
       };
     }
 
-    // 5. Jika TIDAK KETEMU sama sekali (Kemungkinan karena status transaksi Penjualan sudah dibatalkan)
     return {
       tipe: '-',
       pembiayaan: '-',
@@ -194,6 +190,7 @@ const Tagihan = () => {
       status: 'DATA TERBATAS (PENJUALAN BATAL)'
     };
   }, [selectedDetailRow, penjualanList]);
+
   const openModal = (item?: TagihanData, parentGroup?: any) => {
     if (item) {
       setFormData({
@@ -204,10 +201,10 @@ const Tagihan = () => {
         kavlingLabel: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
         pembayaran: item.pembayaran,
         nominal: item.nominal,
-        jatuhTempo: formatDateForInput(item.jatuhTempo),
+        jatuhTempo: formatDateForInput(item.jatuhTempo as any),
         status: item.status,
         fileBukti: item.fileBukti || '',
-        reminderBerikutnya: formatDateForInput(item.reminderBerikutnya),
+        reminderBerikutnya: formatDateForInput(item.reminderBerikutnya as any),
       });
       setIsEditing(true);
       setIsAutoFilled(true);
@@ -329,19 +326,44 @@ const Tagihan = () => {
   };
 
   const expandedRowRender = (row: any) => {
+
+    const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
+    const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
+    const totalTerbayar = row.cicilan.filter((c: any) => c.status === 'LUNAS').reduce((sum: number, c: any) => sum + Number(c.nominal), 0);
+    const sisaPembayaran = Math.max(0, totalHargaJual - totalTerbayar);
+
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
             <FileText size={16} className="text-blue-600" /> Detail Cicilan & Tagihan
           </h4>
+
+          <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
+            <div className="px-3 border-r border-slate-100">
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Harga Jual</p>
+              <p className="text-sm font-bold text-slate-700">{formatRupiah(totalHargaJual)}</p>
+            </div>
+            <div className="px-3 border-r border-slate-100">
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Terbayar</p>
+              <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayar)}</p>
+            </div>
+            <div className="px-3">
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
+                Sisa Pembayaran
+              </p>
+              <p className="text-sm font-black text-orange-600">{formatRupiah(sisaPembayaran)}</p>
+            </div>
+          </div>
+
           <button
             onClick={() => openModal(undefined, row)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer shadow-sm"
+            className="flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer shadow-sm w-full md:w-auto"
           >
-            + Tambah Cicilan
+            + Tambah Tagihan
           </button>
         </div>
+
         <div className="space-y-3">
           {row.cicilan
             .sort((a: TagihanData, b: TagihanData) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime())
@@ -384,10 +406,10 @@ const Tagihan = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer border border-transparent hover:border-blue-100" title="Edit Cicilan">
+                  <button onClick={() => openModal(c as any)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer border border-transparent hover:border-blue-100" title="Edit Cicilan">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer border border-transparent hover:border-red-100" title="Hapus Cicilan">
+                  <button onClick={() => handleDelete(c as any)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer border border-transparent hover:border-red-100" title="Hapus Cicilan">
                     <Trash2 size={16} />
                   </button>
                   <div className="w-px h-6 bg-slate-200 mx-1"></div>
@@ -400,7 +422,7 @@ const Tagihan = () => {
                       <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Tagihan'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer">
                         <FileText size={14} /> Invoice
                       </button>
-                      <button onClick={() => openModal(c)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md cursor-pointer">
+                      <button onClick={() => openModal(c as any)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md cursor-pointer">
                         <UploadCloud size={14} /> Upload Bukti
                       </button>
                     </>

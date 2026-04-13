@@ -1,3 +1,4 @@
+// <file path="src/pages/Customer/Kavling.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -12,7 +13,8 @@ import { useGetTagihans } from '../../hooks/queries/useTagihan';
 interface KavlingData {
   id: string;
   perumahan: string;
-  status: string;
+  status: string; // Status Penjualan
+  statusKavling: string; // Status Unit Kavling
   lantai: string;
   blok: string;
   unit: string;
@@ -74,7 +76,7 @@ interface KavlingData {
 
 const initialFormState: KavlingData = {
   id: '',
-  perumahan: '', status: '', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
+  perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
   tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
   harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
   nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
@@ -103,7 +105,7 @@ const CustomerKavling = () => {
     { header: 'Tipe', accessor: 'tipe' },
     { header: 'Total Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
     {
-      header: 'Status',
+      header: 'Status Penjualan',
       accessor: 'status',
       render: (val: string) => {
         let style = 'bg-gray-100 text-gray-800';
@@ -185,7 +187,7 @@ const CustomerKavling = () => {
     const getStr = (val: string | undefined) => val === '' ? undefined : val;
 
     const payload = {
-      statusKavling: getStr(formData.status),
+      statusKavling: getStr(formData.statusKavling), // Menggunakan statusKavling
       namaTipe: getStr(formData.tipe),
       luasBangunan: getNum(formData.luasBangunan),
       luasTanah: getNum(formData.luasTanah),
@@ -275,14 +277,20 @@ const CustomerKavling = () => {
   const expandedRowRender = (row: KavlingData) => {
     const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
     const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
+    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar; // Kalkulasi Sisa Pembayaran
 
     return (
       <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <h4 className="text-sm font-bold text-slate-800">Riwayat Tagihan & Pembayaran</h4>
-          <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
-            Total Terbayar: {formatRupiah(totalTerbayar)}
-          </span>
+          <div className="flex gap-2 flex-wrap">
+            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
+              Total Terbayar: {formatRupiah(totalTerbayar)}
+            </span>
+            <span className="px-3 py-1 bg-orange-100 text-orange-800 text-xs font-bold rounded-lg border border-orange-200">
+              Sisa Tagihan: {formatRupiah(sisaPembayaran)}
+            </span>
+          </div>
         </div>
 
         {history.length > 0 ? (
@@ -350,7 +358,21 @@ const CustomerKavling = () => {
           {activeTab === 'dasar' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'BOOKING', label: 'Booked' }, { value: 'HOLD', label: 'Hold' }, { value: 'TERJUAL', label: 'Terjual' }, { value: 'LUNAS', label: 'Lunas' }]} />
+
+              {/* Diperbaiki: Mapping dropdown menggunakan nilai yang sesuai dengan Backend Enum */}
+              <Select
+                label="Status Kavling"
+                name="statusKavling"
+                value={formData.statusKavling}
+                onChange={handleChange}
+                options={[
+                  { value: 'AVAILABLE', label: 'Available' },
+                  { value: 'BOOKING', label: 'Booking' },
+                  { value: 'HOLD', label: 'Hold' },
+                  { value: 'TERJUAL', label: 'Terjual' }
+                ]}
+              />
+
               <div className="grid grid-cols-2 gap-2">
                 <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
                 <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
@@ -359,10 +381,36 @@ const CustomerKavling = () => {
               <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} error={errors.lantai} />
               <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
               <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
-              <Select label="Pembiayaan" name="pembiayaan" value={formData.pembiayaan || ''} onChange={handleChange} options={[{ value: 'KPR', label: 'KPR Bank' }, { value: 'CASH KERAS', label: 'Cash Keras' }, { value: 'CASH BERTAHAP', label: 'Cash Bertahap' }]} />
+
+              {/* Diperbaiki: Mapping Pembiayaan */}
+              <Select
+                label="Pembiayaan"
+                name="pembiayaan"
+                value={formData.pembiayaan || ''}
+                onChange={handleChange}
+                options={[
+                  { value: 'KPR', label: 'KPR Bank' },
+                  { value: 'CASH_KERAS', label: 'Cash Keras' },
+                  { value: 'CASH_BERTAHAP', label: 'Cash Bertahap' }
+                ]}
+              />
+
               <Select label="SP3R" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
               <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
-              <Input label="Akad PPJB" name="akadPpjb" value={formData.akadPpjb || ''} onChange={handleChange} />
+
+              {/* Diperbaiki: Akad PPJB menjadi Dropdown/Select */}
+              <Select
+                label="Akad PPJB"
+                name="akadPpjb"
+                value={formData.akadPpjb || ''}
+                onChange={handleChange}
+                options={[
+                  { value: '', label: '-- Pilih --' },
+                  { value: 'NOTARIS', label: 'Notaris' },
+                  { value: 'DEVELOPER', label: 'Developer' }
+                ]}
+              />
+
               <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
               <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
               <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
