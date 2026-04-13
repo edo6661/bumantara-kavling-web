@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import PageLoader from "../PageLoader";
-import { FileText, Clock, PenTool } from 'lucide-react';
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { FileText, Clock, PenTool, AlertCircle } from 'lucide-react';
+import { useGetPenjualan, useUploadSignature } from "../../hooks/queries/usePenjualan";
 import { formatRupiah } from "../../utils/formatters";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -11,12 +12,11 @@ import SignatureCanvas from 'react-signature-canvas';
 
 const SPR = () => {
   const { data: penjualanData = [], isLoading } = useGetPenjualan();
+  const uploadSignatureMutation = useUploadSignature();
 
-  // State untuk Modal Tanda Tangan
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [selectedSpr, setSelectedSpr] = useState<any>(null);
 
-  // Tambahkan state 'sebagai' untuk opsi penandatangan
   const [ttdData, setTtdData] = useState({
     nama: '',
     tanggal: new Date().toISOString().split('T')[0],
@@ -37,25 +37,28 @@ const SPR = () => {
       return;
     }
 
-    // PERBAIKAN ERROR: Gunakan getCanvas() asli, bukan getTrimmedCanvas() agar tidak error di Vite
     const canvas = sigCanvas.current?.getCanvas();
     if (!canvas) return;
 
     // Convert ke Base64 PNG
     const signatureBase64 = canvas.toDataURL('image/png');
 
-    // TODO: Kirim data ini ke Backend API
-    // Contoh payload: { idPenjualan: selectedSpr.id, signatureBase64, nama: ttdData.nama, peran: ttdData.sebagai }
-    console.log("Data TTD yang siap dikirim:", {
-      idTransaksi: selectedSpr?.id,
-      ...ttdData,
-      signatureBase64
-    });
+    try {
+      await uploadSignatureMutation.mutateAsync({
+        noTransaksi: selectedSpr.id, // Ambil id transaksi penjualan
+        signatureBase64,
+        nama: ttdData.nama,
+        peran: ttdData.sebagai,
+        tanggal: ttdData.tanggal,
+      });
 
-    alert(`Tanda tangan ${ttdData.sebagai} berhasil disimpan! (Cek console log)`);
+      alert(`Tanda tangan ${ttdData.sebagai} berhasil disimpan dan SPR telah diupdate!`);
 
-    setIsTtdModalOpen(false);
-    setSelectedSpr(null);
+      setIsTtdModalOpen(false);
+      setSelectedSpr(null);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal menyimpan tanda tangan");
+    }
   };
 
   const columns = [
@@ -98,11 +101,10 @@ const SPR = () => {
               setTtdData({
                 nama: row.nama,
                 tanggal: new Date().toISOString().split('T')[0],
-                sebagai: 'Pemesan' // Default value saat modal dibuka
+                sebagai: 'Pemesan'
               });
               setIsTtdModalOpen(true);
 
-              // Beri jeda sedikit agar canvas terender dulu sebelum dicover clear
               setTimeout(() => clearSignature(), 100);
             }}
             className="flex items-center gap-1.5 bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors w-max shadow-sm cursor-pointer"
@@ -116,6 +118,9 @@ const SPR = () => {
 
   const activeSprData = penjualanData.filter((p: any) => p.status !== 'BATAL');
 
+  // Mengecek apakah "sebagai" (contoh: Pemesan) sudah ada datanya di ttdData
+  const isAlreadySigned = selectedSpr?.ttdData && selectedSpr.ttdData[ttdData.sebagai] !== undefined;
+
   if (isLoading) return <PageLoader />;
 
   return (
@@ -126,11 +131,19 @@ const SPR = () => {
         data={activeSprData}
       />
 
-      {/* MODAL TANDA TANGAN DIGITAL */}
       <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital SPR">
         <div className="space-y-5">
 
-          {/* PERUBAHAN: Ditambahkan pilihan "Sebagai" (Pemesan/Marketing/dll) */}
+          {isAlreadySigned && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-amber-800 text-sm animate-in fade-in duration-300">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold">Perhatian: {ttdData.sebagai} sudah menandatangani dokumen ini.</p>
+                <p className="text-xs mt-0.5 text-amber-700">Jika Anda melanjutkan, maka tanda tangan, nama, dan tanggal sebelumnya akan digantikan dengan yang baru.</p>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select
               label="Sebagai"
@@ -166,6 +179,7 @@ const SPR = () => {
               <SignatureCanvas
                 ref={sigCanvas}
                 penColor="black"
+                backgroundColor="white"
                 canvasProps={{ width: 600, height: 200, className: 'sigCanvas w-full cursor-crosshair' }}
               />
             </div>
@@ -184,15 +198,17 @@ const SPR = () => {
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <button
               onClick={() => setIsTtdModalOpen(false)}
-              className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-50 transition-colors"
+              disabled={uploadSignatureMutation.isPending}
+              className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
               Batal
             </button>
             <button
               onClick={saveSignature}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-colors"
+              disabled={uploadSignatureMutation.isPending}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-colors disabled:opacity-50"
             >
-              Simpan Tanda Tangan
+              {uploadSignatureMutation.isPending ? "Menyimpan..." : "Simpan Tanda Tangan"}
             </button>
           </div>
         </div>

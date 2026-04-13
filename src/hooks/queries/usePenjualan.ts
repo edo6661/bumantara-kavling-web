@@ -61,3 +61,19 @@ export const useUploadBuktiPenjualan = () => {
     },
   });
 };
+
+export const useUploadSignature = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      noTransaksi: string;
+      signatureBase64: string;
+      nama: string;
+      peran: string;
+      tanggal: string;
+    }) => penjualanService.uploadSignature(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
+};

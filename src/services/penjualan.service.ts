@@ -57,6 +57,20 @@ export const penjualanService = {
         headers: { "Content-Type": "multipart/form-data" },
       },
     );
+
+    return response.data.data;
+  },
+  uploadSignature: async (data: {
+    noTransaksi: string;
+    signatureBase64: string;
+    nama: string;
+    peran: string;
+    tanggal: string;
+  }) => {
+    const response = await api.post(
+      `/penjualan/${data.noTransaksi}/signature`,
+      data,
+    );
     return response.data.data;
   },
 };
