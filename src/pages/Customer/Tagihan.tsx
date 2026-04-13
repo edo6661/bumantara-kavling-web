@@ -6,9 +6,10 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud, Edit2, Trash2 } from 'lucide-react';
+import { FileText, Printer, UploadCloud, Edit2, Trash2, Eye, ZoomIn } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
+
 import {
   useGetTagihans,
   useCreateTagihan,
@@ -19,10 +20,13 @@ import {
 import { useGetCustomers } from "../../hooks/queries/useCustomer";
 import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
 import type { TagihanData } from "../../services/tagihan.service";
+
 interface TagihanFormState {
   id: number | '';
   customerId: number | '';
+  customerLabel?: string;
   penjualanId: number | '';
+  kavlingLabel?: string;
   pembayaran: string;
   nominal: number | '';
   jatuhTempo: string;
@@ -30,10 +34,13 @@ interface TagihanFormState {
   fileBukti: string | File;
   reminderBerikutnya: string;
 }
+
 const initialFormState: TagihanFormState = {
   id: '',
   customerId: '',
+  customerLabel: '',
   penjualanId: '',
+  kavlingLabel: '',
   pembayaran: '',
   nominal: '',
   jatuhTempo: '',
@@ -41,41 +48,55 @@ const initialFormState: TagihanFormState = {
   fileBukti: '',
   reminderBerikutnya: '',
 };
+
 const Tagihan = () => {
   const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
   const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 100 });
+
   const createMutation = useCreateTagihan();
   const updateMutation = useUpdateTagihan();
   const deleteMutation = useDeleteTagihan();
   const uploadBuktiMutation = useUploadBuktiTagihan();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<TagihanFormState>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [isAutoFilled, setIsAutoFilled] = useState(false);
+
   const [printData, setPrintData] = useState<any>(null);
   const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
   const [printTitle, setPrintTitle] = useState('');
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedDetailRow, setSelectedDetailRow] = useState<any>(null);
+
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
     return dateString.split('T')[0];
   };
+
   const groupedData = useMemo(() => {
     const groups: Record<string, any> = {};
     tagihans.forEach((item) => {
-      // PERUBAHAN: Gunakan penjualanId sebagai key pemisah grup, bukan namaCustomer
       const groupKey = `${item.customerId}_${item.penjualanId}`;
 
       if (!groups[groupKey]) {
         groups[groupKey] = {
           id: groupKey,
-          customerId: item.customerId, // Simpan untuk auto-fill modal
-          penjualanId: item.penjualanId, // Simpan untuk auto-fill modal
+          customerId: item.customerId,
+          penjualanId: item.penjualanId, // Pastikan atribut ini tidak hilang
           namaCustomer: item.namaCustomer,
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
           reminderSelanjutnya: '',
+          unpaidCount: 0,
           cicilan: []
         };
+      }
+
+      if (item.status === 'BELUM_BAYAR') {
+        groups[groupKey].unpaidCount += 1;
       }
 
       if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
@@ -91,18 +112,96 @@ const Tagihan = () => {
     { header: 'Nama Customer', accessor: 'namaCustomer' },
     { header: 'Kavling', accessor: 'kavling' },
     {
+      header: 'Tagihan Belum Dibayar',
+      accessor: 'unpaidCount',
+      render: (val: number) => (
+        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase ${val > 0 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+          {val > 0 ? `${val} Tagihan Tertunda` : 'Lunas Semua'}
+        </span>
+      )
+    },
+    {
       header: 'Reminder Selanjutnya',
       accessor: 'reminderSelanjutnya',
       render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
     },
+    {
+      header: 'Aksi',
+      accessor: 'id',
+      render: (_: any, row: any) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedDetailRow(row);
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+          title="Lihat Detail Penjualan"
+        >
+          <Eye size={14} /> Detail Penjualan
+        </button>
+      )
+    },
   ];
-  const [isAutoFilled, setIsAutoFilled] = useState(false);
-  const openModal = (item?: TagihanData, parentGroup?: TagihanData) => {
+
+  const filteredPenjualanList = useMemo(() => {
+    if (!formData.customerId) return [];
+    return penjualanList.filter((p: any) => Number(p.customerId) === Number(formData.customerId));
+  }, [formData.customerId, penjualanList]);
+  const detailPenjualanData = useMemo(() => {
+    if (!selectedDetailRow) return null;
+
+    // 1. Cegah error jika API PenjualanList belum selesai di-fetch atau kosong
+    if (!penjualanList || penjualanList.length === 0) {
+      return {
+        tipe: 'Memuat...',
+        pembiayaan: 'Memuat...',
+        harga: 0,
+        lebihTanah: 0,
+        biayaStrategis: 0,
+        totalHargaJual: 0,
+        status: 'SEDANG SINKRONISASI DATA...'
+      };
+    }
+
+    // 2. Ambil ID Penjualan dari grup, jika gagal ambil dari item cicilan pertamanya
+    const targetPenjualanId = selectedDetailRow.penjualanId || selectedDetailRow.cicilan?.[0]?.penjualanId;
+
+    // 3. Eksekusi pencarian dengan konversi String agar tipe Int dan String pasti Match
+    const found = penjualanList.find((p: any) => String(p.id) === String(targetPenjualanId));
+
+    // 4. Jika KETEMU, petakan datanya. Pastikan fallback ke angka 0 jika detail pajak belum diisi
+    if (found) {
+      return {
+        ...found,
+        tipe: found.tipe || '-',
+        pembiayaan: found.pembiayaan?.replace('_', ' ') || '-',
+        status: found.status || 'TIDAK DIKETAHUI',
+        harga: Number(found.harga) || 0,
+        lebihTanah: Number(found.lebihTanah) || 0,
+        biayaStrategis: Number(found.biayaStrategis) || 0,
+        totalHargaJual: Number(found.totalHargaJual) || 0,
+      };
+    }
+
+    // 5. Jika TIDAK KETEMU sama sekali (Kemungkinan karena status transaksi Penjualan sudah dibatalkan)
+    return {
+      tipe: '-',
+      pembiayaan: '-',
+      harga: 0,
+      lebihTanah: 0,
+      biayaStrategis: 0,
+      totalHargaJual: 0,
+      status: 'DATA TERBATAS (PENJUALAN BATAL)'
+    };
+  }, [selectedDetailRow, penjualanList]);
+  const openModal = (item?: TagihanData, parentGroup?: any) => {
     if (item) {
       setFormData({
         id: item.id,
         customerId: item.customerId,
+        customerLabel: item.namaCustomer,
         penjualanId: item.penjualanId,
+        kavlingLabel: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
         pembayaran: item.pembayaran,
         nominal: item.nominal,
         jatuhTempo: formatDateForInput(item.jatuhTempo),
@@ -111,31 +210,31 @@ const Tagihan = () => {
         reminderBerikutnya: formatDateForInput(item.reminderBerikutnya),
       });
       setIsEditing(true);
-      setIsAutoFilled(false);
+      setIsAutoFilled(true);
     } else if (parentGroup) {
-      // Jika di-klik dari "+ Tambah Cicilan", auto-fill Customer & Kavling
       setFormData({
         ...initialFormState,
         customerId: parentGroup.customerId,
+        customerLabel: parentGroup.namaCustomer,
         penjualanId: parentGroup.penjualanId,
+        kavlingLabel: parentGroup.kavling,
       });
       setIsEditing(false);
       setIsAutoFilled(true);
     } else {
       setFormData(initialFormState);
       setIsEditing(false);
+      setIsAutoFilled(false);
     }
     setErrors({});
     setIsModalOpen(true);
   };
-  const filteredPenjualanList = useMemo(() => {
-    if (!formData.customerId) return [];
-    return penjualanList.filter((p: any) => p.customerId === formData.customerId);
-  }, [formData.customerId, penjualanList]);
+
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
@@ -148,6 +247,7 @@ const Tagihan = () => {
       });
     }
   };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -158,6 +258,7 @@ const Tagihan = () => {
       }));
     }
   };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.customerId) newErrors.customerId = 'Customer wajib dipilih';
@@ -168,6 +269,7 @@ const Tagihan = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -180,7 +282,7 @@ const Tagihan = () => {
             pembayaran: formData.pembayaran,
             nominal: Number(formData.nominal),
             jatuhTempo: formData.jatuhTempo,
-            status: formData.status,
+            status: formData.status as any,
             reminderBerikutnya: formData.reminderBerikutnya || undefined,
           }
         });
@@ -204,7 +306,6 @@ const Tagihan = () => {
       closeModal();
     } catch (error: any) {
       const responseData = error.response?.data;
-
       if (responseData?.error && Array.isArray(responseData.error)) {
         const backendErrors: Record<string, string> = {};
         responseData.error.forEach((err: { field: string; message: string }) => {
@@ -216,6 +317,7 @@ const Tagihan = () => {
       }
     }
   };
+
   const handleDelete = async (item: TagihanData) => {
     if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
       try {
@@ -225,6 +327,7 @@ const Tagihan = () => {
       }
     }
   };
+
   const expandedRowRender = (row: any) => {
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
@@ -234,14 +337,14 @@ const Tagihan = () => {
           </h4>
           <button
             onClick={() => openModal(undefined, row)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer shadow-sm"
           >
             + Tambah Cicilan
           </button>
         </div>
         <div className="space-y-3">
           {row.cicilan
-            .sort((a: TagihanData, b: TagihanData) => a.jatuhTempo.localeCompare(b.jatuhTempo))
+            .sort((a: TagihanData, b: TagihanData) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime())
             .map((c: TagihanData) => (
               <div key={c.id} className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4 transition hover:border-blue-200">
                 <div className="flex-1">
@@ -252,19 +355,39 @@ const Tagihan = () => {
                       {c.status.replace('_', ' ')}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-slate-600 font-medium mt-2">
-                    <p>Jatuh Tempo: <span className="text-slate-900 font-bold">{formatDate(c.jatuhTempo)}</span></p>
-                    <p>Nominal: <span className="text-slate-900 font-bold">{formatRupiah(c.nominal)}</span></p>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600 font-medium mt-2 items-end">
+                    <div>
+                      <p className="text-slate-400 mb-0.5">Jatuh Tempo</p>
+                      <p className="text-slate-900 font-bold">{formatDate(c.jatuhTempo.toString())}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 mb-0.5">Nominal Tagihan</p>
+                      <p className="text-slate-900 font-bold text-sm">{formatRupiah(c.nominal)}</p>
+                    </div>
+
                     {c.fileBukti && (
-                      <p>Bukti: <a href={c.fileBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Lihat File</a></p>
+                      <div>
+                        <p className="text-slate-400 mb-1">Bukti Transfer</p>
+                        <div
+                          onClick={() => setPreviewImage(c.fileBukti as string)}
+                          className="relative w-14 h-9 rounded-md border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
+                          title="Klik untuk perbesar"
+                        >
+                          <img src={c.fileBukti as string} alt="Bukti" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <ZoomIn size={12} className="text-white" />
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
+
                 <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer" title="Edit Cicilan">
+                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer border border-transparent hover:border-blue-100" title="Edit Cicilan">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer" title="Hapus Cicilan">
+                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer border border-transparent hover:border-red-100" title="Hapus Cicilan">
                     <Trash2 size={16} />
                   </button>
                   <div className="w-px h-6 bg-slate-200 mx-1"></div>
@@ -289,6 +412,7 @@ const Tagihan = () => {
       </div>
     );
   };
+
   const handlePrintPDF = async () => {
     const element = document.getElementById('print-area');
     if (!element) return;
@@ -309,7 +433,37 @@ const Tagihan = () => {
       alert('Terjadi kesalahan saat memproses PDF.');
     }
   };
+
+
+  const customerOptions = [
+    { value: '', label: '-- Pilih Customer --' },
+    ...customers.map(c => ({ value: Number(c.id), label: `${c.nama} (NIK: ${c.nikKtp})` }))
+  ];
+
+  if (formData.customerId && !customerOptions.some(opt => opt.value === Number(formData.customerId))) {
+    customerOptions.push({
+      value: Number(formData.customerId),
+      label: formData.customerLabel || `Customer Terpilih`
+    });
+  }
+
+  const kavlingOptions = [
+    { value: '', label: '-- Pilih Kavling Terkait --' },
+    ...filteredPenjualanList.map((p: any) => ({
+      value: Number(p.id),
+      label: `${p.perumahan} - Blok ${p.blok}-${p.unit} (Rp ${(p.totalHargaJual / 1000000).toFixed(0)} Jt)`
+    }))
+  ];
+
+  if (formData.penjualanId && !kavlingOptions.some(opt => opt.value === Number(formData.penjualanId))) {
+    kavlingOptions.push({
+      value: Number(formData.penjualanId),
+      label: formData.kavlingLabel || `Kavling Terpilih`
+    });
+  }
+
   if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
@@ -319,6 +473,8 @@ const Tagihan = () => {
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
       />
+
+      {/* MODAL KELOLA TAGIHAN */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Tagihan / Upload Bukti" : "Buat Tagihan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
@@ -331,30 +487,21 @@ const Tagihan = () => {
             <Select
               label="Pilih Customer"
               name="customerId"
-              value={formData.customerId}
+              value={formData.customerId === '' ? '' : Number(formData.customerId)}
               onChange={handleChange}
               error={errors.customerId}
               disabled={isEditing || isAutoFilled}
-              options={[
-                { value: '', label: '-- Pilih Customer --' },
-                ...customers.map(c => ({ value: c.id, label: `${c.nama} (NIK: ${c.nikKtp})` }))
-              ]}
+              options={customerOptions}
             />
             {formData.customerId && (
               <Select
                 label="Pilih Kavling / Penjualan"
                 name="penjualanId"
-                value={formData.penjualanId}
+                value={formData.penjualanId === '' ? '' : Number(formData.penjualanId)}
                 onChange={handleChange}
                 error={errors.penjualanId}
                 disabled={isEditing || isAutoFilled}
-                options={[
-                  { value: '', label: '-- Pilih Kavling Terkait --' },
-                  ...filteredPenjualanList.map((p: any) => ({
-                    value: p.id,
-                    label: `${p.perumahan} - Blok ${p.blok}-${p.unit} (Rp ${(p.totalHargaJual / 1000000).toFixed(0)} Jt)`
-                  }))
-                ]}
+                options={kavlingOptions}
               />
             )}
           </div>
@@ -409,6 +556,7 @@ const Tagihan = () => {
           </div>
         </form>
       </Modal>
+
       {/* MODAL PRINT PDF */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
@@ -448,13 +596,123 @@ const Tagihan = () => {
           </div>
         )}
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 cursor-pointer">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center gap-2 cursor-pointer">
+          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
+          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg flex items-center gap-2">
             <Printer size={16} /> Download PDF
           </button>
         </div>
       </Modal>
+
+      {/* MODAL LIGHTBOX PREVIEW GAMBAR BUKTI */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Bukti Transfer">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              <img
+                src={previewImage}
+                alt="Preview Bukti Transfer"
+                className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain"
+              />
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a
+              href={previewImage || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+            >
+              Buka Tab Baru
+            </a>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-md"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL DETAIL PENJUALAN */}
+      <Modal isOpen={!!selectedDetailRow} onClose={() => setSelectedDetailRow(null)} title="Informasi Penjualan Kavling">
+        {selectedDetailRow && (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer</p>
+                  <p className="text-lg font-black text-slate-900">{selectedDetailRow.namaCustomer}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${detailPenjualanData?.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
+                    detailPenjualanData?.status === 'BOOKED' ? 'bg-blue-100 text-blue-800' :
+                      detailPenjualanData?.status === 'PROSES' ? 'bg-yellow-100 text-yellow-800' :
+                        detailPenjualanData?.status === 'TERJUAL' || detailPenjualanData?.status === 'LUNAS' ? 'bg-emerald-100 text-emerald-800' :
+                          'bg-slate-200 text-slate-700'
+                    }`}>
+                    {detailPenjualanData?.status || 'DATA TERBATAS'}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Kavling</p>
+                  <p className="text-sm font-semibold text-slate-800">{selectedDetailRow.kavling}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Tipe Unit</p>
+                  <p className="text-sm font-semibold text-slate-800">{detailPenjualanData?.tipe || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
+                  <p className="text-sm font-semibold text-slate-800">{detailPenjualanData?.pembiayaan?.replace('_', ' ') || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Harga Kavling Dasar</p>
+                  <p className="text-sm font-bold text-blue-700">{detailPenjualanData ? formatRupiah(detailPenjualanData.harga) : '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {detailPenjualanData && (
+              <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
+                <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3 border-b border-indigo-100 pb-2">Rincian Finansial Transaksi</h4>
+                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600 font-medium">Nilai Jual Dasar:</span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.harga || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600 font-medium">Lebih Tanah:</span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.lebihTanah || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600 font-medium">Biaya Strategis:</span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.biayaStrategis || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center col-span-2 mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <span className="text-sm font-bold text-slate-700">Total Harga Keseluruhan:</span>
+                    <span className="text-lg font-black text-slate-900">{formatRupiah(detailPenjualanData.totalHargaJual || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedDetailRow(null)}
+                className="px-6 py-2 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 };
+
 export default Tagihan;

@@ -3,10 +3,11 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
-import { formatRupiah } from "../../utils/formatters";
+import { formatRupiah, formatDate } from "../../utils/formatters";
 import PageLoader from "../PageLoader";
 import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
+import { useGetTagihans } from '../../hooks/queries/useTagihan';
 
 interface KavlingData {
   id: string;
@@ -85,6 +86,7 @@ const initialFormState: KavlingData = {
 const CustomerKavling = () => {
 
   const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 100 });
+  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
   const { data: notarisList = [] } = useGetNotaris();
   const updateMutation = useUpdateCustomerKavling();
 
@@ -124,7 +126,6 @@ const CustomerKavling = () => {
   const openModal = (item: any) => {
     setFormData({
       ...item,
-
       tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
       tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
       tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
@@ -172,7 +173,6 @@ const CustomerKavling = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -180,7 +180,6 @@ const CustomerKavling = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
 
     const getNum = (val: string | number | undefined) => (val === '' || val === undefined) ? undefined : Number(val);
     const getStr = (val: string | undefined) => val === '' ? undefined : val;
@@ -273,7 +272,54 @@ const CustomerKavling = () => {
     { id: 'notaris', label: 'Notaris' },
   ];
 
-  if (isLoading) return <PageLoader />;
+  const expandedRowRender = (row: KavlingData) => {
+    const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
+    const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
+
+    return (
+      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="text-sm font-bold text-slate-800">Riwayat Tagihan & Pembayaran</h4>
+          <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
+            Total Terbayar: {formatRupiah(totalTerbayar)}
+          </span>
+        </div>
+
+        {history.length > 0 ? (
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
+                  <th className="p-3 font-bold">Keterangan</th>
+                  <th className="p-3 font-bold">Jatuh Tempo</th>
+                  <th className="p-3 font-bold text-right">Nominal Tagihan</th>
+                  <th className="p-3 font-bold text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {history.sort((a: any, b: any) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime()).map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
+                    <td className="p-3 font-semibold text-slate-800">{item.pembayaran}</td>
+                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.jatuhTempo)}</td>
+                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.nominal)}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
+                        {item.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">Belum ada riwayat tagihan atau pembayaran.</p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading || isLoadingTagihan) return <PageLoader />;
 
   return (
     <div className="space-y-6">
@@ -282,6 +328,7 @@ const CustomerKavling = () => {
         columns={columns}
         data={apiData}
         onEdit={(item) => openModal(item)}
+        expandedRowRender={expandedRowRender}
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Data Kavling">
@@ -383,7 +430,7 @@ const CustomerKavling = () => {
               <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn === 0 ? '' : formData.pjPpn} onChange={handleChange} />
               <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak === 0 ? '' : formData.pjBphtbPajak} onChange={handleChange} />
               <Input label="PPh" type="number" name="pjPph" value={formData.pjPph === 0 ? '' : formData.pjPph} onChange={handleChange} />
-              <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
+              <div className="md:col-span-2 mt-2 p-4 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
                 <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
                 <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
               </div>

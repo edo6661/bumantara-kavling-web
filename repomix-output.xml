@@ -1,5 +1,4 @@
 kode frontend:
-
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -3103,7 +3102,6 @@ import {
   type CreateTagihanDTO,
   type UpdateTagihanDTO,
 } from "../../services/tagihan.service";
-import { PENJUALAN_KEYS } from "./usePenjualan";
 
 export const TAGIHAN_KEYS = {
   all: ["tagihans"] as const,
@@ -3135,6 +3133,8 @@ export const useCreateTagihan = () => {
     mutationFn: (data: CreateTagihanDTO) => tagihanService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
     },
   });
 };
@@ -3146,6 +3146,8 @@ export const useUpdateTagihan = () => {
       tagihanService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
     },
   });
 };
@@ -3156,6 +3158,8 @@ export const useDeleteTagihan = () => {
     mutationFn: (id: number) => tagihanService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
     },
   });
 };
@@ -3167,7 +3171,8 @@ export const useUploadBuktiTagihan = () => {
       tagihanService.uploadBukti(id, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
     },
   });
 };
@@ -3434,6 +3439,9 @@ export const useCreatePenjualan = () => {
     mutationFn: (data: CreatePenjualanDTO) => penjualanService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
     },
   });
 };
@@ -3446,9 +3454,12 @@ export const useCancelPenjualan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] }); // Tambahkan ini agar Tagihan yang batal ikut hilang
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
     },
   });
 };
+
 export const useUploadBuktiPenjualan = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -3464,6 +3475,7 @@ export const useUploadBuktiPenjualan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
     },
   });
 };
@@ -3568,455 +3580,6 @@ const Login = () => {
 };
 
 export default Login;
-</file>
-
-<file path="src/pages/Marketing/FeeAgent.tsx">
-import React, { useState, useMemo } from "react";
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import FileInput from "../../components/shared/FileInput";
-import PageLoader from "../PageLoader";
-import { formatRupiah } from "../../utils/formatters";
-import { Edit2 } from "lucide-react";
-import {
-  useGetFeeAgents,
-  useUpdateFeeAgent,
-  useUploadBuktiFee,
-} from "../../hooks/queries/useFeeAgent";
-import type { FeeAgentData } from "../../services/feeAgent.service";
-
-interface FeeFormState {
-  id: number | "";
-  bookingNominal: number | "";
-  bookingTanggal: string;
-  bookingBukti: string | File;
-  closingNominal: number | "";
-  closingTanggal: string;
-  closingBukti: string | File;
-  marketingNominal: number | "";
-  marketingTanggal: string;
-  marketingBukti: string | File;
-}
-
-const initialFormState: FeeFormState = {
-  id: "",
-  bookingNominal: "",
-  bookingTanggal: "",
-  bookingBukti: "",
-  closingNominal: "",
-  closingTanggal: "",
-  closingBukti: "",
-  marketingNominal: "",
-  marketingTanggal: "",
-  marketingBukti: "",
-};
-
-
-interface GroupedAgentFee {
-  agentId: number;
-  namaAgent: string;
-  totalPenjualan: number;
-  totalBookingFee: number;
-  totalClosingFee: number;
-  totalMarketingFee: number;
-  rincianPenjualan: FeeAgentData[];
-}
-
-const FeeAgent = () => {
-  const { data: feeData = [], isLoading } = useGetFeeAgents();
-  const updateMutation = useUpdateFeeAgent();
-  const uploadMutation = useUploadBuktiFee();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<FeeFormState>(initialFormState);
-  const [selectedAgent, setSelectedAgent] = useState<string>("");
-  const [selectedKavling, setSelectedKavling] = useState<string>("");
-
-  const formatDateForInput = (dateString?: string | null) => {
-    if (!dateString) return "";
-    return dateString.split("T")[0];
-  };
-
-
-  const groupedData = useMemo(() => {
-    const groups: Record<number, GroupedAgentFee> = {};
-
-    feeData.forEach((item) => {
-      if (!groups[item.agentId]) {
-        groups[item.agentId] = {
-          agentId: item.agentId,
-          namaAgent: item.namaAgent,
-          totalPenjualan: 0,
-          totalBookingFee: 0,
-          totalClosingFee: 0,
-          totalMarketingFee: 0,
-          rincianPenjualan: [],
-        };
-      }
-
-      groups[item.agentId].totalPenjualan += 1;
-      groups[item.agentId].totalBookingFee += item.bookingNominal || 0;
-      groups[item.agentId].totalClosingFee += item.closingNominal || 0;
-      groups[item.agentId].totalMarketingFee += item.marketingNominal || 0;
-      groups[item.agentId].rincianPenjualan.push(item);
-    });
-
-    return Object.values(groups);
-  }, [feeData]);
-
-
-  const columns = [
-    { header: "Nama Agent", accessor: "namaAgent" },
-    {
-      header: "Total Penjualan",
-      accessor: "totalPenjualan",
-      render: (val: number) => (
-        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold">
-          {val} Unit
-        </span>
-      )
-    },
-    {
-      header: "Total Booking Fee",
-      accessor: "totalBookingFee",
-      render: (val: number) => formatRupiah(val),
-    },
-    {
-      header: "Total Closing Fee",
-      accessor: "totalClosingFee",
-      render: (val: number) => formatRupiah(val),
-    },
-    {
-      header: "Total Marketing Fee",
-      accessor: "totalMarketingFee",
-      render: (val: number) => formatRupiah(val),
-    },
-  ];
-
-  const openModal = (item: FeeAgentData) => {
-    setFormData({
-      id: item.id,
-      bookingNominal: item.bookingNominal || "",
-      bookingTanggal: formatDateForInput(item.bookingTanggal),
-      bookingBukti: item.bookingBukti || "",
-      closingNominal: item.closingNominal || "",
-      closingTanggal: formatDateForInput(item.closingTanggal),
-      closingBukti: item.closingBukti || "",
-      marketingNominal: item.marketingNominal || "",
-      marketingTanggal: formatDateForInput(item.marketingTanggal),
-      marketingBukti: item.marketingBukti || "",
-    });
-    setSelectedAgent(item.namaAgent);
-    setSelectedKavling(item.kavling);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue =
-      type === "number" ? (value === "" ? "" : Number(value)) : value;
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-  };
-
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    fieldName: string
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-
-      await updateMutation.mutateAsync({
-        id: Number(formData.id),
-        data: {
-          bookingNominal: Number(formData.bookingNominal) || undefined,
-          bookingTanggal: formData.bookingTanggal || undefined,
-          closingNominal: Number(formData.closingNominal) || undefined,
-          closingTanggal: formData.closingTanggal || undefined,
-          marketingNominal: Number(formData.marketingNominal) || undefined,
-          marketingTanggal: formData.marketingTanggal || undefined,
-        },
-      });
-
-
-      const uploadPromises = [];
-
-      if (formData.bookingBukti instanceof File) {
-        uploadPromises.push(
-          uploadMutation.mutateAsync({
-            id: Number(formData.id),
-            type: "bookingBukti",
-            file: formData.bookingBukti,
-          })
-        );
-      }
-
-      if (formData.closingBukti instanceof File) {
-        uploadPromises.push(
-          uploadMutation.mutateAsync({
-            id: Number(formData.id),
-            type: "closingBukti",
-            file: formData.closingBukti,
-          })
-        );
-      }
-
-      if (formData.marketingBukti instanceof File) {
-        uploadPromises.push(
-          uploadMutation.mutateAsync({
-            id: Number(formData.id),
-            type: "marketingBukti",
-            file: formData.marketingBukti,
-          })
-        );
-      }
-
-      if (uploadPromises.length > 0) {
-        await Promise.all(uploadPromises);
-      }
-
-      closeModal();
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal menyimpan data fee");
-    }
-  };
-
-
-  const expandedRowRender = (row: GroupedAgentFee) => {
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
-        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
-          Rincian Penjualan Agent: <span className="text-blue-600">{row.namaAgent}</span>
-        </h4>
-        {row.rincianPenjualan.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">Customer</th>
-                  <th className="px-4 py-3 font-bold">Kavling</th>
-                  <th className="px-4 py-3 font-bold">No. Transaksi</th>
-                  <th className="px-4 py-3 text-right font-bold">Booking Fee</th>
-                  <th className="px-4 py-3 text-right font-bold">Closing Fee</th>
-                  <th className="px-4 py-3 text-right font-bold">Marketing Fee</th>
-                  <th className="px-4 py-3 rounded-r-lg font-bold text-center w-24">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {row.rincianPenjualan.map((feeData) => (
-                  <tr key={feeData.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-slate-900">{feeData.namaCustomer}</td>
-                    <td className="px-4 py-3 text-slate-600">{feeData.kavling}</td>
-                    <td className="px-4 py-3 font-medium text-slate-500">{feeData.noTransaksi}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
-                      {feeData.bookingNominal ? formatRupiah(feeData.bookingNominal) : '-'}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
-                      {feeData.closingNominal ? formatRupiah(feeData.closingNominal) : '-'}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
-                      {feeData.marketingNominal ? formatRupiah(feeData.marketingNominal) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => openModal(feeData)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition cursor-pointer mx-auto"
-                      >
-                        <Edit2 size={14} /> Kelola
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Belum ada penjualan untuk agent ini.
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  if (isLoading) return <PageLoader />;
-
-  return (
-    <div className="space-y-6">
-      <DataTable
-        title="Data Rekap Fee Agent"
-        columns={columns}
-        data={groupedData}
-        expandedRowRender={expandedRowRender}
-
-      />
-
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title="Kelola Pencairan Fee Agent"
-      >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col md:flex-row justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold text-blue-800 uppercase tracking-widest">
-                Agent Marketing
-              </p>
-              <p className="text-lg font-black text-blue-900">
-                {selectedAgent}
-              </p>
-            </div>
-            <div className="md:text-right">
-              <p className="text-xs font-bold text-blue-800 uppercase tracking-widest">
-                Kavling Terjual
-              </p>
-              <p className="text-sm font-bold text-blue-900">
-                {selectedKavling}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">
-              1. Booking Fee
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label="Nominal (Rp)"
-                name="bookingNominal"
-                type="number"
-                value={formData.bookingNominal}
-                onChange={handleChange}
-                placeholder="Contoh: 1000000"
-              />
-              <Input
-                label="Tanggal Transfer"
-                name="bookingTanggal"
-                type="date"
-                value={formData.bookingTanggal}
-                onChange={handleChange}
-              />
-              <FileInput
-                label="Bukti Transfer"
-                accept="image/*,.pdf"
-                onChange={(e) => handleFileChange(e, "bookingBukti")}
-              />
-            </div>
-            {formData.bookingBukti &&
-              typeof formData.bookingBukti === "string" && (
-                <p className="text-xs text-green-600 mt-1">
-                  File saat ini sudah diupload. <a href={formData.bookingBukti} target="_blank" rel="noreferrer" className="underline font-bold">Lihat File</a>
-                </p>
-              )}
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">
-              2. Closing Fee
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label="Nominal (Rp)"
-                name="closingNominal"
-                type="number"
-                value={formData.closingNominal}
-                onChange={handleChange}
-                placeholder="Contoh: 2500000"
-              />
-              <Input
-                label="Tanggal Transfer"
-                name="closingTanggal"
-                type="date"
-                value={formData.closingTanggal}
-                onChange={handleChange}
-              />
-              <FileInput
-                label="Bukti Transfer"
-                accept="image/*,.pdf"
-                onChange={(e) => handleFileChange(e, "closingBukti")}
-              />
-            </div>
-            {formData.closingBukti &&
-              typeof formData.closingBukti === "string" && (
-                <p className="text-xs text-green-600 mt-1">
-                  File saat ini sudah diupload. <a href={formData.closingBukti} target="_blank" rel="noreferrer" className="underline font-bold">Lihat File</a>
-                </p>
-              )}
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">
-              3. Marketing Fee
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label="Nominal (Rp)"
-                name="marketingNominal"
-                type="number"
-                value={formData.marketingNominal}
-                onChange={handleChange}
-                placeholder="Contoh: 5000000"
-              />
-              <Input
-                label="Tanggal Transfer"
-                name="marketingTanggal"
-                type="date"
-                value={formData.marketingTanggal}
-                onChange={handleChange}
-              />
-              <FileInput
-                label="Bukti Transfer"
-                accept="image/*,.pdf"
-                onChange={(e) => handleFileChange(e, "marketingBukti")}
-              />
-            </div>
-            {formData.marketingBukti &&
-              typeof formData.marketingBukti === "string" && (
-                <p className="text-xs text-green-600 mt-1">
-                  File saat ini sudah diupload. <a href={formData.marketingBukti} target="_blank" rel="noreferrer" className="underline font-bold">Lihat File</a>
-                </p>
-              )}
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={updateMutation.isPending || uploadMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending || uploadMutation.isPending}
-              className="px-6 py-2 text-sm font-medium text-white bg-black rounded-xl hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors"
-            >
-              {updateMutation.isPending || uploadMutation.isPending
-                ? "Menyimpan..."
-                : "Simpan Data Fee"}
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default FeeAgent;
 </file>
 
 <file path="src/providers/AuthProvider.tsx">
@@ -4656,6 +4219,491 @@ const Bank = () => {
 };
 
 export default Bank;
+</file>
+
+<file path="src/pages/Marketing/FeeAgent.tsx">
+import React, { useState, useMemo } from "react";
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import FileInput from "../../components/shared/FileInput";
+import PageLoader from "../PageLoader";
+import { formatRupiah } from "../../utils/formatters";
+import { Edit2 } from "lucide-react";
+import {
+  useGetFeeAgents,
+  useUpdateFeeAgent,
+  useUploadBuktiFee,
+} from "../../hooks/queries/useFeeAgent";
+import type { FeeAgentData } from "../../services/feeAgent.service";
+
+interface FeeFormState {
+  id: number | "";
+  bookingNominal: number | "";
+  bookingTanggal: string;
+  bookingBukti: string | File;
+  closingNominal: number | "";
+  closingTanggal: string;
+  closingBukti: string | File;
+  marketingNominal: number | "";
+  marketingTanggal: string;
+  marketingBukti: string | File;
+}
+
+const initialFormState: FeeFormState = {
+  id: "",
+  bookingNominal: "",
+  bookingTanggal: "",
+  bookingBukti: "",
+  closingNominal: "",
+  closingTanggal: "",
+  closingBukti: "",
+  marketingNominal: "",
+  marketingTanggal: "",
+  marketingBukti: "",
+};
+
+
+interface GroupedAgentFee {
+  agentId: number;
+  namaAgent: string;
+  totalPenjualan: number;
+  totalBookingFee: number;
+  totalClosingFee: number;
+  totalMarketingFee: number;
+  rincianPenjualan: FeeAgentData[];
+}
+
+const FeeAgent = () => {
+  const { data: feeData = [], isLoading } = useGetFeeAgents();
+  const updateMutation = useUpdateFeeAgent();
+  const uploadMutation = useUploadBuktiFee();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<FeeFormState>(initialFormState);
+  const [selectedAgent, setSelectedAgent] = useState<string>("");
+  const [selectedKavling, setSelectedKavling] = useState<string>("");
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const formatDateForInput = (dateString?: string | null) => {
+    if (!dateString) return "";
+    return dateString.split("T")[0];
+  };
+
+
+  const groupedData = useMemo(() => {
+    const groups: Record<number, GroupedAgentFee> = {};
+
+    feeData.forEach((item) => {
+      if (!groups[item.agentId]) {
+        groups[item.agentId] = {
+          agentId: item.agentId,
+          namaAgent: item.namaAgent,
+          totalPenjualan: 0,
+          totalBookingFee: 0,
+          totalClosingFee: 0,
+          totalMarketingFee: 0,
+          rincianPenjualan: [],
+        };
+      }
+
+      groups[item.agentId].totalPenjualan += 1;
+      groups[item.agentId].totalBookingFee += item.bookingNominal || 0;
+      groups[item.agentId].totalClosingFee += item.closingNominal || 0;
+      groups[item.agentId].totalMarketingFee += item.marketingNominal || 0;
+      groups[item.agentId].rincianPenjualan.push(item);
+    });
+
+    return Object.values(groups);
+  }, [feeData]);
+
+
+  const columns = [
+    { header: "Nama Agent", accessor: "namaAgent" },
+    {
+      header: "Total Penjualan",
+      accessor: "totalPenjualan",
+      render: (val: number) => (
+        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold">
+          {val} Unit
+        </span>
+      )
+    },
+    {
+      header: "Total Booking Fee",
+      accessor: "totalBookingFee",
+      render: (val: number) => formatRupiah(val),
+    },
+    {
+      header: "Total Closing Fee",
+      accessor: "totalClosingFee",
+      render: (val: number) => formatRupiah(val),
+    },
+    {
+      header: "Total Marketing Fee",
+      accessor: "totalMarketingFee",
+      render: (val: number) => formatRupiah(val),
+    },
+  ];
+
+  const openModal = (item: FeeAgentData) => {
+    setFormData({
+      id: item.id,
+      bookingNominal: item.bookingNominal || "",
+      bookingTanggal: formatDateForInput(item.bookingTanggal),
+      bookingBukti: item.bookingBukti || "",
+      closingNominal: item.closingNominal || "",
+      closingTanggal: formatDateForInput(item.closingTanggal),
+      closingBukti: item.closingBukti || "",
+      marketingNominal: item.marketingNominal || "",
+      marketingTanggal: formatDateForInput(item.marketingTanggal),
+      marketingBukti: item.marketingBukti || "",
+    });
+    setSelectedAgent(item.namaAgent);
+    setSelectedKavling(item.kavling);
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+    setErrors({});
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue =
+      type === "number" ? (value === "" ? "" : Number(value)) : value;
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: string
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file }));
+      if (errors[fieldName]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[fieldName];
+          return newErrors;
+        });
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+
+      await updateMutation.mutateAsync({
+        id: Number(formData.id),
+        data: {
+          bookingNominal: Number(formData.bookingNominal) || undefined,
+          bookingTanggal: formData.bookingTanggal || undefined,
+          closingNominal: Number(formData.closingNominal) || undefined,
+          closingTanggal: formData.closingTanggal || undefined,
+          marketingNominal: Number(formData.marketingNominal) || undefined,
+          marketingTanggal: formData.marketingTanggal || undefined,
+        },
+      });
+
+
+      const uploadPromises = [];
+
+      if (formData.bookingBukti instanceof File) {
+        uploadPromises.push(
+          uploadMutation.mutateAsync({
+            id: Number(formData.id),
+            type: "bookingBukti",
+            file: formData.bookingBukti,
+          })
+        );
+      }
+
+      if (formData.closingBukti instanceof File) {
+        uploadPromises.push(
+          uploadMutation.mutateAsync({
+            id: Number(formData.id),
+            type: "closingBukti",
+            file: formData.closingBukti,
+          })
+        );
+      }
+
+      if (formData.marketingBukti instanceof File) {
+        uploadPromises.push(
+          uploadMutation.mutateAsync({
+            id: Number(formData.id),
+            type: "marketingBukti",
+            file: formData.marketingBukti,
+          })
+        );
+      }
+
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
+      }
+
+      closeModal();
+    } catch (error: any) {
+      const responseData = error.response?.data;
+
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
+    }
+  };
+
+
+  const expandedRowRender = (row: GroupedAgentFee) => {
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
+          Rincian Penjualan Agent: <span className="text-blue-600">{row.namaAgent}</span>
+        </h4>
+        {row.rincianPenjualan.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-lg font-bold">Customer</th>
+                  <th className="px-4 py-3 font-bold">Kavling</th>
+                  <th className="px-4 py-3 font-bold">No. Transaksi</th>
+                  <th className="px-4 py-3 text-right font-bold">Booking Fee</th>
+                  <th className="px-4 py-3 text-right font-bold">Closing Fee</th>
+                  <th className="px-4 py-3 text-right font-bold">Marketing Fee</th>
+                  <th className="px-4 py-3 rounded-r-lg font-bold text-center w-24">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {row.rincianPenjualan.map((feeData) => (
+                  <tr key={feeData.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 font-bold text-slate-900">{feeData.namaCustomer}</td>
+                    <td className="px-4 py-3 text-slate-600">{feeData.kavling}</td>
+                    <td className="px-4 py-3 font-medium text-slate-500">{feeData.noTransaksi}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
+                      {feeData.bookingNominal ? formatRupiah(feeData.bookingNominal) : '-'}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
+                      {feeData.closingNominal ? formatRupiah(feeData.closingNominal) : '-'}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
+                      {feeData.marketingNominal ? formatRupiah(feeData.marketingNominal) : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => openModal(feeData)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition cursor-pointer mx-auto"
+                      >
+                        <Edit2 size={14} /> Kelola
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+            Belum ada penjualan untuk agent ini.
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Data Rekap Fee Agent"
+        columns={columns}
+        data={groupedData}
+        expandedRowRender={expandedRowRender}
+
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title="Kelola Pencairan Fee Agent"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col md:flex-row justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold text-blue-800 uppercase tracking-widest">
+                Agent Marketing
+              </p>
+              <p className="text-lg font-black text-blue-900">
+                {selectedAgent}
+              </p>
+            </div>
+            <div className="md:text-right">
+              <p className="text-xs font-bold text-blue-800 uppercase tracking-widest">
+                Kavling Terjual
+              </p>
+              <p className="text-sm font-bold text-blue-900">
+                {selectedKavling}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">
+              1. Booking Fee
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                label="Nominal (Rp)"
+                name="bookingNominal"
+                type="number"
+                value={formData.bookingNominal}
+                onChange={handleChange}
+                error={errors.bookingNominal}
+                placeholder="Contoh: 1000000"
+              />
+              <Input
+                label="Tanggal Transfer"
+                name="bookingTanggal"
+                type="date"
+                value={formData.bookingTanggal}
+                error={errors.bookingTanggal}
+                onChange={handleChange}
+              />
+              <FileInput
+                label="Bukti Transfer"
+                accept="image/*,.pdf"
+                onChange={(e) => handleFileChange(e, "bookingBukti")}
+                error={errors.bookingBukti}
+              />
+            </div>
+            {formData.bookingBukti &&
+              typeof formData.bookingBukti === "string" && (
+                <p className="text-xs text-green-600 mt-1">
+                  File saat ini sudah diupload. <a href={formData.bookingBukti} target="_blank" rel="noreferrer" className="underline font-bold">Lihat File</a>
+                </p>
+              )}
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">
+              2. Closing Fee
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                label="Nominal (Rp)"
+                name="closingNominal"
+                type="number"
+                value={formData.closingNominal}
+                error={errors.closingNominal}
+                onChange={handleChange}
+                placeholder="Contoh: 2500000"
+              />
+              <Input
+                label="Tanggal Transfer"
+                name="closingTanggal"
+                type="date"
+                value={formData.closingTanggal}
+                onChange={handleChange}
+                error={errors.closingBukti}
+              />
+              <FileInput
+                label="Bukti Transfer"
+                accept="image/*,.pdf"
+                onChange={(e) => handleFileChange(e, "closingBukti")}
+              />
+            </div>
+            {formData.closingBukti &&
+              typeof formData.closingBukti === "string" && (
+                <p className="text-xs text-green-600 mt-1">
+                  File saat ini sudah diupload. <a href={formData.closingBukti} target="_blank" rel="noreferrer" className="underline font-bold">Lihat File</a>
+                </p>
+              )}
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">
+              3. Marketing Fee
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                label="Nominal (Rp)"
+                name="marketingNominal"
+                type="number"
+                value={formData.marketingNominal}
+                onChange={handleChange}
+                error={errors.marketingNominal}
+                placeholder="Contoh: 5000000"
+              />
+              <Input
+                label="Tanggal Transfer"
+                name="marketingTanggal"
+                type="date"
+                value={formData.marketingTanggal}
+                onChange={handleChange}
+                error={errors.marketingTanggal}
+              />
+              <FileInput
+                label="Bukti Transfer"
+                accept="image/*,.pdf"
+                onChange={(e) => handleFileChange(e, "marketingBukti")}
+                error={errors.marketingBukti}
+              />
+            </div>
+            {formData.marketingBukti &&
+              typeof formData.marketingBukti === "string" && (
+                <p className="text-xs text-green-600 mt-1">
+                  File saat ini sudah diupload. <a href={formData.marketingBukti} target="_blank" rel="noreferrer" className="underline font-bold">Lihat File</a>
+                </p>
+              )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={updateMutation.isPending || uploadMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={updateMutation.isPending || uploadMutation.isPending}
+              className="px-6 py-2 text-sm font-medium text-white bg-black rounded-xl hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors"
+            >
+              {updateMutation.isPending || uploadMutation.isPending
+                ? "Menyimpan..."
+                : "Simpan Data Fee"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default FeeAgent;
 </file>
 
 <file path="src/pages/Proyek/Progress.tsx">
@@ -7176,459 +7224,6 @@ const Agents = () => {
 export default Agents;
 </file>
 
-<file path="src/pages/Customer/Kavling.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import { formatRupiah } from "../../utils/formatters";
-import PageLoader from "../PageLoader";
-import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
-import { useGetNotaris } from '../../hooks/queries/useNotaris';
-
-interface KavlingData {
-  id: string;
-  perumahan: string;
-  status: string;
-  lantai: string;
-  blok: string;
-  unit: string;
-  tipe: string;
-  luasBangunan: string | number;
-  luasTanah: string | number;
-  lokasiStrategis: string;
-  tanggalAkadPpjb: string;
-  akadPpjb: string;
-  tanggalAkadAjbPpat: string;
-  tanggalPembayaranPph: string;
-  tanggalPembayaranBphtb: string;
-  pembiayaan: string;
-  sp3r: string;
-  harga: number;
-  lebihTanah: number;
-  biayaStrategis: number;
-  totalHargaJual: number;
-  nrBiayaKprAsuransi: number;
-  nrDiskonAngsuran: number;
-  nrDiskonCash: number;
-  nrBiayaBbn: number;
-  nrBiayaNotarisAjb: number;
-  nrBiayaAppraisal: number;
-  nrBiayaBphtb: number;
-  nrLainLain: number;
-  nrTotalSubsidi: number;
-  nrNilaiPenyerahan: number;
-  nrPpn: number;
-  nrBphtb: number;
-  nrPph: number;
-  pjBiayaKpr: number;
-  pjBiayaAsuransi: number;
-  pjDiskonAngsuran: number;
-  pjBiayaBbn: number;
-  pjBiayaAjb: number;
-  pjBiayaAppraisal: number;
-  pjBphtb: number;
-  pjLainLain: number;
-  pjTotalSubsidi: number;
-  pjNilaiPenyerahan: number;
-  pjPpn: number;
-  pjBphtbPajak: number;
-  pjPph: number;
-  pjTotalBphtbPph: number;
-  ajbNjopTanahPerMeter: number;
-  ajbNjopTanah: number;
-  ajbNjopBangunanPerMeter: number;
-  ajbNjopBangunan: number;
-  ajbNjopTotal: number;
-  ajbPpn: number;
-  ajbBphtb: number;
-  ajbPph: number;
-  ajbTotalBphtbPph: number;
-  ajbSelisihPajakPbb: number;
-  ajbUping: number;
-  notarisId: number | string;
-}
-
-const initialFormState: KavlingData = {
-  id: '',
-  perumahan: '', status: '', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
-  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
-  harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
-  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
-  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
-  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
-  notarisId: '',
-};
-
-const CustomerKavling = () => {
-
-  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 100 });
-  const { data: notarisList = [] } = useGetNotaris();
-  const updateMutation = useUpdateCustomerKavling();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<KavlingData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<KavlingData>>({});
-
-  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
-
-  const columns = [
-    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
-    { header: 'Tipe', accessor: 'tipe' },
-    { header: 'Total Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => {
-        let style = 'bg-gray-100 text-gray-800';
-        if (val?.toUpperCase() === 'AVAILABLE') style = 'bg-green-100 text-green-800';
-        if (val?.toUpperCase() === 'BOOKED' || val?.toUpperCase() === 'BOOKING') style = 'bg-blue-100 text-blue-800';
-        if (val?.toUpperCase() === 'PROSES') style = 'bg-yellow-100 text-yellow-800';
-        if (val?.toUpperCase() === 'LUNAS' || val?.toUpperCase() === 'TERJUAL') style = 'bg-emerald-100 text-emerald-800';
-
-        return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>{val}</span>;
-      }
-    },
-  ];
-
-  const formatDateForInput = (dateString: string | null | undefined) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
-  };
-
-  const openModal = (item: any) => {
-    setFormData({
-      ...item,
-
-      tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
-      tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
-      tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
-      tanggalPembayaranBphtb: formatDateForInput(item.tanggalPembayaranBphtb),
-    });
-    setErrors({});
-    setActiveTab('dasar');
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
-    const d = { ...currentData };
-    d.totalHargaJual = (Number(d.harga) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
-    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
-    d.nrNilaiPenyerahan = d.totalHargaJual - d.nrTotalSubsidi;
-    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
-    d.pjNilaiPenyerahan = d.totalHargaJual - d.pjTotalSubsidi;
-    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
-    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
-    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
-    return d;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-
-    setFormData((prev) => {
-      const updatedData = { ...prev, [name]: parsedValue };
-      return calculateDerivedFields(updatedData);
-    });
-
-    if (errors[name as keyof KavlingData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<KavlingData> = {};
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-
-    const getNum = (val: string | number | undefined) => (val === '' || val === undefined) ? undefined : Number(val);
-    const getStr = (val: string | undefined) => val === '' ? undefined : val;
-
-    const payload = {
-      statusKavling: getStr(formData.status),
-      namaTipe: getStr(formData.tipe),
-      luasBangunan: getNum(formData.luasBangunan),
-      luasTanah: getNum(formData.luasTanah),
-      hargaJualKavling: getNum(formData.harga),
-
-      notarisId: getNum(formData.notarisId),
-      lantai: getStr(formData.lantai),
-      lokasiStrategis: getStr(formData.lokasiStrategis),
-      tanggalAkadPpjb: getStr(formData.tanggalAkadPpjb),
-      akadPpjb: getStr(formData.akadPpjb),
-      tanggalAkadAjbPpat: getStr(formData.tanggalAkadAjbPpat),
-      tanggalPembayaranPph: getStr(formData.tanggalPembayaranPph),
-      tanggalPembayaranBphtb: getStr(formData.tanggalPembayaranBphtb),
-      pembiayaan: getStr(formData.pembiayaan),
-      sp3r: getStr(formData.sp3r),
-      lebihTanah: getNum(formData.lebihTanah),
-      biayaStrategis: getNum(formData.biayaStrategis),
-      nrBiayaKprAsuransi: getNum(formData.nrBiayaKprAsuransi),
-      nrDiskonAngsuran: getNum(formData.nrDiskonAngsuran),
-      nrDiskonCash: getNum(formData.nrDiskonCash),
-      nrBiayaBbn: getNum(formData.nrBiayaBbn),
-      nrBiayaNotarisAjb: getNum(formData.nrBiayaNotarisAjb),
-      nrBiayaAppraisal: getNum(formData.nrBiayaAppraisal),
-      nrBiayaBphtb: getNum(formData.nrBiayaBphtb),
-      nrLainLain: getNum(formData.nrLainLain),
-      nrTotalSubsidi: getNum(formData.nrTotalSubsidi),
-      nrNilaiPenyerahan: getNum(formData.nrNilaiPenyerahan),
-      nrPpn: getNum(formData.nrPpn),
-      nrBphtb: getNum(formData.nrBphtb),
-      nrPph: getNum(formData.nrPph),
-      pjBiayaKpr: getNum(formData.pjBiayaKpr),
-      pjBiayaAsuransi: getNum(formData.pjBiayaAsuransi),
-      pjDiskonAngsuran: getNum(formData.pjDiskonAngsuran),
-      pjBiayaBbn: getNum(formData.pjBiayaBbn),
-      pjBiayaAjb: getNum(formData.pjBiayaAjb),
-      pjBiayaAppraisal: getNum(formData.pjBiayaAppraisal),
-      pjBphtb: getNum(formData.pjBphtb),
-      pjLainLain: getNum(formData.pjLainLain),
-      pjTotalSubsidi: getNum(formData.pjTotalSubsidi),
-      pjNilaiPenyerahan: getNum(formData.pjNilaiPenyerahan),
-      pjPpn: getNum(formData.pjPpn),
-      pjBphtbPajak: getNum(formData.pjBphtbPajak),
-      pjPph: getNum(formData.pjPph),
-      pjTotalBphtbPph: getNum(formData.pjTotalBphtbPph),
-      ajbNjopTanahPerMeter: getNum(formData.ajbNjopTanahPerMeter),
-      ajbNjopTanah: getNum(formData.ajbNjopTanah),
-      ajbNjopBangunanPerMeter: getNum(formData.ajbNjopBangunanPerMeter),
-      ajbNjopBangunan: getNum(formData.ajbNjopBangunan),
-      ajbNjopTotal: getNum(formData.ajbNjopTotal),
-      ajbPpn: getNum(formData.ajbPpn),
-      ajbBphtb: getNum(formData.ajbBphtb),
-      ajbPph: getNum(formData.ajbPph),
-      ajbTotalBphtbPph: getNum(formData.ajbTotalBphtbPph),
-      ajbSelisihPajakPbb: getNum(formData.ajbSelisihPajakPbb),
-      ajbUping: getNum(formData.ajbUping),
-    };
-
-    try {
-      await updateMutation.mutateAsync({ id: formData.id, data: payload });
-      closeModal();
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Terjadi kesalahan saat menyimpan data");
-    }
-  };
-
-  type TabId = 'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris';
-
-  const tabs: { id: TabId; label: string }[] = [
-    { id: 'dasar', label: 'Info Dasar' },
-    { id: 'harga', label: 'Harga Jual' },
-    { id: 'nilai', label: 'Nilai Rumah' },
-    { id: 'pajak', label: 'Pajak' },
-    { id: 'ajb', label: 'Keperluan AJB' },
-    { id: 'notaris', label: 'Notaris' },
-  ];
-
-  if (isLoading) return <PageLoader />;
-
-  return (
-    <div className="space-y-6">
-      <DataTable
-        title="Data Kavling Customer"
-        columns={columns}
-        data={apiData}
-        onEdit={(item) => openModal(item)}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Data Kavling">
-        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap py-2 px-4 border-b-2 font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {activeTab === 'dasar' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'BOOKED', label: 'Booked' }, { value: 'PROSES', label: 'Proses' }, { value: 'TERJUAL', label: 'Terjual' }, { value: 'LUNAS', label: 'Lunas' }]} />
-              <div className="grid grid-cols-2 gap-2">
-                <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-                <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-              </div>
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} placeholder="Contoh: 45/90" />
-              <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} />
-              <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} />
-              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} />
-              <Select label="Pembiayaan" name="pembiayaan" value={formData.pembiayaan || ''} onChange={handleChange} options={[{ value: 'KPR', label: 'KPR Bank' }, { value: 'CASH KERAS', label: 'Cash Keras' }, { value: 'CASH BERTAHAP', label: 'Cash Bertahap' }]} />
-              <Select label="SP3R" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
-              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
-              <Input label="Akad PPJB" name="akadPpjb" value={formData.akadPpjb || ''} onChange={handleChange} />
-              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
-            </div>
-          )}
-
-          {activeTab === 'harga' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Harga Standar Kavling (Rp)" type="number" name="harga" value={formData.harga === 0 ? '' : formData.harga} onChange={handleChange} />
-              <Input label="Lebih Tanah (Rp)" type="number" name="lebihTanah" value={formData.lebihTanah === 0 ? '' : formData.lebihTanah} onChange={handleChange} />
-              <Input label="Biaya Strategis (Rp)" type="number" name="biayaStrategis" value={formData.biayaStrategis === 0 ? '' : formData.biayaStrategis} onChange={handleChange} />
-              <div className="md:col-span-2 mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Jual</span>
-                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.totalHargaJual)}</span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'nilai' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
-              <Input label="Biaya KPR & Asuransi" type="number" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi === 0 ? '' : formData.nrBiayaKprAsuransi} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran === 0 ? '' : formData.nrDiskonAngsuran} onChange={handleChange} />
-              <Input label="Diskon Cash & Lainnya" type="number" name="nrDiskonCash" value={formData.nrDiskonCash === 0 ? '' : formData.nrDiskonCash} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="nrBiayaBbn" value={formData.nrBiayaBbn === 0 ? '' : formData.nrBiayaBbn} onChange={handleChange} />
-              <Input label="Biaya Notaris AJB" type="number" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb === 0 ? '' : formData.nrBiayaNotarisAjb} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal === 0 ? '' : formData.nrBiayaAppraisal} onChange={handleChange} />
-              <Input label="Biaya BPHTB" type="number" name="nrBiayaBphtb" value={formData.nrBiayaBphtb === 0 ? '' : formData.nrBiayaBphtb} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="nrLainLain" value={formData.nrLainLain === 0 ? '' : formData.nrLainLain} onChange={handleChange} />
-              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus</span>
-                <span className="font-black text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl flex justify-between items-center border border-blue-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-blue-800 uppercase tracking-widest">Nilai Penyerahan (Setelah Subsidi)</span>
-                <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Pajak Nilai Rumah" />
-              <Input label="PPN" type="number" name="nrPpn" value={formData.nrPpn === 0 ? '' : formData.nrPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="nrBphtb" value={formData.nrBphtb === 0 ? '' : formData.nrBphtb} onChange={handleChange} />
-              <Input label="PPh" type="number" name="nrPph" value={formData.nrPph === 0 ? '' : formData.nrPph} onChange={handleChange} />
-            </div>
-          )}
-
-          {activeTab === 'pajak' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Pajak)" />
-              <Input label="Biaya KPR" type="number" name="pjBiayaKpr" value={formData.pjBiayaKpr === 0 ? '' : formData.pjBiayaKpr} onChange={handleChange} />
-              <Input label="Biaya Asuransi" type="number" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi === 0 ? '' : formData.pjBiayaAsuransi} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran === 0 ? '' : formData.pjDiskonAngsuran} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="pjBiayaBbn" value={formData.pjBiayaBbn === 0 ? '' : formData.pjBiayaBbn} onChange={handleChange} />
-              <Input label="Biaya Pembuatan AJB" type="number" name="pjBiayaAjb" value={formData.pjBiayaAjb === 0 ? '' : formData.pjBiayaAjb} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal === 0 ? '' : formData.pjBiayaAppraisal} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtb" value={formData.pjBphtb === 0 ? '' : formData.pjBphtb} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="pjLainLain" value={formData.pjLainLain === 0 ? '' : formData.pjLainLain} onChange={handleChange} />
-              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
-                <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-indigo-50 p-5 rounded-xl flex justify-between items-center border border-indigo-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-indigo-800 uppercase tracking-widest">Nilai Penyerahan (Pajak)</span>
-                <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Detail Pajak" />
-              <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn === 0 ? '' : formData.pjPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak === 0 ? '' : formData.pjBphtbPajak} onChange={handleChange} />
-              <Input label="PPh" type="number" name="pjPph" value={formData.pjPph === 0 ? '' : formData.pjPph} onChange={handleChange} />
-              <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
-                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
-                <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'ajb' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
-              <Input label="NJOP Tanah per Meter" type="number" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter === 0 ? '' : formData.ajbNjopTanahPerMeter} onChange={handleChange} />
-              <Input label="Total NJOP Tanah" type="number" name="ajbNjopTanah" value={formData.ajbNjopTanah === 0 ? '' : formData.ajbNjopTanah} onChange={handleChange} />
-              <Input label="NJOP Bangunan per Meter" type="number" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter === 0 ? '' : formData.ajbNjopBangunanPerMeter} onChange={handleChange} />
-              <Input label="Total NJOP Bangunan" type="number" name="ajbNjopBangunan" value={formData.ajbNjopBangunan === 0 ? '' : formData.ajbNjopBangunan} onChange={handleChange} />
-              <div className="md:col-span-2 bg-slate-50 p-5 rounded-xl flex justify-between items-center border border-slate-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">NJOP Tanah + Bangunan</span>
-                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.ajbNjopTotal)}</span>
-              </div>
-              <SectionTitle title="Kewajiban Pajak AJB" />
-              <Input label="PPN" type="number" name="ajbPpn" value={formData.ajbPpn === 0 ? '' : formData.ajbPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="ajbBphtb" value={formData.ajbBphtb === 0 ? '' : formData.ajbBphtb} onChange={handleChange} />
-              <Input label="PPh" type="number" name="ajbPph" value={formData.ajbPph === 0 ? '' : formData.ajbPph} onChange={handleChange} />
-              <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
-                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">BPHTB + PPh (AJB)</span>
-                <span className="text-xl font-black text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
-              </div>
-              <SectionTitle title="Lain-lain" />
-              <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb === 0 ? '' : formData.ajbSelisihPajakPbb} onChange={handleChange} />
-              <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping === 0 ? '' : formData.ajbUping} onChange={handleChange} />
-            </div>
-          )}
-
-          {activeTab === 'notaris' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Pemilihan Notaris" />
-              <div className="md:col-span-2">
-                <Select
-                  label="Pilih Notaris"
-                  name="notarisId"
-                  value={formData.notarisId || ''}
-                  onChange={handleChange}
-                  options={[
-                    { value: '', label: '-- Belum ditentukan --' },
-                    ...notarisList.map(n => ({ value: n.id, label: n.nama }))
-                  ]}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-8">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={updateMutation.isPending}
-              className="px-6 py-2.5 text-xs uppercase tracking-widest font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="px-8 py-2.5 text-xs uppercase tracking-widest font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
-            >
-              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-const SectionTitle = ({ title }: { title: string }) => (
-  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-3 md:col-span-2 mt-4">{title}</h4>
-);
-
-export default CustomerKavling;
-</file>
-
 <file path="src/App.tsx">
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -7881,6 +7476,519 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowR
 export default DataTable;
 </file>
 
+<file path="src/pages/Customer/Kavling.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import PageLoader from "../PageLoader";
+import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
+import { useGetNotaris } from '../../hooks/queries/useNotaris';
+import { useGetTagihans } from '../../hooks/queries/useTagihan';
+
+interface KavlingData {
+  id: string;
+  perumahan: string;
+  status: string;
+  lantai: string;
+  blok: string;
+  unit: string;
+  tipe: string;
+  luasBangunan: string | number;
+  luasTanah: string | number;
+  lokasiStrategis: string;
+  tanggalAkadPpjb: string;
+  akadPpjb: string;
+  tanggalAkadAjbPpat: string;
+  tanggalPembayaranPph: string;
+  tanggalPembayaranBphtb: string;
+  pembiayaan: string;
+  sp3r: string;
+  harga: number;
+  lebihTanah: number;
+  biayaStrategis: number;
+  totalHargaJual: number;
+  nrBiayaKprAsuransi: number;
+  nrDiskonAngsuran: number;
+  nrDiskonCash: number;
+  nrBiayaBbn: number;
+  nrBiayaNotarisAjb: number;
+  nrBiayaAppraisal: number;
+  nrBiayaBphtb: number;
+  nrLainLain: number;
+  nrTotalSubsidi: number;
+  nrNilaiPenyerahan: number;
+  nrPpn: number;
+  nrBphtb: number;
+  nrPph: number;
+  pjBiayaKpr: number;
+  pjBiayaAsuransi: number;
+  pjDiskonAngsuran: number;
+  pjBiayaBbn: number;
+  pjBiayaAjb: number;
+  pjBiayaAppraisal: number;
+  pjBphtb: number;
+  pjLainLain: number;
+  pjTotalSubsidi: number;
+  pjNilaiPenyerahan: number;
+  pjPpn: number;
+  pjBphtbPajak: number;
+  pjPph: number;
+  pjTotalBphtbPph: number;
+  ajbNjopTanahPerMeter: number;
+  ajbNjopTanah: number;
+  ajbNjopBangunanPerMeter: number;
+  ajbNjopBangunan: number;
+  ajbNjopTotal: number;
+  ajbPpn: number;
+  ajbBphtb: number;
+  ajbPph: number;
+  ajbTotalBphtbPph: number;
+  ajbSelisihPajakPbb: number;
+  ajbUping: number;
+  notarisId: number | string;
+}
+
+const initialFormState: KavlingData = {
+  id: '',
+  perumahan: '', status: '', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
+  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
+  harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
+  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
+  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
+  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
+  notarisId: '',
+};
+
+const CustomerKavling = () => {
+
+  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 100 });
+  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
+  const { data: notarisList = [] } = useGetNotaris();
+  const updateMutation = useUpdateCustomerKavling();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<KavlingData>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+
+  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
+
+  const columns = [
+    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    { header: 'Perumahan', accessor: 'perumahan' },
+    { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
+    { header: 'Tipe', accessor: 'tipe' },
+    { header: 'Total Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        let style = 'bg-gray-100 text-gray-800';
+        if (val?.toUpperCase() === 'AVAILABLE') style = 'bg-green-100 text-green-800';
+        if (val?.toUpperCase() === 'BOOKED' || val?.toUpperCase() === 'BOOKING') style = 'bg-blue-100 text-blue-800';
+        if (val?.toUpperCase() === 'PROSES') style = 'bg-yellow-100 text-yellow-800';
+        if (val?.toUpperCase() === 'LUNAS' || val?.toUpperCase() === 'TERJUAL') style = 'bg-emerald-100 text-emerald-800';
+
+        return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>{val}</span>;
+      }
+    },
+  ];
+
+  const formatDateForInput = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+  };
+
+  const openModal = (item: any) => {
+    setFormData({
+      ...item,
+      tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
+      tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
+      tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
+      tanggalPembayaranBphtb: formatDateForInput(item.tanggalPembayaranBphtb),
+    });
+    setErrors({});
+    setActiveTab('dasar');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
+    const d = { ...currentData };
+    d.totalHargaJual = (Number(d.harga) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
+    d.nrNilaiPenyerahan = d.totalHargaJual - d.nrTotalSubsidi;
+    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
+    d.pjNilaiPenyerahan = d.totalHargaJual - d.pjTotalSubsidi;
+    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
+    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
+    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
+    return d;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: parsedValue };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const getNum = (val: string | number | undefined) => (val === '' || val === undefined) ? undefined : Number(val);
+    const getStr = (val: string | undefined) => val === '' ? undefined : val;
+
+    const payload = {
+      statusKavling: getStr(formData.status),
+      namaTipe: getStr(formData.tipe),
+      luasBangunan: getNum(formData.luasBangunan),
+      luasTanah: getNum(formData.luasTanah),
+      hargaJualKavling: getNum(formData.harga),
+
+      notarisId: getNum(formData.notarisId),
+      lantai: getStr(formData.lantai),
+      lokasiStrategis: getStr(formData.lokasiStrategis),
+      tanggalAkadPpjb: getStr(formData.tanggalAkadPpjb),
+      akadPpjb: getStr(formData.akadPpjb),
+      tanggalAkadAjbPpat: getStr(formData.tanggalAkadAjbPpat),
+      tanggalPembayaranPph: getStr(formData.tanggalPembayaranPph),
+      tanggalPembayaranBphtb: getStr(formData.tanggalPembayaranBphtb),
+      pembiayaan: getStr(formData.pembiayaan),
+      sp3r: getStr(formData.sp3r),
+      lebihTanah: getNum(formData.lebihTanah),
+      biayaStrategis: getNum(formData.biayaStrategis),
+      nrBiayaKprAsuransi: getNum(formData.nrBiayaKprAsuransi),
+      nrDiskonAngsuran: getNum(formData.nrDiskonAngsuran),
+      nrDiskonCash: getNum(formData.nrDiskonCash),
+      nrBiayaBbn: getNum(formData.nrBiayaBbn),
+      nrBiayaNotarisAjb: getNum(formData.nrBiayaNotarisAjb),
+      nrBiayaAppraisal: getNum(formData.nrBiayaAppraisal),
+      nrBiayaBphtb: getNum(formData.nrBiayaBphtb),
+      nrLainLain: getNum(formData.nrLainLain),
+      nrTotalSubsidi: getNum(formData.nrTotalSubsidi),
+      nrNilaiPenyerahan: getNum(formData.nrNilaiPenyerahan),
+      nrPpn: getNum(formData.nrPpn),
+      nrBphtb: getNum(formData.nrBphtb),
+      nrPph: getNum(formData.nrPph),
+      pjBiayaKpr: getNum(formData.pjBiayaKpr),
+      pjBiayaAsuransi: getNum(formData.pjBiayaAsuransi),
+      pjDiskonAngsuran: getNum(formData.pjDiskonAngsuran),
+      pjBiayaBbn: getNum(formData.pjBiayaBbn),
+      pjBiayaAjb: getNum(formData.pjBiayaAjb),
+      pjBiayaAppraisal: getNum(formData.pjBiayaAppraisal),
+      pjBphtb: getNum(formData.pjBphtb),
+      pjLainLain: getNum(formData.pjLainLain),
+      pjTotalSubsidi: getNum(formData.pjTotalSubsidi),
+      pjNilaiPenyerahan: getNum(formData.pjNilaiPenyerahan),
+      pjPpn: getNum(formData.pjPpn),
+      pjBphtbPajak: getNum(formData.pjBphtbPajak),
+      pjPph: getNum(formData.pjPph),
+      pjTotalBphtbPph: getNum(formData.pjTotalBphtbPph),
+      ajbNjopTanahPerMeter: getNum(formData.ajbNjopTanahPerMeter),
+      ajbNjopTanah: getNum(formData.ajbNjopTanah),
+      ajbNjopBangunanPerMeter: getNum(formData.ajbNjopBangunanPerMeter),
+      ajbNjopBangunan: getNum(formData.ajbNjopBangunan),
+      ajbNjopTotal: getNum(formData.ajbNjopTotal),
+      ajbPpn: getNum(formData.ajbPpn),
+      ajbBphtb: getNum(formData.ajbBphtb),
+      ajbPph: getNum(formData.ajbPph),
+      ajbTotalBphtbPph: getNum(formData.ajbTotalBphtbPph),
+      ajbSelisihPajakPbb: getNum(formData.ajbSelisihPajakPbb),
+      ajbUping: getNum(formData.ajbUping),
+    };
+
+    try {
+      await updateMutation.mutateAsync({ id: formData.id, data: payload });
+      closeModal();
+    } catch (error: any) {
+      const responseData = error.response?.data;
+
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
+    }
+  };
+
+  type TabId = 'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris';
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'dasar', label: 'Info Dasar' },
+    { id: 'harga', label: 'Harga Jual' },
+    { id: 'nilai', label: 'Nilai Rumah' },
+    { id: 'pajak', label: 'Pajak' },
+    { id: 'ajb', label: 'Keperluan AJB' },
+    { id: 'notaris', label: 'Notaris' },
+  ];
+
+  const expandedRowRender = (row: KavlingData) => {
+    const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
+    const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
+
+    return (
+      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="text-sm font-bold text-slate-800">Riwayat Tagihan & Pembayaran</h4>
+          <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
+            Total Terbayar: {formatRupiah(totalTerbayar)}
+          </span>
+        </div>
+
+        {history.length > 0 ? (
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
+                  <th className="p-3 font-bold">Keterangan</th>
+                  <th className="p-3 font-bold">Jatuh Tempo</th>
+                  <th className="p-3 font-bold text-right">Nominal Tagihan</th>
+                  <th className="p-3 font-bold text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {history.sort((a: any, b: any) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime()).map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
+                    <td className="p-3 font-semibold text-slate-800">{item.pembayaran}</td>
+                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.jatuhTempo)}</td>
+                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.nominal)}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
+                        {item.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">Belum ada riwayat tagihan atau pembayaran.</p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading || isLoadingTagihan) return <PageLoader />;
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Data Kavling Customer"
+        columns={columns}
+        data={apiData}
+        onEdit={(item) => openModal(item)}
+        expandedRowRender={expandedRowRender}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Data Kavling">
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap py-2 px-4 border-b-2 font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {activeTab === 'dasar' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'BOOKED', label: 'Booked' }, { value: 'PROSES', label: 'Proses' }, { value: 'TERJUAL', label: 'Terjual' }, { value: 'LUNAS', label: 'Lunas' }]} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+                <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+              </div>
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
+              <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} error={errors.lantai} />
+              <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
+              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
+              <Select label="Pembiayaan" name="pembiayaan" value={formData.pembiayaan || ''} onChange={handleChange} options={[{ value: 'KPR', label: 'KPR Bank' }, { value: 'CASH KERAS', label: 'Cash Keras' }, { value: 'CASH BERTAHAP', label: 'Cash Bertahap' }]} />
+              <Select label="SP3R" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
+              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
+              <Input label="Akad PPJB" name="akadPpjb" value={formData.akadPpjb || ''} onChange={handleChange} />
+              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
+            </div>
+          )}
+
+          {activeTab === 'harga' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Input label="Harga Standar Kavling (Rp)" type="number" name="harga" value={formData.harga === 0 ? '' : formData.harga} onChange={handleChange} />
+              <Input label="Lebih Tanah (Rp)" type="number" name="lebihTanah" value={formData.lebihTanah === 0 ? '' : formData.lebihTanah} onChange={handleChange} />
+              <Input label="Biaya Strategis (Rp)" type="number" name="biayaStrategis" value={formData.biayaStrategis === 0 ? '' : formData.biayaStrategis} onChange={handleChange} />
+              <div className="md:col-span-2 mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Jual</span>
+                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.totalHargaJual)}</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'nilai' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
+              <Input label="Biaya KPR & Asuransi" type="number" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi === 0 ? '' : formData.nrBiayaKprAsuransi} onChange={handleChange} />
+              <Input label="Diskon Angsuran" type="number" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran === 0 ? '' : formData.nrDiskonAngsuran} onChange={handleChange} />
+              <Input label="Diskon Cash & Lainnya" type="number" name="nrDiskonCash" value={formData.nrDiskonCash === 0 ? '' : formData.nrDiskonCash} onChange={handleChange} />
+              <Input label="Biaya Balik Nama Sertifikat" type="number" name="nrBiayaBbn" value={formData.nrBiayaBbn === 0 ? '' : formData.nrBiayaBbn} onChange={handleChange} />
+              <Input label="Biaya Notaris AJB" type="number" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb === 0 ? '' : formData.nrBiayaNotarisAjb} onChange={handleChange} />
+              <Input label="Biaya Appraisal" type="number" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal === 0 ? '' : formData.nrBiayaAppraisal} onChange={handleChange} />
+              <Input label="Biaya BPHTB" type="number" name="nrBiayaBphtb" value={formData.nrBiayaBphtb === 0 ? '' : formData.nrBiayaBphtb} onChange={handleChange} />
+              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="nrLainLain" value={formData.nrLainLain === 0 ? '' : formData.nrLainLain} onChange={handleChange} />
+              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus</span>
+                <span className="font-black text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl flex justify-between items-center border border-blue-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-blue-800 uppercase tracking-widest">Nilai Penyerahan (Setelah Subsidi)</span>
+                <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Pajak Nilai Rumah" />
+              <Input label="PPN" type="number" name="nrPpn" value={formData.nrPpn === 0 ? '' : formData.nrPpn} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="nrBphtb" value={formData.nrBphtb === 0 ? '' : formData.nrBphtb} onChange={handleChange} />
+              <Input label="PPh" type="number" name="nrPph" value={formData.nrPph === 0 ? '' : formData.nrPph} onChange={handleChange} />
+            </div>
+          )}
+
+          {activeTab === 'pajak' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Pajak)" />
+              <Input label="Biaya KPR" type="number" name="pjBiayaKpr" value={formData.pjBiayaKpr === 0 ? '' : formData.pjBiayaKpr} onChange={handleChange} />
+              <Input label="Biaya Asuransi" type="number" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi === 0 ? '' : formData.pjBiayaAsuransi} onChange={handleChange} />
+              <Input label="Diskon Angsuran" type="number" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran === 0 ? '' : formData.pjDiskonAngsuran} onChange={handleChange} />
+              <Input label="Biaya Balik Nama Sertifikat" type="number" name="pjBiayaBbn" value={formData.pjBiayaBbn === 0 ? '' : formData.pjBiayaBbn} onChange={handleChange} />
+              <Input label="Biaya Pembuatan AJB" type="number" name="pjBiayaAjb" value={formData.pjBiayaAjb === 0 ? '' : formData.pjBiayaAjb} onChange={handleChange} />
+              <Input label="Biaya Appraisal" type="number" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal === 0 ? '' : formData.pjBiayaAppraisal} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="pjBphtb" value={formData.pjBphtb === 0 ? '' : formData.pjBphtb} onChange={handleChange} />
+              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="pjLainLain" value={formData.pjLainLain === 0 ? '' : formData.pjLainLain} onChange={handleChange} />
+              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
+                <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-indigo-50 p-5 rounded-xl flex justify-between items-center border border-indigo-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-indigo-800 uppercase tracking-widest">Nilai Penyerahan (Pajak)</span>
+                <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Detail Pajak" />
+              <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn === 0 ? '' : formData.pjPpn} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak === 0 ? '' : formData.pjBphtbPajak} onChange={handleChange} />
+              <Input label="PPh" type="number" name="pjPph" value={formData.pjPph === 0 ? '' : formData.pjPph} onChange={handleChange} />
+              <div className="md:col-span-2 mt-2 p-4 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
+                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
+                <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ajb' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
+              <Input label="NJOP Tanah per Meter" type="number" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter === 0 ? '' : formData.ajbNjopTanahPerMeter} onChange={handleChange} />
+              <Input label="Total NJOP Tanah" type="number" name="ajbNjopTanah" value={formData.ajbNjopTanah === 0 ? '' : formData.ajbNjopTanah} onChange={handleChange} />
+              <Input label="NJOP Bangunan per Meter" type="number" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter === 0 ? '' : formData.ajbNjopBangunanPerMeter} onChange={handleChange} />
+              <Input label="Total NJOP Bangunan" type="number" name="ajbNjopBangunan" value={formData.ajbNjopBangunan === 0 ? '' : formData.ajbNjopBangunan} onChange={handleChange} />
+              <div className="md:col-span-2 bg-slate-50 p-5 rounded-xl flex justify-between items-center border border-slate-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">NJOP Tanah + Bangunan</span>
+                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.ajbNjopTotal)}</span>
+              </div>
+              <SectionTitle title="Kewajiban Pajak AJB" />
+              <Input label="PPN" type="number" name="ajbPpn" value={formData.ajbPpn === 0 ? '' : formData.ajbPpn} onChange={handleChange} />
+              <Input label="BPHTB" type="number" name="ajbBphtb" value={formData.ajbBphtb === 0 ? '' : formData.ajbBphtb} onChange={handleChange} />
+              <Input label="PPh" type="number" name="ajbPph" value={formData.ajbPph === 0 ? '' : formData.ajbPph} onChange={handleChange} />
+              <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
+                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">BPHTB + PPh (AJB)</span>
+                <span className="text-xl font-black text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
+              </div>
+              <SectionTitle title="Lain-lain" />
+              <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb === 0 ? '' : formData.ajbSelisihPajakPbb} onChange={handleChange} />
+              <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping === 0 ? '' : formData.ajbUping} onChange={handleChange} />
+            </div>
+          )}
+
+          {activeTab === 'notaris' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Pemilihan Notaris" />
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Notaris"
+                  name="notarisId"
+                  value={formData.notarisId || ''}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: '-- Belum ditentukan --' },
+                    ...notarisList.map(n => ({ value: n.id, label: n.nama }))
+                  ]}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-8">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={updateMutation.isPending}
+              className="px-6 py-2.5 text-xs uppercase tracking-widest font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="px-8 py-2.5 text-xs uppercase tracking-widest font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
+            >
+              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+const SectionTitle = ({ title }: { title: string }) => (
+  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-3 md:col-span-2 mt-4">{title}</h4>
+);
+
+export default CustomerKavling;
+</file>
+
 <file path="src/pages/Customer/Tagihan.tsx">
 import React, { useState, useMemo } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -7890,9 +7998,10 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud, Edit2, Trash2 } from 'lucide-react';
+import { FileText, Printer, UploadCloud, Edit2, Trash2, Eye, ZoomIn } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
+
 import {
   useGetTagihans,
   useCreateTagihan,
@@ -7903,10 +8012,13 @@ import {
 import { useGetCustomers } from "../../hooks/queries/useCustomer";
 import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
 import type { TagihanData } from "../../services/tagihan.service";
+
 interface TagihanFormState {
   id: number | '';
   customerId: number | '';
+  customerLabel?: string;
   penjualanId: number | '';
+  kavlingLabel?: string;
   pembayaran: string;
   nominal: number | '';
   jatuhTempo: string;
@@ -7914,10 +8026,13 @@ interface TagihanFormState {
   fileBukti: string | File;
   reminderBerikutnya: string;
 }
+
 const initialFormState: TagihanFormState = {
   id: '',
   customerId: '',
+  customerLabel: '',
   penjualanId: '',
+  kavlingLabel: '',
   pembayaran: '',
   nominal: '',
   jatuhTempo: '',
@@ -7925,41 +8040,55 @@ const initialFormState: TagihanFormState = {
   fileBukti: '',
   reminderBerikutnya: '',
 };
+
 const Tagihan = () => {
   const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
   const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 100 });
+
   const createMutation = useCreateTagihan();
   const updateMutation = useUpdateTagihan();
   const deleteMutation = useDeleteTagihan();
   const uploadBuktiMutation = useUploadBuktiTagihan();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<TagihanFormState>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [isAutoFilled, setIsAutoFilled] = useState(false);
+
   const [printData, setPrintData] = useState<any>(null);
   const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
   const [printTitle, setPrintTitle] = useState('');
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedDetailRow, setSelectedDetailRow] = useState<any>(null);
+
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
     return dateString.split('T')[0];
   };
+
   const groupedData = useMemo(() => {
     const groups: Record<string, any> = {};
     tagihans.forEach((item) => {
-      // PERUBAHAN: Gunakan penjualanId sebagai key pemisah grup, bukan namaCustomer
       const groupKey = `${item.customerId}_${item.penjualanId}`;
 
       if (!groups[groupKey]) {
         groups[groupKey] = {
           id: groupKey,
-          customerId: item.customerId, // Simpan untuk auto-fill modal
-          penjualanId: item.penjualanId, // Simpan untuk auto-fill modal
+          customerId: item.customerId,
+          penjualanId: item.penjualanId,
           namaCustomer: item.namaCustomer,
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
           reminderSelanjutnya: '',
+          unpaidCount: 0,
           cicilan: []
         };
+      }
+
+      if (item.status === 'BELUM_BAYAR') {
+        groups[groupKey].unpaidCount += 1;
       }
 
       if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
@@ -7975,18 +8104,77 @@ const Tagihan = () => {
     { header: 'Nama Customer', accessor: 'namaCustomer' },
     { header: 'Kavling', accessor: 'kavling' },
     {
+      header: 'Tagihan Belum Dibayar',
+      accessor: 'unpaidCount',
+      render: (val: number) => (
+        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase ${val > 0 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+          {val > 0 ? `${val} Tagihan Tertunda` : 'Lunas Semua'}
+        </span>
+      )
+    },
+    {
       header: 'Reminder Selanjutnya',
       accessor: 'reminderSelanjutnya',
       render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
     },
+    {
+      header: 'Aksi',
+      accessor: 'id',
+      render: (_: any, row: any) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedDetailRow(row);
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+          title="Lihat Detail Penjualan"
+        >
+          <Eye size={14} /> Detail Penjualan
+        </button>
+      )
+    },
   ];
-  const [isAutoFilled, setIsAutoFilled] = useState(false);
-  const openModal = (item?: TagihanData, parentGroup?: TagihanData) => {
+
+  const filteredPenjualanList = useMemo(() => {
+    if (!formData.customerId) return [];
+    return penjualanList.filter((p: any) => Number(p.customerId) === Number(formData.customerId));
+  }, [formData.customerId, penjualanList]);
+  const detailPenjualanData = useMemo(() => {
+    if (!selectedDetailRow) return null;
+
+    const found = penjualanList.find((p: any) => String(p.id) === String(selectedDetailRow.penjualanId));
+
+    if (found) {
+      return {
+        ...found,
+        tipe: found.tipe || '-',
+        pembiayaan: found.pembiayaan || '-',
+        status: found.status || 'TIDAK DIKETAHUI',
+        harga: Number(found.harga) || 0,
+        lebihTanah: Number(found.lebihTanah) || 0,
+        biayaStrategis: Number(found.biayaStrategis) || 0,
+        totalHargaJual: Number(found.totalHargaJual) || 0,
+      };
+    }
+
+    return {
+      tipe: '-',
+      pembiayaan: '-',
+      harga: 0,
+      lebihTanah: 0,
+      biayaStrategis: 0,
+      totalHargaJual: 0,
+      status: 'Sinkronisasi Data...'
+    };
+  }, [selectedDetailRow, penjualanList]);
+  const openModal = (item?: TagihanData, parentGroup?: any) => {
     if (item) {
       setFormData({
         id: item.id,
         customerId: item.customerId,
+        customerLabel: item.namaCustomer,
         penjualanId: item.penjualanId,
+        kavlingLabel: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
         pembayaran: item.pembayaran,
         nominal: item.nominal,
         jatuhTempo: formatDateForInput(item.jatuhTempo),
@@ -7995,31 +8183,31 @@ const Tagihan = () => {
         reminderBerikutnya: formatDateForInput(item.reminderBerikutnya),
       });
       setIsEditing(true);
-      setIsAutoFilled(false);
+      setIsAutoFilled(true);
     } else if (parentGroup) {
-      // Jika di-klik dari "+ Tambah Cicilan", auto-fill Customer & Kavling
       setFormData({
         ...initialFormState,
         customerId: parentGroup.customerId,
+        customerLabel: parentGroup.namaCustomer,
         penjualanId: parentGroup.penjualanId,
+        kavlingLabel: parentGroup.kavling,
       });
       setIsEditing(false);
       setIsAutoFilled(true);
     } else {
       setFormData(initialFormState);
       setIsEditing(false);
+      setIsAutoFilled(false);
     }
     setErrors({});
     setIsModalOpen(true);
   };
-  const filteredPenjualanList = useMemo(() => {
-    if (!formData.customerId) return [];
-    return penjualanList.filter((p: any) => p.customerId === formData.customerId);
-  }, [formData.customerId, penjualanList]);
+
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
@@ -8032,6 +8220,7 @@ const Tagihan = () => {
       });
     }
   };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -8042,6 +8231,7 @@ const Tagihan = () => {
       }));
     }
   };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.customerId) newErrors.customerId = 'Customer wajib dipilih';
@@ -8052,6 +8242,7 @@ const Tagihan = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -8064,7 +8255,7 @@ const Tagihan = () => {
             pembayaran: formData.pembayaran,
             nominal: Number(formData.nominal),
             jatuhTempo: formData.jatuhTempo,
-            status: formData.status,
+            status: formData.status as any,
             reminderBerikutnya: formData.reminderBerikutnya || undefined,
           }
         });
@@ -8087,9 +8278,19 @@ const Tagihan = () => {
       }
       closeModal();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+      const responseData = error.response?.data;
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
   };
+
   const handleDelete = async (item: TagihanData) => {
     if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
       try {
@@ -8099,6 +8300,7 @@ const Tagihan = () => {
       }
     }
   };
+
   const expandedRowRender = (row: any) => {
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
@@ -8108,14 +8310,14 @@ const Tagihan = () => {
           </h4>
           <button
             onClick={() => openModal(undefined, row)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer shadow-sm"
           >
             + Tambah Cicilan
           </button>
         </div>
         <div className="space-y-3">
           {row.cicilan
-            .sort((a: TagihanData, b: TagihanData) => a.jatuhTempo.localeCompare(b.jatuhTempo))
+            .sort((a: TagihanData, b: TagihanData) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime())
             .map((c: TagihanData) => (
               <div key={c.id} className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4 transition hover:border-blue-200">
                 <div className="flex-1">
@@ -8126,19 +8328,39 @@ const Tagihan = () => {
                       {c.status.replace('_', ' ')}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-slate-600 font-medium mt-2">
-                    <p>Jatuh Tempo: <span className="text-slate-900 font-bold">{formatDate(c.jatuhTempo)}</span></p>
-                    <p>Nominal: <span className="text-slate-900 font-bold">{formatRupiah(c.nominal)}</span></p>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600 font-medium mt-2 items-end">
+                    <div>
+                      <p className="text-slate-400 mb-0.5">Jatuh Tempo</p>
+                      <p className="text-slate-900 font-bold">{formatDate(c.jatuhTempo.toString())}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 mb-0.5">Nominal Tagihan</p>
+                      <p className="text-slate-900 font-bold text-sm">{formatRupiah(c.nominal)}</p>
+                    </div>
+
                     {c.fileBukti && (
-                      <p>Bukti: <a href={c.fileBukti} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Lihat File</a></p>
+                      <div>
+                        <p className="text-slate-400 mb-1">Bukti Transfer</p>
+                        <div
+                          onClick={() => setPreviewImage(c.fileBukti as string)}
+                          className="relative w-14 h-9 rounded-md border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
+                          title="Klik untuk perbesar"
+                        >
+                          <img src={c.fileBukti as string} alt="Bukti" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <ZoomIn size={12} className="text-white" />
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
+
                 <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer" title="Edit Cicilan">
+                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer border border-transparent hover:border-blue-100" title="Edit Cicilan">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer" title="Hapus Cicilan">
+                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer border border-transparent hover:border-red-100" title="Hapus Cicilan">
                     <Trash2 size={16} />
                   </button>
                   <div className="w-px h-6 bg-slate-200 mx-1"></div>
@@ -8163,6 +8385,7 @@ const Tagihan = () => {
       </div>
     );
   };
+
   const handlePrintPDF = async () => {
     const element = document.getElementById('print-area');
     if (!element) return;
@@ -8183,7 +8406,37 @@ const Tagihan = () => {
       alert('Terjadi kesalahan saat memproses PDF.');
     }
   };
+
+
+  const customerOptions = [
+    { value: '', label: '-- Pilih Customer --' },
+    ...customers.map(c => ({ value: Number(c.id), label: `${c.nama} (NIK: ${c.nikKtp})` }))
+  ];
+
+  if (formData.customerId && !customerOptions.some(opt => opt.value === Number(formData.customerId))) {
+    customerOptions.push({
+      value: Number(formData.customerId),
+      label: formData.customerLabel || `Customer Terpilih`
+    });
+  }
+
+  const kavlingOptions = [
+    { value: '', label: '-- Pilih Kavling Terkait --' },
+    ...filteredPenjualanList.map((p: any) => ({
+      value: Number(p.id),
+      label: `${p.perumahan} - Blok ${p.blok}-${p.unit} (Rp ${(p.totalHargaJual / 1000000).toFixed(0)} Jt)`
+    }))
+  ];
+
+  if (formData.penjualanId && !kavlingOptions.some(opt => opt.value === Number(formData.penjualanId))) {
+    kavlingOptions.push({
+      value: Number(formData.penjualanId),
+      label: formData.kavlingLabel || `Kavling Terpilih`
+    });
+  }
+
   if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
@@ -8193,6 +8446,8 @@ const Tagihan = () => {
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
       />
+
+      {/* MODAL KELOLA TAGIHAN */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Tagihan / Upload Bukti" : "Buat Tagihan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
@@ -8205,30 +8460,21 @@ const Tagihan = () => {
             <Select
               label="Pilih Customer"
               name="customerId"
-              value={formData.customerId}
+              value={formData.customerId === '' ? '' : Number(formData.customerId)}
               onChange={handleChange}
               error={errors.customerId}
               disabled={isEditing || isAutoFilled}
-              options={[
-                { value: '', label: '-- Pilih Customer --' },
-                ...customers.map(c => ({ value: c.id, label: `${c.nama} (NIK: ${c.nikKtp})` }))
-              ]}
+              options={customerOptions}
             />
             {formData.customerId && (
               <Select
                 label="Pilih Kavling / Penjualan"
                 name="penjualanId"
-                value={formData.penjualanId}
+                value={formData.penjualanId === '' ? '' : Number(formData.penjualanId)}
                 onChange={handleChange}
                 error={errors.penjualanId}
                 disabled={isEditing || isAutoFilled}
-                options={[
-                  { value: '', label: '-- Pilih Kavling Terkait --' },
-                  ...filteredPenjualanList.map((p: any) => ({
-                    value: p.id,
-                    label: `${p.perumahan} - Blok ${p.blok}-${p.unit} (Rp ${(p.totalHargaJual / 1000000).toFixed(0)} Jt)`
-                  }))
-                ]}
+                options={kavlingOptions}
               />
             )}
           </div>
@@ -8283,6 +8529,7 @@ const Tagihan = () => {
           </div>
         </form>
       </Modal>
+
       {/* MODAL PRINT PDF */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
@@ -8322,15 +8569,125 @@ const Tagihan = () => {
           </div>
         )}
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 cursor-pointer">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center gap-2 cursor-pointer">
+          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
+          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg flex items-center gap-2">
             <Printer size={16} /> Download PDF
           </button>
         </div>
       </Modal>
+
+      {/* MODAL LIGHTBOX PREVIEW GAMBAR BUKTI */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Bukti Transfer">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              <img
+                src={previewImage}
+                alt="Preview Bukti Transfer"
+                className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain"
+              />
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a
+              href={previewImage || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+            >
+              Buka Tab Baru
+            </a>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-md"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL DETAIL PENJUALAN */}
+      <Modal isOpen={!!selectedDetailRow} onClose={() => setSelectedDetailRow(null)} title="Informasi Penjualan Kavling">
+        {selectedDetailRow && (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer</p>
+                  <p className="text-lg font-black text-slate-900">{selectedDetailRow.namaCustomer}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${detailPenjualanData?.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
+                    detailPenjualanData?.status === 'BOOKED' ? 'bg-blue-100 text-blue-800' :
+                      detailPenjualanData?.status === 'PROSES' ? 'bg-yellow-100 text-yellow-800' :
+                        detailPenjualanData?.status === 'TERJUAL' || detailPenjualanData?.status === 'LUNAS' ? 'bg-emerald-100 text-emerald-800' :
+                          'bg-slate-200 text-slate-700'
+                    }`}>
+                    {detailPenjualanData?.status || 'DATA TERBATAS'}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Kavling</p>
+                  <p className="text-sm font-semibold text-slate-800">{selectedDetailRow.kavling}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Tipe Unit</p>
+                  <p className="text-sm font-semibold text-slate-800">{detailPenjualanData?.tipe || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
+                  <p className="text-sm font-semibold text-slate-800">{detailPenjualanData?.pembiayaan?.replace('_', ' ') || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Harga Kavling Dasar</p>
+                  <p className="text-sm font-bold text-blue-700">{detailPenjualanData ? formatRupiah(detailPenjualanData.harga) : '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {detailPenjualanData && (
+              <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
+                <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3 border-b border-indigo-100 pb-2">Rincian Finansial Transaksi</h4>
+                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600 font-medium">Nilai Jual Dasar:</span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.harga || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600 font-medium">Lebih Tanah:</span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.lebihTanah || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-slate-600 font-medium">Biaya Strategis:</span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.biayaStrategis || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center col-span-2 mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <span className="text-sm font-bold text-slate-700">Total Harga Keseluruhan:</span>
+                    <span className="text-lg font-black text-slate-900">{formatRupiah(detailPenjualanData.totalHargaJual || 0)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setSelectedDetailRow(null)}
+                className="px-6 py-2 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 };
+
 export default Tagihan;
 </file>
 
@@ -8750,6 +9107,7 @@ interface PenjualanData {
   alamat: string;
   noTelepon: string;
   noIdentitas: string;
+  alasanBatal?: string | null;
   perusahaan: string;
   alamatKoresponden: string;
   perumahan: string;
@@ -8967,7 +9325,17 @@ const Penjualan = () => {
       }
 
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan penjualan.');
+      const responseData = error.response?.data;
+
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
   };
 
@@ -9024,7 +9392,6 @@ const Penjualan = () => {
     }
   }; const uploadBuktiMutation = useUploadBuktiPenjualan();
 
-  // 3. Tambahkan fungsi handler untuk file input
   const handleUploadBukti = async (id: string, type: "booking" | "dp", e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -9038,13 +9405,32 @@ const Penjualan = () => {
   };
 
   const expandedRowRender = (row: PenjualanData) => {
+    if (row.status === 'BATAL') {
+      return (
+        <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+          <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
+            <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
+            <span className="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800">
+              Status: BATAL
+            </span>
+          </div>
+          <div className="p-4 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm flex items-start gap-3">
+            <Ban size={20} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-bold mb-1">Transaksi ini telah dibatalkan.</p>
+              <p className="font-medium text-red-600">Alasan: {row.alasanBatal || 'Tidak ada alasan yang dicantumkan.'}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
           <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
 
           <div className="flex items-center gap-3">
-            {row.status === 'BOOKED' && (
+            {((row.status === 'BOOKED' || row.status === 'PROSES')) && (
               <button
                 onClick={() => {
                   setCancelData({ id: row.id!, alasanBatal: '' });

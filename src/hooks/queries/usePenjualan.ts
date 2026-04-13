@@ -21,6 +21,9 @@ export const useCreatePenjualan = () => {
     mutationFn: (data: CreatePenjualanDTO) => penjualanService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
     },
   });
 };
@@ -33,9 +36,12 @@ export const useCancelPenjualan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] }); // Tambahkan ini agar Tagihan yang batal ikut hilang
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
     },
   });
 };
+
 export const useUploadBuktiPenjualan = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -51,6 +57,7 @@ export const useUploadBuktiPenjualan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
     },
   });
 };

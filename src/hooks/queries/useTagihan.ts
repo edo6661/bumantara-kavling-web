@@ -4,7 +4,6 @@ import {
   type CreateTagihanDTO,
   type UpdateTagihanDTO,
 } from "../../services/tagihan.service";
-import { PENJUALAN_KEYS } from "./usePenjualan";
 
 export const TAGIHAN_KEYS = {
   all: ["tagihans"] as const,
@@ -36,6 +35,8 @@ export const useCreateTagihan = () => {
     mutationFn: (data: CreateTagihanDTO) => tagihanService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
     },
   });
 };
@@ -47,6 +48,8 @@ export const useUpdateTagihan = () => {
       tagihanService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
     },
   });
 };
@@ -57,6 +60,8 @@ export const useDeleteTagihan = () => {
     mutationFn: (id: number) => tagihanService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
     },
   });
 };
@@ -68,7 +73,8 @@ export const useUploadBuktiTagihan = () => {
       tagihanService.uploadBukti(id, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
     },
   });
 };
