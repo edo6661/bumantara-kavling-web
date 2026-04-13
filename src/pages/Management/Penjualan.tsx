@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -10,10 +10,10 @@ import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
-
 import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
+import { useGetKavlings } from "../../hooks/queries/useKavling"; // <-- Import Hook Kavling
 
 interface PenjualanData {
   id?: string;
@@ -83,31 +83,53 @@ const initialFormState: PenjualanData = {
   fileBuktiDp: '',
 };
 
-const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
-  Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
-  Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
-  Aruna: { lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
-  Ansara: { lb: 36, lt: [60, 103, 120, 122, 132, 143] }
-};
-
 const Penjualan = () => {
 
   const { data: penjualanData = [], isLoading } = useGetPenjualan();
   const { data: agentData = [] } = useGetAgents();
   const { data: perumahanData = [] } = useGetPerumahan();
+  const { data: kavlingList = [] } = useGetKavlings(); // <-- Ambil Data DB
 
   const createMutation = useCreatePenjualan();
+  const cancelMutation = useCancelPenjualan();
+  const uploadBuktiMutation = useUploadBuktiPenjualan();
 
   const [isNewAgent, setIsNewAgent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
-
+  const [isEditing, setIsEditing] = useState(false);
 
   const [printData, setPrintData] = useState<any>(null);
   const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
   const [printTitle, setPrintTitle] = useState('');
 
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
+
+  // === LOGIC FILTER KAVLING (AUTO-FILL) ===
+  const availableKavlings = useMemo(() => {
+    return kavlingList.filter(k =>
+      k.perumahan?.nama === formData.perumahan &&
+      // Tampilkan yang AVAILABLE atau yang SAAT INI sedang diedit
+      (k.status === 'AVAILABLE' || (isEditing && k.blok === formData.blok && k.nomorUnit === formData.nomorUnit))
+    );
+  }, [kavlingList, formData.perumahan, isEditing, formData.blok, formData.nomorUnit]);
+
+  const uniqueBloks = useMemo(() => {
+    const bloks = availableKavlings.map(k => k.blok);
+    return [...new Set(bloks)].sort();
+  }, [availableKavlings]);
+
+  const availableUnits = useMemo(() => {
+    if (!formData.blok) return [];
+    return availableKavlings
+      .filter(k => k.blok === formData.blok)
+      .map(k => k.nomorUnit)
+      .sort();
+  }, [availableKavlings, formData.blok]);
+
+  // === HANDLERS ===
   const columns = [
     { header: 'ID Penjualan', accessor: 'id' },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
@@ -135,11 +157,17 @@ const Penjualan = () => {
     },
   ];
 
-  const openModal = () => {
-    setFormData({
-      ...initialFormState,
-      tanggal: new Date().toISOString().split('T')[0]
-    });
+  const openModal = (item?: PenjualanData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggal: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+    }
     setIsNewAgent(false);
     setErrors({});
     setIsModalOpen(true);
@@ -148,6 +176,7 @@ const Penjualan = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
+    setIsEditing(false);
     setIsNewAgent(false);
     setErrors({});
   };
@@ -163,20 +192,15 @@ const Penjualan = () => {
         updates.dp = Number(finalValue) * 0.1;
       }
 
-      if (name === 'tipe') {
-        const selectedKavling = KAVLING_DATA[String(finalValue)];
-        updates.luasBangunan = selectedKavling ? selectedKavling.lb : 0;
+      // Jika perumahan diubah, reset blok dan unit
+      if (name === 'perumahan') {
+        updates.blok = '';
+        updates.nomorUnit = '';
+        updates.tipe = '';
+        updates.luasBangunan = 0;
         updates.luasTanah = 0;
-
-
-        const tipeKavling = String(finalValue).toLowerCase();
-        if (["ansara", "adara", "asvara"].includes(tipeKavling)) {
-          updates.diskonPenjualan = 6000000;
-        } else if (tipeKavling === "aruna") {
-          updates.diskonPenjualan = 10000000;
-        } else {
-          updates.diskonPenjualan = 0;
-        }
+        updates.hargaJual = 0;
+        updates.dp = 0;
       }
 
       return { ...prev, ...updates };
@@ -187,6 +211,50 @@ const Penjualan = () => {
     }
   };
 
+  const handleBlokChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const blok = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      blok,
+      nomorUnit: '',
+      tipe: '',
+      luasBangunan: 0,
+      luasTanah: 0,
+      hargaJual: 0,
+      dp: 0
+    }));
+  };
+
+  const handleUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const unit = e.target.value;
+    const selectedKav = availableKavlings.find(k => k.blok === formData.blok && k.nomorUnit === unit);
+
+    if (selectedKav) {
+      setFormData(prev => {
+        let diskonPenjualan = 0;
+        const tipeKavling = selectedKav.namaTipe.toLowerCase();
+
+        if (["ansara", "adara", "asvara"].includes(tipeKavling)) {
+          diskonPenjualan = 6000000;
+        } else if (tipeKavling === "aruna") {
+          diskonPenjualan = 10000000;
+        }
+
+        return {
+          ...prev,
+          nomorUnit: unit,
+          tipe: selectedKav.namaTipe,
+          luasBangunan: selectedKav.luasBangunan,
+          luasTanah: selectedKav.luasTanah,
+          hargaJual: selectedKav.hargaJual,
+          dp: selectedKav.hargaJual * 0.1,
+          diskonPenjualan
+        };
+      });
+    } else {
+      setFormData(prev => ({ ...prev, nomorUnit: unit }));
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
@@ -242,16 +310,13 @@ const Penjualan = () => {
       const result = await createMutation.mutateAsync(payload);
       closeModal();
 
-
-      if (result) {
+      if (result && !isEditing) {
         setPrintData({ ...formData, id: result.noTransaksi, nominalCetak: formData.bookingFee });
         setPrintType('invoice');
         setPrintTitle('Invoice Booking Fee');
       }
-
     } catch (error: any) {
       const responseData = error.response?.data;
-
       if (responseData?.error && Array.isArray(responseData.error)) {
         const backendErrors: Record<string, string> = {};
         responseData.error.forEach((err: { field: string; message: string }) => {
@@ -261,6 +326,34 @@ const Penjualan = () => {
       } else {
         alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
       }
+    }
+  };
+
+  const handleCancelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (cancelData.alasanBatal.length < 5) {
+      alert("Alasan pembatalan minimal 5 karakter.");
+      return;
+    }
+    try {
+      await cancelMutation.mutateAsync({ id: cancelData.id, alasanBatal: cancelData.alasanBatal });
+      setIsCancelModalOpen(false);
+      setCancelData({ id: '', alasanBatal: '' });
+      alert("Penjualan berhasil dibatalkan dan status kavling kembali Available.");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal membatalkan penjualan.");
+    }
+  };
+
+  const handleUploadBukti = async (id: string, type: "booking" | "dp", e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await uploadBuktiMutation.mutateAsync({ id, type, file });
+      alert(`Bukti ${type === "booking" ? "Booking" : "DP"} berhasil diunggah! SPR akan otomatis di-generate (jika booking).`);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal mengunggah bukti");
     }
   };
 
@@ -291,42 +384,6 @@ const Penjualan = () => {
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
     const message = `Halo Bapak/Ibu ${row.nama}, berikut kami kirimkan ${type} untuk unit Kavling ${row.perumahan} Blok ${row.blok}-${row.nomorUnit}. Terima kasih.`;
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
-  };
-
-  const cancelMutation = useCancelPenjualan();
-
-
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
-
-
-  const handleCancelSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (cancelData.alasanBatal.length < 5) {
-      alert("Alasan pembatalan minimal 5 karakter.");
-      return;
-    }
-
-    try {
-      await cancelMutation.mutateAsync({ id: cancelData.id, alasanBatal: cancelData.alasanBatal });
-      setIsCancelModalOpen(false);
-      setCancelData({ id: '', alasanBatal: '' });
-      alert("Penjualan berhasil dibatalkan dan status kavling kembali Available.");
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal membatalkan penjualan.");
-    }
-  }; const uploadBuktiMutation = useUploadBuktiPenjualan();
-
-  const handleUploadBukti = async (id: string, type: "booking" | "dp", e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      await uploadBuktiMutation.mutateAsync({ id, type, file });
-      alert(`Bukti ${type === "booking" ? "Booking" : "DP"} berhasil diunggah! SPR akan otomatis di-generate (jika booking).`);
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah bukti");
-    }
   };
 
   const expandedRowRender = (row: PenjualanData) => {
@@ -470,10 +527,11 @@ const Penjualan = () => {
         columns={columns}
         data={penjualanData}
         onAdd={() => openModal()}
+        onEdit={(item) => openModal(item as PenjualanData)}
         expandedRowRender={expandedRowRender}
       />
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Tambah Penjualan Baru">
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Penjualan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-6">
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
@@ -523,8 +581,8 @@ const Penjualan = () => {
                   </div>
                 )}
               </div>
-              <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} />
+              <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} disabled={isEditing} />
+              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} disabled={isEditing} />
               <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
               <Input label="Perusahaan (Opsional)" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
               <div className="md:col-span-2">
@@ -535,44 +593,90 @@ const Penjualan = () => {
 
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Perumahan"
-                name="perumahan"
-                value={formData.perumahan}
+
+            {/* GRID LAYOUT MODIFIED */}
+            <div className="space-y-4">
+
+              {/* Row 1: Perumahan & Tipe Kavling */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Perumahan"
+                  name="perumahan"
+                  value={formData.perumahan}
+                  onChange={handleChange}
+                  error={errors.perumahan}
+                  disabled={isEditing}
+                  options={[
+                    { value: '', label: '-- Pilih Perumahan --' },
+                    ...perumahanData.map((p: any) => ({ value: p.nama, label: p.nama }))
+                  ]}
+                />
+                <Input
+                  label="Tipe Kavling"
+                  name="tipe"
+                  value={formData.tipe}
+                  readOnly
+                  className="bg-gray-100 text-gray-600 cursor-not-allowed px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full"
+                />
+              </div>
+
+              {/* Row 2: Blok & No Unit */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Blok"
+                  name="blok"
+                  value={formData.blok}
+                  onChange={handleBlokChange}
+                  error={errors.blok}
+                  disabled={isEditing || !formData.perumahan}
+                  options={[
+                    { value: '', label: '-- Pilih Blok --' },
+                    ...uniqueBloks.map(b => ({ value: b, label: b }))
+                  ]}
+                />
+                <Select
+                  label="Nomor Unit"
+                  name="nomorUnit"
+                  value={formData.nomorUnit}
+                  onChange={handleUnitChange}
+                  error={errors.nomorUnit}
+                  disabled={isEditing || !formData.blok}
+                  options={[
+                    { value: '', label: '-- Pilih Unit --' },
+                    ...availableUnits.map(u => ({ value: u, label: u }))
+                  ]}
+                />
+              </div>
+
+              {/* Row 3: Luas Tanah & Luas Bangunan */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Luas Tanah (m²)"
+                  name="luasTanah"
+                  type="number"
+                  value={formData.luasTanah || ''}
+                  readOnly
+                  className="bg-gray-100 text-gray-600 cursor-not-allowed px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full"
+                />
+                <Input
+                  label="Luas Bangunan (m²)"
+                  name="luasBangunan"
+                  type="number"
+                  value={formData.luasBangunan || ''}
+                  readOnly
+                  className="bg-gray-100 text-gray-600 cursor-not-allowed px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full"
+                />
+              </div>
+
+              {/* Harga Jual - Editable */}
+              <Input
+                label="Harga Jual (Rp)"
+                type="number"
+                name="hargaJual"
+                value={formData.hargaJual || ''}
                 onChange={handleChange}
-                error={errors.perumahan}
-                options={[
-                  { value: '', label: '-- Pilih Perumahan --' },
-                  ...perumahanData.map((p: any) => ({ value: p.nama, label: p.nama }))
-                ]}
+                error={errors.hargaJual}
               />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
-              <Select
-                label="Tipe Kavling"
-                name="tipe"
-                value={formData.tipe}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih Tipe --' },
-                  ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))
-                ]}
-              />
-              <Select
-                label="Luas Tanah (LT)"
-                name="luasTanah"
-                value={formData.luasTanah || ''}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih LT --' },
-                  ...(formData.tipe && KAVLING_DATA[formData.tipe]
-                    ? [...KAVLING_DATA[formData.tipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }))
-                    : [])
-                ]}
-              />
-              <Input label="Luas Bangunan (LB)" name="luasBangunan" type="number" value={formData.luasBangunan || ''} readOnly />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} />
             </div>
           </div>
 
@@ -618,10 +722,10 @@ const Penjualan = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
               Batal
             </button>
-            <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50">
+            <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50">
               {createMutation.isPending ? 'Memproses...' : 'Simpan Penjualan'}
             </button>
           </div>
@@ -711,6 +815,7 @@ const Penjualan = () => {
           </button>
         </div>
       </Modal>
+
       <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Batalkan Penjualan">
         <form onSubmit={handleCancelSubmit} className="space-y-4">
           <div className="p-4 bg-red-50 text-red-800 border border-red-100 rounded-xl text-sm font-medium">
@@ -732,6 +837,7 @@ const Penjualan = () => {
           </div>
         </form>
       </Modal>
+
     </div>
   );
 };

@@ -47,8 +47,8 @@ export interface CreateKavlingDTO {
 export const kavlingService = {
   getAll: async (perumahanId?: number): Promise<KavlingData[]> => {
     const query = perumahanId
-      ? `?limit=100&perumahanId=${perumahanId}`
-      : "?limit=100";
+      ? `?limit=500&perumahanId=${perumahanId}`
+      : "?limit=500";
     const response = await api.get(`/kavling${query}`);
     return response.data.data.items;
   },
