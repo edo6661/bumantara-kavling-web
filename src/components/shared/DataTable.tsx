@@ -1,6 +1,7 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
 
 interface Column {
   header: string;
@@ -16,22 +17,47 @@ interface DataTableProps {
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
   expandedRowRender?: (row: any) => React.ReactNode;
+
+
+  serverSide?: boolean;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
-const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowRender }: DataTableProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
+const DataTable = ({
+  title, columns, data, onAdd, onEdit, onDelete, expandedRowRender,
+  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
+}: DataTableProps) => {
+
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
 
+
+  useEffect(() => {
+    if (serverSide && onSearchChange) {
+      const timeoutId = setTimeout(() => {
+        if (localSearchTerm !== searchTerm) {
+          onSearchChange(localSearchTerm);
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
+
   const toggleRow = (rowIndex: number) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [rowIndex]: !prev[rowIndex],
-    }));
+    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
   };
 
+
   const filteredData = useMemo(() => {
-    if (!searchTerm) return data;
-    const lowercasedTerm = searchTerm.toLowerCase();
+    if (serverSide) return data;
+    if (!localSearchTerm) return data;
+
+    const lowercasedTerm = localSearchTerm.toLowerCase();
     return data.filter((row) => {
       return columns.some((col) => {
         const value = row[col.accessor];
@@ -39,9 +65,23 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowR
         return String(value).toLowerCase().includes(lowercasedTerm);
       });
     });
-  }, [data, searchTerm, columns]);
+  }, [data, localSearchTerm, columns, serverSide]);
 
   const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
+
+
+  const getPageNumbers = () => {
+    const delta = 1;
+    const range = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift("...");
+    if (page + delta < totalPages - 1) range.push("...");
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-md/10">
@@ -49,9 +89,11 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowR
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h2>
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-full border border-slate-200/50">
-              {filteredData.length} Data
-            </span>
+            {!serverSide && (
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-full border border-slate-200/50">
+                {filteredData.length} Data
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
         </div>
@@ -62,8 +104,8 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowR
             <input
               type="text"
               placeholder="Cari data..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={localSearchTerm}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all shadow-sm/5 text-slate-900 placeholder:text-slate-400"
             />
           </div>
@@ -84,9 +126,7 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowR
         <table className="w-full text-sm text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-widest border-b border-slate-100">
-              {expandedRowRender && (
-                <th className="px-4 py-4 w-10 text-center"></th>
-              )}
+              {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
               {columns.map((col, index) => (
                 <th key={index} className="px-6 py-4 whitespace-nowrap font-bold">
                   {col.header}
@@ -164,7 +204,7 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowR
                     </div>
                     <h3 className="text-slate-900 font-bold mb-1">Data tidak ditemukan</h3>
                     <p className="text-slate-400 text-xs font-medium leading-relaxed">
-                      Kami tidak dapat menemukan data yang Anda cari. Coba ubah kata kunci atau tambahkan data baru.
+                      Kami tidak dapat menemukan data yang Anda cari.
                     </p>
                   </div>
                 </td>
@@ -173,6 +213,49 @@ const DataTable = ({ title, columns, data, onAdd, onEdit, onDelete, expandedRowR
           </tbody>
         </table>
       </div>
+
+      {/* CUSTOM PAGINATION UI */}
+      {serverSide && totalPages > 1 && (
+        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/50 backdrop-blur-sm">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Halaman {page} dari {totalPages}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onPageChange?.(page - 1)}
+              disabled={page === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            {getPageNumbers().map((num, idx) => (
+              num === "..." ? (
+                <span key={idx} className="px-2 text-slate-400 font-bold">...</span>
+              ) : (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange?.(num as number)}
+                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${page === num
+                    ? 'bg-black text-white shadow-md'
+                    : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                >
+                  {num}
+                </button>
+              )
+            ))}
+
+            <button
+              onClick={() => onPageChange?.(page + 1)}
+              disabled={page === totalPages}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,19 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   kavlingService,
   type CreateKavlingDTO,
+  type GetKavlingParams,
 } from "../../services/kavling.service";
 
 export const KAVLING_KEYS = {
   all: ["kavlings"] as const,
-  byPerumahan: (perumahanId: number) => ["kavlings", { perumahanId }] as const,
+  list: (params: GetKavlingParams) => ["kavlings", params] as const,
 };
-
-export const useGetKavlings = (perumahanId?: number) => {
+export const useGetKavlings = (params: GetKavlingParams = {}) => {
   return useQuery({
-    queryKey: perumahanId
-      ? KAVLING_KEYS.byPerumahan(perumahanId)
-      : KAVLING_KEYS.all,
-    queryFn: () => kavlingService.getAll(perumahanId),
+    queryKey: KAVLING_KEYS.list(params),
+    queryFn: () => kavlingService.getAll(params),
   });
 };
 

@@ -43,14 +43,33 @@ export interface CreateKavlingDTO {
   fileSertifikatTanah?: string;
   fileNopPbb?: string;
 }
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
 
+export interface KavlingResponse {
+  items: KavlingData[];
+  meta: PaginationMeta;
+}
+
+export interface GetKavlingParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  perumahanId?: number;
+  status?: string;
+}
 export const kavlingService = {
-  getAll: async (perumahanId?: number): Promise<KavlingData[]> => {
-    const query = perumahanId
-      ? `?limit=500&perumahanId=${perumahanId}`
-      : "?limit=500";
-    const response = await api.get(`/kavling${query}`);
-    return response.data.data.items;
+  getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {
+    const response = await api.get("/kavling", {
+      params: { limit: 10, page: 1, ...params },
+    });
+    return response.data.data;
   },
 
   create: async (data: CreateKavlingDTO) => {

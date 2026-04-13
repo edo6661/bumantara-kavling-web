@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { isAxiosError } from 'axios';
+import { UserCircle } from "lucide-react";
+
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -6,7 +10,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import { formatRupiah } from "../../utils/formatters";
 import { useAuth } from "../../context/AuthContext";
-import { UserCircle } from "lucide-react";
+
 import {
   useGetKavlings,
   useCreateKavling,
@@ -16,7 +20,6 @@ import {
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
 import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
-import { isAxiosError } from 'axios';
 
 interface KavlingFormState {
   id: number | '';
@@ -60,9 +63,26 @@ const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
 const Kavling = () => {
   const { selectedPerumahan } = useAuth();
 
+  // === LOGIC URL PARAMS ===
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const limit = 10; // Sesuaikan limit per halaman
+
   const { data: perumahanList = [] } = useGetPerumahan();
   const { data: bankList = [] } = useGetBankRekening();
-  const { data: kavlingData = [], isLoading } = useGetKavlings(selectedPerumahan ? Number(selectedPerumahan.id) : undefined);
+
+  // Gunakan parameter objek untuk fetch API berdasarkan page dan search
+  const { data: kavlingResponse, isLoading } = useGetKavlings({
+    page,
+    limit,
+    search,
+    perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined
+  });
+
+  // Ekstrak data dan meta dari response
+  const kavlingData = kavlingResponse?.items || [];
+  const meta = kavlingResponse?.meta;
 
   const createMutation = useCreateKavling();
   const updateMutation = useUpdateKavling();
@@ -72,6 +92,26 @@ const Kavling = () => {
   const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
+
+  // === HANDLER URL PARAMS ===
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => {
+      prev.set('page', String(newPage));
+      return prev;
+    });
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) {
+        prev.set('search', newSearch);
+      } else {
+        prev.delete('search');
+      }
+      prev.set('page', '1'); // Reset ke halaman 1 saat pencarian berubah
+      return prev;
+    });
+  };
 
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
@@ -99,7 +139,6 @@ const Kavling = () => {
     },
   ];
 
-  // FUNGSI BARU: Untuk menampilkan detail pembeli saat baris (TR) diklik
   const expandedRowRender = (row: KavlingData) => {
     const activeSale = row.penjualan?.[0]; // Backend sudah mengirim relasi penjualan yang tidak BATAL
     const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
@@ -218,7 +257,7 @@ const Kavling = () => {
       luasBangunan: Number(formData.luasBangunan),
       luasTanah: Number(formData.luasTanah),
       hargaJual: Number(formData.hargaJual),
-      status: formData.status, // Pastikan mengirim status yang valid (AVAILABLE, BOOKING, dll)
+      status: formData.status,
       rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
       filePbg: formData.filePbg || undefined,
       fileSertifikatTanah: formData.fileSertifikatTanah || undefined,
@@ -274,7 +313,15 @@ const Kavling = () => {
         onAdd={() => openModal()}
         onEdit={(item) => openModal(item as KavlingData)}
         onDelete={(item) => handleDelete(item as KavlingData)}
-        expandedRowRender={expandedRowRender} // Menerapkan fitur expand
+        expandedRowRender={expandedRowRender}
+
+        // === PROPS UNTUK SERVER SIDE PAGINATION ===
+        serverSide={true}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
@@ -301,7 +348,6 @@ const Kavling = () => {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                // Hanya status yang valid sesuai Enum UnitStatus Backend
                 options={[
                   { value: 'AVAILABLE', label: 'Available' },
                   { value: 'HOLD', label: 'Hold' },
