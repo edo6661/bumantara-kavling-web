@@ -14,7 +14,7 @@ import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBukti
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetKavlings } from "../../hooks/queries/useKavling"; // <-- Import Hook Kavling
-
+import CurrencyInput from "../../components/shared/CurrencyInput";
 interface PenjualanData {
   id?: string;
   tanggal: string;
@@ -203,6 +203,20 @@ const Penjualan = () => {
         updates.dp = 0;
       }
 
+      return { ...prev, ...updates };
+    });
+
+    if (errors[name as keyof PenjualanData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => {
+      const updates: any = { [name]: value };
+      // Auto kalkulasi DP 10% jika Harga Jual diubah
+      if (name === 'hargaJual') {
+        updates.dp = value * 0.1;
+      }
       return { ...prev, ...updates };
     });
 
@@ -669,13 +683,13 @@ const Penjualan = () => {
               </div>
 
               {/* Harga Jual - Editable */}
-              <Input
-                label="Harga Jual (Rp)"
-                type="number"
+              <CurrencyInput
+                label="Harga Jual"
                 name="hargaJual"
-                value={formData.hargaJual || ''}
-                onChange={handleChange}
+                value={formData.hargaJual}
+                onValueChange={handleCurrencyChange}
                 error={errors.hargaJual}
+                placeholder="0"
               />
             </div>
           </div>
@@ -696,8 +710,20 @@ const Penjualan = () => {
                 ]}
                 error={errors.caraPembayaran}
               />
-              <Input label="Down Payment (DP) - Rp" type="number" name="dp" value={formData.dp || ''} onChange={handleChange} placeholder="Otomatis 10% dari Harga Jual" />
-              <Input label="Diskon Penjualan (Rp)" type="number" name="diskonPenjualan" value={formData.diskonPenjualan || ''} onChange={handleChange} />
+              <CurrencyInput
+                label="Down Payment (DP)"
+                name="dp"
+                value={formData.dp}
+                onValueChange={handleCurrencyChange}
+                placeholder="Otomatis 10% dari Harga Jual"
+              />
+              <CurrencyInput
+                label="Diskon Penjualan"
+                name="diskonPenjualan"
+                value={formData.diskonPenjualan}
+                onValueChange={handleCurrencyChange}
+                placeholder="0"
+              />
             </div>
             {formData.caraPembayaran && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
@@ -709,13 +735,13 @@ const Penjualan = () => {
                   placeholder="Contoh: BCA, BSI, Mandiri"
                   error={errors.bank}
                 />
-                <Input
-                  label={formData.caraPembayaran === 'KPR' ? "Nilai Pengajuan KPR (Rp)" : "Nilai Pengajuan Plafon (Rp)"}
-                  type="number"
+                <CurrencyInput
+                  label={formData.caraPembayaran === 'KPR' ? "Nilai Pengajuan KPR" : "Nilai Pengajuan Plafon"}
                   name="nilaiPengajuanKpr"
-                  value={formData.nilaiPengajuanKpr || ''}
-                  onChange={handleChange}
+                  value={formData.nilaiPengajuanKpr}
+                  onValueChange={handleCurrencyChange}
                   error={errors.nilaiPengajuanKpr}
+                  placeholder="0"
                 />
               </div>
             )}
