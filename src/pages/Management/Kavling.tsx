@@ -243,7 +243,7 @@ const Kavling = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title={`Master Data Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
+        title={`Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
         columns={columns}
         data={kavlingData}
         onAdd={() => openModal()}

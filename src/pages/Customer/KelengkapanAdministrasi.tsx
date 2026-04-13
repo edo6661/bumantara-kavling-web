@@ -3,15 +3,21 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
+import { formatRupiah, formatDate } from "../../utils/formatters";
 import { useGetCustomers, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import type { CustomerData, CustomerDocType } from "../../services/customer.service";
-import { XCircle, FileUp, ImageIcon, ZoomIn } from "lucide-react";
+import { XCircle, FileUp, ImageIcon, ZoomIn, ShoppingCart } from "lucide-react";
+
 const KelengkapanAdministrasi = () => {
   const { data: customers = [], isLoading } = useGetCustomers();
+  const { data: penjualanData = [], isLoading: isLoadingPenjualan } = useGetPenjualan();
   const uploadMutation = useUploadCustomerDoc();
+
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const renderTableThumbnail = (url: string | null) => {
     if (!url) return (
       <div className="flex items-center gap-2 text-red-400 font-medium text-[10px] uppercase tracking-wider">
@@ -33,24 +39,14 @@ const KelengkapanAdministrasi = () => {
       </div>
     );
   };
+
   const columns = [
     { header: 'Nama Customer', accessor: 'nama' },
-    {
-      header: 'KTP',
-      accessor: 'fileKtp',
-      render: (val: string | null) => renderTableThumbnail(val)
-    },
-    {
-      header: 'KK',
-      accessor: 'fileKk',
-      render: (val: string | null) => renderTableThumbnail(val)
-    },
-    {
-      header: 'NPWP',
-      accessor: 'fileNpwp',
-      render: (val: string | null) => renderTableThumbnail(val)
-    },
+    { header: 'KTP', accessor: 'fileKtp', render: (val: string | null) => renderTableThumbnail(val) },
+    { header: 'KK', accessor: 'fileKk', render: (val: string | null) => renderTableThumbnail(val) },
+    { header: 'NPWP', accessor: 'fileNpwp', render: (val: string | null) => renderTableThumbnail(val) },
   ];
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: CustomerDocType) => {
     const file = e.target.files?.[0];
     if (!file || !selectedCustomer) return;
@@ -60,16 +56,63 @@ const KelengkapanAdministrasi = () => {
       return;
     }
     try {
-      await uploadMutation.mutateAsync({
-        id: selectedCustomer.id,
-        docType,
-        file
-      });
+      await uploadMutation.mutateAsync({ id: selectedCustomer.id, docType, file });
     } catch (error: any) {
       alert(error.response?.data?.message || "Gagal mengunggah gambar");
     }
   };
-  if (isLoading) return <PageLoader />;
+
+  const expandedRowRender = (row: CustomerData) => {
+    const customerSales = penjualanData.filter((p: any) => p.noIdentitas === row.nikKtp);
+    return (
+      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <ShoppingCart size={16} className="text-blue-600" /> Riwayat Pembelian & Penjualan
+          </h4>
+        </div>
+        {customerSales.length > 0 ? (
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
+                  <th className="p-3 font-bold">Tanggal</th>
+                  <th className="p-3 font-bold">Kavling</th>
+                  <th className="p-3 font-bold">Pembayaran</th>
+                  <th className="p-3 font-bold text-right">Nilai Transaksi</th>
+                  <th className="p-3 font-bold text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {customerSales.map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
+                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.tanggal)}</td>
+                    <td className="p-3 font-semibold text-slate-800">{item.perumahan} - Blok {item.blok}-{item.nomorUnit}</td>
+                    <td className="p-3 text-slate-600">{item.caraPembayaran.replace('_', ' ')}</td>
+                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.hargaJual)}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
+                        item.status === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                        {item.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">
+            Belum ada riwayat transaksi penjualan untuk customer ini.
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading || isLoadingPenjualan) return <PageLoader />;
+
   return (
     <div className="space-y-6">
       <DataTable
@@ -80,8 +123,10 @@ const KelengkapanAdministrasi = () => {
           setSelectedCustomer(item as CustomerData);
           setIsManageModalOpen(true);
         }}
+        expandedRowRender={expandedRowRender}
       />
-      {/* MODAL 1: KELOLA & UPLOAD */}
+
+      {/* MODAL KELOLA & UPLOAD */}
       <Modal
         isOpen={isManageModalOpen}
         onClose={() => setIsManageModalOpen(false)}
@@ -94,19 +139,14 @@ const KelengkapanAdministrasi = () => {
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                   {type.replace('file', '')}
                 </span>
-                {/* Box Preview di dalam Form */}
                 <div
-                  onClick={() => selectedCustomer?.[type] && setPreviewImage(selectedCustomer[type])}
-                  className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all
-                    ${selectedCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'}`}
+                  onClick={() => selectedCustomer?.[type] && setPreviewImage(selectedCustomer[type] as string)}
+                  className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'
+                    }`}
                 >
                   {selectedCustomer?.[type] ? (
                     <>
-                      <img
-                        src={selectedCustomer[type]!}
-                        alt={type}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
+                      <img src={selectedCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                       <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <ZoomIn size={20} className="text-white" />
                       </div>
@@ -127,11 +167,13 @@ const KelengkapanAdministrasi = () => {
               </div>
             ))}
           </div>
+
           {uploadMutation.isPending && (
             <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-xs animate-pulse">
               <FileUp size={16} /> Sedang Menyinkronkan...
             </div>
           )}
+
           <div className="flex justify-end pt-4 border-t">
             <button
               onClick={() => setIsManageModalOpen(false)}
@@ -142,20 +184,13 @@ const KelengkapanAdministrasi = () => {
           </div>
         </div>
       </Modal>
-      {/* MODAL 2: LIGHTBOX (PREVIEW BESAR) */}
-      <Modal
-        isOpen={!!previewImage}
-        onClose={() => setPreviewImage(null)}
-        title="Pratinjau Dokumen"
-      >
+
+      {/* MODAL LIGHTBOX PREVIEW */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img
-                src={previewImage}
-                alt="Preview Full"
-                className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain"
-              />
+              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
             </div>
           )}
           <div className="mt-6 flex gap-3">
@@ -179,4 +214,5 @@ const KelengkapanAdministrasi = () => {
     </div>
   );
 };
+
 export default KelengkapanAdministrasi;

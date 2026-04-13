@@ -669,7 +669,7 @@ const Tagihan = () => {
                   <p className="text-sm font-semibold text-slate-800">{detailPenjualanData?.pembiayaan?.replace('_', ' ') || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase">Harga Kavling Dasar</p>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Harga Jual</p>
                   <p className="text-sm font-bold text-blue-700">{detailPenjualanData ? formatRupiah(detailPenjualanData.harga) : '-'}</p>
                 </div>
               </div>
@@ -680,7 +680,7 @@ const Tagihan = () => {
                 <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3 border-b border-indigo-100 pb-2">Rincian Finansial Transaksi</h4>
                 <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                   <div className="flex justify-between">
-                    <span className="text-sm text-slate-600 font-medium">Nilai Jual Dasar:</span>
+                    <span className="text-sm text-slate-600 font-medium">Harga Jual:</span>
                     <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.harga || 0)}</span>
                   </div>
                   <div className="flex justify-between">
@@ -693,7 +693,7 @@ const Tagihan = () => {
                   </div>
                   <div className="flex justify-between items-center col-span-2 mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
                     <span className="text-sm font-bold text-slate-700">Total Harga Keseluruhan:</span>
-                    <span className="text-lg font-black text-slate-900">{formatRupiah(detailPenjualanData.totalHargaJual || 0)}</span>
+                    <span className="text-lg font-black text-slate-900">{formatRupiah((detailPenjualanData.harga + detailPenjualanData.lebihTanah + detailPenjualanData.biayaStrategis) || 0)}</span>
                   </div>
                 </div>
               </div>
