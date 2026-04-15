@@ -23,6 +23,7 @@ export interface CreatePenjualanDTO {
   bank?: string;
   nilaiPengajuanKpr?: number;
   agent: string;
+  rekeningTujuanId?: number;
 }
 
 export const penjualanService = {
