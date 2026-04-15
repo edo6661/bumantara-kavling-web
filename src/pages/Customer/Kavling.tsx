@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // <file path="src/pages/Customer/Kavling.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -71,11 +72,13 @@ interface KavlingData {
   ajbTotalBphtbPph: number;
   ajbSelisihPajakPbb: number;
   ajbUping: number;
+  rekeningTujuanId: number;
   notarisId: number | string;
 }
 
 const initialFormState: KavlingData = {
   id: '',
+  rekeningTujuanId: 0,
   perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
   tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
   harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
@@ -192,6 +195,7 @@ const CustomerKavling = () => {
       luasBangunan: getNum(formData.luasBangunan),
       luasTanah: getNum(formData.luasTanah),
       hargaJualKavling: getNum(formData.harga),
+      rekeningTujuanId: getNum(formData.rekeningTujuanId),
 
       notarisId: getNum(formData.notarisId),
       lantai: getStr(formData.lantai),

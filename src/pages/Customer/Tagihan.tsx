@@ -22,6 +22,7 @@ import {
 import { useGetCustomers } from "../../hooks/queries/useCustomer";
 import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
 import type { TagihanData } from "../../services/tagihan.service";
+import { useAuth } from '../../context/AuthContext';
 
 interface TagihanFormState {
   id: number | '';
@@ -55,6 +56,7 @@ const Tagihan = () => {
   const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
   const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 100 });
+  const { selectedPerumahan } = useAuth();
 
   const createMutation = useCreateTagihan();
   const updateMutation = useUpdateTagihan();
@@ -268,7 +270,7 @@ const Tagihan = () => {
       return;
     }
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
-    const documentLink = `http://localhost:5173/verify/${printData.noTagihan}`;
+    const documentLink = `https://bumantara.com/verify/${printData.noTagihan}`;
 
     let message = `Halo Bapak/Ibu *${printData.namaCustomer}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk tagihan *${printData.pembayaran}* (Unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*).\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
 
@@ -631,9 +633,13 @@ const Tagihan = () => {
                 <p className="text-slate-500 text-sm mt-2 font-medium">{printTitle} - No: {printData.noTagihan}</p>
                 <p className="text-slate-500 text-sm mt-1">Tanggal: {formatDate(printData.tanggal || new Date().toISOString())}</p>
               </div>
-              <div className="text-right">
-                <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
-                <p className="m-0 mt-1 text-xs text-slate-500">Divisi Marketing & Keuangan</p>
+              <div className="text-right flex flex-col items-end">
+                {selectedPerumahan?.logo ? (
+                  <img src={selectedPerumahan.logo} alt="Logo" className="h-10 object-contain mb-2" crossOrigin="anonymous" />
+                ) : (
+                  <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
+                )}
+                <p className="m-0 text-xs text-slate-500 font-bold">Divisi Marketing & Keuangan</p>
               </div>
             </div>
 
@@ -667,7 +673,20 @@ const Tagihan = () => {
               </tbody>
             </table>
 
-            <div className="flex justify-end mb-8">
+            <div className="flex justify-between mb-8 gap-4">
+              {printType === 'invoice' && printData.rekeningTujuan ? (
+                <div className="flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">
+                    Transfer Pembayaran Ke:
+                  </span>
+                  <p className="text-sm font-bold text-slate-900">Bank {printData.rekeningTujuan.namaBank}</p>
+                  <p className="text-xl font-black text-blue-700 my-0.5">{printData.rekeningTujuan.noRekening}</p>
+                  <p className="text-xs font-medium text-slate-600">a/n {printData.rekeningTujuan.atasNama}</p>
+                </div>
+              ) : (
+                <div className="flex-1"></div>
+              )}
+
               <div className="w-[350px]">
                 <div className="flex justify-between items-center p-4 bg-slate-100 rounded-lg border border-slate-200">
                   <span className="text-sm font-bold text-slate-600 uppercase">

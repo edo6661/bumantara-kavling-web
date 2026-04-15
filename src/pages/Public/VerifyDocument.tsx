@@ -45,9 +45,13 @@ const VerifyDocument = () => {
             <p className="text-slate-500 text-sm mt-2 font-medium">No: {invData.noDokumen}</p>
             <p className="text-slate-500 text-sm mt-1 font-medium">Tanggal: {formatDate(invData.tanggalDibuat)}</p>
           </div>
-          <div className="text-right">
-            <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
-            <p className="m-0 mt-1 text-xs text-slate-500 font-bold">Divisi Marketing & Keuangan</p>
+          <div className="text-right flex flex-col items-end">
+            {invData.kavling.logoPerumahan ? (
+              <img src={invData.kavling.logoPerumahan} alt="Logo Perumahan" className="h-10 object-contain mb-2" />
+            ) : (
+              <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
+            )}
+            <p className="m-0 text-xs text-slate-500 font-bold">Divisi Marketing & Keuangan</p>
           </div>
         </div>
 
@@ -84,9 +88,21 @@ const VerifyDocument = () => {
           </tbody>
         </table>
 
-        {/* Ringkasan Biaya */}
-        <div className="flex justify-end mb-8">
-          <div className="w-full sm:w-[350px]">
+        {/* Ringkasan Biaya & Bank */}
+        <div className="flex flex-col md:flex-row justify-between gap-6 mb-8">
+          {/* Rekening Info */}
+          {invData.status !== 'LUNAS' && invData.kavling.rekeningTujuan ? (
+            <div className="flex-1 p-5 bg-blue-50 rounded-xl border border-blue-100">
+              <span className="text-xs font-bold text-blue-500 uppercase tracking-widest block mb-2">Transfer Pembayaran Ke:</span>
+              <p className="text-sm font-bold text-blue-900">Bank {invData.kavling.rekeningTujuan.namaBank}</p>
+              <p className="text-2xl font-black text-blue-700 my-1">{invData.kavling.rekeningTujuan.noRekening}</p>
+              <p className="text-xs font-medium text-blue-800">a/n {invData.kavling.rekeningTujuan.atasNama}</p>
+            </div>
+          ) : (
+            <div className="flex-1"></div>
+          )}
+
+          <div className="w-full md:w-[350px]">
             {/* Tampilkan Sisa Harga khusus tagihan Booking Fee/DP */}
             {(invData.pembayaran.toLowerCase().includes('booking') || invData.pembayaran.toLowerCase().includes('dp')) && (
               <div className="mb-4 space-y-2.5 p-4 bg-slate-50 rounded-lg border border-slate-200">
@@ -127,9 +143,13 @@ const VerifyDocument = () => {
           <p className="text-slate-500 text-sm mt-2 font-medium">No: {sprData.noDokumen}</p>
           <p className="text-slate-500 text-sm mt-1 font-medium">Tanggal: {formatDate(sprData.tanggalTransaksi)}</p>
         </div>
-        <div className="text-right">
-          <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
-          <p className="m-0 mt-1 text-xs text-slate-500 font-bold">Divisi Marketing & Keuangan</p>
+        <div className="text-right flex flex-col items-end">
+          {sprData.kavling.logoPerumahan ? (
+            <img src={sprData.kavling.logoPerumahan} alt="Logo Perumahan" className="h-10 object-contain mb-2" />
+          ) : (
+            <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
+          )}
+          <p className="m-0 text-xs text-slate-500 font-bold">Divisi Marketing & Keuangan</p>
         </div>
       </div>
 

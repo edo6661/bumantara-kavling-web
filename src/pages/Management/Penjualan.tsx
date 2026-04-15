@@ -865,9 +865,13 @@ const Penjualan = () => {
                 <p className="text-slate-500 text-sm mt-2 font-medium">No: {printData.id} / BMT / {new Date().getFullYear()}</p>
                 <p className="text-slate-500 text-sm mt-1">Tanggal: {formatDate(printData.tanggal || new Date().toISOString())}</p>
               </div>
-              <div className="text-right">
-                <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
-                <p className="m-0 mt-1 text-xs text-slate-500">Divisi Marketing & Keuangan</p>
+              <div className="text-right flex flex-col items-end">
+                {selectedPerumahan?.logo ? (
+                  <img src={selectedPerumahan.logo} alt="Logo" className="h-10 object-contain mb-2" crossOrigin="anonymous" />
+                ) : (
+                  <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
+                )}
+                <p className="m-0 text-xs text-slate-500 font-bold">Divisi Marketing & Keuangan</p>
               </div>
             </div>
 
@@ -904,7 +908,28 @@ const Penjualan = () => {
               </tbody>
             </table>
 
-            <div className="flex justify-end mb-8">
+            <div className="flex justify-between mb-8 gap-4">
+              {printType === 'invoice' && (() => {
+                let rekening = printData.rekeningTujuan;
+                // Jika dari form baru disubmit, lacak manual dari bankList
+                if (!rekening && printData.rekeningTujuanId) {
+                  const b = bankList.find((x: any) => x.id === Number(printData.rekeningTujuanId));
+                  if (b) rekening = { namaBank: b.namaBank, noRekening: b.noRekening, atasNama: b.atasNama };
+                }
+
+                if (!rekening) return <div className="flex-1"></div>;
+                return (
+                  <div className="flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">
+                      Transfer Pembayaran Ke:
+                    </span>
+                    <p className="text-sm font-bold text-slate-900">Bank {rekening.namaBank}</p>
+                    <p className="text-xl font-black text-blue-700 my-0.5">{rekening.noRekening}</p>
+                    <p className="text-xs font-medium text-slate-600">a/n {rekening.atasNama}</p>
+                  </div>
+                );
+              })()}
+
               <div className="w-[350px]">
                 {printTitle.includes('Booking Fee') && (
                   <div className="mb-4 space-y-2 p-4 bg-slate-50/80 rounded-lg border border-slate-200">

@@ -17,6 +17,12 @@ export interface VerifyInvoiceData {
     blok: string;
     nomorUnit: string;
     tipe: string;
+    logoPerumahan: string;
+    rekeningTujuan?: {
+      namaBank: string;
+      noRekening: string;
+      atasNama: string;
+    } | null;
   };
   transaksi: {
     caraPembayaran: string;
@@ -43,7 +49,13 @@ export interface VerifySprData {
   kavling: {
     perumahan: string;
     blokUnit: string;
+    logoPerumahan: string;
     tipe: string;
+    rekeningTujuan?: {
+      namaBank: string;
+      noRekening: string;
+      atasNama: string;
+    } | null;
   };
 }
 

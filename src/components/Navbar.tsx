@@ -36,18 +36,30 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           </h1>
         </div>
 
+        {/* --- UPDATE: TAMPILKAN LOGO PERUMAHAN DI MOBILE --- */}
         <div className="flex items-center gap-2 md:hidden">
-          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
-            B
-          </div>
-          <span className="font-heading font-bold text-lg text-gray-900 tracking-tight">Bumantaraz</span>
+          {selectedPerumahan?.logo ? (
+            <img src={selectedPerumahan.logo} alt="Logo" className="h-8 object-contain" />
+          ) : (
+            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
+              B
+            </div>
+          )}
+          <span className="font-heading font-bold text-lg text-gray-900 tracking-tight">
+            {selectedPerumahan?.nama || 'Bumantaraz'}
+          </span>
         </div>
       </div>
 
       <div className="flex items-center gap-3 md:gap-5">
         {selectedPerumahan && perumahanList && (
           <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-black/5 transition-all">
-            <Building size={16} className="text-slate-500" />
+            {/* --- UPDATE: TAMPILKAN LOGO KECIL DI SELECT BOX --- */}
+            {selectedPerumahan.logo ? (
+              <img src={selectedPerumahan.logo} alt="Icon" className="w-5 h-5 object-contain" />
+            ) : (
+              <Building size={16} className="text-slate-500" />
+            )}
             <select
               className="bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none w-32 md:w-auto"
               value={selectedPerumahan.id}

@@ -15,6 +15,11 @@ export interface TagihanData {
   status: string;
   fileBukti: string | null;
   reminderBerikutnya: string | null;
+  rekeningTujuan?: {
+    namaBank: string;
+    noRekening: string;
+    atasNama: string;
+  } | null;
   createdAt?: string;
   updatedAt?: string;
 }
