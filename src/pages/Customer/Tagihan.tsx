@@ -23,6 +23,7 @@ import { useGetCustomers } from "../../hooks/queries/useCustomer";
 import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
 import type { TagihanData } from "../../services/tagihan.service";
 import { useAuth } from '../../context/AuthContext';
+import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 
 interface TagihanFormState {
   id: number | '';
@@ -56,6 +57,7 @@ const Tagihan = () => {
   const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
   const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 100 });
+  const { data: bankList = [] } = useGetBankRekening();
   const { selectedPerumahan } = useAuth();
 
   const createMutation = useCreateTagihan();
@@ -247,6 +249,7 @@ const Tagihan = () => {
       });
     }
   };
+
   const handleCurrencyChange = (name: string, value: number) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
@@ -261,7 +264,6 @@ const Tagihan = () => {
   const handleShareWA = () => {
     if (!printData) return;
 
-    // Fallback jika noTelepon tidak ada di printData, kita ambil dari data customer
     const targetCustomer = customers.find(c => c.id === printData.customerId);
     const phone = (printData.noTelepon || targetCustomer?.noHp || '').replace(/[^0-9]/g, '');
 
@@ -270,7 +272,7 @@ const Tagihan = () => {
       return;
     }
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
-    const documentLink = `https://bumantara.com/verify/${printData.noTagihan}`;
+    const documentLink = `${window.location.origin}/verify/${printData.noTagihan || printData.id}`;
 
     let message = `Halo Bapak/Ibu *${printData.namaCustomer}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk tagihan *${printData.pembayaran}* (Unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*).\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
 
@@ -361,11 +363,11 @@ const Tagihan = () => {
   };
 
   const expandedRowRender = (row: any) => {
-
     const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
     const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
     const totalTerbayar = row.cicilan.filter((c: any) => c.status === 'LUNAS').reduce((sum: number, c: any) => sum + Number(c.nominal), 0);
-    const sisaPembayaran = Math.max(0, totalHargaJual - totalTerbayar);
+    const sisaPembayaran = Math.max(0, totalHargaJual);
+    const rekeningTujuanId = targetPenjualan?.rekeningTujuanId;
 
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
@@ -449,12 +451,38 @@ const Tagihan = () => {
                   </button>
                   <div className="w-px h-6 bg-slate-200 mx-1"></div>
                   {c.status === 'LUNAS' ? (
-                    <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Pembayaran'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition shadow-md cursor-pointer">
+                    <button onClick={() => {
+                      setPrintType('kwitansi');
+                      setPrintTitle(`Kwitansi ${c.pembayaran}`);
+                      setPrintData({
+                        ...c,
+                        nominalCetak: c.nominal,
+                        hargaJual: totalHargaJual,
+                        sisaBelumDibayar: sisaPembayaran,
+                        rekeningTujuanId: rekeningTujuanId,
+                        tipe: targetPenjualan?.tipe,
+                        caraPembayaran: targetPenjualan?.pembiayaan,
+                        bank: targetPenjualan?.bank
+                      });
+                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition shadow-md cursor-pointer">
                       <Printer size={14} /> Kwitansi
                     </button>
                   ) : (
                     <>
-                      <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Tagihan'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer">
+                      <button onClick={() => {
+                        setPrintType('invoice');
+                        setPrintTitle(`Invoice ${c.pembayaran}`);
+                        setPrintData({
+                          ...c,
+                          nominalCetak: c.nominal,
+                          hargaJual: totalHargaJual,
+                          sisaBelumDibayar: sisaPembayaran,
+                          rekeningTujuanId: rekeningTujuanId,
+                          tipe: targetPenjualan?.tipe,
+                          caraPembayaran: targetPenjualan?.pembiayaan,
+                          bank: targetPenjualan?.bank
+                        });
+                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer">
                         <FileText size={14} /> Invoice
                       </button>
                       <button onClick={() => openModal(c as any)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md cursor-pointer">
@@ -473,24 +501,38 @@ const Tagihan = () => {
   const handlePrintPDF = async () => {
     const element = document.getElementById('print-area');
     if (!element) return;
+
     try {
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      const scrollWidth = element.scrollWidth;
+      const scrollHeight = element.scrollHeight;
+
       const dataUrl = await htmlToImage.toPng(element, {
         quality: 1.0,
         pixelRatio: 2,
         backgroundColor: '#ffffff',
+        width: scrollWidth,
+        height: scrollHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
       });
+
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
+      const pdfHeight = (scrollHeight * pdfWidth) / scrollWidth;
+
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      const fileName = `${printTitle.replace(/\s+/g, '_')}_${printData?.noTagihan || 'BMT'}.pdf`;
+      const cleanNoDoc = (printData?.noTagihan || printData?.id || '').toString().replace('INV-BF-', '').replace('INV-DP-', '');
+      const fileName = `${printTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`;
       pdf.save(fileName);
     } catch (error) {
       console.error('Gagal membuat PDF:', error);
       alert('Terjadi kesalahan saat memproses PDF.');
     }
   };
-
 
   const customerOptions = [
     { value: '', label: '-- Pilih Customer --' },
@@ -520,6 +562,8 @@ const Tagihan = () => {
   }
 
   if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
+
+  const targetCustomerPrint = customers.find(c => c.id === printData?.customerId);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -621,109 +665,149 @@ const Tagihan = () => {
         </form>
       </Modal>
 
-      {/* MODAL PRINT PDF */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
-          <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-xl" id="print-area">
-            <div className="flex justify-between items-start border-b-2 border-slate-200 pb-6 mb-8">
-              <div>
-                <h2 className="text-3xl font-black uppercase tracking-widest text-slate-900 m-0">
-                  {printType === 'invoice' ? 'INVOICE' : 'KWITANSI'}
-                </h2>
-                <p className="text-slate-500 text-sm mt-2 font-medium">{printTitle} - No: {printData.noTagihan}</p>
-                <p className="text-slate-500 text-sm mt-1">Tanggal: {formatDate(printData.tanggal || new Date().toISOString())}</p>
+          <div className="bg-white" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}>
+            <div className="p-6">
+              {/* --- 1. HEADER (JUDUL DOKUMEN & LOGO) --- */}
+              <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
+                    {printType === 'invoice' ? 'INVOICE' : 'KWITANSI'}
+                  </h2>
+                  <div className="mt-2 space-y-0.5">
+                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                      <span className="w-16 inline-block">NO DOC</span>: {(printData.noTagihan || printData.id).toString().replace('INV-BF-', '').replace('INV-DP-', '')} / {new Date(printData.tanggal || new Date()).getFullYear()}
+                    </p>
+                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">                      <span className="w-16 inline-block">TANGGAL</span>: {formatDate(printData.tanggal || new Date().toISOString())}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right flex flex-col items-end">
+                  {selectedPerumahan?.logo ? (
+                    <img src={selectedPerumahan.logo} alt="Logo" className="h-12 object-contain mb-2" crossOrigin="anonymous" />
+                  ) : (
+                    <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">BUMANTARA</h3>
+                  )}
+                  <p className="m-0 text-[8px] text-slate-500 font-bold uppercase tracking-widest">Divisi Marketing & Keuangan</p>
+                </div>
               </div>
-              <div className="text-right flex flex-col items-end">
-                {selectedPerumahan?.logo ? (
-                  <img src={selectedPerumahan.logo} alt="Logo" className="h-10 object-contain mb-2" crossOrigin="anonymous" />
-                ) : (
-                  <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
-                )}
-                <p className="m-0 text-xs text-slate-500 font-bold">Divisi Marketing & Keuangan</p>
-              </div>
-            </div>
 
-            <div className="flex justify-between mb-8">
-              <div className="max-w-[50%]">
-                <p className="text-xs text-slate-400 font-bold mb-1 uppercase tracking-wider">
-                  {printType === 'kwitansi' ? 'Diterima Dari:' : 'Kepada Yth:'}
+              {/* --- 2. INFORMASI CUSTOMER --- */}
+              <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
+                  {printType === 'kwitansi' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:'}
                 </p>
-                <p className="font-black text-lg text-slate-800 m-0 mb-1">{printData.namaCustomer}</p>
-                <p className="text-slate-600 font-medium m-0">Kavling {printData.perumahan} - Blok {printData.blok}-{printData.nomorUnit}</p>
+                <p className="font-black text-lg text-slate-900 m-0 mb-0.5">{printData.namaCustomer}</p>
+                <p className="text-xs m-0 mb-0.5 font-bold text-slate-500">{targetCustomerPrint?.noHp || printData.noTelepon || '-'}</p>
+                <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{targetCustomerPrint?.alamatKoresponden || printData.alamat || '-'}</p>
               </div>
-            </div>
 
-            <table className="w-full border-collapse mb-8">
-              <thead>
-                <tr>
-                  <th className="py-3 px-4 text-left bg-slate-50 text-slate-600 text-xs uppercase border-y border-slate-300">Deskripsi Pembayaran</th>
-                  <th className="py-3 px-4 text-right bg-slate-50 text-slate-600 text-xs uppercase border-y border-slate-300">Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="py-6 px-4 border-b border-slate-200 align-top">
-                    <p className="text-base font-bold text-slate-900 m-0 mb-2">{printData.pembayaran}</p>
-                    <p className="text-sm text-slate-600 m-0">Pembayaran untuk unit Kavling {printData.perumahan} Blok {printData.blok}-{printData.nomorUnit}.</p>
-                  </td>
-                  <td className="py-6 px-4 border-b border-slate-200 text-right align-top text-lg font-bold text-slate-900">
-                    {formatRupiah(printData.nominalCetak || 0)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+              {/* --- 3. TABEL DESKRIPSI PEMBAYARAN --- */}
+              <div className="rounded-xl border border-slate-200 overflow-hidden mb-6">
+                <table className="w-full border-collapse bg-white">
+                  <thead>
+                    <tr className="bg-slate-900 text-white">
+                      <th className="py-2.5 px-4 text-left text-[10px] uppercase tracking-widest font-bold">Deskripsi Pembayaran</th>
+                      <th className="py-2.5 px-4 text-right text-[10px] uppercase tracking-widest font-bold w-1/3">Jumlah</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="py-4 px-4 border-b border-slate-100 align-top">
+                        <p className="text-base font-black text-slate-900 m-0 mb-2">{printTitle}</p>
+                        <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{printData.perumahan}</strong></p>
+                        <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
+                        <p className="text-xs text-slate-600 font-medium m-0">Skema Pembayaran: <strong>{printData.caraPembayaran?.replace('_', ' ')}</strong> {printData.bank ? `(${printData.bank})` : ''}</p>
+                      </td>
+                      <td className="py-4 px-4 border-b border-slate-100 text-right align-top text-lg font-black text-slate-900">
+                        {formatRupiah(printData.nominalCetak || 0)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="flex justify-between mb-8 gap-4">
-              {printType === 'invoice' && printData.rekeningTujuan ? (
-                <div className="flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">
-                    Transfer Pembayaran Ke:
-                  </span>
-                  <p className="text-sm font-bold text-slate-900">Bank {printData.rekeningTujuan.namaBank}</p>
-                  <p className="text-xl font-black text-blue-700 my-0.5">{printData.rekeningTujuan.noRekening}</p>
-                  <p className="text-xs font-medium text-slate-600">a/n {printData.rekeningTujuan.atasNama}</p>
+              <div className="flex flex-row justify-between items-start gap-6 mb-6">
+                {/* --- 4. INFORMASI REKENING TRANSFER --- */}
+                <div className="flex-1">
+                  {(() => {
+                    let rekening: any = printData.rekeningTujuan;
+                    if (!rekening && printData.rekeningTujuanId) {
+                      const b = bankList.find((x: any) => x.id === Number(printData.rekeningTujuanId));
+                      if (b) rekening = { namaBank: b.namaBank, noRekening: b.noRekening, atasNama: b.atasNama };
+                    }
+                    if (!rekening) return null;
+                    return (
+                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
+                          {printType === 'kwitansi' ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
+                        </span>
+                        <p className="text-xs font-bold text-slate-900 uppercase">Bank {rekening.namaBank}</p>
+                        <p className="text-lg font-black text-slate-900 my-0.5 font-mono tracking-tight">{rekening.noRekening}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">A/N: {rekening.atasNama}</p>
+                      </div>
+                    );
+                  })()}
                 </div>
-              ) : (
-                <div className="flex-1"></div>
-              )}
 
-              <div className="w-[350px]">
-                <div className="flex justify-between items-center p-4 bg-slate-100 rounded-lg border border-slate-200">
-                  <span className="text-sm font-bold text-slate-600 uppercase">
-                    {printType === 'kwitansi' ? 'Total Pembayaran' : 'Total Tagihan'}
-                  </span>
-                  <span className="text-xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</span>
+                {/* --- 5. TOTAL TAGIHAN --- */}
+                <div className="w-[280px] space-y-3">
+                  {(printData.hargaJual > 0) && (
+                    <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                        <span>Harga Jual Unit</span>
+                        <span className="text-slate-800 text-xs">{formatRupiah(printData.hargaJual || 0)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                        <span>Sisa Belum Dibayar</span>
+                        <span className="text-orange-600 text-xs">
+                          {formatRupiah(printData.status === 'LUNAS' ? printData.sisaBelumDibayar : Math.max(0, (printData.sisaBelumDibayar || 0)))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={`flex justify-between items-center p-4 rounded-xl border-2 ${printType === 'kwitansi' ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
+                    <span className="text-xs font-black uppercase tracking-[0.2em]">Total</span>
+                    <span className="text-xl font-black">{formatRupiah(printData.nominalCetak || 0)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Signature & QR Code */}
-            <div className="flex justify-between items-end mt-16 pt-8">
-              <div className="flex flex-col items-center p-2 border border-slate-200 rounded-lg bg-slate-50">
-                <QRCode
-                  // [PERBAIKAN] Pastikan value mengarah ke domain production Anda nantinya.
-                  // Gunakan window.location.origin agar dinamis (localhost saat dev, domain asli saat prod)
-                  value={`${window.location.origin}/verify/${printData.noTagihan}`}
-                  size={72}
-                  level="H"
-                />
-                <span className="text-[8px] text-slate-400 mt-2 font-bold tracking-widest uppercase">Validasi Dokumen</span>
-              </div>
+              {/* --- 6. QR CODE & TTD --- */}
+              <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
+                <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
+                  <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
+                    <QRCode
+                      value={`${window.location.origin}/verify/${printData.noTagihan || printData.id}`}
+                      size={60}
+                      level="H"
+                    />
+                  </div>
+                  <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
+                </div>
 
-              <div className="text-center w-[200px]">
-                <p className="text-sm text-slate-600 m-0 mb-16">Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}</p>
-                <p className="text-sm font-bold text-slate-900 m-0 underline">Finance Dept.</p>
-                <p className="text-xs text-slate-400 mt-1 m-0">Bumantara</p>
+                <div className="text-center w-[200px]">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
+                    Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
+                  </p>
+                  <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block">
+                    DIVISI KEUANGAN
+                  </p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
+                </div>
               </div>
             </div>
           </div>
         )}
+
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-          <button onClick={handleShareWA} className="px-5 py-2 bg-green-500 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-green-600 flex items-center gap-2">
+          <button onClick={() => setPrintData(null)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-slate-50 transition-colors">Tutup</button>
+          <button onClick={handleShareWA} className="px-6 py-2.5 bg-green-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-green-600 shadow-md shadow-green-500/20 flex items-center gap-2 transition-colors">
             Kirim via WA
           </button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 flex items-center gap-2">
+          <button onClick={handlePrintPDF} className="px-8 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-slate-800 flex items-center gap-2 transition-colors shadow-lg shadow-black/10">
             <Printer size={16} /> Download PDF
           </button>
         </div>

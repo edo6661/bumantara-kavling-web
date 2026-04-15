@@ -229,7 +229,7 @@ const Penjualan = () => {
 
     const docType = title.toLowerCase().includes('kwitansi') ? 'KWITANSI' : 'INVOICE';
     const labelKepada = docType === 'KWITANSI' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:';
-    const labelTotal = docType === 'KWITANSI' ? 'Total Pembayaran' : 'Total Tagihan';
+    const labelTotal = docType === 'KWITANSI' ? 'Total' : 'Total';
 
     container.innerHTML = `
       <div style="padding: 40px; background-color: white; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b;">
@@ -802,7 +802,7 @@ const Penjualan = () => {
               <div className="w-[300px]">
                 <div className="flex justify-between items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
                   <span className="text-sm font-bold text-slate-600 uppercase">
-                    {printType === 'kwitansi' ? 'Total Pembayaran' : 'Total Tagihan'}
+                    {printType === 'kwitansi' ? 'Total' : 'Total'}
                   </span>
                   <span className="text-xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</span>
                 </div>

@@ -298,7 +298,7 @@ const Tagihan = () => {
 
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-      const fileName = `${printTitle ? printTitle.replace(/\s+/g, '_') : 'Dokumen'}_${printData?.id || 'BMT'}.pdf`;
+      const fileName = `${printTitle ? printTitle.replace(/\s+/g, '_') : 'Dokumen'}_${printData?.id || ''}.pdf`;
       pdf.save(fileName);
     } catch (error) {
       console.error('Gagal membuat PDF:', error);
@@ -380,7 +380,7 @@ const Tagihan = () => {
           <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-xl" id="print-area">
             <div className="text-center mb-8 border-b border-slate-200 pb-6">
               <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900">{printType === 'invoice' ? 'INVOICE' : 'KWITANSI PEMBAYARAN'}</h2>
-              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.id} / BMT / {new Date().getFullYear()}</p>
+              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.id} / {new Date().getFullYear()}</p>
             </div>
             <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
               <div>
@@ -406,7 +406,7 @@ const Tagihan = () => {
             <div className="mt-16 flex justify-end">
               <div className="text-center">
                 <p className="text-slate-500 mb-16 font-medium">Hormat Kami,</p>
-                <p className="font-bold border-b border-slate-300 pb-1 text-slate-800">Finance Dept.</p>
+                <p className="font-bold border-b border-slate-300 pb-1 text-slate-800">DIVISI KEUANGAN.</p>
                 <p className="text-xs text-slate-400 mt-1 font-bold">Bumantaraz</p>
               </div>
             </div>
