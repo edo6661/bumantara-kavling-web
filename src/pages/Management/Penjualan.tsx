@@ -10,12 +10,13 @@ import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
-import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
+import { useAuth } from "../../context/AuthContext";
 interface PenjualanData {
   id?: string;
   tanggal: string;
@@ -90,16 +91,19 @@ const Penjualan = () => {
   const { data: agentData = [] } = useGetAgents();
   const { data: perumahanData = [] } = useGetPerumahan();
   const { data: kavlingResponse } = useGetKavlings({ limit: 500 });
+  const { selectedPerumahan } = useAuth();
   const kavlingList = kavlingResponse?.items || [];
   const createMutation = useCreatePenjualan();
   const cancelMutation = useCancelPenjualan();
   const uploadBuktiMutation = useUploadBuktiPenjualan();
+  const updateMutation = useUpdatePenjualan();
 
   const [isNewAgent, setIsNewAgent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [originalKavling, setOriginalKavling] = useState({ blok: '', unit: '' });
 
   const [printData, setPrintData] = useState<any>(null);
   const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
@@ -112,11 +116,12 @@ const Penjualan = () => {
   const availableKavlings = useMemo(() => {
     return kavlingList.filter(k =>
       k.perumahan?.nama === formData.perumahan &&
-
-      (k.status === 'AVAILABLE' || (isEditing && k.blok === formData.blok && k.nomorUnit === formData.nomorUnit))
+      (
+        k.status === 'AVAILABLE' ||
+        (isEditing && k.blok === originalKavling.blok && k.nomorUnit === originalKavling.unit)
+      )
     );
-  }, [kavlingList, formData.perumahan, isEditing, formData.blok, formData.nomorUnit]);
-
+  }, [kavlingList, formData.perumahan, isEditing, originalKavling]);
   const uniqueBloks = useMemo(() => {
     const bloks = availableKavlings.map(k => k.blok);
     return [...new Set(bloks)].sort();
@@ -160,13 +165,20 @@ const Penjualan = () => {
 
   const openModal = (item?: PenjualanData) => {
     if (item) {
-      setFormData(item);
+      const uiCaraPembayaran = item.caraPembayaran ? item.caraPembayaran.replace(/_/g, " ") : "";
+      setFormData({
+        ...item,
+        caraPembayaran: uiCaraPembayaran,
+      });
+      setOriginalKavling({ blok: item.blok, unit: item.nomorUnit });
       setIsEditing(true);
     } else {
       setFormData({
         ...initialFormState,
-        tanggal: new Date().toISOString().split('T')[0]
+        tanggal: new Date().toISOString().split('T')[0],
+        perumahan: selectedPerumahan ? selectedPerumahan.nama : '',
       });
+      setOriginalKavling({ blok: '', unit: '' });
       setIsEditing(false);
     }
     setIsNewAgent(false);
@@ -297,38 +309,70 @@ const Penjualan = () => {
     if (!validateForm()) return;
 
     try {
-      const payload = {
-        noIdentitas: formData.noIdentitas,
-        nama: formData.nama,
-        noTelepon: formData.noTelepon,
-        alamat: formData.alamat,
-        perusahaan: formData.perusahaan || undefined,
-        alamatKoresponden: formData.alamatKoresponden || undefined,
-        perumahan: formData.perumahan,
-        blok: formData.blok,
-        nomorUnit: formData.nomorUnit,
-        tipe: formData.tipe,
-        luasBangunan: Number(formData.luasBangunan),
-        luasTanah: Number(formData.luasTanah),
-        tanggal: formData.tanggal,
-        hargaJual: Number(formData.hargaJual),
-        hargaPromosi: Number(formData.hargaPromosi) || undefined,
-        diskonPenjualan: Number(formData.diskonPenjualan) || undefined,
-        dp: Number(formData.dp) || undefined,
-        bookingFee: Number(formData.bookingFee) || undefined,
-        caraPembayaran: formData.caraPembayaran,
-        bank: formData.bank || undefined,
-        nilaiPengajuanKpr: Number(formData.nilaiPengajuanKpr) || undefined,
-        agent: formData.agent,
-      };
+      if (isEditing && formData.id) {
+        const updatePayload = {
+          nama: formData.nama,
+          noIdentitas: formData.noIdentitas,
+          noTelepon: formData.noTelepon,
+          alamat: formData.alamat,
+          perusahaan: formData.perusahaan || undefined,
+          alamatKoresponden: formData.alamatKoresponden || undefined,
+          agent: formData.agent,
 
-      const result = await createMutation.mutateAsync(payload);
-      closeModal();
+          // Data yang kita izinkan dikirim untuk perubahan unit kavling
+          blok: formData.blok,
+          nomorUnit: formData.nomorUnit,
+          tipe: formData.tipe,
+          luasBangunan: Number(formData.luasBangunan),
+          luasTanah: Number(formData.luasTanah),
+          hargaJual: Number(formData.hargaJual),
 
-      if (result && !isEditing) {
-        setPrintData({ ...formData, id: result.noTransaksi, nominalCetak: formData.bookingFee });
-        setPrintType('invoice');
-        setPrintTitle('Invoice Booking Fee');
+          caraPembayaran: formData.caraPembayaran,
+          bank: formData.bank || undefined,
+          nilaiPengajuanKpr: Number(formData.nilaiPengajuanKpr) || undefined,
+          dp: Number(formData.dp) || undefined,
+          diskonPenjualan: Number(formData.diskonPenjualan) || undefined,
+          hargaPromosi: Number(formData.hargaPromosi) || undefined,
+        };
+
+        await updateMutation.mutateAsync({ id: formData.id, data: updatePayload });
+        closeModal();
+
+      }
+      else {
+        const payload = {
+          noIdentitas: formData.noIdentitas,
+          nama: formData.nama,
+          noTelepon: formData.noTelepon,
+          alamat: formData.alamat,
+          perusahaan: formData.perusahaan || undefined,
+          alamatKoresponden: formData.alamatKoresponden || undefined,
+          perumahan: formData.perumahan,
+          blok: formData.blok,
+          nomorUnit: formData.nomorUnit,
+          tipe: formData.tipe,
+          luasBangunan: Number(formData.luasBangunan),
+          luasTanah: Number(formData.luasTanah),
+          tanggal: formData.tanggal,
+          hargaJual: Number(formData.hargaJual),
+          hargaPromosi: Number(formData.hargaPromosi) || undefined,
+          diskonPenjualan: Number(formData.diskonPenjualan) || undefined,
+          dp: Number(formData.dp) || undefined,
+          bookingFee: Number(formData.bookingFee) || undefined,
+          caraPembayaran: formData.caraPembayaran,
+          bank: formData.bank || undefined,
+          nilaiPengajuanKpr: Number(formData.nilaiPengajuanKpr) || undefined,
+          agent: formData.agent,
+        };
+
+        const result = await createMutation.mutateAsync(payload);
+        closeModal();
+
+        if (result) {
+          setPrintData({ ...formData, id: result.noTransaksi, nominalCetak: formData.bookingFee });
+          setPrintType('invoice');
+          setPrintTitle('Invoice Booking Fee');
+        }
       }
     } catch (error: any) {
       const responseData = error.response?.data;
@@ -399,8 +443,7 @@ const Penjualan = () => {
     }
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
 
-    // Link menuju halaman verifikasi/invoice web
-    const documentLink = `https://bumantara.com/verify/${printData.id}`;
+    const documentLink = `http://localhost:5173/verify/${printData.id}`;
 
     let message = `Halo Bapak/Ibu *${printData.nama}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*.\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
 
@@ -409,7 +452,6 @@ const Penjualan = () => {
       message += `\n\nHarga Jual Kavling: *${formatRupiah(printData.hargaJual || 0)}*\nSisa Belum Dibayar: *${formatRupiah(sisa)}*`;
     }
 
-    // Sisipkan link dokumen agar bisa diklik customer
     message += `\n\n🔗 *Lihat & Unduh Dokumen PDF:*\n${documentLink}`;
     message += `\n\n_Mohon lampirkan bukti transfer jika sudah melakukan pembayaran ke rekening PT._\n\nTerima Kasih,\n*Finance Bumantara*`;
 
@@ -622,12 +664,16 @@ const Penjualan = () => {
                   </div>
                 )}
               </div>
-              <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} disabled={isEditing} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} disabled={isEditing} />
+              {/* NOTE: disabled={isEditing} dihapus agar nama, KTP bisa diedit */}
+              <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
+              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} />
               <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
               <Input label="Perusahaan (Opsional)" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
               <div className="md:col-span-2">
                 <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
               </div>
             </div>
           </div>
@@ -635,10 +681,7 @@ const Penjualan = () => {
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
 
-            {/* GRID LAYOUT MODIFIED */}
             <div className="space-y-4">
-
-              {/* Row 1: Perumahan & Tipe Kavling */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
                   label="Perumahan"
@@ -646,22 +689,20 @@ const Penjualan = () => {
                   value={formData.perumahan}
                   onChange={handleChange}
                   error={errors.perumahan}
-                  disabled={isEditing}
+                  disabled={true}
                   options={[
                     { value: '', label: '-- Pilih Perumahan --' },
-                    ...perumahanData.map((p: any) => ({ value: p.nama, label: p.nama }))
+                    ...perumahanData.map((p) => ({ value: p.nama, label: p.nama }))
                   ]}
                 />
                 <Input
                   label="Tipe Kavling"
                   name="tipe"
                   value={formData.tipe}
-                  readOnly
-                  className="bg-gray-100 text-gray-600 cursor-not-allowed px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full"
+                  disabled={true}
                 />
               </div>
 
-              {/* Row 2: Blok & No Unit */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
                   label="Blok"
@@ -669,7 +710,7 @@ const Penjualan = () => {
                   value={formData.blok}
                   onChange={handleBlokChange}
                   error={errors.blok}
-                  disabled={isEditing || !formData.perumahan}
+                  disabled={!formData.perumahan}
                   options={[
                     { value: '', label: '-- Pilih Blok --' },
                     ...uniqueBloks.map(b => ({ value: b, label: b }))
@@ -681,7 +722,7 @@ const Penjualan = () => {
                   value={formData.nomorUnit}
                   onChange={handleUnitChange}
                   error={errors.nomorUnit}
-                  disabled={isEditing || !formData.blok}
+                  disabled={!formData.blok}
                   options={[
                     { value: '', label: '-- Pilih Unit --' },
                     ...availableUnits.map(u => ({ value: u, label: u }))
@@ -689,27 +730,23 @@ const Penjualan = () => {
                 />
               </div>
 
-              {/* Row 3: Luas Tanah & Luas Bangunan */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Luas Tanah (m²)"
                   name="luasTanah"
                   type="number"
                   value={formData.luasTanah || ''}
-                  readOnly
-                  className="bg-gray-100 text-gray-600 cursor-not-allowed px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full"
+                  disabled={true}
                 />
                 <Input
                   label="Luas Bangunan (m²)"
                   name="luasBangunan"
                   type="number"
                   value={formData.luasBangunan || ''}
-                  readOnly
-                  className="bg-gray-100 text-gray-600 cursor-not-allowed px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full"
+                  disabled={true}
                 />
               </div>
 
-              {/* Harga Jual - Editable */}
               <CurrencyInput
                 label="Harga Jual"
                 name="hargaJual"
@@ -717,6 +754,7 @@ const Penjualan = () => {
                 onValueChange={handleCurrencyChange}
                 error={errors.hargaJual}
                 placeholder="0"
+                disabled={true}
               />
             </div>
           </div>
@@ -740,6 +778,7 @@ const Penjualan = () => {
               <CurrencyInput
                 label="Down Payment (DP)"
                 name="dp"
+                disabled
                 value={formData.dp}
                 onValueChange={handleCurrencyChange}
                 placeholder="Otomatis 10% dari Harga Jual"
@@ -747,6 +786,7 @@ const Penjualan = () => {
               <CurrencyInput
                 label="Diskon Penjualan"
                 name="diskonPenjualan"
+                disabled
                 value={formData.diskonPenjualan}
                 onValueChange={handleCurrencyChange}
                 placeholder="0"
@@ -778,8 +818,12 @@ const Penjualan = () => {
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
               Batal
             </button>
-            <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50">
-              {createMutation.isPending ? 'Memproses...' : 'Simpan Penjualan'}
+            <button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : 'Simpan Penjualan'}
             </button>
           </div>
         </form>

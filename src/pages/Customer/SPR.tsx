@@ -70,7 +70,7 @@ const SPR = () => {
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
 
     // Ambil URL PDF dari Cloudinary jika ada, jika tidak pakai link verifikasi
-    const documentLink = row.fileSpr ? row.fileSpr : `https://bumantara.com/verify/${row.id}`;
+    const documentLink = row.fileSpr ? row.fileSpr : `http://localhost:5173/verify/${row.id}`;
 
     const message = `Halo Bapak/Ibu *${row.nama}*,\n\nBerikut kami sampaikan dokumen *Surat Pesanan Rumah (SPR)* untuk unit Kavling *${row.perumahan} Blok ${row.blok}-${row.nomorUnit}*.\n\n🔗 *Unduh Dokumen SPR:*\n${documentLink}\n\nTerima Kasih,\n*Bumantara*`;
 

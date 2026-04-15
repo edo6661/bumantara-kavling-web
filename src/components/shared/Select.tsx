@@ -19,10 +19,10 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
       </label>
       <div className="relative">
         <select
-          className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none text-slate-900 cursor-pointer appearance-none shadow-sm/50 bg-white
+          className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none cursor-pointer appearance-none shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200
             ${error
-              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
-              : 'border-slate-200 hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black'
+              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black text-slate-900 bg-white'
             }`}
           {...props}
         >

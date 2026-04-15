@@ -12,10 +12,10 @@ const Input = ({ label, error, ...props }: InputProps) => {
         {label}
       </label>
       <input
-        className={`w-full px-4 py-2.5 text-sm rounded-xl border bg-white transition-all duration-300 outline-none text-slate-900 placeholder:text-slate-400 shadow-sm/50
+        className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-slate-400 shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200
           ${error
-            ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
-            : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black'
+            ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+            : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black text-slate-900 bg-white'
           }`}
         {...props}
       />

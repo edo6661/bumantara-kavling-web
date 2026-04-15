@@ -77,3 +77,22 @@ export const useUploadSignature = () => {
     },
   });
 };
+
+export const useUpdatePenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<CreatePenjualanDTO>;
+    }) => penjualanService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+    },
+  });
+};

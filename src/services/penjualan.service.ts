@@ -73,4 +73,8 @@ export const penjualanService = {
     );
     return response.data.data;
   },
+  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
+    return response.data.data;
+  },
 };
