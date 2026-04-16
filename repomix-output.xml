@@ -1,3 +1,4 @@
+kode frontend:
 
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1964,1271 +1965,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 </file>
 
-<file path="src/pages/Customer/TagihanOld.tsx">
-import React, { useState, useMemo } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud, Edit2, Trash2 } from 'lucide-react';
-import { jsPDF } from "jspdf";
-import * as htmlToImage from 'html-to-image';
-
-interface TagihanData {
-  id: string;
-  namaCustomer: string;
-  perumahan: string;
-  blok: string;
-  pembayaran: string;
-  nominal: number;
-  jatuhTempo: string;
-  status: string;
-  fileBukti: string;
-  reminderBerikutnya: string;
-}
-
-const initialFormState: TagihanData = {
-  id: '',
-  namaCustomer: '',
-  perumahan: '',
-  blok: '',
-  pembayaran: '',
-  nominal: 0,
-  jatuhTempo: '',
-  status: 'Belum Bayar',
-  fileBukti: '',
-  reminderBerikutnya: '',
-};
-
-const mockCustomers = [
-  { id: 'CUST-001', name: 'Budi Santoso', perumahan: 'Puri Safana', blok: 'A-01' },
-  { id: 'CUST-002', name: 'Andi Pratama', perumahan: 'Puri Safana', blok: 'B-12' },
-  { id: 'CUST-003', name: 'Siti Aminah', perumahan: 'Puri Safana', blok: 'C-05' },
-];
-
-const Tagihan = () => {
-  const [data, setData] = useState<TagihanData[]>([
-    {
-      id: 'INV-001',
-      namaCustomer: 'Budi Santoso',
-      perumahan: 'Puri Safana',
-      blok: 'A-01',
-      pembayaran: 'Cicilan Bertahap ke-1',
-      nominal: 15000000,
-      jatuhTempo: '2026-05-01',
-      status: 'Lunas',
-      fileBukti: 'bukti_tf_budi.pdf',
-      reminderBerikutnya: '',
-    },
-    {
-      id: 'INV-002',
-      namaCustomer: 'Budi Santoso',
-      perumahan: 'Puri Safana',
-      blok: 'A-01',
-      pembayaran: 'Cicilan Bertahap ke-2',
-      nominal: 15000000,
-      jatuhTempo: '2026-06-01',
-      status: 'Belum Bayar',
-      fileBukti: '',
-      reminderBerikutnya: '2026-05-25',
-    },
-    {
-      id: 'INV-003',
-      namaCustomer: 'Andi Pratama',
-      perumahan: 'Puri Safana',
-      blok: 'B-12',
-      pembayaran: 'Pembayaran DP',
-      nominal: 4500000,
-      jatuhTempo: '2026-05-15',
-      status: 'Belum Bayar',
-      fileBukti: '',
-      reminderBerikutnya: '2026-05-10',
-    }
-  ]);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<TagihanData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof TagihanData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-  const [printData, setPrintData] = useState<any>(null);
-  const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
-  const [printTitle, setPrintTitle] = useState('');
-
-  const groupedData = useMemo(() => {
-    const groups: Record<string, any> = {};
-    data.forEach(item => {
-      if (!groups[item.namaCustomer]) {
-        groups[item.namaCustomer] = {
-          id: item.namaCustomer,
-          namaCustomer: item.namaCustomer,
-          kavling: `${item.perumahan} - Blok ${item.blok}`,
-          reminderSelanjutnya: '',
-          cicilan: []
-        };
-      }
-
-      if (item.status !== 'Lunas' && item.reminderBerikutnya) {
-        groups[item.namaCustomer].reminderSelanjutnya = item.reminderBerikutnya;
-      }
-
-      groups[item.namaCustomer].cicilan.push(item);
-    });
-    return Object.values(groups);
-  }, [data]);
-
-  const columns = [
-    { header: 'Nama Customer', accessor: 'namaCustomer' },
-    { header: 'Kavling', accessor: 'kavling' },
-    {
-      header: 'Reminder Selanjutnya',
-      accessor: 'reminderSelanjutnya',
-      render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
-    },
-  ];
-
-  const openModal = (item?: TagihanData, defaultCustomerName?: string) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      const defaultCust = mockCustomers.find(c => c.name === defaultCustomerName);
-      setFormData({
-        ...initialFormState,
-        namaCustomer: defaultCust?.name || '',
-        perumahan: defaultCust?.perumahan || '',
-        blok: defaultCust?.blok || ''
-      });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedName = e.target.value;
-    const customer = mockCustomers.find(c => c.name === selectedName);
-    setFormData(prev => ({
-      ...prev,
-      namaCustomer: selectedName,
-      perumahan: customer?.perumahan || '',
-      blok: customer?.blok || ''
-    }));
-    if (errors.namaCustomer) setErrors(prev => ({ ...prev, namaCustomer: undefined }));
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-    if (errors[name as keyof TagihanData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        [fieldName]: file.name,
-        status: 'Lunas'
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [fieldName]: '',
-        status: 'Belum Bayar'
-      }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof TagihanData, string>> = {};
-    if (!formData.namaCustomer) newErrors.namaCustomer = 'Customer wajib dipilih';
-    if (!formData.pembayaran.trim()) newErrors.pembayaran = 'Keterangan pembayaran wajib diisi';
-    if (formData.nominal <= 0) newErrors.nominal = 'Nominal harus lebih dari 0';
-    if (!formData.jatuhTempo) newErrors.jatuhTempo = 'Jatuh tempo wajib diisi';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newId = `INV-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: TagihanData) => {
-    if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  const expandedRowRender = (row: any) => {
-    return (
-      <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <FileText size={16} className="text-blue-600" /> Detail Cicilan & Tagihan
-          </h4>
-          <button
-            onClick={() => openModal(undefined, row.namaCustomer)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition"
-          >
-            + Tambah Cicilan
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {row.cicilan
-            .sort((a: TagihanData, b: TagihanData) => a.jatuhTempo.localeCompare(b.jatuhTempo))
-            .map((c: TagihanData) => (
-              <div key={c.id} className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4 transition hover:border-blue-200">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1.5">
-                    <span className="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded">{c.id}</span>
-                    <h5 className="font-bold text-slate-800 text-sm">{c.pembayaran}</h5>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
-                      {c.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-slate-600 font-medium mt-2">
-                    <p>Jatuh Tempo: <span className="text-slate-900 font-bold">{formatDate(c.jatuhTempo)}</span></p>
-                    <p>Nominal: <span className="text-slate-900 font-bold">{formatRupiah(c.nominal)}</span></p>
-                    {c.fileBukti && <p>Bukti: <span className="text-blue-600">{c.fileBukti}</span></p>}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit Cicilan">
-                    <Edit2 size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Hapus Cicilan">
-                    <Trash2 size={16} />
-                  </button>
-                  <div className="w-px h-6 bg-slate-200 mx-1"></div>
-
-                  {c.status === 'Lunas' ? (
-                    <button onClick={() => { setPrintType('kwitansi'); setPrintTitle('Kwitansi Pembayaran'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition shadow-md">
-                      <Printer size={14} /> Kwitansi
-                    </button>
-                  ) : (
-                    <>
-                      <button onClick={() => { setPrintType('invoice'); setPrintTitle('Invoice Tagihan'); setPrintData({ ...c, nominalCetak: c.nominal }); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition">
-                        <FileText size={14} /> Invoice
-                      </button>
-                      <button onClick={() => openModal(c)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md">
-                        <UploadCloud size={14} /> Upload Bukti
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
-    );
-  };
-  const handlePrintPDF = async () => {
-    const element = document.getElementById('print-area');
-    if (!element) return;
-
-    try {
-      const dataUrl = await htmlToImage.toPng(element, {
-        quality: 1.0,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-        fontEmbedCSS: '',
-      });
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
-
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-      const fileName = `${printTitle ? printTitle.replace(/\s+/g, '_') : 'Dokumen'}_${printData?.id || ''}.pdf`;
-      pdf.save(fileName);
-    } catch (error) {
-      console.error('Gagal membuat PDF:', error);
-      alert('Terjadi kesalahan saat memproses PDF.');
-    }
-  };
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Data Tagihan Customer"
-        columns={columns}
-        data={groupedData}
-        onAdd={() => openModal()}
-        expandedRowRender={expandedRowRender}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Tagihan / Upload Bukti" : "Buat Tagihan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100 flex justify-between items-center mb-2">
-            <span className="text-sm font-semibold text-gray-800">Status Pembayaran</span>
-            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${formData.status === 'Lunas' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-orange-100 text-orange-800 border border-orange-200'}`}>
-              {formData.status}
-            </span>
-          </div>
-          <div className="bg-white p-4 rounded-md border border-gray-200 shadow-sm">
-            <Select
-              label="Pilih Customer"
-              name="namaCustomer"
-              value={formData.namaCustomer}
-              onChange={handleCustomerChange}
-              error={errors.namaCustomer}
-              options={mockCustomers.map(c => ({ value: c.name, label: `${c.name} (${c.perumahan} - ${c.blok})` }))}
-            />
-            {formData.namaCustomer && (
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
-                <Input label="Blok/Unit" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-black px-4 py-2 rounded-md" />
-              </div>
-            )}
-          </div>
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan & Reminder</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Input label="Pembayaran (Deskripsi)" name="pembayaran" value={formData.pembayaran} onChange={handleChange} error={errors.pembayaran} placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP" />
-              </div>
-              <Input label="Nominal (Rp)" type="number" name="nominal" value={formData.nominal === 0 ? '' : formData.nominal} onChange={handleChange} error={errors.nominal} placeholder="0" />
-              <Input label="Jatuh Tempo" type="date" name="jatuhTempo" value={formData.jatuhTempo} onChange={handleChange} error={errors.jatuhTempo} />
-              <div className="md:col-span-2 mt-2">
-                <Input label="Reminder Tagihan Berikutnya (Opsional)" type="date" name="reminderBerikutnya" value={formData.reminderBerikutnya} onChange={handleChange} />
-              </div>
-            </div>
-          </div>
-
-          {isEditing && (
-            <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
-              <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
-              <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
-                Upload bukti transfer dari pihak pelanggan di sini. Sistem otomatis mengubah status menjadi <strong className="text-green-700">LUNAS</strong>.
-              </p>
-              <FileInput label="Upload Bukti Transfer" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileBukti')} />
-              {formData.fileBukti && (
-                <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
-                  <FileText size={14} /> File tersimpan: {formData.fileBukti}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Batal</button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition">Simpan Tagihan</button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
-        {printData && (
-          <div className="p-6 md:p-8 bg-white border border-slate-200 rounded-xl" id="print-area">
-            <div className="text-center mb-8 border-b border-slate-200 pb-6">
-              <h2 className="text-2xl font-black uppercase tracking-widest text-slate-900">{printType === 'invoice' ? 'INVOICE' : 'KWITANSI PEMBAYARAN'}</h2>
-              <p className="text-slate-500 text-sm mt-1 font-medium">{printTitle} - No: {printData.id} / {new Date().getFullYear()}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
-              <div>
-                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Diterima Dari / Kepada Yth:</p>
-                <p className="font-black text-lg text-slate-800">{printData.namaCustomer}</p>
-                <p className="text-slate-600 font-medium">{printData.perumahan} - Blok {printData.blok}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-slate-400 font-bold mb-1 uppercase tracking-wider text-[10px]">Tanggal Cetak:</p>
-                <p className="font-bold text-slate-800">{formatDate(new Date().toISOString())}</p>
-              </div>
-            </div>
-            <div className="mb-8">
-              <p className="text-slate-400 font-bold mb-2 uppercase tracking-wider text-[10px]">Keterangan Pembayaran:</p>
-              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl font-medium text-slate-700">
-                {printData.pembayaran || printTitle} untuk unit Kavling {printData.perumahan} Blok {printData.blok}.
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-5 bg-slate-100 rounded-xl border border-slate-200">
-              <p className="font-black text-slate-700 uppercase tracking-widest text-sm">Total Nominal</p>
-              <p className="text-2xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</p>
-            </div>
-            <div className="mt-16 flex justify-end">
-              <div className="text-center">
-                <p className="text-slate-500 mb-16 font-medium">Hormat Kami,</p>
-                <p className="font-bold border-b border-slate-300 pb-1 text-slate-800">DIVISI KEUANGAN.</p>
-                <p className="text-xs text-slate-400 mt-1 font-bold">Bumantaraz</p>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm hover:bg-slate-800 shadow-lg flex items-center gap-2">
-            <Printer size={16} /> Download PDF
-          </button>
-        </div>
-      </Modal>
-    </div>
-  );
-};
-
-export default Tagihan;
-</file>
-
-<file path="src/pages/Management/OldPenjualan.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatDate, formatRupiah } from "../../utils/formatters";
-import { FileText, Receipt, Printer, UploadCloud } from 'lucide-react';
-import { jsPDF } from "jspdf";
-import * as htmlToImage from 'html-to-image';
-
-interface PenjualanData {
-  id: string;
-  tanggal: string;
-  nama: string;
-  alamat: string;
-  noTelepon: string;
-  noIdentitas: string;
-  perusahaan: string;
-  alamatKoresponden: string;
-  perumahan: string;
-  blok: string;
-  tipe: string;
-  luasBangunan?: number;
-  luasTanah?: number;
-  nomorUnit: string;
-  hargaJual: number;
-  dp: number;
-  diskonPenjualan: number;
-  hargaPromosi: number;
-  bank: string;
-  caraPembayaran: string;
-  nilaiPengajuanKpr: number;
-  fileKtp: string;
-  fileKk: string;
-  fileNpwp: string;
-  bookingFee: number;
-  status: string;
-  agent: string;
-  jumlahCicilanTerbayar?: number;
-  fileBuktiBooking?: string;
-  fileBuktiDp?: string;
-}
-
-const initialFormState: PenjualanData = {
-  id: '',
-  tanggal: '',
-  nama: '',
-  alamat: '',
-  noTelepon: '',
-  noIdentitas: '',
-  perusahaan: '',
-  alamatKoresponden: '',
-  perumahan: '',
-  blok: '',
-  tipe: '',
-  luasBangunan: 0,
-  luasTanah: 0,
-  nomorUnit: '',
-  hargaJual: 0,
-  dp: 0,
-  diskonPenjualan: 0,
-  hargaPromosi: 0,
-  bank: '',
-  caraPembayaran: '',
-  nilaiPengajuanKpr: 0,
-  fileKtp: '',
-  fileKk: '',
-  fileNpwp: '',
-  bookingFee: 5000000,
-  status: 'Booked',
-  agent: '',
-  fileBuktiBooking: '',
-  fileBuktiDp: '',
-};
-
-const mockPerumahanList = ['Puri Safana'];
-
-const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
-  Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
-  Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
-  Aruna: { lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
-  Ansara: { lb: 36, lt: [60, 103, 120, 122, 132, 143] }
-};
-
-const Penjualan = () => {
-  const [data, setData] = useState<PenjualanData[]>([
-    {
-      ...initialFormState,
-      id: 'TRX-001',
-      tanggal: '2026-04-09',
-      nama: 'Budi Santoso',
-      alamat: 'Jl. Merdeka No. 45, Tangerang',
-      noTelepon: '081234567890',
-      perumahan: 'Puri Safana',
-      blok: 'A',
-      tipe: 'Asvara',
-      nomorUnit: '01',
-      caraPembayaran: 'KPR',
-      bank: 'BCA',
-      status: 'Booking',
-      agent: 'Andi Pratama',
-      jumlahCicilanTerbayar: 2,
-      fileBuktiBooking: 'bukti_booking_budi.pdf',
-      fileBuktiDp: ''
-    }
-  ]);
-
-  const [agentList, setAgentList] = useState<string[]>(['Andi Pratama', 'Rina Wijaya']);
-  const [isNewAgent, setIsNewAgent] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<PenjualanData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-  const [printData, setPrintData] = useState<any>(null);
-  const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
-  const [printTitle, setPrintTitle] = useState('');
-
-  const columns = [
-    { header: 'ID Penjualan', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    { header: 'Nama Customer', accessor: 'nama' },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Kavling', accessor: 'blok', render: (_: unknown, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
-    { header: 'Cara Pembayaran', accessor: 'caraPembayaran' },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-          {val}
-        </span>
-      )
-    },
-  ];
-
-  const openModal = (item?: PenjualanData) => {
-    if (item) {
-      setFormData({ ...item });
-      setIsEditing(true);
-      if (item.agent && !agentList.includes(item.agent)) {
-        setIsNewAgent(true);
-      } else {
-        setIsNewAgent(false);
-      }
-    } else {
-      setFormData({
-        ...initialFormState,
-        tanggal: new Date().toISOString().split('T')[0]
-      });
-      setIsEditing(false);
-      setIsNewAgent(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-    setIsNewAgent(false);
-    setErrors({});
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-
-    const finalValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-
-    setFormData((prev) => {
-      const updates: any = { [name]: finalValue };
-
-      if (name === 'hargaJual') {
-        updates.dp = Number(finalValue) * 0.1;
-      }
-
-      if (name === 'caraPembayaran' && finalValue !== 'KPR') {
-        updates.nilaiPengajuanKpr = 0;
-      }
-
-      if (name === 'tipe') {
-        const selectedKavling = KAVLING_DATA[finalValue];
-        updates.luasBangunan = selectedKavling ? selectedKavling.lb : 0;
-        updates.luasTanah = 0;
-      }
-
-      return { ...prev, ...updates };
-    });
-
-    if (errors[name as keyof PenjualanData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (!formData.agent.trim()) newErrors.agent = 'Agent wajib dipilih/diisi';
-
-    if (formData.caraPembayaran) {
-      if (!formData.bank.trim()) newErrors.bank = 'Bank wajib diisi';
-      if (formData.caraPembayaran === 'KPR' && formData.nilaiPengajuanKpr <= 0) {
-        newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus lebih dari 0';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const createAndDownloadPDF = async (data: PenjualanData, title: string, nominal: number) => {
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.width = '800px';
-
-    const docType = title.toLowerCase().includes('kwitansi') ? 'KWITANSI' : 'INVOICE';
-    const labelKepada = docType === 'KWITANSI' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:';
-    const labelTotal = docType === 'KWITANSI' ? 'Total' : 'Total';
-
-    container.innerHTML = `
-      <div style="padding: 40px; background-color: white; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 24px; margin-bottom: 32px;">
-          <div>
-            <h2 style="font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; margin: 0;">${docType}</h2>
-            <p style="color: #64748b; font-size: 14px; margin-top: 8px; font-weight: 500;">No: ${data.id} / BMT / 2026</p>
-            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Tanggal: ${formatDate(data.tanggal || new Date().toISOString())}</p>
-          </div>
-          <div style="text-align: right;">
-            <h3 style="margin: 0; font-size: 18px; color: #0f172a;">BUMANTARA</h3>
-            <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b;">Divisi Marketing & Keuangan</p>
-          </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; margin-bottom: 32px;">
-          <div style="max-width: 50%;">
-            <p style="font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px 0; font-weight: bold;">${labelKepada}</p>
-            <p style="font-size: 16px; font-weight: bold; color: #0f172a; margin: 0 0 4px 0;">${data.nama}</p>
-            <p style="font-size: 14px; margin: 0 0 4px 0;">${data.noTelepon || '-'}</p>
-            <p style="font-size: 14px; margin: 0; line-height: 1.5;">${data.alamat || '-'}</p>
-          </div>
-        </div>
-
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 32px;">
-          <thead>
-            <tr>
-              <th style="padding: 12px 16px; text-align: left; background-color: #f1f5f9; color: #475569; font-size: 12px; text-transform: uppercase; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">Deskripsi Pembayaran</th>
-              <th style="padding: 12px 16px; text-align: right; background-color: #f1f5f9; color: #475569; font-size: 12px; text-transform: uppercase; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">Jumlah</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding: 24px 16px; border-bottom: 1px solid #e2e8f0; vertical-align: top;">
-                <p style="font-size: 15px; font-weight: bold; color: #0f172a; margin: 0 0 8px 0;">${title}</p>
-                <p style="font-size: 14px; color: #475569; margin: 0 0 4px 0;">Perumahan: <strong>${data.perumahan}</strong></p>
-                <p style="font-size: 14px; color: #475569; margin: 0 0 4px 0;">Kavling: <strong>Blok ${data.blok} - No. ${data.nomorUnit}</strong> ${data.tipe ? `(Tipe ${data.tipe})` : ''}</p>
-                <p style="font-size: 14px; color: #475569; margin: 0;">Skema Pembayaran: <strong>${data.caraPembayaran}</strong> ${data.bank ? `(${data.bank})` : ''}</p>
-              </td>
-              <td style="padding: 24px 16px; border-bottom: 1px solid #e2e8f0; text-align: right; vertical-align: top; font-size: 16px; font-weight: bold; color: #0f172a;">
-                ${formatRupiah(nominal)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 48px;">
-          <div style="width: 300px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <span style="font-size: 14px; font-weight: bold; color: #475569; text-transform: uppercase;">${labelTotal}</span>
-              <span style="font-size: 20px; font-weight: 900; color: #0f172a;">${formatRupiah(nominal)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; text-align: center;">
-          <div style="width: 200px;">
-            <p style="font-size: 14px; color: #475569; margin: 0 0 80px 0;">Tangerang, ${formatDate(data.tanggal || new Date().toISOString())}</p>
-            <p style="font-size: 14px; font-weight: bold; color: #0f172a; margin: 0; text-decoration: underline;">Divisi Keuangan</p>
-            <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">Bumantara</p>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(container);
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const element = container.firstElementChild as HTMLElement;
-      const dataUrl = await htmlToImage.toPng(element, {
-        quality: 1.0,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-      });
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
-
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-      const fileName = `${title.replace(/\s+/g, '_')}_${data.id}.pdf`;
-      pdf.save(fileName);
-    } catch (error) {
-      console.error('Gagal membuat PDF otomatis:', error);
-    } finally {
-      document.body.removeChild(container);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isNewAgent && formData.agent.trim() !== '') {
-      if (!agentList.includes(formData.agent)) {
-        setAgentList(prev => [...prev, formData.agent]);
-      }
-    }
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? { ...formData } : item)));
-      closeModal();
-    } else {
-      const nextNumber = data.length > 0 ? Math.max(...data.map(d => parseInt(d.id.split('-')[1]))) + 1 : 1;
-      const newId = `TRX-${String(nextNumber).padStart(3, '0')}`;
-      const newData = { ...formData, id: newId };
-      setData((prev) => [...prev, newData]);
-
-      closeModal();
-
-      await createAndDownloadPDF(newData, 'Invoice Booking Fee', newData.bookingFee);
-      await createAndDownloadPDF(newData, 'Invoice Down Payment', newData.dp);
-    }
-  };
-
-  const handleDelete = (item: PenjualanData) => {
-    if (window.confirm(`Hapus data penjualan ${item.id}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  const sendToWhatsApp = (row: any, type: string) => {
-    const phone = (row.noTelepon || '').replace(/[^0-9]/g, '');
-    if (!phone) {
-      alert('Nomor telepon tidak valid');
-      return;
-    }
-    const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
-    const message = `Halo Bapak/Ibu ${row.nama}, berikut kami kirimkan ${type} untuk unit Kavling ${row.perumahan} Blok ${row.blok}-${row.nomorUnit}. Terima kasih.`;
-    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
-  };
-
-  const expandedRowRender = (row: PenjualanData) => {
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
-        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
-          <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
-          <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold border border-blue-100 uppercase tracking-wider">
-            Status: {row.status}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">1. Booking Fee</h5>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => {
-                  setPrintType('invoice');
-                  setPrintTitle('Invoice Booking Fee');
-                  setPrintData({ ...row, nominalCetak: row.bookingFee });
-                }}
-                className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <FileText size={14} /> Invoice
-              </button>
-
-              {row.fileBuktiBooking ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setPrintType('kwitansi');
-                      setPrintTitle('Kwitansi Booking Fee');
-                      setPrintData({ ...row, nominalCetak: row.bookingFee });
-                    }}
-                    className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-sm"
-                  >
-                    <Receipt size={14} /> Kwitansi
-                  </button>
-                  <button
-                    onClick={() => sendToWhatsApp(row, 'Kwitansi Booking Fee')}
-                    className="p-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors cursor-pointer"
-                  >
-                    <UploadCloud size={16} />
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => openModal(row)}
-                  className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md"
-                >
-                  <UploadCloud size={14} /> Upload Bukti Booking
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">2. Down Payment</h5>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => {
-                  setPrintType('invoice');
-                  setPrintTitle('Invoice Down Payment (DP)');
-                  setPrintData({ ...row, nominalCetak: row.dp });
-                }}
-                className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <FileText size={14} /> Invoice DP
-              </button>
-
-              {row.fileBuktiDp ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setPrintType('kwitansi');
-                      setPrintTitle('Kwitansi Down Payment (DP)');
-                      setPrintData({ ...row, nominalCetak: row.dp });
-                    }}
-                    className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-sm"
-                  >
-                    <Receipt size={14} /> Kwitansi DP
-                  </button>
-                  <button
-                    onClick={() => sendToWhatsApp(row, 'Kwitansi DP')}
-                    className="p-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors cursor-pointer"
-                  >
-                    <UploadCloud size={16} />
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => openModal(row)}
-                  className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors cursor-pointer shadow-md"
-                >
-                  <UploadCloud size={14} /> Upload Bukti DP
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const handlePrintPDF = async () => {
-    const element = document.getElementById('print-area');
-    if (!element) return;
-
-    try {
-      const dataUrl = await htmlToImage.toPng(element, {
-        quality: 1.0,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-        fontEmbedCSS: ''
-      });
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
-
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-      const fileName = `${printTitle ? printTitle.replace(/\s+/g, '_') : 'Dokumen'}_${printData?.id || 'BMT'}.pdf`;
-      pdf.save(fileName);
-    } catch (error) {
-      console.error('Gagal membuat PDF:', error);
-      alert('Terjadi kesalahan saat memproses PDF.');
-    }
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Data Penjualan"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-        expandedRowRender={expandedRowRender}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Penjualan / Upload Bukti" : "Tambah Penjualan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                {!isNewAgent ? (
-                  <Select
-                    label="Agent Marketing"
-                    name="agent"
-                    value={formData.agent}
-                    onChange={(e) => {
-                      if (e.target.value === 'NEW') {
-                        setIsNewAgent(true);
-                        setFormData((prev) => ({ ...prev, agent: '' }));
-                      } else {
-                        handleChange(e);
-                      }
-                    }}
-                    error={errors.agent}
-                    options={[
-                      { value: '', label: '-- Pilih Agent --' },
-                      ...agentList.map(a => ({ value: a, label: a })),
-                      { value: 'NEW', label: '+ Tambah Agent Baru...' }
-                    ]}
-                  />
-                ) : (
-                  <div className="relative animate-in fade-in zoom-in-95 duration-200">
-                    <Input
-                      label="Nama Agent Baru"
-                      name="agent"
-                      value={formData.agent}
-                      onChange={handleChange}
-                      placeholder="Ketik nama agent..."
-                      error={errors.agent}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsNewAgent(false);
-                        setFormData((prev) => ({ ...prev, agent: '' }));
-                      }}
-                      className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                    >
-                      Batal Tambah
-                    </button>
-                  </div>
-                )}
-              </div>
-              <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} />
-              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
-              <Input label="Perusahaan" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
-              <div className="md:col-span-2">
-                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Perumahan"
-                name="perumahan"
-                value={formData.perumahan}
-                onChange={handleChange}
-                error={errors.perumahan}
-                options={[
-                  { value: '', label: '-- Pilih Perumahan --' },
-                  ...mockPerumahanList.map(p => ({ value: p, label: p }))
-                ]}
-              />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} />
-
-              <Select
-                label="Tipe Kavling"
-                name="tipe"
-                value={formData.tipe}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih Tipe --' },
-                  ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))
-                ]}
-              />
-
-              <Select
-                label="Luas Tanah (LT)"
-                name="luasTanah"
-                value={formData.luasTanah || ''}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih LT --' },
-                  ...(formData.tipe && KAVLING_DATA[formData.tipe]
-                    ? [...KAVLING_DATA[formData.tipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }))
-                    : [])
-                ]}
-              />
-
-              <Input
-                label="Luas Bangunan (LB)"
-                name="luasBangunan"
-                type="number"
-                value={formData.luasBangunan || ''}
-                readOnly
-              />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} />
-              <Input label="Harga Promosi (Rp)" type="number" name="hargaPromosi" value={formData.hargaPromosi || ''} onChange={handleChange} />
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual || ''} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Select
-                label="Cara Pembayaran"
-                name="caraPembayaran"
-                value={formData.caraPembayaran}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih --' },
-                  { value: 'CASH KERAS', label: 'CASH KERAS' },
-                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
-                  { value: 'KPR', label: 'KPR' }
-                ]}
-                error={errors.caraPembayaran}
-              />
-              <Input
-                label="Down Payment (DP) - Rp"
-                type="number"
-                name="dp"
-                value={formData.dp || ''}
-                onChange={handleChange}
-                placeholder="Otomatis 10% dari Harga Jual"
-              />
-              <Input
-                label="Diskon Penjualan (Rp)"
-                type="number"
-                name="diskonPenjualan"
-                value={formData.diskonPenjualan || ''}
-                onChange={handleChange}
-              />
-            </div>
-            {formData.caraPembayaran && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
-                <Input
-                  label={formData.caraPembayaran === 'KPR' ? "Bank KPR" : "Bank"}
-                  name="bank"
-                  value={formData.bank}
-                  onChange={handleChange}
-                  placeholder="Contoh: BCA, BSI, Mandiri"
-                  error={errors.bank}
-                />
-                {formData.caraPembayaran === 'KPR' && (
-                  <Input
-                    label="Nilai Pengajuan KPR (Rp)"
-                    type="number"
-                    name="nilaiPengajuanKpr"
-                    value={formData.nilaiPengajuanKpr || ''}
-                    onChange={handleChange}
-                    error={errors.nilaiPengajuanKpr}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">4. Upload Berkas (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload KTP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKtp')} />
-                {formData.fileKtp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKtp}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload KK" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileKk')} />
-                {formData.fileKk && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileKk}</p>}
-              </div>
-              <div>
-                <FileInput label="Upload NPWP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNpwp')} />
-                {formData.fileNpwp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileNpwp}</p>}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">5. Booking Fee</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Booking Fee (Fixed Rp)"
-                type="number"
-                name="bookingFee"
-                value={formData.bookingFee}
-                readOnly
-                className="bg-gray-200 cursor-not-allowed text-black px-4 py-2 rounded-md"
-              />
-            </div>
-          </div>
-
-          {isEditing && (
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-              <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">6. Upload Bukti Transfer</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <FileInput label="Bukti Transfer Booking" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileBuktiBooking')} />
-                  {formData.fileBuktiBooking && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileBuktiBooking}</p>}
-                </div>
-                <div>
-                  <FileInput label="Bukti Transfer DP" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileBuktiDp')} />
-                  {formData.fileBuktiDp && <p className="text-xs text-green-600 mt-1 truncate">{formData.fileBuktiDp}</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-              Batal
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer">
-              Simpan Penjualan
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
-        {printData && (
-          <div className="p-8 bg-white border border-slate-200 rounded-xl" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-            {/* Header */}
-            <div className="flex justify-between items-start border-b-2 border-slate-200 pb-6 mb-8">
-              <div>
-                <h2 className="text-3xl font-black uppercase tracking-widest text-slate-900 m-0">
-                  {printType === 'invoice' ? 'INVOICE' : 'KWITANSI'}
-                </h2>
-                <p className="text-slate-500 text-sm mt-2 font-medium">No: {printData.id} / BMT / 2026</p>
-                <p className="text-slate-500 text-sm mt-1">Tanggal: {formatDate(printData.tanggal || new Date().toISOString())}</p>
-              </div>
-              <div className="text-right">
-                <h3 className="m-0 text-xl font-bold text-slate-900">BUMANTARA</h3>
-                <p className="m-0 mt-1 text-xs text-slate-500">Divisi Marketing & Keuangan</p>
-              </div>
-            </div>
-
-            {/* Customer Info */}
-            <div className="flex justify-between mb-8">
-              <div className="max-w-[50%]">
-                <p className="text-xs text-slate-500 uppercase tracking-widest mb-2 font-bold">
-                  {printType === 'kwitansi' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:'}
-                </p>
-                <p className="text-lg font-bold text-slate-900 m-0 mb-1">{printData.nama}</p>
-                <p className="text-sm m-0 mb-1 text-slate-600">{printData.noTelepon || '-'}</p>
-                <p className="text-sm m-0 leading-relaxed text-slate-600">{printData.alamat || '-'}</p>
-              </div>
-            </div>
-
-            {/* Detail Table */}
-            <table className="w-full border-collapse mb-8">
-              <thead>
-                <tr>
-                  <th className="py-3 px-4 text-left bg-slate-50 text-slate-600 text-xs uppercase border-y border-slate-300">Deskripsi Pembayaran</th>
-                  <th className="py-3 px-4 text-right bg-slate-50 text-slate-600 text-xs uppercase border-y border-slate-300">Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="py-6 px-4 border-b border-slate-200 align-top">
-                    <p className="text-base font-bold text-slate-900 m-0 mb-2">{printTitle}</p>
-                    <p className="text-sm text-slate-600 m-0 mb-1">Perumahan: <strong>{printData.perumahan}</strong></p>
-                    <p className="text-sm text-slate-600 m-0 mb-1">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
-                    <p className="text-sm text-slate-600 m-0">Skema Pembayaran: <strong>{printData.caraPembayaran}</strong> {printData.bank ? `(${printData.bank})` : ''}</p>
-                  </td>
-                  <td className="py-6 px-4 border-b border-slate-200 text-right align-top text-lg font-bold text-slate-900">
-                    {formatRupiah(printData.nominalCetak || 0)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Total Section */}
-            <div className="flex justify-end mb-12">
-              <div className="w-[300px]">
-                <div className="flex justify-between items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <span className="text-sm font-bold text-slate-600 uppercase">
-                    {printType === 'kwitansi' ? 'Total' : 'Total'}
-                  </span>
-                  <span className="text-xl font-black text-slate-900">{formatRupiah(printData.nominalCetak || 0)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Signature Section */}
-            <div className="flex justify-end text-center">
-              <div className="w-[200px]">
-                <p className="text-sm text-slate-600 m-0 mb-20">Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}</p>
-                <p className="text-sm font-bold text-slate-900 m-0 underline">Divisi Keuangan</p>
-                <p className="text-xs text-slate-500 mt-1 m-0">Bumantara</p>
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-          <button onClick={() => setPrintData(null)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-          <button onClick={handlePrintPDF} className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-lg shadow-black/10 flex items-center gap-2">
-            <Printer size={16} /> Download PDF
-          </button>
-        </div>
-      </Modal>
-    </div>
-  );
-};
-
-export default Penjualan;
-</file>
-
 <file path="src/pages/PageLoader.tsx">
 const PageLoader = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50/80 backdrop-blur-sm">
@@ -4648,258 +3384,6 @@ const SPK = () => {
 export default SPK;
 </file>
 
-<file path="src/pages/Public/VerifyDocument.tsx">
-import { useParams } from 'react-router-dom';
-import { AlertCircle, ShieldCheck } from 'lucide-react';
-import { useVerifyDocument } from '../../hooks/queries/useVerify';
-import type { VerifyInvoiceData, VerifySprData } from '../../services/verify.service';
-import { formatDate, formatRupiah } from '../../utils/formatters';
-
-const VerifyDocument = () => {
-  const { id } = useParams<{ id: string }>();
-  const { data: documentData, isLoading, isError } = useVerifyDocument(id || '');
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
-        <div className="relative w-16 h-16 mb-4">
-          <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
-          <div className="absolute inset-0 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-        </div>
-        <p className="text-slate-500 font-bold animate-pulse tracking-widest uppercase text-sm">Memverifikasi Dokumen...</p>
-      </div>
-    );
-  }
-
-  if (isError || !documentData) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-slate-50">
-        <div className="bg-red-50 p-6 rounded-full mb-4">
-          <AlertCircle size={64} className="text-red-500" />
-        </div>
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dokumen Tidak Valid</h2>
-        <p className="text-base text-slate-500 max-w-md mt-3 font-medium">
-          Maaf, kami tidak dapat menemukan data dokumen dengan nomor registrasi tersebut di dalam sistem resmi Bumantara.
-        </p>
-      </div>
-    );
-  }
-
-  const { type, data } = documentData;
-
-  const renderHeader = (docType: string, noDokumen: string, tanggal: string, logo: string | undefined, perumahanNama: string) => (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-[3px] border-slate-900 pb-6 mb-8 gap-6">
-      <div className="order-2 sm:order-1">
-        <h2 className="text-3xl md:text-4xl font-black uppercase tracking-widest text-slate-900 m-0">
-          {docType}
-        </h2>
-        <div className="mt-3 space-y-1">
-          <p className="text-slate-500 text-sm font-bold flex items-center gap-2">
-            <span className="w-16 inline-block text-slate-400">NO DOC</span> : <span className="text-slate-900">{noDokumen}</span>
-          </p>
-          <p className="text-slate-500 text-sm font-bold flex items-center gap-2">
-            <span className="w-16 inline-block text-slate-400">TANGGAL</span> : <span className="text-slate-900">{formatDate(tanggal)}</span>
-          </p>
-        </div>
-      </div>
-      <div className="order-1 sm:order-2 text-left sm:text-right flex flex-col items-start sm:items-end w-full sm:w-auto">
-        {logo ? (
-          <img src={logo} alt="Logo Perumahan" className="h-16 md:h-20 object-contain mb-3" />
-        ) : (
-          <h3 className="m-0 text-2xl font-black text-slate-900 tracking-tight">{perumahanNama}</h3>
-        )}
-        <p className="m-0 text-xs text-slate-500 font-bold uppercase tracking-widest">Divisi Marketing & Keuangan</p>
-      </div>
-    </div>
-  );
-
-  const renderInvoice = (invData: VerifyInvoiceData, docType: string) => {
-    const isLunas = invData.status === 'LUNAS';
-
-    return (
-      <div className="space-y-6 text-left">
-        {renderHeader(docType, invData.noDokumen, invData.tanggalDibuat, invData.kavling.logoPerumahan, invData.kavling.perumahan)}
-
-        {/* Data Customer & Kavling Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-          <div>
-            <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">
-              {isLunas ? 'Telah Diterima Dari :' : 'Ditagihkan Kepada :'}
-            </p>
-            <p className="font-black text-xl text-slate-900 m-0 mb-1">{invData.customer.nama}</p>
-            <p className="text-sm m-0 mb-1 font-bold text-slate-500">{invData.customer.noHp || '-'}</p>
-            <p className="text-sm m-0 leading-relaxed font-medium text-slate-600">{invData.customer.alamat || '-'}</p>
-          </div>
-          <div className="md:border-l border-slate-200 md:pl-8">
-            <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">Informasi Unit :</p>
-            <p className="font-black text-lg text-slate-900 m-0 mb-1">{invData.kavling.perumahan}</p>
-            <p className="text-sm m-0 mb-1 font-bold text-slate-700">Blok {invData.kavling.blok} - No. {invData.kavling.nomorUnit}</p>
-            <p className="text-sm m-0 font-medium text-slate-600">Tipe {invData.kavling.tipe}</p>
-          </div>
-        </div>
-
-        {/* Tabel Deskripsi */}
-        <div className="rounded-2xl border border-slate-200 overflow-hidden mb-8">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-slate-900 text-white">
-                <th className="py-4 px-6 text-left text-xs uppercase tracking-widest font-bold">Deskripsi Pembayaran</th>
-                <th className="py-4 px-6 text-right text-xs uppercase tracking-widest font-bold w-1/3">Jumlah</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-8 px-6 border-b border-slate-100 align-top bg-white">
-                  <p className="text-lg font-black text-slate-900 m-0 mb-2">{invData.pembayaran}</p>
-                  <p className="text-sm text-slate-500 font-medium m-0">Skema: <strong>{invData.transaksi.caraPembayaran}</strong> {invData.transaksi.bank ? `(${invData.transaksi.bank})` : ''}</p>
-                </td>
-                <td className="py-8 px-6 border-b border-slate-100 text-right align-top text-xl font-black text-slate-900 bg-white">
-                  {formatRupiah(invData.nominal)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-col md:flex-row justify-between gap-8 items-start">
-          <div className="w-full md:w-1/2">
-            {invData.kavling.rekeningTujuan && (
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3">
-                  {isLunas ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
-                </span>
-                <p className="text-sm font-bold text-slate-900 uppercase">Bank {invData.kavling.rekeningTujuan.namaBank}</p>
-                <p className="text-2xl font-black text-slate-900 my-1 font-mono tracking-tight">{invData.kavling.rekeningTujuan.noRekening}</p>
-                <p className="text-xs font-bold text-slate-500 uppercase mt-2">A/N: {invData.kavling.rekeningTujuan.atasNama}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="w-full md:w-[400px] space-y-4">
-            {(invData.pembayaran.toLowerCase().includes('booking') || invData.pembayaran.toLowerCase().includes('dp')) && (
-              <div className="space-y-3 p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <span>Harga Jual Unit</span>
-                  <span className="text-slate-800 text-sm">{formatRupiah(invData.transaksi.hargaJual)}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <span>Sisa Belum Dibayar</span>
-                  <span className="text-orange-600 text-sm">
-                    {formatRupiah(invData.transaksi.sisaBelumDibayar)}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className={`flex justify-between items-center p-6 rounded-2xl border-2 ${isLunas ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
-              <span className="text-sm font-black uppercase tracking-[0.2em]">
-                {isLunas ? 'Total Lunas' : 'Total'}
-              </span>
-              <span className="text-2xl font-black">
-                {formatRupiah(invData.nominal)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderSpr = (sprData: VerifySprData) => (
-    <div className="space-y-6 text-left">
-      {renderHeader('SURAT PESANAN', sprData.noDokumen, sprData.tanggalTransaksi, sprData.kavling.logoPerumahan, sprData.kavling.perumahan)}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-        <div>
-          <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">Pihak Pemesan :</p>
-          <p className="font-black text-xl text-slate-900 m-0 mb-1">{sprData.customer.nama}</p>
-          <p className="text-sm m-0 mb-1 font-bold text-slate-500">{sprData.customer.noHp || '-'}</p>
-          <p className="text-sm m-0 leading-relaxed font-medium text-slate-600">{sprData.customer.alamat || '-'}</p>
-        </div>
-        <div className="md:border-l border-slate-200 md:pl-8">
-          <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">Detail Kavling Pesanan :</p>
-          <p className="font-black text-lg text-slate-900 m-0 mb-1">{sprData.kavling.perumahan}</p>
-          <p className="text-sm m-0 mb-1 font-bold text-slate-700">{sprData.kavling.blokUnit} <span className="font-medium text-slate-500">(Tipe {sprData.kavling.tipe})</span></p>
-          <div className="mt-4 pt-4 border-t border-slate-200">
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Status Penjualan</p>
-            <p className={`text-sm font-black uppercase tracking-widest ${sprData.status === 'BATAL' ? 'text-red-600' : 'text-blue-600'}`}>{sprData.status}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end mb-8">
-        <div className="w-full md:w-[450px] p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <span>Skema Pembiayaan</span>
-            <span className="text-slate-900">{sprData.caraPembayaran} {sprData.bank ? `(${sprData.bank})` : ''}</span>
-          </div>
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <span>Booking Fee</span>
-            <span className="text-slate-900">{formatRupiah(sprData.bookingFee)}</span>
-          </div>
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <span>Down Payment (DP)</span>
-            <span className="text-slate-900">{formatRupiah(sprData.dp)}</span>
-          </div>
-          <div className="pt-4 border-t border-slate-200">
-            <div className="flex justify-between items-center p-5 bg-slate-900 text-white rounded-xl shadow-lg">
-              <span className="text-sm font-black uppercase tracking-[0.2em] text-slate-200">
-                Harga Kesepakatan
-              </span>
-              <span className="text-xl font-black">{formatRupiah(sprData.hargaJual)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-slate-100/50 py-12 px-4 font-sans flex justify-center items-start">
-      <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 relative">
-        {/* Banner Garis Atas */}
-        <div className="h-2 w-full bg-slate-900"></div>
-
-        <div className="p-8 md:p-12">
-          {/* Lencana Validasi (Lebih Mewah) */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 bg-emerald-50 border border-emerald-200 p-5 rounded-2xl mb-12 shadow-sm">
-            <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0 shadow-inner shadow-emerald-700/20">
-              <ShieldCheck size={28} className="text-white" strokeWidth={2.5} />
-            </div>
-            <div className="text-center sm:text-left">
-              <h2 className="text-sm font-black text-emerald-900 tracking-widest uppercase mb-1">DOKUMEN VALID & TERVERIFIKASI</h2>
-              <p className="text-xs text-emerald-700 font-medium">Dokumen ini diterbitkan secara sah dan dilindungi oleh sistem portal Bumantara.</p>
-            </div>
-          </div>
-
-          {/* Isi Konten Dinamis */}
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {type === 'INVOICE' || type === 'KWITANSI'
-              ? renderInvoice(data as VerifyInvoiceData, type)
-              : renderSpr(data as VerifySprData)}
-          </div>
-
-          {/* Tanda Tangan Footer untuk semua dokumen */}
-          <div className="flex justify-end text-center mt-16 pt-8 border-t border-slate-100">
-            <div className="w-[250px]">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-20">
-                Tangerang, {formatDate(type === 'SPR' ? (data as VerifySprData).tanggalTransaksi : (data as VerifyInvoiceData).tanggalDibuat)}
-              </p>
-              <p className="text-sm font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-2 inline-block">
-                {type === 'SPR' ? 'Divisi Marketing' : 'Divisi Keuangan'}
-              </p>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Bumantara</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default VerifyDocument;
-</file>
-
 <file path="src/components/shared/Input.tsx">
 import type { InputHTMLAttributes } from 'react';
 
@@ -5058,6 +3542,312 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
 };
 
 export default Select;
+</file>
+
+<file path="src/pages/Public/VerifyDocument.tsx">
+import { useParams } from 'react-router-dom';
+import { AlertCircle, ShieldCheck, Printer } from 'lucide-react';
+import { useVerifyDocument } from '../../hooks/queries/useVerify';
+import type { VerifyInvoiceData, VerifySprData } from '../../services/verify.service';
+import { formatDate, formatRupiah } from '../../utils/formatters';
+import { jsPDF } from "jspdf";
+import * as htmlToImage from 'html-to-image';
+import QRCode from "react-qr-code";
+
+const VerifyDocument = () => {
+  const { id } = useParams<{ id: string }>();
+  const { data: documentData, isLoading, isError } = useVerifyDocument(id || '');
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+        <div className="relative w-16 h-16 mb-4">
+          <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <p className="text-slate-500 font-bold animate-pulse tracking-widest uppercase text-sm">Memverifikasi Dokumen...</p>
+      </div>
+    );
+  }
+
+  if (isError || !documentData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-slate-50">
+        <div className="bg-red-50 p-6 rounded-full mb-4">
+          <AlertCircle size={64} className="text-red-500" />
+        </div>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dokumen Tidak Valid</h2>
+        <p className="text-base text-slate-500 max-w-md mt-3 font-medium">
+          Maaf, kami tidak dapat menemukan data dokumen dengan nomor registrasi tersebut di dalam sistem resmi.
+        </p>
+      </div>
+    );
+  }
+
+  const { type, data } = documentData;
+  const isSpr = type === 'SPR';
+  const isKwitansi = type === 'KWITANSI';
+  const isInvoice = type === 'INVOICE';
+
+  const invData = data as VerifyInvoiceData;
+  const sprData = data as VerifySprData;
+
+  // Setup variable data menyesuaikan jenis dokumen agar rapi
+  const docTitle = isSpr ? 'SURAT PESANAN (SPR)' : isKwitansi ? 'BUKTI PEMBAYARAN' : 'TAGIHAN';
+  const cleanNoDoc = data.noDokumen.toString().replace(/INV-BF-|INV-DP-|KWT-BF-|KWT-DP-/g, '');
+  const tanggalDoc = isSpr ? sprData.tanggalTransaksi : invData.tanggalDibuat;
+  const logo = data.kavling.logoPerumahan;
+  const perumahanName = data.kavling.perumahan;
+
+  // Fungsi untuk Download PDF (Sama persis mekanismenya)
+  const handlePrintPDF = async () => {
+    const element = document.getElementById('print-area');
+    if (!element) return;
+
+    try {
+      // Jeda sejenak agar font & layout render sempurna
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      const scrollWidth = element.scrollWidth;
+      const scrollHeight = element.scrollHeight;
+
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1.0,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        width: scrollWidth,
+        height: scrollHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
+      });
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (scrollHeight * pdfWidth) / scrollWidth;
+
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      const fileName = `${docTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Gagal membuat PDF:', error);
+      alert('Terjadi kesalahan saat memproses file PDF.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100/50 py-12 px-4 font-sans flex flex-col items-center justify-start">
+
+      {/* Header Validasi & Tombol Download (di luar area Print) */}
+      <div className="w-full max-w-3xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-emerald-50 border border-emerald-200 p-5 rounded-t-2xl sm:rounded-2xl mb-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0 shadow-inner shadow-emerald-700/20">
+            <ShieldCheck size={28} className="text-white" strokeWidth={2.5} />
+          </div>
+          <div className="text-center sm:text-left">
+            <h2 className="text-sm font-black text-emerald-900 tracking-widest uppercase mb-1">DOKUMEN VALID & TERVERIFIKASI</h2>
+            <p className="text-xs text-emerald-700 font-medium">Dokumen ini sah dan dilindungi oleh sistem portal.</p>
+          </div>
+        </div>
+        <button
+          onClick={handlePrintPDF}
+          className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer w-full sm:w-auto shrink-0"
+        >
+          <Printer size={16} /> Download PDF
+        </button>
+      </div>
+
+      {/* PRINT AREA: Identik 100% dengan layout di Tagihan & Penjualan Panel */}
+      <div className="w-full max-w-3xl shadow-2xl relative bg-white">
+        <div
+          id="print-area"
+          className="bg-white"
+          style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}
+        >
+          {/* Menggunakan p-6 (sama seperti di Tagihan/Penjualan) */}
+          <div className="p-6 flex flex-col min-h-[800px]">
+
+            {/* --- 1. HEADER --- */}
+            <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
+                  {docTitle}
+                </h2>
+                <div className="mt-2 space-y-0.5">
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">NO DOC</span>: {cleanNoDoc} / {new Date(tanggalDoc).getFullYear()}
+                  </p>
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">NO INVOICE</span>: {cleanNoDoc}
+                  </p>
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">TANGGAL</span>: {formatDate(tanggalDoc)}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right flex flex-col items-end">
+                {logo ? (
+                  <img src={logo} alt="Logo" className="h-12 object-contain mb-2" crossOrigin="anonymous" />
+                ) : (
+                  <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">{perumahanName}</h3>
+                )}
+              </div>
+            </div>
+
+            {/* --- 2. INFORMASI CUSTOMER --- */}
+            <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
+                {isKwitansi ? 'Telah Diterima Dari:' : isSpr ? 'Pihak Pemesan:' : 'Ditagihkan Kepada:'}
+              </p>
+              <p className="font-black text-lg text-slate-900 m-0 mb-0.5">{data.customer.nama}</p>
+              <p className="text-xs m-0 mb-0.5 font-bold text-slate-500">{data.customer.noHp || '-'}</p>
+              <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{data.customer.alamat || '-'}</p>
+            </div>
+
+            {/* --- 3. TABEL DESKRIPSI PEMBAYARAN --- */}
+            <div className="rounded-xl border border-slate-200 overflow-hidden mb-6">
+              <table className="w-full border-collapse bg-white">
+                <thead>
+                  <tr className="bg-slate-900 text-white">
+                    <th className="py-2.5 px-4 text-left text-[10px] uppercase tracking-widest font-bold">Deskripsi</th>
+                    <th className="py-2.5 px-4 text-right text-[10px] uppercase tracking-widest font-bold w-1/3">Jumlah</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="py-4 px-4 border-b border-slate-100 align-top">
+                      <p className="text-base font-black text-slate-900 m-0 mb-2">
+                        {isSpr ? 'Pemesanan Unit Kavling (SPR)' : invData.pembayaran}
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{perumahanName}</strong></p>
+                      <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">
+                        Kavling: <strong>{isSpr ? sprData.kavling.blokUnit : `Blok ${invData.kavling.blok} - No. ${invData.kavling.nomorUnit}`}</strong> {data.kavling.tipe ? `(Tipe ${data.kavling.tipe})` : ''}
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium m-0">
+                        Skema Pembayaran: <strong>{isSpr ? sprData.caraPembayaran : invData.transaksi.caraPembayaran?.replace('_', ' ')}</strong>
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 border-b border-slate-100 text-right align-top text-lg font-black text-slate-900">
+                      {formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* --- 4 & 5. INFORMASI REKENING & TOTAL --- */}
+            <div className="flex flex-row justify-between items-start gap-6 mb-6">
+
+              {/* Bagian Kiri: Rekening / Info Status */}
+              <div className="flex-1">
+                {/* Tampilan Rekening jika Invoice/Kwitansi */}
+                {(isInvoice || isKwitansi) && invData.kavling.rekeningTujuan && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
+                      {isKwitansi ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
+                    </span>
+                    <p className="text-xs font-bold text-slate-900 uppercase">Bank {invData.kavling.rekeningTujuan.namaBank}</p>
+                    <p className="text-lg font-black text-slate-900 my-0.5 font-mono tracking-tight">{invData.kavling.rekeningTujuan.noRekening}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">A/N: {invData.kavling.rekeningTujuan.atasNama}</p>
+                  </div>
+                )}
+                {/* Tampilan Status jika SPR */}
+                {isSpr && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block w-full">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
+                      Status Kesepakatan Penjualan:
+                    </span>
+                    <p className={`text-sm font-black uppercase tracking-widest ${sprData.status === 'BATAL' ? 'text-red-600' : 'text-blue-600'}`}>
+                      {sprData.status}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Bagian Kanan: Kalkulasi Total */}
+              <div className="w-[280px] space-y-3">
+                {/* Rincian Harga untuk Tagihan Awal / DP / SPR */}
+                {(isInvoice || isKwitansi) && (invData.pembayaran.toLowerCase().includes('booking') || invData.pembayaran.toLowerCase().includes('dp')) && (
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Harga Jual Unit</span>
+                      <span className="text-slate-800 text-xs">{formatRupiah(invData.transaksi.hargaJual || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Sisa Belum Dibayar</span>
+                      <span className="text-red-600 text-xs">
+                        {formatRupiah(invData.transaksi.hargaJual || 0)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {isSpr && (
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Booking Fee</span>
+                      <span className="text-slate-800 text-xs">{formatRupiah(sprData.bookingFee || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Down Payment (DP)</span>
+                      <span className="text-slate-800 text-xs">{formatRupiah(sprData.dp || 0)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Box Total Akhir */}
+                <div className={`flex justify-between items-center p-4 rounded-xl border-2 ${isKwitansi ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
+                  <span className="text-xs font-black uppercase tracking-[0.2em]">{isSpr ? 'Harga Jual' : 'Total'}</span>
+                  <span className="text-xl font-black">{formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* --- 6. CATATAN / NOTES --- */}
+            <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl text-[9px] text-slate-600 leading-relaxed text-left">
+              <p className="font-bold text-slate-800 mb-1 uppercase tracking-widest">Catatan:</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Harga jual pembelian unit rumah sudah termasuk biaya AJB, Sertipikat, IMB, Listrik, BPHTB, Biaya Proses KPR dan Notaris.</li>
+                <li>Harga jual khusus pembelian kavling belum termasuk biaya BPHTB, PPJB, AJB, Sertipikat dan Biaya Mutasi PBB.</li>
+                <li>Apabila terjadi pembatalan, uang tanda jadi (Booking Fee) tidak dapat dikembalikan / hangus.</li>
+              </ul>
+            </div>
+
+            {/* --- 7. QR CODE & TTD --- */}
+            <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
+              <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
+                <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
+                  <QRCode
+                    value={`${window.location.origin}/verify/${data.noDokumen}`}
+                    size={60}
+                    level="H"
+                  />
+                </div>
+                <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
+                <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
+              </div>
+
+              <div className="text-center w-[200px] relative">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
+                  Tangerang, {formatDate(tanggalDoc)}
+                </p>
+                <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
+                  {isSpr ? 'MARKETING' : 'FINANCE'}
+                </p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{perumahanName}</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default VerifyDocument;
 </file>
 
 <file path="package.json">
@@ -6004,281 +4794,6 @@ const KelengkapanAdministrasi = () => {
 export default KelengkapanAdministrasi;
 </file>
 
-<file path="src/pages/Dashboard.tsx">
-import { useNavigate } from 'react-router-dom';
-import {
-  Building2,
-  Wallet,
-  AlertCircle,
-  HardHat,
-  ArrowRight,
-  Clock,
-  Award,
-  FileText,
-  ChevronRight
-} from 'lucide-react';
-import { formatRupiah } from '../utils/formatters';
-import { useGetDashboardSummary } from '../hooks/queries/useDashboard';
-import PageLoader from './PageLoader';
-
-const Dashboard = () => {
-  const navigate = useNavigate();
-  const { data: dashboardData, isLoading } = useGetDashboardSummary();
-
-  if (isLoading || !dashboardData) return <PageLoader />;
-
-  const { stats, recentTransactions, topAgents, documentAlerts } = dashboardData;
-
-  const statCards = [
-    {
-      title: 'Total Pendapatan',
-      value: formatRupiah(stats.totalPendapatan),
-      trend: 'Pembayaran Lunas',
-      isPositive: true,
-      icon: <Wallet className="text-slate-700" size={24} />,
-      bgColor: 'bg-slate-100',
-      link: '/customer/tagihan'
-    },
-    {
-      title: 'Kavling Terjual',
-      value: `${stats.kavlingTerjual} Unit`,
-      trend: `Dari Total ${stats.totalKavling} Unit`,
-      isPositive: true,
-      icon: <Building2 className="text-blue-700" size={24} />,
-      bgColor: 'bg-blue-50',
-      link: '/management/penjualan'
-    },
-    {
-      title: 'Tagihan Jatuh Tempo',
-      value: formatRupiah(stats.tagihanJatuhTempo),
-      trend: `${stats.customerJatuhTempo} Customer`,
-      isPositive: false,
-      icon: <AlertCircle className="text-red-700" size={24} />,
-      bgColor: 'bg-red-50',
-      link: '/customer/tagihan'
-    },
-    {
-      title: 'Proyek Aktif (SPK)',
-      value: `${stats.proyekAktif} Unit`,
-      trend: 'Sedang Dibangun',
-      isPositive: true,
-      icon: <HardHat className="text-amber-700" size={24} />,
-      bgColor: 'bg-amber-50',
-      link: '/proyek/spk'
-    },
-  ];
-
-  const percentTerjual = stats.totalKavling > 0 ? Math.round((stats.kavlingTerjual / stats.totalKavling) * 100) : 0;
-  const availableKavling = stats.totalKavling - stats.kavlingTerjual;
-  const percentAvailable = stats.totalKavling > 0 ? Math.round((availableKavling / stats.totalKavling) * 100) : 0;
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header Greeting */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
-            Selamat datang kembali! 👋
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Berikut adalah ringkasan performa operasional dan finansial Bumantara hari ini.
-          </p>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, index) => (
-          <div
-            key={index}
-            onClick={() => navigate(stat.link)}
-            className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group cursor-pointer hover:-translate-y-1"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
-                {stat.icon}
-              </div>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {stat.trend}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">{stat.title}</h3>
-              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Kavling Overview */}
-        <div
-          className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm cursor-pointer hover:shadow-md hover:border-slate-300 transition-all"
-          onClick={() => navigate('/management/penjualan')}
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Status Kavling</h3>
-            <button className="text-slate-400 hover:text-black transition-colors cursor-pointer">
-              <ArrowRight size={20} />
-            </button>
-          </div>
-          <div className="space-y-5">
-            <div>
-              <div className="flex justify-between text-sm font-medium mb-2">
-                <span className="text-slate-700">Terjual / Proses</span>
-                <span className="text-slate-900 font-bold">{stats.kavlingTerjual} Unit ({percentTerjual}%)</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-black h-2.5 rounded-full" style={{ width: `${percentTerjual}%` }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm font-medium mb-2">
-                <span className="text-slate-700">Tersedia</span>
-                <span className="text-slate-900 font-bold">{availableKavling} Unit ({percentAvailable}%)</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${percentAvailable}%` }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Penjualan Terbaru */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Penjualan Terbaru</h3>
-            <button
-              onClick={() => navigate('/management/penjualan')}
-              className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer"
-            >
-              Lihat Semua
-            </button>
-          </div>
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
-                  <th className="pb-3 pr-4">Customer</th>
-                  <th className="pb-3 px-4">Kavling</th>
-                  <th className="pb-3 px-4">Pembayaran</th>
-                  <th className="pb-3 px-4 text-right">Nilai Jual</th>
-                  <th className="pb-3 pl-4 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {recentTransactions.length > 0 ? recentTransactions.map((trx) => (
-                  <tr key={trx.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={() => navigate('/management/penjualan')}>
-                    <td className="py-4 pr-4">
-                      <p className="font-bold text-slate-900">{trx.customer}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                        <Clock size={12} /> {trx.date}
-                      </p>
-                    </td>
-                    <td className="py-4 px-4 font-medium text-slate-700">{trx.kavling}</td>
-                    <td className="py-4 px-4 text-slate-600">{trx.type.replace('_', ' ')}</td>
-                    <td className="py-4 px-4 text-right font-bold text-slate-900">
-                      {formatRupiah(trx.amount)}
-                    </td>
-                    <td className="py-4 pl-4 text-center">
-                      <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${trx.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
-                        trx.status === 'PROSES' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                        {trx.status}
-                      </span>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500 italic">Belum ada transaksi terbaru.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Agent Marketing */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <Award size={18} className="text-amber-500" />
-              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Top Agent</h3>
-            </div>
-          </div>
-          <div className="space-y-3 flex-1">
-            {topAgents.length > 0 ? topAgents.map((agent, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-amber-50/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
-                    #{idx + 1}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{agent.name}</p>
-                    <p className="text-xs text-slate-500">{agent.closing} Closing Penjualan</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Pencairan Fee</p>
-                  <p className="text-sm font-bold text-slate-900">{agent.feeStatus}</p>
-                </div>
-              </div>
-            )) : (
-              <p className="text-sm text-slate-500 italic text-center py-4">Belum ada data agent.</p>
-            )}
-          </div>
-          <button onClick={() => navigate('/marketing/fee-agent')} className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
-            Lihat Data Fee <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* Kelengkapan Dokumen */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <FileText size={18} className="text-red-500" />
-              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Alert Dokumen Customer</h3>
-            </div>
-            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
-              {documentAlerts.length} Belum Lengkap
-            </span>
-          </div>
-          <div className="space-y-3 flex-1">
-            <p className="text-xs text-slate-500 mb-2">Customer yang telah booking namun belum melengkapi berkas:</p>
-            {documentAlerts.length > 0 ? documentAlerts.map((alert, idx) => (
-              <div key={idx} className="p-3 border border-red-100 bg-red-50/30 rounded-xl cursor-pointer hover:bg-red-50 transition-colors" onClick={() => navigate('/customer/kelengkapan-administrasi')}>
-                <div className="flex justify-between items-start mb-1">
-                  <p className="font-bold text-slate-900 text-sm">{alert.customer}</p>
-                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    {alert.kavling}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {alert.missing.map((doc, i) => (
-                    <span key={i} className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
-                      Kekurangan: {doc}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )) : (
-              <p className="text-sm text-slate-500 italic text-center py-4">Semua dokumen customer lengkap.</p>
-            )}
-          </div>
-          <button onClick={() => navigate('/customer/kelengkapan-administrasi')} className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer">
-            Lengkapi Dokumen <ChevronRight size={14} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Dashboard;
-</file>
-
 <file path="src/pages/Marketing/FeeAgent.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from "react";
@@ -6830,6 +5345,281 @@ export const penjualanService = {
     return response.data.data;
   },
 };
+</file>
+
+<file path="src/pages/Dashboard.tsx">
+import { useNavigate } from 'react-router-dom';
+import {
+  Building2,
+  Wallet,
+  AlertCircle,
+  HardHat,
+  ArrowRight,
+  Clock,
+  Award,
+  FileText,
+  ChevronRight
+} from 'lucide-react';
+import { formatRupiah } from '../utils/formatters';
+import { useGetDashboardSummary } from '../hooks/queries/useDashboard';
+import PageLoader from './PageLoader';
+
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const { data: dashboardData, isLoading } = useGetDashboardSummary();
+
+  if (isLoading || !dashboardData) return <PageLoader />;
+
+  const { stats, recentTransactions, topAgents, documentAlerts } = dashboardData;
+
+  const statCards = [
+    {
+      title: 'Total Pendapatan',
+      value: formatRupiah(stats.totalPendapatan),
+      trend: 'Pembayaran Lunas',
+      isPositive: true,
+      icon: <Wallet className="text-slate-700" size={24} />,
+      bgColor: 'bg-slate-100',
+      link: '/customer/tagihan'
+    },
+    {
+      title: 'Kavling Terjual',
+      value: `${stats.kavlingTerjual} Unit`,
+      trend: `Dari Total ${stats.totalKavling} Unit`,
+      isPositive: true,
+      icon: <Building2 className="text-blue-700" size={24} />,
+      bgColor: 'bg-blue-50',
+      link: '/management/penjualan'
+    },
+    {
+      title: 'Tagihan Jatuh Tempo',
+      value: formatRupiah(stats.tagihanJatuhTempo),
+      trend: `${stats.customerJatuhTempo} Customer`,
+      isPositive: false,
+      icon: <AlertCircle className="text-red-700" size={24} />,
+      bgColor: 'bg-red-50',
+      link: '/customer/tagihan'
+    },
+    {
+      title: 'Proyek Aktif (SPK)',
+      value: `${stats.proyekAktif} Unit`,
+      trend: 'Sedang Dibangun',
+      isPositive: true,
+      icon: <HardHat className="text-amber-700" size={24} />,
+      bgColor: 'bg-amber-50',
+      link: '/proyek/spk'
+    },
+  ];
+
+  const percentTerjual = stats.totalKavling > 0 ? Math.round((stats.kavlingTerjual / stats.totalKavling) * 100) : 0;
+  const availableKavling = stats.totalKavling - stats.kavlingTerjual;
+  const percentAvailable = stats.totalKavling > 0 ? Math.round((availableKavling / stats.totalKavling) * 100) : 0;
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Header Greeting */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
+            Selamat datang kembali! 👋
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Berikut adalah ringkasan performa operasional dan finansial hari ini.
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat, index) => (
+          <div
+            key={index}
+            onClick={() => navigate(stat.link)}
+            className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group cursor-pointer hover:-translate-y-1"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
+                {stat.icon}
+              </div>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {stat.trend}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">{stat.title}</h3>
+              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Status Kavling Overview */}
+        <div
+          className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm cursor-pointer hover:shadow-md hover:border-slate-300 transition-all"
+          onClick={() => navigate('/management/penjualan')}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Status Kavling</h3>
+            <button className="text-slate-400 hover:text-black transition-colors cursor-pointer">
+              <ArrowRight size={20} />
+            </button>
+          </div>
+          <div className="space-y-5">
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Terjual / Proses</span>
+                <span className="text-slate-900 font-bold">{stats.kavlingTerjual} Unit ({percentTerjual}%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-black h-2.5 rounded-full" style={{ width: `${percentTerjual}%` }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Tersedia</span>
+                <span className="text-slate-900 font-bold">{availableKavling} Unit ({percentAvailable}%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${percentAvailable}%` }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Penjualan Terbaru */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Penjualan Terbaru</h3>
+            <button
+              onClick={() => navigate('/management/penjualan')}
+              className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer"
+            >
+              Lihat Semua
+            </button>
+          </div>
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
+                  <th className="pb-3 pr-4">Customer</th>
+                  <th className="pb-3 px-4">Kavling</th>
+                  <th className="pb-3 px-4">Pembayaran</th>
+                  <th className="pb-3 px-4 text-right">Nilai Jual</th>
+                  <th className="pb-3 pl-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {recentTransactions.length > 0 ? recentTransactions.map((trx) => (
+                  <tr key={trx.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={() => navigate('/management/penjualan')}>
+                    <td className="py-4 pr-4">
+                      <p className="font-bold text-slate-900">{trx.customer}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                        <Clock size={12} /> {trx.date}
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 font-medium text-slate-700">{trx.kavling}</td>
+                    <td className="py-4 px-4 text-slate-600">{trx.type.replace('_', ' ')}</td>
+                    <td className="py-4 px-4 text-right font-bold text-slate-900">
+                      {formatRupiah(trx.amount)}
+                    </td>
+                    <td className="py-4 pl-4 text-center">
+                      <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${trx.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
+                        trx.status === 'PROSES' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                        {trx.status}
+                      </span>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-500 italic">Belum ada transaksi terbaru.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Agent Marketing */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <Award size={18} className="text-amber-500" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Top Agent</h3>
+            </div>
+          </div>
+          <div className="space-y-3 flex-1">
+            {topAgents.length > 0 ? topAgents.map((agent, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-amber-50/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+                    #{idx + 1}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{agent.name}</p>
+                    <p className="text-xs text-slate-500">{agent.closing} Closing Penjualan</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Pencairan Fee</p>
+                  <p className="text-sm font-bold text-slate-900">{agent.feeStatus}</p>
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-slate-500 italic text-center py-4">Belum ada data agent.</p>
+            )}
+          </div>
+          <button onClick={() => navigate('/marketing/fee-agent')} className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+            Lihat Data Fee <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Kelengkapan Dokumen */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-red-500" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Alert Dokumen Customer</h3>
+            </div>
+            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
+              {documentAlerts.length} Belum Lengkap
+            </span>
+          </div>
+          <div className="space-y-3 flex-1">
+            <p className="text-xs text-slate-500 mb-2">Customer yang telah booking namun belum melengkapi berkas:</p>
+            {documentAlerts.length > 0 ? documentAlerts.map((alert, idx) => (
+              <div key={idx} className="p-3 border border-red-100 bg-red-50/30 rounded-xl cursor-pointer hover:bg-red-50 transition-colors" onClick={() => navigate('/customer/kelengkapan-administrasi')}>
+                <div className="flex justify-between items-start mb-1">
+                  <p className="font-bold text-slate-900 text-sm">{alert.customer}</p>
+                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    {alert.kavling}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {alert.missing.map((doc, i) => (
+                    <span key={i} className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                      Kekurangan: {doc}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-slate-500 italic text-center py-4">Semua dokumen customer lengkap.</p>
+            )}
+          </div>
+          <button onClick={() => navigate('/customer/kelengkapan-administrasi')} className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer">
+            Lengkapi Dokumen <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
 </file>
 
 <file path="src/pages/Management/Notaris.tsx">
@@ -8137,7 +6927,7 @@ const SPR = () => {
     // Ambil URL PDF dari Cloudinary jika ada, jika tidak pakai link verifikasi
     const documentLink = row.fileSpr ? row.fileSpr : `http://localhost:5173/verify/${row.id}`;
 
-    const message = `Halo Bapak/Ibu *${row.nama}*,\n\nBerikut kami sampaikan dokumen *Surat Pesanan Rumah (SPR)* untuk unit Kavling *${row.perumahan} Blok ${row.blok}-${row.nomorUnit}*.\n\n🔗 *Unduh Dokumen SPR:*\n${documentLink}\n\nTerima Kasih,\n*Bumantara*`;
+    const message = `Halo Bapak/Ibu *${row.nama}*,\n\nBerikut kami sampaikan dokumen *Surat Pesanan Rumah (SPR)* untuk unit Kavling *${row.perumahan} Blok ${row.blok}-${row.nomorUnit}*.\n\n🔗 *Unduh Dokumen SPR:*\n${documentLink}\n\nTerima Kasih\n**`;
 
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -9565,21 +8355,38 @@ const Tagihan = () => {
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
           reminderSelanjutnya: '',
           unpaidCount: 0,
+          totalTerbayarKeseluruhan: 0,
+          totalTerbayarBfDp: 0,
           cicilan: []
         };
       }
 
-      if (item.status === 'BELUM_BAYAR') {
-        groups[groupKey].unpaidCount += 1;
+      const lowerPay = item.pembayaran.toLowerCase();
+      const isBfOrDp = lowerPay.includes('booking') || lowerPay.includes('dp') || lowerPay.includes('down payment');
+
+      // Pisahkan penjumlahan antara tagihan cicilan dengan BF/DP agar "Sisa Pembayaran" akurat
+      if (item.status === 'LUNAS') {
+        if (isBfOrDp) {
+          groups[groupKey].totalTerbayarBfDp += Number(item.nominal);
+        } else {
+          groups[groupKey].totalTerbayarKeseluruhan += Number(item.nominal);
+        }
       }
 
-      if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
-        groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
+      // Filter: Hanya tampilkan tagihan yang BUKAN Booking Fee atau DP
+      if (!isBfOrDp) {
+        if (item.status === 'BELUM_BAYAR') {
+          groups[groupKey].unpaidCount += 1;
+        }
+        if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
+          groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
+        }
+        groups[groupKey].cicilan.push(item);
       }
-
-      groups[groupKey].cicilan.push(item);
     });
-    return Object.values(groups);
+
+    // Sembunyikan customer yang belum memiliki tagihan cicilan bertahap
+    return Object.values(groups).filter(g => g.cicilan.length > 0);
   }, [tagihans]);
 
   const columns = [
@@ -9740,12 +8547,39 @@ const Tagihan = () => {
       return;
     }
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
-    const documentLink = `${window.location.origin}/verify/${printData.noTagihan || printData.id}`;
 
-    let message = `Halo Bapak/Ibu *${printData.namaCustomer}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk tagihan *${printData.pembayaran}* (Unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*).\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
+    let docId = printData.noTagihan || printData.id;
+    if (printTitle.includes('Booking Fee')) {
+      docId = printType === 'kwitansi' ? `KWT-BF-${printData.id}` : `INV-BF-${printData.id}`;
+    } else if (printTitle.includes('Down Payment') || printTitle.includes('DP')) {
+      docId = printType === 'kwitansi' ? `KWT-DP-${printData.id}` : `INV-DP-${printData.id}`;
+    }
+    const documentLink = `${window.location.origin}/verify/${docId}`;
 
-    message += `\n\n🔗 *Lihat & Unduh Dokumen PDF:*\n${documentLink}`;
-    message += `\n\n_Mohon abaikan pesan ini jika Bapak/Ibu sudah melakukan pembayaran._\n\nTerima Kasih,\n*Finance Bumantara*`;
+    let rekeningText = '';
+    let rekening: any = printData.rekeningTujuan;
+    if (!rekening && printData.rekeningTujuanId) {
+      const b = bankList.find((x: any) => x.id === Number(printData.rekeningTujuanId));
+      if (b) rekening = { namaBank: b.namaBank, noRekening: b.noRekening, atasNama: b.atasNama };
+    }
+
+    if (rekening) {
+      rekeningText = `\n\n💳 *Informasi Rekening Pembayaran:*\nBank: *${rekening.namaBank}*\nNo. Rekening: *${rekening.noRekening}*\nAtas Nama: *${rekening.atasNama}*`;
+    }
+
+    const statusTagihan = printData.status === 'LUNAS'
+      ? '\n\n✅ *Status: LUNAS*\nTerima kasih, pembayaran Bapak/Ibu telah kami terima dengan baik.'
+      : `\n\n📌 *Nominal Tagihan:* ${formatRupiah(printData.nominalCetak || 0)}${rekeningText}`;
+
+    let message = `Halo Bapak/Ibu *${printData.namaCustomer}*, semoga senantiasa dalam keadaan sehat.\n\nBersama pesan ini, kami dari *Finance ${selectedPerumahan?.nama || 'Bumantara'}* ingin menyampaikan informasi terkait *${printTitle}* untuk tagihan *${printData.pembayaran}* (Unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*).${statusTagihan}`;
+
+    message += `\n\n🔗 *Unduh Dokumen PDF & Detail Transaksi:*\nBapak/Ibu dapat melihat dan mengunduh dokumen resmi secara mandiri melalui tautan berikut:\n${documentLink}`;
+
+    if (printData.status !== 'LUNAS') {
+      message += `\n\n_Mohon perkenan Bapak/Ibu untuk melampirkan bukti transfer pada ruang obrolan ini apabila telah melakukan pembayaran._`;
+    }
+
+    message += `\n\nTerima kasih atas kepercayaan Bapak/Ibu.\nSalam Hangat,\n*Finance ${selectedPerumahan?.nama || 'Bumantara'}*`;
 
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -9833,8 +8667,12 @@ const Tagihan = () => {
   const expandedRowRender = (row: any) => {
     const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
     const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
-    const totalTerbayar = row.cicilan.filter((c: any) => c.status === 'LUNAS').reduce((sum: number, c: any) => sum + Number(c.nominal), 0);
-    const sisaPembayaran = Math.max(0, totalHargaJual);
+
+    const totalTerbayarBfDp = row.totalTerbayarBfDp || 0;
+    const piutangCicilan = Math.max(0, totalHargaJual - totalTerbayarBfDp);
+
+    const totalTerbayarCicilan = row.totalTerbayarKeseluruhan;
+    const sisaPembayaran = Math.max(0, piutangCicilan - totalTerbayarCicilan);
     const rekeningTujuanId = targetPenjualan?.rekeningTujuanId;
 
     return (
@@ -9846,12 +8684,12 @@ const Tagihan = () => {
 
           <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
             <div className="px-3 border-r border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Harga Jual</p>
-              <p className="text-sm font-bold text-slate-700">{formatRupiah(totalHargaJual)}</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Tagihan Cicilan</p>
+              <p className="text-sm font-bold text-slate-700">{formatRupiah(piutangCicilan)}</p>
             </div>
             <div className="px-3 border-r border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Terbayar</p>
-              <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayar)}</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Terbayar (Cicilan)</p>
+              <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayarCicilan)}</p>
             </div>
             <div className="px-3">
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
@@ -9921,11 +8759,11 @@ const Tagihan = () => {
                   {c.status === 'LUNAS' ? (
                     <button onClick={() => {
                       setPrintType('kwitansi');
-                      setPrintTitle(`Kwitansi ${c.pembayaran}`);
+                      setPrintTitle(`${c.pembayaran}`);
                       setPrintData({
                         ...c,
                         nominalCetak: c.nominal,
-                        hargaJual: totalHargaJual,
+                        hargaJual: piutangCicilan,
                         sisaBelumDibayar: sisaPembayaran,
                         rekeningTujuanId: rekeningTujuanId,
                         tipe: targetPenjualan?.tipe,
@@ -9939,11 +8777,11 @@ const Tagihan = () => {
                     <>
                       <button onClick={() => {
                         setPrintType('invoice');
-                        setPrintTitle(`Invoice ${c.pembayaran}`);
+                        setPrintTitle(`${c.pembayaran}`);
                         setPrintData({
                           ...c,
                           nominalCetak: c.nominal,
-                          hargaJual: totalHargaJual,
+                          hargaJual: piutangCicilan,
                           sisaBelumDibayar: sisaPembayaran,
                           rekeningTujuanId: rekeningTujuanId,
                           tipe: targetPenjualan?.tipe,
@@ -9993,7 +8831,7 @@ const Tagihan = () => {
       const pdfHeight = (scrollHeight * pdfWidth) / scrollWidth;
 
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      const cleanNoDoc = (printData?.noTagihan || printData?.id || '').toString().replace('INV-BF-', '').replace('INV-DP-', '');
+      const cleanNoDoc = (printData?.noTagihan || printData?.id || '').toString().replace(/INV-BF-|INV-DP-|KWT-BF-|KWT-DP-/g, '');
       const fileName = `${printTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`;
       pdf.save(fileName);
     } catch (error) {
@@ -10030,9 +8868,6 @@ const Tagihan = () => {
   }
 
   if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const targetCustomerPrint = customers.find(c => c.id === printData?.customerId);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -10142,11 +8977,11 @@ const Tagihan = () => {
               <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
                 <div>
                   <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
-                    {printType === 'invoice' ? 'INVOICE' : 'KWITANSI'}
+                    {printType === 'invoice' ? 'TAGIHAN' : 'BUKTI PEMBAYARAN'}
                   </h2>
                   <div className="mt-2 space-y-0.5">
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                      <span className="w-20 inline-block">NO DOC</span>: {(printData.noTagihan || printData.id).toString().replace('INV-BF-', '').replace('INV-DP-', '')} / BMT / {new Date(printData.tanggal || new Date()).getFullYear()}
+                      <span className="w-20 inline-block">NO DOC</span>: {(printData.noTagihan || printData.id).toString().replace('INV-BF-', '').replace('INV-DP-', '')} / {new Date(printData.tanggal || new Date()).getFullYear()}
                     </p>
                     {printType === 'kwitansi' && (
                       <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
@@ -10162,7 +8997,7 @@ const Tagihan = () => {
                   {selectedPerumahan?.logo ? (
                     <img src={selectedPerumahan.logo} alt="Logo" className="h-12 object-contain mb-2" crossOrigin="anonymous" />
                   ) : (
-                    <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">BUMANTARA</h3>
+                    <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">{selectedPerumahan?.nama}</h3>
                   )}
                 </div>
               </div>
@@ -10264,7 +9099,7 @@ const Tagihan = () => {
                 <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
                   <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
                     <QRCode
-                      value={`${window.location.origin}/verify/${printData.noTagihan || printData.id}`}
+                      value={`${window.location.origin}/verify/${printTitle.includes('Booking Fee') ? (printType === 'kwitansi' ? `KWT-BF-${printData.id}` : `INV-BF-${printData.id}`) : printTitle.includes('Down Payment') || printTitle.includes('DP') ? (printType === 'kwitansi' ? `KWT-DP-${printData.id}` : `INV-DP-${printData.id}`) : printData.id}`}
                       size={60}
                       level="H"
                     />
@@ -10273,15 +9108,7 @@ const Tagihan = () => {
                   <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
                 </div>
 
-                <div className="text-center w-[200px]">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
-                    Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
-                  </p>
-                  <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block">
-                    Finance Dept.
-                  </p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">Bumantara</p>
-                </div>
+
               </div>
             </div>
           </div>
@@ -10415,18 +9242,18 @@ export default Tagihan;
 
 <file path="src/pages/Management/Penjualan.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import { formatDate, formatRupiah } from "../../utils/formatters";
-import { FileText, Receipt, Printer, UploadCloud, Ban } from 'lucide-react';
+import { FileText, Receipt, Printer, UploadCloud, Ban, PenTool } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
-import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
@@ -10434,6 +9261,7 @@ import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
 import { useAuth } from "../../context/AuthContext";
+import SignatureCanvas from 'react-signature-canvas';
 
 interface PenjualanData {
   id?: string;
@@ -10470,6 +9298,7 @@ interface PenjualanData {
   fileSpr?: string | null;
   progressCicilan?: string;
   rekeningTujuanId?: number | '';
+  ttdData?: any;
 }
 
 const initialFormState: PenjualanData = {
@@ -10518,6 +9347,7 @@ const Penjualan = () => {
   const cancelMutation = useCancelPenjualan();
   const uploadBuktiMutation = useUploadBuktiPenjualan();
   const updateMutation = useUpdatePenjualan();
+  const uploadSignatureMutation = useUploadSignature();
 
   const [isNewAgent, setIsNewAgent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -10532,6 +9362,10 @@ const Penjualan = () => {
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
+
+  const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
+  const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
+  const sigCanvas = useRef<SignatureCanvas>(null);
 
   const availableKavlings = useMemo(() => {
     return kavlingList.filter(k =>
@@ -10836,6 +9670,41 @@ const Penjualan = () => {
     }
   };
 
+  const saveSignature = async () => {
+    if (sigCanvas.current?.isEmpty()) {
+      alert("Tanda tangan tidak boleh kosong!");
+      return;
+    }
+    const canvas = sigCanvas.current?.getCanvas();
+    if (!canvas) return;
+    const signatureBase64 = canvas.toDataURL('image/png');
+
+    try {
+      await uploadSignatureMutation.mutateAsync({
+        noTransaksi: printData.id,
+        signatureBase64,
+        nama: ttdData.nama,
+        peran: ttdData.sebagai,
+        tanggal: ttdData.tanggal,
+      });
+
+      alert(`Tanda tangan berhasil disimpan!`);
+
+      // Update TTD secara lokal pada memori print preview
+      setPrintData((prev: any) => ({
+        ...prev,
+        ttdData: {
+          ...prev.ttdData,
+          [ttdData.sebagai]: { nama: ttdData.nama, tanggal: ttdData.tanggal, url: signatureBase64 }
+        }
+      }));
+
+      setIsTtdModalOpen(false);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal menyimpan tanda tangan");
+    }
+  };
+
   const handlePrintPDF = async () => {
     const element = document.getElementById('print-area');
     if (!element) return;
@@ -10847,7 +9716,8 @@ const Penjualan = () => {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${printTitle.replace(/\s+/g, '_')}_${printData?.id}.pdf`);
+      const cleanNoDoc = (printData?.id || '').toString().replace(/INV-BF-|INV-DP-|KWT-BF-|KWT-DP-/g, '');
+      pdf.save(`${printTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`);
     } catch (error) {
       console.error(error);
       alert('Terjadi kesalahan saat memproses PDF.');
@@ -10862,11 +9732,41 @@ const Penjualan = () => {
       return;
     }
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
-    const documentLink = `${window.location.origin}/verify/${printData.id}`;
-    let message = `Halo Bapak/Ibu *${printData.nama}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*.\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
 
-    message += `\n\n🔗 *Lihat & Unduh Dokumen PDF:*\n${documentLink}`;
-    message += `\n\n_Mohon lampirkan bukti transfer jika sudah melakukan pembayaran ke rekening PT._\n\nTerima Kasih,\n*Finance Bumantara*`;
+    let docId = printData.id;
+    if (printTitle.includes('Booking Fee')) {
+      docId = printType === 'kwitansi' ? `KWT-BF-${printData.id}` : `INV-BF-${printData.id}`;
+    } else if (printTitle.includes('Down Payment') || printTitle.includes('DP')) {
+      docId = printType === 'kwitansi' ? `KWT-DP-${printData.id}` : `INV-DP-${printData.id}`;
+    }
+    const documentLink = `${window.location.origin}/verify/${docId}`;
+
+    let rekeningText = '';
+    let rekening: any = null;
+    if (printData.rekeningTujuanId) {
+      const b = bankList.find((x: any) => x.id === Number(printData.rekeningTujuanId));
+      if (b) rekening = { namaBank: b.namaBank, noRekening: b.noRekening, atasNama: b.atasNama };
+    }
+
+    if (rekening) {
+      rekeningText = `\n\n*Informasi Rekening Pembayaran:*\nBank: *${rekening.namaBank}*\nNo. Rekening: *${rekening.noRekening}*\nAtas Nama: *${rekening.atasNama}*`;
+    }
+
+    let message = `Halo Bapak/Ibu *${printData.nama}*, semoga senantiasa dalam keadaan sehat.\n\nBersama pesan ini, kami dari *Marketing ${selectedPerumahan?.nama || 'Bumantara'}* ingin menyampaikan informasi terkait *${printTitle}* untuk unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*.`;
+
+    if (printType === 'invoice') {
+      message += `\n\n*Nominal Tagihan:* ${formatRupiah(printData.nominalCetak || 0)}${rekeningText}`;
+    } else {
+      message += `\n\n*Status: LUNAS*\nTerima kasih, pembayaran untuk ${printTitle} sebesar ${formatRupiah(printData.nominalCetak || 0)} telah kami terima dengan baik.`;
+    }
+
+    message += `\n\n*Unduh Dokumen PDF & Detail Transaksi:*\nBapak/Ibu dapat melihat dan mengunduh dokumen resmi secara mandiri melalui tautan berikut:\n${documentLink}`;
+
+    if (printType === 'invoice') {
+      message += `\n\n_Mohon perkenan Bapak/Ibu untuk melampirkan bukti transfer pada ruang obrolan ini apabila telah melakukan pembayaran._`;
+    }
+
+    message += `\n\nTerima kasih atas kepercayaan Bapak/Ibu.\nSalam Hangat,\n*Marketing ${selectedPerumahan?.nama || 'Bumantara'}*`;
 
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -11257,12 +10157,12 @@ const Penjualan = () => {
         </form>
       </Modal>
 
-      {/* --- MODAL PRINT DENGAN DESAIN YANG TELAH DIKECILKAN --- */}
+      {/* --- MODAL PRINT INVOICE & KWITANSI --- */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="bg-white" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}>
             <div className="p-6">
-              {/* --- 1. HEADER (JUDUL DOKUMEN & LOGO) --- */}
+              {/* --- 1. HEADER --- */}
               <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
                 <div>
                   <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
@@ -11377,7 +10277,6 @@ const Penjualan = () => {
                       </div>
                     </div>
                   )}
-
                   <div className={`flex justify-between items-center p-4 rounded-xl border-2 ${printType === 'kwitansi' ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
                     <span className="text-xs font-black uppercase tracking-[0.2em]">Total</span>
                     <span className="text-xl font-black">{formatRupiah(printData.nominalCetak || 0)}</span>
@@ -11400,7 +10299,7 @@ const Penjualan = () => {
                 <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
                   <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
                     <QRCode
-                      value={`${window.location.origin}/verify/${printTitle.includes('Booking Fee') ? `INV-BF-${printData.id}` : printTitle.includes('Down Payment') ? `INV-DP-${printData.id}` : printData.id}`}
+                      value={`${window.location.origin}/verify/${printTitle.includes('Booking Fee') ? (printType === 'kwitansi' ? `KWT-BF-${printData.id}` : `INV-BF-${printData.id}`) : printTitle.includes('Down Payment') || printTitle.includes('DP') ? (printType === 'kwitansi' ? `KWT-DP-${printData.id}` : `INV-DP-${printData.id}`) : printData.id}`}
                       size={60}
                       level="H"
                     />
@@ -11409,15 +10308,35 @@ const Penjualan = () => {
                   <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
                 </div>
 
-                <div className="text-center w-[200px]">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
-                    Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
-                  </p>
-                  <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block">
-                    MARKETING
-                  </p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
-                </div>
+                {/* Hanya tampilkan area tanda tangan jika kwitansi */}
+                {printType === 'kwitansi' && (
+                  <div className="text-center w-[200px] relative">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                      Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
+                    </p>
+
+                    {/* Menampilkan TTD Jika Ada */}
+                    {(() => {
+                      const ttdRole = printTitle.includes('Booking Fee') ? 'Kwitansi_Booking' : 'Kwitansi_DP';
+                      const ttdObj = printData.ttdData?.[ttdRole];
+
+                      if (ttdObj?.url) {
+                        return (
+                          <div className="flex flex-col items-center justify-center my-2 h-16">
+                            <img src={ttdObj.url} alt="Tanda Tangan" className="h-14 object-contain" crossOrigin="anonymous" />
+                            <span className="text-[7px] text-slate-400 font-medium">Signed at: {formatDate(ttdObj.tanggal)}</span>
+                          </div>
+                        );
+                      }
+                      return <div className="h-16 w-full"></div>;
+                    })()}
+
+                    <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
+                      MARKETING
+                    </p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -11425,12 +10344,88 @@ const Penjualan = () => {
 
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
           <button onClick={() => setPrintData(null)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-slate-50 transition-colors">Tutup</button>
+
+          {printType === 'kwitansi' && (
+            <button onClick={() => {
+              setTtdData({
+                nama: 'Marketing',
+                tanggal: new Date().toISOString().split('T')[0],
+                sebagai: printTitle.includes('Booking Fee') ? 'Kwitansi_Booking' : 'Kwitansi_DP'
+              });
+              setIsTtdModalOpen(true);
+              setTimeout(() => sigCanvas.current?.clear(), 100);
+            }} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-blue-700 transition-colors shadow-md flex items-center gap-2">
+              <PenTool size={16} /> Tanda Tangan
+            </button>
+          )}
+
           <button onClick={handleShareWA} className="px-6 py-2.5 bg-green-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-green-600 shadow-md shadow-green-500/20 flex items-center gap-2 transition-colors">
             Kirim via WA
           </button>
           <button onClick={handlePrintPDF} className="px-8 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-slate-800 flex items-center gap-2 transition-colors shadow-lg shadow-black/10">
             <Printer size={16} /> Download PDF
           </button>
+        </div>
+      </Modal>
+
+      {/* --- MODAL TANDA TANGAN DIGITAL --- */}
+      <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital Kwitansi">
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Nama Penandatangan"
+              value={ttdData.nama}
+              onChange={(e) => setTtdData({ ...ttdData, nama: e.target.value })}
+              placeholder="Nama Marketing..."
+            />
+            <Input
+              label="Tanggal Tanda Tangan"
+              type="date"
+              value={ttdData.tanggal}
+              onChange={(e) => setTtdData({ ...ttdData, tanggal: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider ml-1 mb-2 block">
+              Area Tanda Tangan
+            </label>
+            <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white overflow-hidden shadow-inner">
+              <SignatureCanvas
+                ref={sigCanvas}
+                penColor="black"
+                backgroundColor="white"
+                canvasProps={{ width: 600, height: 200, className: 'sigCanvas w-full cursor-crosshair' }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-2 px-1">
+              <p className="text-xs font-medium text-slate-400">Pastikan tanda tangan berada di dalam kotak.</p>
+              <button
+                type="button"
+                onClick={() => sigCanvas.current?.clear()}
+                className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer transition-colors"
+              >
+                Hapus / Ulangi
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              onClick={() => setIsTtdModalOpen(false)}
+              disabled={uploadSignatureMutation.isPending}
+              className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              onClick={saveSignature}
+              disabled={uploadSignatureMutation.isPending}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-colors disabled:opacity-50"
+            >
+              {uploadSignatureMutation.isPending ? "Menyimpan..." : "Simpan Tanda Tangan"}
+            </button>
+          </div>
         </div>
       </Modal>
 

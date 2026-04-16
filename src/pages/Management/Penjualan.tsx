@@ -473,7 +473,8 @@ const Penjualan = () => {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (element.offsetHeight * pdfWidth) / element.offsetWidth;
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${printTitle.replace(/\s+/g, '_')}_${printData?.id}.pdf`);
+      const cleanNoDoc = (printData?.id || '').toString().replace(/INV-BF-|INV-DP-|KWT-BF-|KWT-DP-/g, '');
+      pdf.save(`${printTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`);
     } catch (error) {
       console.error(error);
       alert('Terjadi kesalahan saat memproses PDF.');
@@ -488,11 +489,43 @@ const Penjualan = () => {
       return;
     }
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
-    const documentLink = `${window.location.origin}/verify/${printData.id}`;
-    let message = `Halo Bapak/Ibu *${printData.nama}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*.\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
 
-    message += `\n\n*Lihat Detail*\n${documentLink}`;
-    message += `\n\nMohon lampirkan bukti transfer jika sudah melakukan pembayaran\n\nTerima Kasih,\n*Marketing ${selectedPerumahan?.nama}*`;
+    // --- PERBAIKAN: Penyusunan URL yang lebih rapi ---
+    let docId = printData.id; // Default: TRX-...
+    if (printTitle.includes('Booking Fee')) {
+      docId = printType === 'kwitansi' ? `KWT-BF-${printData.id}` : `INV-BF-${printData.id}`;
+    } else if (printTitle.includes('Down Payment') || printTitle.includes('DP')) {
+      docId = printType === 'kwitansi' ? `KWT-DP-${printData.id}` : `INV-DP-${printData.id}`;
+    }
+    const documentLink = `${window.location.origin}/verify/${docId}`;
+    // ---------------------------------------------------
+
+    let rekeningText = '';
+    let rekening: any = null;
+    if (printData.rekeningTujuanId) {
+      const b = bankList.find((x: any) => x.id === Number(printData.rekeningTujuanId));
+      if (b) rekening = { namaBank: b.namaBank, noRekening: b.noRekening, atasNama: b.atasNama };
+    }
+
+    if (rekening) {
+      rekeningText = `\n\n*Informasi Rekening Pembayaran:*\nBank: *${rekening.namaBank}*\nNo. Rekening: *${rekening.noRekening}*\nAtas Nama: *${rekening.atasNama}*`;
+    }
+
+    let message = `Halo Bapak/Ibu *${printData.nama}*, semoga senantiasa dalam keadaan sehat.\n\nBersama pesan ini, kami dari *Marketing ${selectedPerumahan?.nama || 'Bumantara'}* ingin menyampaikan informasi terkait *${printTitle}* untuk unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*.`;
+
+    if (printType === 'invoice') {
+      message += `\n\n*Nominal Tagihan:* ${formatRupiah(printData.nominalCetak || 0)}${rekeningText}`;
+    } else {
+      message += `\n\nTerima kasih, pembayaran untuk ${printTitle} sebesar ${formatRupiah(printData.nominalCetak || 0)} telah kami terima dengan baik.`;
+    }
+
+    message += `\n\n*Unduh Dokumen PDF & Detail Transaksi:*\nBapak/Ibu dapat melihat dan mengunduh dokumen resmi secara mandiri melalui tautan berikut:\n${documentLink}`;
+
+    if (printType === 'invoice') {
+      message += `\n\n_Mohon perkenan Bapak/Ibu untuk melampirkan bukti transfer pada ruang obrolan ini apabila telah melakukan pembayaran._`;
+    }
+
+    message += `\n\nTerima kasih atas kepercayaan Bapak/Ibu.\nSalam Hangat,\n*Marketing ${selectedPerumahan?.nama || 'Bumantara'}*`;
 
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -1025,7 +1058,12 @@ const Penjualan = () => {
                 <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
                   <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
                     <QRCode
-                      value={`${window.location.origin}/verify/${printData.id}`}
+                      value={`${window.location.origin}/verify/${printTitle.includes('Booking Fee')
+                        ? (printType === 'kwitansi' ? `KWT-BF-${printData.id}` : `INV-BF-${printData.id}`)
+                        : printTitle.includes('Down Payment') || printTitle.includes('DP')
+                          ? (printType === 'kwitansi' ? `KWT-DP-${printData.id}` : `INV-DP-${printData.id}`)
+                          : printData.id
+                        }`}
                       size={60}
                       level="H"
                     />

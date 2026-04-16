@@ -1,8 +1,11 @@
 import { useParams } from 'react-router-dom';
-import { AlertCircle, ShieldCheck } from 'lucide-react';
+import { AlertCircle, ShieldCheck, Printer } from 'lucide-react';
 import { useVerifyDocument } from '../../hooks/queries/useVerify';
 import type { VerifyInvoiceData, VerifySprData } from '../../services/verify.service';
 import { formatDate, formatRupiah } from '../../utils/formatters';
+import { jsPDF } from "jspdf";
+import * as htmlToImage from 'html-to-image';
+import QRCode from "react-qr-code";
 
 const VerifyDocument = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,216 +31,268 @@ const VerifyDocument = () => {
         </div>
         <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dokumen Tidak Valid</h2>
         <p className="text-base text-slate-500 max-w-md mt-3 font-medium">
-          Maaf, kami tidak dapat menemukan data dokumen dengan nomor registrasi tersebut di dalam sistem resmi .
+          Maaf, kami tidak dapat menemukan data dokumen dengan nomor registrasi tersebut di dalam sistem resmi.
         </p>
       </div>
     );
   }
 
   const { type, data } = documentData;
+  const isSpr = type === 'SPR';
+  const isKwitansi = type === 'KWITANSI';
+  const isInvoice = type === 'INVOICE';
 
-  const renderHeader = (docType: string, noDokumen: string, tanggal: string, logo: string | undefined, perumahanNama: string) => (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b-[3px] border-slate-900 pb-6 mb-8 gap-6">
-      <div className="order-2 sm:order-1">
-        <h2 className="text-3xl md:text-4xl font-black uppercase tracking-widest text-slate-900 m-0">
-          {docType}
-        </h2>
-        <div className="mt-3 space-y-1">
-          <p className="text-slate-500 text-sm font-bold flex items-center gap-2">
-            <span className="w-16 inline-block text-slate-400">NO DOC</span> : <span className="text-slate-900">{noDokumen}</span>
-          </p>
-          <p className="text-slate-500 text-sm font-bold flex items-center gap-2">
-            <span className="w-16 inline-block text-slate-400">TANGGAL</span> : <span className="text-slate-900">{formatDate(tanggal)}</span>
-          </p>
-        </div>
-      </div>
-      <div className="order-1 sm:order-2 text-left sm:text-right flex flex-col items-start sm:items-end w-full sm:w-auto">
-        {logo ? (
-          <img src={logo} alt="Logo Perumahan" className="h-16 md:h-20 object-contain mb-3" />
-        ) : (
-          <h3 className="m-0 text-2xl font-black text-slate-900 tracking-tight">{perumahanNama}</h3>
-        )}
-        <p className="m-0 text-xs text-slate-500 font-bold uppercase tracking-widest">Divisi Marketing & Keuangan</p>
-      </div>
-    </div>
-  );
+  const invData = data as VerifyInvoiceData;
+  const sprData = data as VerifySprData;
 
-  const renderInvoice = (invData: VerifyInvoiceData, docType: string) => {
-    const isLunas = invData.status === 'LUNAS';
+  // Setup variable data menyesuaikan jenis dokumen agar rapi
+  const docTitle = isSpr ? 'SURAT PESANAN (SPR)' : isKwitansi ? 'BUKTI PEMBAYARAN' : 'TAGIHAN';
+  const cleanNoDoc = data.noDokumen.toString().replace(/INV-BF-|INV-DP-|KWT-BF-|KWT-DP-/g, '');
+  const tanggalDoc = isSpr ? sprData.tanggalTransaksi : invData.tanggalDibuat;
+  const logo = data.kavling.logoPerumahan;
+  const perumahanName = data.kavling.perumahan;
 
-    return (
-      <div className="space-y-6 text-left">
-        {renderHeader(docType, invData.noDokumen, invData.tanggalDibuat, invData.kavling.logoPerumahan, invData.kavling.perumahan)}
+  // Fungsi untuk Download PDF (Sama persis mekanismenya)
+  const handlePrintPDF = async () => {
+    const element = document.getElementById('print-area');
+    if (!element) return;
 
-        {/* Data Customer & Kavling Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-          <div>
-            <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">
-              {isLunas ? 'Telah Diterima Dari :' : 'Ditagihkan Kepada :'}
-            </p>
-            <p className="font-black text-xl text-slate-900 m-0 mb-1">{invData.customer.nama}</p>
-            <p className="text-sm m-0 mb-1 font-bold text-slate-500">{invData.customer.noHp || '-'}</p>
-            <p className="text-sm m-0 leading-relaxed font-medium text-slate-600">{invData.customer.alamat || '-'}</p>
-          </div>
-          <div className="md:border-l border-slate-200 md:pl-8">
-            <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">Informasi Unit :</p>
-            <p className="font-black text-lg text-slate-900 m-0 mb-1">{invData.kavling.perumahan}</p>
-            <p className="text-sm m-0 mb-1 font-bold text-slate-700">Blok {invData.kavling.blok} - No. {invData.kavling.nomorUnit}</p>
-            <p className="text-sm m-0 font-medium text-slate-600">Tipe {invData.kavling.tipe}</p>
-          </div>
-        </div>
+    try {
+      // Jeda sejenak agar font & layout render sempurna
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-        {/* Tabel Deskripsi */}
-        <div className="rounded-2xl border border-slate-200 overflow-hidden mb-8">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-slate-900 text-white">
-                <th className="py-4 px-6 text-left text-xs uppercase tracking-widest font-bold">Deskripsi Pembayaran</th>
-                <th className="py-4 px-6 text-right text-xs uppercase tracking-widest font-bold w-1/3">Jumlah</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="py-8 px-6 border-b border-slate-100 align-top bg-white">
-                  <p className="text-lg font-black text-slate-900 m-0 mb-2">{invData.pembayaran}</p>
-                  <p className="text-sm text-slate-500 font-medium m-0">Skema: <strong>{invData.transaksi.caraPembayaran}</strong> {invData.transaksi.bank ? `(${invData.transaksi.bank})` : ''}</p>
-                </td>
-                <td className="py-8 px-6 border-b border-slate-100 text-right align-top text-xl font-black text-slate-900 bg-white">
-                  {formatRupiah(invData.nominal)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      const scrollWidth = element.scrollWidth;
+      const scrollHeight = element.scrollHeight;
 
-        <div className="flex flex-col md:flex-row justify-between gap-8 items-start">
-          <div className="w-full md:w-1/2">
-            {invData.kavling.rekeningTujuan && (
-              <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3">
-                  {isLunas ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
-                </span>
-                <p className="text-sm font-bold text-slate-900 uppercase">Bank {invData.kavling.rekeningTujuan.namaBank}</p>
-                <p className="text-2xl font-black text-slate-900 my-1 font-mono tracking-tight">{invData.kavling.rekeningTujuan.noRekening}</p>
-                <p className="text-xs font-bold text-slate-500 uppercase mt-2">A/N: {invData.kavling.rekeningTujuan.atasNama}</p>
-              </div>
-            )}
-          </div>
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1.0,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        width: scrollWidth,
+        height: scrollHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
+      });
 
-          <div className="w-full md:w-[400px] space-y-4">
-            {(invData.pembayaran.toLowerCase().includes('booking') || invData.pembayaran.toLowerCase().includes('dp')) && (
-              <div className="space-y-3 p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <span>Harga Jual Unit</span>
-                  <span className="text-slate-800 text-sm">{formatRupiah(invData.transaksi.hargaJual)}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <span>Sisa Belum Dibayar</span>
-                  <span className="text-orange-600 text-sm">
-                    {formatRupiah(invData.transaksi.sisaBelumDibayar)}
-                  </span>
-                </div>
-              </div>
-            )}
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (scrollHeight * pdfWidth) / scrollWidth;
 
-            <div className={`flex justify-between items-center p-6 rounded-2xl border-2 ${isLunas ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
-              <span className="text-sm font-black uppercase tracking-[0.2em]">
-                {isLunas ? 'Total Lunas' : 'Total'}
-              </span>
-              <span className="text-2xl font-black">
-                {formatRupiah(invData.nominal)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      const fileName = `${docTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Gagal membuat PDF:', error);
+      alert('Terjadi kesalahan saat memproses file PDF.');
+    }
   };
 
-  const renderSpr = (sprData: VerifySprData) => (
-    <div className="space-y-6 text-left">
-      {renderHeader('SURAT PESANAN', sprData.noDokumen, sprData.tanggalTransaksi, sprData.kavling.logoPerumahan, sprData.kavling.perumahan)}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-        <div>
-          <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">Pihak Pemesan :</p>
-          <p className="font-black text-xl text-slate-900 m-0 mb-1">{sprData.customer.nama}</p>
-          <p className="text-sm m-0 mb-1 font-bold text-slate-500">{sprData.customer.noHp || '-'}</p>
-          <p className="text-sm m-0 leading-relaxed font-medium text-slate-600">{sprData.customer.alamat || '-'}</p>
-        </div>
-        <div className="md:border-l border-slate-200 md:pl-8">
-          <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">Detail Kavling Pesanan :</p>
-          <p className="font-black text-lg text-slate-900 m-0 mb-1">{sprData.kavling.perumahan}</p>
-          <p className="text-sm m-0 mb-1 font-bold text-slate-700">{sprData.kavling.blokUnit} <span className="font-medium text-slate-500">(Tipe {sprData.kavling.tipe})</span></p>
-          <div className="mt-4 pt-4 border-t border-slate-200">
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Status Penjualan</p>
-            <p className={`text-sm font-black uppercase tracking-widest ${sprData.status === 'BATAL' ? 'text-red-600' : 'text-blue-600'}`}>{sprData.status}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end mb-8">
-        <div className="w-full md:w-[450px] p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <span>Skema Pembiayaan</span>
-            <span className="text-slate-900">{sprData.caraPembayaran} {sprData.bank ? `(${sprData.bank})` : ''}</span>
-          </div>
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <span>Booking Fee</span>
-            <span className="text-slate-900">{formatRupiah(sprData.bookingFee)}</span>
-          </div>
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <span>Down Payment (DP)</span>
-            <span className="text-slate-900">{formatRupiah(sprData.dp)}</span>
-          </div>
-          <div className="pt-4 border-t border-slate-200">
-            <div className="flex justify-between items-center p-5 bg-slate-900 text-white rounded-xl shadow-lg">
-              <span className="text-sm font-black uppercase tracking-[0.2em] text-slate-200">
-                Harga Kesepakatan
-              </span>
-              <span className="text-xl font-black">{formatRupiah(sprData.hargaJual)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen bg-slate-100/50 py-12 px-4 font-sans flex justify-center items-start">
-      <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 relative">
-        {/* Banner Garis Atas */}
-        <div className="h-2 w-full bg-slate-900"></div>
+    <div className="min-h-screen bg-slate-100/50 py-12 px-4 font-sans flex flex-col items-center justify-start">
 
-        <div className="p-8 md:p-12">
-          {/* Lencana Validasi (Lebih Mewah) */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 bg-emerald-50 border border-emerald-200 p-5 rounded-2xl mb-12 shadow-sm">
-            <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0 shadow-inner shadow-emerald-700/20">
-              <ShieldCheck size={28} className="text-white" strokeWidth={2.5} />
-            </div>
-            <div className="text-center sm:text-left">
-              <h2 className="text-sm font-black text-emerald-900 tracking-widest uppercase mb-1">DOKUMEN VALID & TERVERIFIKASI</h2>
-              <p className="text-xs text-emerald-700 font-medium">Dokumen ini diterbitkan secara sah dan dilindungi oleh sistem portal .</p>
-            </div>
+      {/* Header Validasi & Tombol Download (di luar area Print) */}
+      <div className="w-full max-w-3xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-emerald-50 border border-emerald-200 p-5 rounded-t-2xl sm:rounded-2xl mb-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0 shadow-inner shadow-emerald-700/20">
+            <ShieldCheck size={28} className="text-white" strokeWidth={2.5} />
           </div>
-
-          {/* Isi Konten Dinamis */}
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {type === 'INVOICE' || type === 'KWITANSI'
-              ? renderInvoice(data as VerifyInvoiceData, type)
-              : renderSpr(data as VerifySprData)}
+          <div className="text-center sm:text-left">
+            <h2 className="text-sm font-black text-emerald-900 tracking-widest uppercase mb-1">DOKUMEN VALID & TERVERIFIKASI</h2>
+            <p className="text-xs text-emerald-700 font-medium">Dokumen ini sah dan dilindungi oleh sistem portal.</p>
           </div>
+        </div>
+        <button
+          onClick={handlePrintPDF}
+          className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer w-full sm:w-auto shrink-0"
+        >
+          <Printer size={16} /> Download PDF
+        </button>
+      </div>
 
-          {/* Tanda Tangan Footer untuk semua dokumen */}
-          <div className="flex justify-end text-center mt-16 pt-8 border-t border-slate-100">
-            <div className="w-[250px]">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-20">
-                Tangerang, {formatDate(type === 'SPR' ? (data as VerifySprData).tanggalTransaksi : (data as VerifyInvoiceData).tanggalDibuat)}
-              </p>
-              <p className="text-sm font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-2 inline-block">
-                {type === 'SPR' ? 'Divisi Marketing' : 'Divisi Keuangan'}
-              </p>
+      {/* PRINT AREA: Identik 100% dengan layout di Tagihan & Penjualan Panel */}
+      <div className="w-full max-w-3xl shadow-2xl relative bg-white">
+        <div
+          id="print-area"
+          className="bg-white"
+          style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}
+        >
+          {/* Menggunakan p-6 (sama seperti di Tagihan/Penjualan) */}
+          <div className="p-6 flex flex-col min-h-[800px]">
+
+            {/* --- 1. HEADER --- */}
+            <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
+                  {docTitle}
+                </h2>
+                <div className="mt-2 space-y-0.5">
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">NO DOC</span>: {cleanNoDoc} / {new Date(tanggalDoc).getFullYear()}
+                  </p>
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">NO INVOICE</span>: {cleanNoDoc}
+                  </p>
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">TANGGAL</span>: {formatDate(tanggalDoc)}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right flex flex-col items-end">
+                {logo ? (
+                  <img src={logo} alt="Logo" className="h-12 object-contain mb-2" crossOrigin="anonymous" />
+                ) : (
+                  <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">{perumahanName}</h3>
+                )}
+              </div>
             </div>
+
+            {/* --- 2. INFORMASI CUSTOMER --- */}
+            <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
+                {isKwitansi ? 'Telah Diterima Dari:' : isSpr ? 'Pihak Pemesan:' : 'Ditagihkan Kepada:'}
+              </p>
+              <p className="font-black text-lg text-slate-900 m-0 mb-0.5">{data.customer.nama}</p>
+              <p className="text-xs m-0 mb-0.5 font-bold text-slate-500">{data.customer.noHp || '-'}</p>
+              <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{data.customer.alamat || '-'}</p>
+            </div>
+
+            {/* --- 3. TABEL DESKRIPSI PEMBAYARAN --- */}
+            <div className="rounded-xl border border-slate-200 overflow-hidden mb-6">
+              <table className="w-full border-collapse bg-white">
+                <thead>
+                  <tr className="bg-slate-900 text-white">
+                    <th className="py-2.5 px-4 text-left text-[10px] uppercase tracking-widest font-bold">Deskripsi</th>
+                    <th className="py-2.5 px-4 text-right text-[10px] uppercase tracking-widest font-bold w-1/3">Jumlah</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="py-4 px-4 border-b border-slate-100 align-top">
+                      <p className="text-base font-black text-slate-900 m-0 mb-2">
+                        {isSpr ? 'Pemesanan Unit Kavling (SPR)' : invData.pembayaran}
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{perumahanName}</strong></p>
+                      <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">
+                        Kavling: <strong>{isSpr ? sprData.kavling.blokUnit : `Blok ${invData.kavling.blok} - No. ${invData.kavling.nomorUnit}`}</strong> {data.kavling.tipe ? `(Tipe ${data.kavling.tipe})` : ''}
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium m-0">
+                        Skema Pembayaran: <strong>{isSpr ? sprData.caraPembayaran : invData.transaksi.caraPembayaran?.replace('_', ' ')}</strong>
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 border-b border-slate-100 text-right align-top text-lg font-black text-slate-900">
+                      {formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* --- 4 & 5. INFORMASI REKENING & TOTAL --- */}
+            <div className="flex flex-row justify-between items-start gap-6 mb-6">
+
+              {/* Bagian Kiri: Rekening / Info Status */}
+              <div className="flex-1">
+                {/* Tampilan Rekening jika Invoice/Kwitansi */}
+                {(isInvoice || isKwitansi) && invData.kavling.rekeningTujuan && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
+                      {isKwitansi ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
+                    </span>
+                    <p className="text-xs font-bold text-slate-900 uppercase">Bank {invData.kavling.rekeningTujuan.namaBank}</p>
+                    <p className="text-lg font-black text-slate-900 my-0.5 font-mono tracking-tight">{invData.kavling.rekeningTujuan.noRekening}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">A/N: {invData.kavling.rekeningTujuan.atasNama}</p>
+                  </div>
+                )}
+                {/* Tampilan Status jika SPR */}
+                {isSpr && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block w-full">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
+                      Status Kesepakatan Penjualan:
+                    </span>
+                    <p className={`text-sm font-black uppercase tracking-widest ${sprData.status === 'BATAL' ? 'text-red-600' : 'text-blue-600'}`}>
+                      {sprData.status}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Bagian Kanan: Kalkulasi Total */}
+              <div className="w-[280px] space-y-3">
+                {/* Rincian Harga untuk Tagihan Awal / DP / SPR */}
+                {(isInvoice || isKwitansi) && (invData.pembayaran.toLowerCase().includes('booking') || invData.pembayaran.toLowerCase().includes('dp')) && (
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Harga Jual Unit</span>
+                      <span className="text-slate-800 text-xs">{formatRupiah(invData.transaksi.hargaJual || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Sisa Belum Dibayar</span>
+                      <span className="text-red-600 text-xs">
+                        {formatRupiah(invData.transaksi.hargaJual || 0)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {isSpr && (
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Booking Fee</span>
+                      <span className="text-slate-800 text-xs">{formatRupiah(sprData.bookingFee || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Down Payment (DP)</span>
+                      <span className="text-slate-800 text-xs">{formatRupiah(sprData.dp || 0)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Box Total Akhir */}
+                <div className={`flex justify-between items-center p-4 rounded-xl border-2 ${isKwitansi ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
+                  <span className="text-xs font-black uppercase tracking-[0.2em]">{isSpr ? 'Harga Jual' : 'Total'}</span>
+                  <span className="text-xl font-black">{formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* --- 6. CATATAN / NOTES --- */}
+            <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl text-[9px] text-slate-600 leading-relaxed text-left">
+              <p className="font-bold text-slate-800 mb-1 uppercase tracking-widest">Catatan:</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Harga jual pembelian unit rumah sudah termasuk biaya AJB, Sertipikat, IMB, Listrik, BPHTB, Biaya Proses KPR dan Notaris.</li>
+                <li>Harga jual khusus pembelian kavling belum termasuk biaya BPHTB, PPJB, AJB, Sertipikat dan Biaya Mutasi PBB.</li>
+                <li>Apabila terjadi pembatalan, uang tanda jadi (Booking Fee) tidak dapat dikembalikan / hangus.</li>
+              </ul>
+            </div>
+
+            {/* --- 7. QR CODE & TTD --- */}
+            <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
+              <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
+                <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
+                  <QRCode
+                    value={`${window.location.origin}/verify/${data.noDokumen}`}
+                    size={60}
+                    level="H"
+                  />
+                </div>
+                <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
+                <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
+              </div>
+
+              <div className="text-center w-[200px] relative">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
+                  Tangerang, {formatDate(tanggalDoc)}
+                </p>
+                <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
+                  {isSpr ? 'MARKETING' : 'MARKETING'}
+                </p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{perumahanName}</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

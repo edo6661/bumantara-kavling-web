@@ -289,12 +289,39 @@ const Tagihan = () => {
       return;
     }
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
-    const documentLink = `${window.location.origin}/verify/${printData.noTagihan || printData.id}`;
 
-    let message = `Halo Bapak/Ibu *${printData.namaCustomer}*,\n\nBerikut kami sampaikan ringkasan *${printTitle}* untuk tagihan *${printData.pembayaran}* (Unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*).\n\nNominal Tagihan: *${formatRupiah(printData.nominalCetak || 0)}*`;
+    // --- PERBAIKAN: Gunakan replace untuk memastikan prefix konsisten ---
+    let docId = printData.noTagihan;
+    if (printType === 'kwitansi' && docId.startsWith('INV-')) {
+      docId = docId.replace('INV-', 'KWT-');
+    }
+    const documentLink = `${window.location.origin}/verify/${docId}`;
+    // -------------------------------------------------------------------
 
-    message += `\n\n🔗 *Lihat & Unduh Dokumen PDF:*\n${documentLink}`;
-    message += `\n\n_Mohon abaikan pesan ini jika Bapak/Ibu sudah melakukan pembayaran._\n\nTerima Kasih,\n*Finance Bumantara*`;
+    let rekeningText = '';
+    let rekening: any = printData.rekeningTujuan;
+    if (!rekening && printData.rekeningTujuanId) {
+      const b = bankList.find((x: any) => x.id === Number(printData.rekeningTujuanId));
+      if (b) rekening = { namaBank: b.namaBank, noRekening: b.noRekening, atasNama: b.atasNama };
+    }
+
+    if (rekening) {
+      rekeningText = `\n\n💳 *Informasi Rekening Pembayaran:*\nBank: *${rekening.namaBank}*\nNo. Rekening: *${rekening.noRekening}*\nAtas Nama: *${rekening.atasNama}*`;
+    }
+
+    const statusTagihan = printData.status === 'LUNAS'
+      ? '\n\n✅ Terima kasih, pembayaran Bapak/Ibu telah kami terima dengan baik.'
+      : `\n\n📌 *Nominal Tagihan:* ${formatRupiah(printData.nominalCetak || 0)}${rekeningText}`;
+
+    let message = `Halo Bapak/Ibu *${printData.namaCustomer}*, semoga senantiasa dalam keadaan sehat.\n\nBersama pesan ini, kami dari *Finance ${selectedPerumahan?.nama || 'Bumantara'}* ingin menyampaikan informasi terkait *${printTitle}* untuk tagihan *${printData.pembayaran}* (Unit Kavling *${printData.perumahan} Blok ${printData.blok}-${printData.nomorUnit}*).${statusTagihan}`;
+
+    message += `\n\n🔗 *Unduh Dokumen PDF & Detail Transaksi:*\nBapak/Ibu dapat melihat dan mengunduh dokumen resmi secara mandiri melalui tautan berikut:\n${documentLink}`;
+
+    if (printData.status !== 'LUNAS') {
+      message += `\n\n_Mohon perkenan Bapak/Ibu untuk melampirkan bukti transfer pada ruang obrolan ini apabila telah melakukan pembayaran._`;
+    }
+
+    message += `\n\nTerima kasih atas kepercayaan Bapak/Ibu.\nSalam Hangat,\n*Finance ${selectedPerumahan?.nama || 'Bumantara'}*`;
 
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -546,7 +573,7 @@ const Tagihan = () => {
       const pdfHeight = (scrollHeight * pdfWidth) / scrollWidth;
 
       pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      const cleanNoDoc = (printData?.noTagihan || printData?.id || '').toString().replace('INV-BF-', '').replace('INV-DP-', '');
+      const cleanNoDoc = (printData?.noTagihan || printData?.id || '').toString().replace(/INV-BF-|INV-DP-|KWT-BF-|KWT-DP-/g, '');
       const fileName = `${printTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`;
       pdf.save(fileName);
     } catch (error) {
@@ -712,7 +739,7 @@ const Tagihan = () => {
                   {selectedPerumahan?.logo ? (
                     <img src={selectedPerumahan.logo} alt="Logo" className="h-12 object-contain mb-2" crossOrigin="anonymous" />
                   ) : (
-                    <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">BUMANTARA</h3>
+                    <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">{selectedPerumahan?.nama}</h3>
                   )}
                 </div>
               </div>
@@ -814,7 +841,7 @@ const Tagihan = () => {
                 <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
                   <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
                     <QRCode
-                      value={`${window.location.origin}/verify/${printData.noTagihan || printData.id}`}
+                      value={`${window.location.origin}/verify/${printType === 'kwitansi' ? printData.noTagihan.replace('INV-', 'KWT-') : printData.noTagihan}`}
                       size={60}
                       level="H"
                     />
@@ -823,15 +850,7 @@ const Tagihan = () => {
                   <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
                 </div>
 
-                <div className="text-center w-[200px]">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
-                    Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
-                  </p>
-                  <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block">
-                    Marketing.
-                  </p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
-                </div>
+
               </div>
             </div>
           </div>
