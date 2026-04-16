@@ -97,21 +97,38 @@ const Tagihan = () => {
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
           reminderSelanjutnya: '',
           unpaidCount: 0,
+          totalTerbayarKeseluruhan: 0,
+          totalTerbayarBfDp: 0,
           cicilan: []
         };
       }
 
-      if (item.status === 'BELUM_BAYAR') {
-        groups[groupKey].unpaidCount += 1;
+      const lowerPay = item.pembayaran.toLowerCase();
+      const isBfOrDp = lowerPay.includes('booking') || lowerPay.includes('dp') || lowerPay.includes('down payment');
+
+      // Pisahkan penjumlahan antara tagihan cicilan dengan BF/DP agar "Sisa Pembayaran" akurat
+      if (item.status === 'LUNAS') {
+        if (isBfOrDp) {
+          groups[groupKey].totalTerbayarBfDp += Number(item.nominal);
+        } else {
+          groups[groupKey].totalTerbayarKeseluruhan += Number(item.nominal);
+        }
       }
 
-      if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
-        groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
+      // Filter: Hanya tampilkan tagihan yang BUKAN Booking Fee atau DP
+      if (!isBfOrDp) {
+        if (item.status === 'BELUM_BAYAR') {
+          groups[groupKey].unpaidCount += 1;
+        }
+        if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
+          groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
+        }
+        groups[groupKey].cicilan.push(item);
       }
-
-      groups[groupKey].cicilan.push(item);
     });
-    return Object.values(groups);
+
+    // Sembunyikan customer yang belum memiliki tagihan cicilan bertahap
+    return Object.values(groups).filter(g => g.cicilan.length > 0);
   }, [tagihans]);
 
   const columns = [
@@ -365,8 +382,12 @@ const Tagihan = () => {
   const expandedRowRender = (row: any) => {
     const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
     const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
-    const totalTerbayar = row.cicilan.filter((c: any) => c.status === 'LUNAS').reduce((sum: number, c: any) => sum + Number(c.nominal), 0);
-    const sisaPembayaran = Math.max(0, totalHargaJual);
+
+    const totalTerbayarBfDp = row.totalTerbayarBfDp || 0;
+    const piutangCicilan = Math.max(0, totalHargaJual - totalTerbayarBfDp);
+
+    const totalTerbayarCicilan = row.totalTerbayarKeseluruhan;
+    const sisaPembayaran = Math.max(0, piutangCicilan - totalTerbayarCicilan);
     const rekeningTujuanId = targetPenjualan?.rekeningTujuanId;
 
     return (
@@ -378,12 +399,12 @@ const Tagihan = () => {
 
           <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
             <div className="px-3 border-r border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Harga Jual</p>
-              <p className="text-sm font-bold text-slate-700">{formatRupiah(totalHargaJual)}</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Tagihan Cicilan</p>
+              <p className="text-sm font-bold text-slate-700">{formatRupiah(piutangCicilan)}</p>
             </div>
             <div className="px-3 border-r border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Terbayar</p>
-              <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayar)}</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Terbayar (Cicilan)</p>
+              <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayarCicilan)}</p>
             </div>
             <div className="px-3">
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
@@ -453,11 +474,11 @@ const Tagihan = () => {
                   {c.status === 'LUNAS' ? (
                     <button onClick={() => {
                       setPrintType('kwitansi');
-                      setPrintTitle(`Kwitansi ${c.pembayaran}`);
+                      setPrintTitle(`${c.pembayaran}`);
                       setPrintData({
                         ...c,
                         nominalCetak: c.nominal,
-                        hargaJual: totalHargaJual,
+                        hargaJual: piutangCicilan,
                         sisaBelumDibayar: sisaPembayaran,
                         rekeningTujuanId: rekeningTujuanId,
                         tipe: targetPenjualan?.tipe,
@@ -471,11 +492,11 @@ const Tagihan = () => {
                     <>
                       <button onClick={() => {
                         setPrintType('invoice');
-                        setPrintTitle(`Invoice ${c.pembayaran}`);
+                        setPrintTitle(`${c.pembayaran}`);
                         setPrintData({
                           ...c,
                           nominalCetak: c.nominal,
-                          hargaJual: totalHargaJual,
+                          hargaJual: piutangCicilan,
                           sisaBelumDibayar: sisaPembayaran,
                           rekeningTujuanId: rekeningTujuanId,
                           tipe: targetPenjualan?.tipe,
@@ -562,8 +583,6 @@ const Tagihan = () => {
   }
 
   if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
-
-  const targetCustomerPrint = customers.find(c => c.id === printData?.customerId);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -673,13 +692,19 @@ const Tagihan = () => {
               <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
                 <div>
                   <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
-                    {printType === 'invoice' ? 'INVOICE' : 'KWITANSI'}
+                    {printType === 'invoice' ? 'TAGIHAN' : 'BUKTI PEMBAYARAN'}
                   </h2>
                   <div className="mt-2 space-y-0.5">
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                      <span className="w-16 inline-block">NO DOC</span>: {(printData.noTagihan || printData.id).toString().replace('INV-BF-', '').replace('INV-DP-', '')} / {new Date(printData.tanggal || new Date()).getFullYear()}
+                      <span className="w-20 inline-block">NO DOC</span>: {(printData.noTagihan || printData.id).toString().replace('INV-BF-', '').replace('INV-DP-', '')} / {new Date(printData.tanggal || new Date()).getFullYear()}
                     </p>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">                      <span className="w-16 inline-block">TANGGAL</span>: {formatDate(printData.tanggal || new Date().toISOString())}
+                    {printType === 'kwitansi' && (
+                      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                        <span className="w-20 inline-block">NO INVOICE</span>: {(printData.noTagihan || printData.id).toString().replace('INV-BF-', '').replace('INV-DP-', '')}
+                      </p>
+                    )}
+                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                      <span className="w-20 inline-block">TANGGAL</span>: {formatDate(printData.tanggal || new Date().toISOString())}
                     </p>
                   </div>
                 </div>
@@ -689,7 +714,6 @@ const Tagihan = () => {
                   ) : (
                     <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">BUMANTARA</h3>
                   )}
-                  <p className="m-0 text-[8px] text-slate-500 font-bold uppercase tracking-widest">Divisi Marketing & Keuangan</p>
                 </div>
               </div>
 
@@ -698,9 +722,9 @@ const Tagihan = () => {
                 <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
                   {printType === 'kwitansi' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:'}
                 </p>
-                <p className="font-black text-lg text-slate-900 m-0 mb-0.5">{printData.namaCustomer}</p>
-                <p className="text-xs m-0 mb-0.5 font-bold text-slate-500">{targetCustomerPrint?.noHp || printData.noTelepon || '-'}</p>
-                <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{targetCustomerPrint?.alamatKoresponden || printData.alamat || '-'}</p>
+                <p className="font-black text-lg text-slate-900 m-0 mb-0.5">{printData.namaCustomer || printData.nama}</p>
+                <p className="text-xs m-0 mb-0.5 font-bold text-slate-500">{(customers.find(c => c.id === printData?.customerId))?.noHp || printData.noTelepon || '-'}</p>
+                <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{(customers.find(c => c.id === printData?.customerId))?.alamatKoresponden || printData.alamat || '-'}</p>
               </div>
 
               {/* --- 3. TABEL DESKRIPSI PEMBAYARAN --- */}
@@ -708,7 +732,7 @@ const Tagihan = () => {
                 <table className="w-full border-collapse bg-white">
                   <thead>
                     <tr className="bg-slate-900 text-white">
-                      <th className="py-2.5 px-4 text-left text-[10px] uppercase tracking-widest font-bold">Deskripsi Pembayaran</th>
+                      <th className="py-2.5 px-4 text-left text-[10px] uppercase tracking-widest font-bold">Deskripsi</th>
                       <th className="py-2.5 px-4 text-right text-[10px] uppercase tracking-widest font-bold w-1/3">Jumlah</th>
                     </tr>
                   </thead>
@@ -718,7 +742,7 @@ const Tagihan = () => {
                         <p className="text-base font-black text-slate-900 m-0 mb-2">{printTitle}</p>
                         <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{printData.perumahan}</strong></p>
                         <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
-                        <p className="text-xs text-slate-600 font-medium m-0">Skema Pembayaran: <strong>{printData.caraPembayaran?.replace('_', ' ')}</strong> {printData.bank ? `(${printData.bank})` : ''}</p>
+                        <p className="text-xs text-slate-600 font-medium m-0">Skema Pembayaran: <strong>{printData.caraPembayaran?.replace('_', ' ')}</strong></p>
                       </td>
                       <td className="py-4 px-4 border-b border-slate-100 text-right align-top text-lg font-black text-slate-900">
                         {formatRupiah(printData.nominalCetak || 0)}
@@ -761,8 +785,8 @@ const Tagihan = () => {
                       </div>
                       <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
                         <span>Sisa Belum Dibayar</span>
-                        <span className="text-orange-600 text-xs">
-                          {formatRupiah(printData.status === 'LUNAS' ? printData.sisaBelumDibayar : Math.max(0, (printData.sisaBelumDibayar || 0)))}
+                        <span className="text-red-600 text-xs">
+                          {formatRupiah(printData.status === 'LUNAS' ? printData.sisaBelumDibayar : Math.max(0, (printData.sisaBelumDibayar || 0) - (printData.nominalCetak || 0)))}
                         </span>
                       </div>
                     </div>
@@ -775,7 +799,17 @@ const Tagihan = () => {
                 </div>
               </div>
 
-              {/* --- 6. QR CODE & TTD --- */}
+              {/* --- 6. CATATAN / NOTES --- */}
+              <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl text-[9px] text-slate-600 leading-relaxed">
+                <p className="font-bold text-slate-800 mb-1 uppercase tracking-widest">Catatan:</p>
+                <ul className="list-disc pl-4 space-y-0.5">
+                  <li>Harga jual pembelian unit rumah sudah termasuk biaya AJB, Sertipikat, IMB, Listrik, BPHTB, Biaya Proses KPR dan Notaris.</li>
+                  <li>Harga jual khusus pembelian kavling belum termasuk biaya BPHTB, PPJB, AJB, Sertipikat dan Biaya Mutasi PBB.</li>
+                  <li>Apabila terjadi pembatalan, uang tanda jadi (Booking Fee) tidak dapat dikembalikan / hangus.</li>
+                </ul>
+              </div>
+
+              {/* --- 7. QR CODE & TTD --- */}
               <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
                 <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
                   <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
@@ -786,6 +820,7 @@ const Tagihan = () => {
                     />
                   </div>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
+                  <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
                 </div>
 
                 <div className="text-center w-[200px]">
@@ -793,7 +828,7 @@ const Tagihan = () => {
                     Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
                   </p>
                   <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block">
-                    DIVISI KEUANGAN
+                    Marketing.
                   </p>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
                 </div>

@@ -28,7 +28,7 @@ const VerifyDocument = () => {
         </div>
         <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dokumen Tidak Valid</h2>
         <p className="text-base text-slate-500 max-w-md mt-3 font-medium">
-          Maaf, kami tidak dapat menemukan data dokumen dengan nomor registrasi tersebut di dalam sistem resmi Bumantara.
+          Maaf, kami tidak dapat menemukan data dokumen dengan nomor registrasi tersebut di dalam sistem resmi .
         </p>
       </div>
     );
@@ -217,7 +217,7 @@ const VerifyDocument = () => {
             </div>
             <div className="text-center sm:text-left">
               <h2 className="text-sm font-black text-emerald-900 tracking-widest uppercase mb-1">DOKUMEN VALID & TERVERIFIKASI</h2>
-              <p className="text-xs text-emerald-700 font-medium">Dokumen ini diterbitkan secara sah dan dilindungi oleh sistem portal Bumantara.</p>
+              <p className="text-xs text-emerald-700 font-medium">Dokumen ini diterbitkan secara sah dan dilindungi oleh sistem portal .</p>
             </div>
           </div>
 
@@ -237,7 +237,6 @@ const VerifyDocument = () => {
               <p className="text-sm font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-2 inline-block">
                 {type === 'SPR' ? 'Divisi Marketing' : 'Divisi Keuangan'}
               </p>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Bumantara</p>
             </div>
           </div>
         </div>

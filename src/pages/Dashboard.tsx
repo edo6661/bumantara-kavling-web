@@ -74,7 +74,7 @@ const Dashboard = () => {
             Selamat datang kembali! 👋
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Berikut adalah ringkasan performa operasional dan finansial Bumantara hari ini.
+            Berikut adalah ringkasan performa operasional dan finansial hari ini.
           </p>
         </div>
       </div>
