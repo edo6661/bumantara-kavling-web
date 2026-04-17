@@ -8,10 +8,10 @@ import {
   FolderKanban,
   ChevronDown,
   X,
-  ChevronRight
+  ChevronRight,
+  ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
 const menuItems = [
   {
     title: 'Dashboard',
@@ -19,12 +19,20 @@ const menuItems = [
     icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
   },
   {
+    title: 'Penjualan',
+    icon: <ShoppingCart size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Data Penjualan', path: '/management/penjualan' },
+      { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
+      { title: 'Batal Transaksi', path: '/management/batal-transaksi' },
+    ],
+  },
+  // ------------------------------------------
+  {
     title: 'Management',
     icon: <Briefcase size={20} strokeWidth={1.5} />,
     submenus: [
-      { title: 'Penjualan', path: '/management/penjualan' },
-      { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
-      { title: 'Batal Transaksi', path: '/management/batal-transaksi' },
+      // Menu penjualan sudah dipindah ke atas
       { title: 'Kavling', path: '/management/kavling' },
       { title: 'Notaris', path: '/management/notaris' },
       { title: 'Bank', path: '/management/bank' },
@@ -58,7 +66,6 @@ const menuItems = [
     ],
   },
 ];
-
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;

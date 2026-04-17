@@ -1,4 +1,4 @@
-tolong ingat kode frontend nya:
+ingat kode frontend:
 
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -906,181 +906,263 @@ const Home = () => {
 export default Home;
 </file>
 
-<file path="src/pages/Management/GantiKavling.tsx">
+<file path="src/pages/Management/BatalTransaksi.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { ArrowRightLeft } from 'lucide-react';
-import { useGetPenjualan, useGantiKavling } from "../../hooks/queries/usePenjualan";
-import { useGetKavlings } from "../../hooks/queries/useKavling";
+import { FileUp, Eye, CheckCircle2, AlertCircle, Ban } from 'lucide-react';
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
 
-const GantiKavling = () => {
-  const { data: penjualanData = [], isLoading: loadingPenjualan } = useGetPenjualan();
-  const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
-  const gantiKavlingMutation = useGantiKavling();
+const BatalTransaksi = () => {
+  const { data: penjualanData = [], isLoading } = useGetPenjualan();
+  const uploadRefundMutation = useUploadRefundTagihan();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTransaksi, setSelectedTransaksi] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    kavlingBaruId: '',
-    alasan: ''
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [selectedTagihan, setSelectedTagihan] = useState<any>(null);
+  const [refundFile, setRefundFile] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-
-  const eligiblePenjualan = useMemo(() => {
-    return penjualanData.filter((p: any) => p.status === 'BOOKED' || p.status === 'PROSES');
+  // Filter hanya transaksi yang BATAL
+  const canceledTransactions = useMemo(() => {
+    return penjualanData.filter((p: any) => p.status === 'BATAL');
   }, [penjualanData]);
-
-
-  const availableKavlings = useMemo(() => {
-    if (!kavlingResponse?.items) return [];
-    return kavlingResponse.items.filter(k => k.status === 'AVAILABLE');
-  }, [kavlingResponse]);
 
   const columns = [
     { header: 'No. Transaksi', accessor: 'id' },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
-    { header: 'Kavling Saat Ini', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
+    { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
+    { header: 'Kavling', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
+    {
+      header: 'Total Dana Masuk',
+      accessor: 'tagihan',
+      render: (_: any, row: any) => {
+        // Hitung total tagihan yang sudah LUNAS
+        const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
+        const total = tagihanLunas.reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
+        return <span className="font-bold text-slate-900">{formatRupiah(total)}</span>;
+      }
+    },
     {
       header: 'Status', accessor: 'status', render: (val: string) => (
-        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider rounded-md">
+        <span className="px-2.5 py-1 bg-red-100 text-red-800 text-[10px] font-bold uppercase tracking-wider rounded-md">
           {val}
         </span>
       )
     },
-    {
-      header: 'Aksi',
-      accessor: 'id',
-      render: (_: any, row: any) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedTransaksi(row);
-            setFormData({ kavlingBaruId: '', alasan: '' });
-            setErrors({});
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors cursor-pointer"
-        >
-          <ArrowRightLeft size={14} /> Ganti Kavling
-        </button>
-      )
-    }
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const newErrors: Record<string, string> = {};
-    if (!formData.kavlingBaruId) newErrors.kavlingBaruId = "Kavling baru wajib dipilih";
-    if (formData.alasan.length < 5) newErrors.alasan = "Alasan wajib diisi (min. 5 karakter)";
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert("Hanya file gambar yang diperbolehkan!");
+        e.target.value = '';
+        return;
+      }
+      setRefundFile(file);
+    }
+  };
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+  const handleRefundSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!refundFile || !selectedTagihan) {
+      alert("Silakan pilih file bukti refund terlebih dahulu!");
       return;
     }
 
     try {
-      await gantiKavlingMutation.mutateAsync({
-        id: selectedTransaksi.id,
-        data: {
-          kavlingBaruId: Number(formData.kavlingBaruId),
-          alasan: formData.alasan
-        }
+      await uploadRefundMutation.mutateAsync({
+        id: selectedTagihan.id,
+        file: refundFile
       });
-      alert("Proses Ganti Kavling Berhasil!");
-      setIsModalOpen(false);
-      setSelectedTransaksi(null);
+      alert("Bukti refund berhasil diunggah!");
+      setIsRefundModalOpen(false);
+      setRefundFile(null);
+      setSelectedTagihan(null);
     } catch (error: any) {
-      alert(error.response?.data?.message || "Terjadi kesalahan saat memproses ganti kavling");
+      alert(error.response?.data?.message || "Gagal mengunggah bukti refund");
     }
   };
 
-  if (loadingPenjualan || loadingKavling) return <PageLoader />;
+  const expandedRowRender = (row: any) => {
+    // Ambil tagihan yang statusnya LUNAS saja karena itu yang masuk akal di-refund
+    const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
+
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-100 pb-3 gap-4">
+          <div>
+            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Ban size={16} className="text-red-500" /> Alasan Pembatalan
+            </h4>
+            <p className="text-sm text-slate-600 mt-1">{row.alasanBatal || 'Tidak ada alasan yang dicantumkan.'}</p>
+          </div>
+        </div>
+
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 mt-4">Dana yang Masuk (Bisa Di-refund)</h4>
+
+        {tagihanLunas.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-lg font-bold">Keterangan Tagihan</th>
+                  <th className="px-4 py-3 font-bold">Tanggal Pembayaran</th>
+                  <th className="px-4 py-3 text-right font-bold">Nominal (Rp)</th>
+                  <th className="px-4 py-3 text-center font-bold">Status Refund</th>
+                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {tagihanLunas.map((tagihan: any) => (
+                  <tr key={tagihan.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-4 py-3 font-bold text-slate-800">{tagihan.pembayaran}</td>
+                    <td className="px-4 py-3 text-slate-600">{formatDate(tagihan.updatedAt)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-900">{formatRupiah(tagihan.nominal)}</td>
+                    <td className="px-4 py-3 text-center">
+                      {tagihan.isRefunded ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700">
+                          <CheckCircle2 size={12} /> Dikembalikan
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700">
+                          <AlertCircle size={12} /> Belum Refund
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {tagihan.isRefunded ? (
+                        <button
+                          onClick={() => setPreviewImage(tagihan.fileBuktiRefund)}
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                        >
+                          <Eye size={14} /> Lihat Bukti
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedTagihan(tagihan);
+                            setRefundFile(null);
+                            setIsRefundModalOpen(true);
+                          }}
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-black transition shadow-sm cursor-pointer"
+                        >
+                          <FileUp size={14} /> Proses Refund
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <p className="text-sm text-slate-500 italic">Belum ada dana yang dibayarkan oleh customer ini.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading) return <PageLoader />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title="Proses Ganti Kavling"
+        title="Daftar Transaksi Batal"
         columns={columns}
-        data={eligiblePenjualan}
+        data={canceledTransactions}
+        expandedRowRender={expandedRowRender}
       />
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formulir Ganti Kavling">
-        {selectedTransaksi && (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* INFO KAVLING LAMA (DISABLED) */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Kavling Lama</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Nama Customer" name="nama" value={selectedTransaksi.nama} readOnly disabled />
-                <Input label="Kavling Lama" name="kavlingLama" value={`${selectedTransaksi.perumahan} Blok ${selectedTransaksi.blok}-${selectedTransaksi.nomorUnit}`} readOnly disabled />
-                <Input label="Harga Jual Lama" name="hargaLama" value={formatRupiah(selectedTransaksi.hargaJual)} readOnly disabled />
-                <Input label="Status Saat Ini" name="status" value={selectedTransaksi.status} readOnly disabled />
-              </div>
-            </div>
+      {/* MODAL PROSES REFUND */}
+      <Modal isOpen={isRefundModalOpen} onClose={() => setIsRefundModalOpen(false)} title="Proses Pengembalian Dana (Refund)">
+        <form onSubmit={handleRefundSubmit} className="space-y-5">
+          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Item yang di-refund</p>
+            <p className="text-sm font-black text-blue-900 mb-1">{selectedTagihan?.pembayaran}</p>
+            <p className="text-lg font-black text-blue-700">{formatRupiah(selectedTagihan?.nominal || 0)}</p>
+          </div>
 
-            {/* INPUT KAVLING BARU */}
-            <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl">
-              <h4 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <ArrowRightLeft size={16} /> Pilih Kavling Baru
-              </h4>
-              <div className="grid grid-cols-1 gap-4">
-                <Select
-                  label="Pilih Unit Kavling Tersedia (Available)"
-                  name="kavlingBaruId"
-                  value={formData.kavlingBaruId}
-                  onChange={(e) => setFormData({ ...formData, kavlingBaruId: e.target.value })}
-                  error={errors.kavlingBaruId}
-                  options={[
-                    { value: '', label: '-- Pilih Kavling Baru --' },
-                    ...availableKavlings.map((k) => ({
-                      value: k.id,
-                      label: `${k.perumahan?.nama || ''} Blok ${k.blok}-${k.nomorUnit} (Tipe: ${k.namaTipe}) - ${formatRupiah(k.hargaJual)}`
-                    }))
-                  ]}
-                />
-                <Input
-                  label="Alasan Pindah / Ganti Kavling"
-                  name="alasan"
-                  value={formData.alasan}
-                  onChange={(e) => setFormData({ ...formData, alasan: e.target.value })}
-                  error={errors.alasan}
-                  placeholder="Contoh: Customer ingin upgrade ke tipe yang lebih besar..."
-                />
-              </div>
-            </div>
+          <div className="space-y-2">
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">
+              Jika dana {selectedTagihan?.pembayaran} dikembalikan kepada customer, silakan unggah bukti transfer pengembalian dana di bawah ini. Jika dana hangus (tidak di-refund), Anda tidak perlu melakukan aksi ini.
+            </p>
+            <FileInput
+              label="Upload Bukti Transfer Refund (Gambar)"
+              accept="image/*"
+              onChange={handleFileChange}
+              required
+            />
+            {refundFile && (
+              <p className="text-xs text-green-600 font-bold bg-green-50 p-2 rounded-lg border border-green-100">
+                File siap diunggah: {refundFile.name}
+              </p>
+            )}
+          </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={gantiKavlingMutation.isPending}
-                className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
-              >
-                {gantiKavlingMutation.isPending ? "Memproses..." : "Konfirmasi Ganti Kavling"}
-              </button>
-            </div>
-          </form>
-        )}
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setIsRefundModalOpen(false)}
+              disabled={uploadRefundMutation.isPending}
+              className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={uploadRefundMutation.isPending || !refundFile}
+              className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
+            >
+              {uploadRefundMutation.isPending ? "Memproses..." : "Konfirmasi Refund"}
+            </button>
+          </div>
+        </form>
       </Modal>
+
+      {/* MODAL LIGHTBOX PREVIEW GAMBAR REFUND */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Bukti Transfer Refund">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              <img
+                src={previewImage}
+                alt="Preview Bukti Refund"
+                className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain"
+              />
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a
+              href={previewImage || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+            >
+              Buka Tab Baru
+            </a>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-md"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };
 
-export default GantiKavling;
+export default BatalTransaksi;
 </file>
 
 <file path="src/pages/Marketing/OldFeeAgent.tsx">
@@ -2142,6 +2224,184 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 </file>
 
+<file path="src/pages/Management/GantiKavling.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import PageLoader from "../PageLoader";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import { ArrowRightLeft } from 'lucide-react';
+import { useGetPenjualan, useGantiKavling } from "../../hooks/queries/usePenjualan";
+import { useGetKavlings } from "../../hooks/queries/useKavling";
+
+const GantiKavling = () => {
+  const { data: penjualanData = [], isLoading: loadingPenjualan } = useGetPenjualan();
+  const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
+  const gantiKavlingMutation = useGantiKavling();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTransaksi, setSelectedTransaksi] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    kavlingBaruId: '',
+    alasan: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+
+  const eligiblePenjualan = useMemo(() => {
+    return penjualanData.filter((p: any) => p.status === 'BOOKED' || p.status === 'PROSES');
+  }, [penjualanData]);
+
+
+  const availableKavlings = useMemo(() => {
+    if (!kavlingResponse?.items) return [];
+    return kavlingResponse.items.filter(k => k.status === 'AVAILABLE');
+  }, [kavlingResponse]);
+
+  const columns = [
+    { header: 'No. Transaksi', accessor: 'id' },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+    { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
+    { header: 'Kavling Saat Ini', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
+    {
+      header: 'Status', accessor: 'status', render: (val: string) => (
+        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider rounded-md">
+          {val}
+        </span>
+      )
+    },
+    {
+      header: 'Aksi',
+      accessor: 'id',
+      render: (_: any, row: any) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedTransaksi(row);
+            setFormData({ kavlingBaruId: '', alasan: '' });
+            setErrors({});
+            setIsModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors cursor-pointer"
+        >
+          <ArrowRightLeft size={14} /> Ganti Kavling
+        </button>
+      )
+    }
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+    if (!formData.kavlingBaruId) newErrors.kavlingBaruId = "Kavling baru wajib dipilih";
+    if (formData.alasan.length < 5) newErrors.alasan = "Alasan wajib diisi (min. 5 karakter)";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      await gantiKavlingMutation.mutateAsync({
+        id: selectedTransaksi.id,
+        data: {
+          kavlingBaruId: Number(formData.kavlingBaruId),
+          alasan: formData.alasan
+        }
+      });
+      alert("Proses Ganti Kavling Berhasil!");
+      setIsModalOpen(false);
+      setSelectedTransaksi(null);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Terjadi kesalahan saat memproses ganti kavling");
+    }
+  };
+
+  if (loadingPenjualan || loadingKavling) return <PageLoader />;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Proses Ganti Kavling"
+        columns={columns}
+        data={eligiblePenjualan}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formulir Ganti Kavling">
+        {selectedTransaksi && (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* INFO KAVLING LAMA (DISABLED) */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Kavling Lama</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <Input label="Harga Jual Lama" name="hargaLama" value={formatRupiah(selectedTransaksi.hargaJual)} readOnly disabled />
+                <Input label="Status Saat Ini" name="status" value={selectedTransaksi.status} readOnly disabled />
+                <Input label="Nama Customer" name="nama" value={selectedTransaksi.nama} readOnly disabled />
+                <Input label="Kavling Lama" name="kavlingLama" value={`${selectedTransaksi.perumahan} Blok ${selectedTransaksi.blok}-${selectedTransaksi.nomorUnit}`} readOnly disabled />
+              </div>
+            </div>
+
+            {/* INPUT KAVLING BARU */}
+            <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl">
+              <h4 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <ArrowRightLeft size={16} /> Pilih Kavling Baru
+              </h4>
+              <div className="grid grid-cols-1 gap-4">
+                <Select
+                  label="Pilih Unit Kavling Tersedia (Available)"
+                  name="kavlingBaruId"
+                  value={formData.kavlingBaruId}
+                  onChange={(e) => setFormData({ ...formData, kavlingBaruId: e.target.value })}
+                  error={errors.kavlingBaruId}
+                  options={[
+                    { value: '', label: '-- Pilih Kavling Baru --' },
+                    ...availableKavlings.map((k) => ({
+                      value: k.id,
+                      label: `${k.perumahan?.nama || ''} Blok ${k.blok}-${k.nomorUnit} (Tipe: ${k.namaTipe}) - ${formatRupiah(k.hargaJual)}`
+                    }))
+                  ]}
+                />
+                <Input
+                  label="Alasan Pindah / Ganti Kavling"
+                  name="alasan"
+                  value={formData.alasan}
+                  onChange={(e) => setFormData({ ...formData, alasan: e.target.value })}
+                  error={errors.alasan}
+                  placeholder="Contoh: Customer ingin upgrade ke tipe yang lebih besar..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={gantiKavlingMutation.isPending}
+                className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
+              >
+                {gantiKavlingMutation.isPending ? "Memproses..." : "Konfirmasi Ganti Kavling"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default GantiKavling;
+</file>
+
 <file path="src/pages/PageLoader.tsx">
 const PageLoader = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50/80 backdrop-blur-sm">
@@ -2204,90 +2464,6 @@ export const authService = {
       perumahan: perumahan,
     });
     return response.data;
-  },
-};
-</file>
-
-<file path="src/services/tagihan.service.ts">
-import api from "../lib/axios";
-
-export interface TagihanData {
-  id: number;
-  noTagihan: string;
-  customerId: number;
-  namaCustomer: string;
-  penjualanId: number;
-  perumahan: string;
-  blok: string;
-  nomorUnit: string;
-  pembayaran: string;
-  nominal: number;
-  jatuhTempo: string;
-  status: string;
-  fileBukti: string | null;
-  reminderBerikutnya: string | null;
-  rekeningTujuan?: {
-    namaBank: string;
-    noRekening: string;
-    atasNama: string;
-  } | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface CreateTagihanDTO {
-  customerId: number;
-  penjualanId: number;
-  pembayaran: string;
-  nominal: number;
-  jatuhTempo: string;
-  reminderBerikutnya?: string | null;
-}
-
-export interface UpdateTagihanDTO {
-  pembayaran?: string;
-  nominal?: number;
-  jatuhTempo?: string;
-  status?: string;
-  reminderBerikutnya?: string | null;
-}
-
-export const tagihanService = {
-  getAll: async (params?: Record<string, unknown>): Promise<TagihanData[]> => {
-    // Menggunakan limit besar untuk sementara agar semua data terambil
-    const response = await api.get("/tagihan", {
-      params: { limit: 100, ...params },
-    });
-    return response.data.data.items;
-  },
-
-  getById: async (id: number): Promise<TagihanData> => {
-    const response = await api.get(`/tagihan/${id}`);
-    return response.data.data;
-  },
-
-  create: async (data: CreateTagihanDTO) => {
-    const response = await api.post("/tagihan", data);
-    return response.data.data;
-  },
-
-  update: async (id: number, data: UpdateTagihanDTO) => {
-    const response = await api.patch(`/tagihan/${id}`, data);
-    return response.data.data;
-  },
-
-  delete: async (id: number) => {
-    const response = await api.delete(`/tagihan/${id}`);
-    return response.data;
-  },
-
-  uploadBukti: async (id: number, file: File) => {
-    const formData = new FormData();
-    formData.append("fileBukti", file);
-    const response = await api.patch(`/tagihan/${id}/upload-bukti`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return response.data.data;
   },
 };
 </file>
@@ -2375,89 +2551,6 @@ export const useDeleteKavling = () => {
 };
 </file>
 
-<file path="src/hooks/queries/useTagihan.ts">
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  tagihanService,
-  type CreateTagihanDTO,
-  type UpdateTagihanDTO,
-} from "../../services/tagihan.service";
-
-export const TAGIHAN_KEYS = {
-  all: ["tagihans"] as const,
-  lists: () => [...TAGIHAN_KEYS.all, "list"] as const,
-  list: (filters: Record<string, unknown>) =>
-    [...TAGIHAN_KEYS.lists(), filters] as const,
-  details: () => [...TAGIHAN_KEYS.all, "detail"] as const,
-  detail: (id: number) => [...TAGIHAN_KEYS.details(), id] as const,
-};
-
-export const useGetTagihans = (params?: Record<string, unknown>) => {
-  return useQuery({
-    queryKey: TAGIHAN_KEYS.list(params || {}),
-    queryFn: () => tagihanService.getAll(params),
-  });
-};
-
-export const useGetTagihanById = (id: number, enabled = true) => {
-  return useQuery({
-    queryKey: TAGIHAN_KEYS.detail(id),
-    queryFn: () => tagihanService.getById(id),
-    enabled: !!id && enabled,
-  });
-};
-
-export const useCreateTagihan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreateTagihanDTO) => tagihanService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
-    },
-  });
-};
-
-export const useUpdateTagihan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateTagihanDTO }) =>
-      tagihanService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
-    },
-  });
-};
-
-export const useDeleteTagihan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => tagihanService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
-    },
-  });
-};
-
-export const useUploadBuktiTagihan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, file }: { id: number; file: File }) =>
-      tagihanService.uploadBukti(id, file),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-    },
-  });
-};
-</file>
-
 <file path="src/providers/AuthProvider.tsx">
 import { useState, useEffect, type ReactNode, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
@@ -2514,6 +2607,100 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+</file>
+
+<file path="src/services/tagihan.service.ts">
+import api from "../lib/axios";
+
+export interface TagihanData {
+  id: number;
+  noTagihan: string;
+  customerId: number;
+  namaCustomer: string;
+  penjualanId: number;
+  perumahan: string;
+  blok: string;
+  nomorUnit: string;
+  pembayaran: string;
+  nominal: number;
+  jatuhTempo: string;
+  status: string;
+  fileBukti: string | null;
+  reminderBerikutnya: string | null;
+  rekeningTujuan?: {
+    namaBank: string;
+    noRekening: string;
+    atasNama: string;
+  } | null;
+  isRefunded?: boolean;
+  fileBuktiRefund?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateTagihanDTO {
+  customerId: number;
+  penjualanId: number;
+  pembayaran: string;
+  nominal: number;
+  jatuhTempo: string;
+  reminderBerikutnya?: string | null;
+}
+
+export interface UpdateTagihanDTO {
+  pembayaran?: string;
+  nominal?: number;
+  jatuhTempo?: string;
+  status?: string;
+  reminderBerikutnya?: string | null;
+}
+
+export const tagihanService = {
+  getAll: async (params?: Record<string, unknown>): Promise<TagihanData[]> => {
+    // Menggunakan limit besar untuk sementara agar semua data terambil
+    const response = await api.get("/tagihan", {
+      params: { limit: 100, ...params },
+    });
+    return response.data.data.items;
+  },
+
+  getById: async (id: number): Promise<TagihanData> => {
+    const response = await api.get(`/tagihan/${id}`);
+    return response.data.data;
+  },
+
+  create: async (data: CreateTagihanDTO) => {
+    const response = await api.post("/tagihan", data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: UpdateTagihanDTO) => {
+    const response = await api.patch(`/tagihan/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/tagihan/${id}`);
+    return response.data;
+  },
+
+  uploadBukti: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("fileBukti", file);
+    const response = await api.patch(`/tagihan/${id}/upload-bukti`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data.data;
+  },
+  uploadRefund: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("fileBuktiRefund", file);
+    const response = await api.patch(`/tagihan/${id}/refund`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data.data;
+  },
 };
 </file>
 
@@ -2666,6 +2853,101 @@ const FileInput = ({ label, error, ...props }: FileInputProps) => {
 };
 
 export default FileInput;
+</file>
+
+<file path="src/hooks/queries/useTagihan.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  tagihanService,
+  type CreateTagihanDTO,
+  type UpdateTagihanDTO,
+} from "../../services/tagihan.service";
+
+export const TAGIHAN_KEYS = {
+  all: ["tagihans"] as const,
+  lists: () => [...TAGIHAN_KEYS.all, "list"] as const,
+  list: (filters: Record<string, unknown>) =>
+    [...TAGIHAN_KEYS.lists(), filters] as const,
+  details: () => [...TAGIHAN_KEYS.all, "detail"] as const,
+  detail: (id: number) => [...TAGIHAN_KEYS.details(), id] as const,
+};
+
+export const useGetTagihans = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: TAGIHAN_KEYS.list(params || {}),
+    queryFn: () => tagihanService.getAll(params),
+  });
+};
+
+export const useGetTagihanById = (id: number, enabled = true) => {
+  return useQuery({
+    queryKey: TAGIHAN_KEYS.detail(id),
+    queryFn: () => tagihanService.getById(id),
+    enabled: !!id && enabled,
+  });
+};
+
+export const useCreateTagihan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateTagihanDTO) => tagihanService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};
+
+export const useUpdateTagihan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateTagihanDTO }) =>
+      tagihanService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};
+
+export const useDeleteTagihan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => tagihanService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};
+
+export const useUploadBuktiTagihan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) =>
+      tagihanService.uploadBukti(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+    },
+  });
+};
+
+export const useUploadRefundTagihan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) =>
+      tagihanService.uploadRefund(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};
 </file>
 
 <file path="src/pages/Login.tsx">
@@ -5092,254 +5374,6 @@ const VerifyDocument = () => {
 export default VerifyDocument;
 </file>
 
-<file path="src/components/Sidebar.tsx">
-import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Briefcase,
-  Users,
-  UserCircle,
-  FolderKanban,
-  ChevronDown,
-  X,
-  ChevronRight
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-const menuItems = [
-  {
-    title: 'Dashboard',
-    path: '/',
-    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
-  },
-  {
-    title: 'Management',
-    icon: <Briefcase size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Penjualan', path: '/management/penjualan' },
-      { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
-      { title: 'Kavling', path: '/management/kavling' },
-      { title: 'Notaris', path: '/management/notaris' },
-      { title: 'Bank', path: '/management/bank' },
-    ],
-  },
-  {
-    title: 'Customer',
-    icon: <Users size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial' },
-      { title: 'SPR', path: '/customer/spr' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
-      { title: 'Kavling', path: '/customer/kavling' },
-      { title: 'Tagihan', path: '/customer/tagihan' },
-    ],
-  },
-  {
-    title: 'Marketing',
-    icon: <UserCircle size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Agents', path: '/marketing/agents' },
-      { title: 'Fee Agent', path: '/marketing/fee-agent' },
-    ],
-  },
-  {
-    title: 'Proyek',
-    icon: <FolderKanban size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'SPK', path: '/proyek/spk' },
-      { title: 'Progress', path: '/proyek/progress' },
-    ],
-  },
-];
-
-interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-}
-
-const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
-  const location = useLocation();
-
-  // State untuk kontrol expand/shrink
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
-    const initialOpenMenus: Record<string, boolean> = {};
-    menuItems.forEach(item => {
-      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
-        initialOpenMenus[item.title] = true;
-      }
-    });
-    return initialOpenMenus;
-  });
-
-  const handleMenuClick = (title: string) => {
-    // Jika shrink aktif dan user klik menu, otomatis expand agar submenu terlihat
-    if (!isExpanded) {
-      setIsExpanded(true);
-      setOpenMenus((prev) => ({ ...prev, [title]: true }));
-    } else {
-      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-    }
-  };
-
-  const checkActive = (path?: string, submenus?: { path: string }[]) => {
-    if (path && location.pathname === path) return true;
-    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
-    return false;
-  };
-
-  return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      <aside
-        /* PERBAIKAN: 
-          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
-          - Base class selalu merender state "Expanded" (untuk Mobile).
-          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
-        */
-        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
-          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
-          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
-        `}
-      >
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
-        >
-          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
-        </button>
-
-        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
-              B
-            </div>
-            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
-              Bumantaraz
-            </span>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
-          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
-            Main Menu
-          </p>
-
-          <nav className="space-y-1">
-            {menuItems.map((item) => {
-              const hasSubmenus = !!item.submenus;
-              const isActive = checkActive(item.path, item.submenus);
-              const isOpenMenu = openMenus[item.title];
-
-              return (
-                <div key={item.title} className="relative">
-                  {hasSubmenus ? (
-                    <>
-                      <button
-                        onClick={() => handleMenuClick(item.title)}
-                        title={!isExpanded ? item.title : undefined}
-                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
-                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-                      >
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                        <ChevronDown
-                          size={14}
-                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
-                            ${isOpenMenu ? 'rotate-180' : ''}
-                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
-                        />
-                      </button>
-
-                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
-                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
-                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
-                      `}>
-                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
-                          {item.submenus!.map((sub) => {
-                            return (
-                              <NavLink
-                                key={sub.title}
-                                to={sub.path}
-                                className={({ isActive: linkActive }) => `
-                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
-                                  ${linkActive
-                                    ? 'bg-black text-white shadow-md shadow-black/10'
-                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
-                                `}
-                              >
-                                {sub.title}
-                              </NavLink>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <NavLink
-                      to={item.path!}
-                      title={!isExpanded ? item.title : undefined}
-                      className={({ isActive: linkActive }) =>
-                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
-                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                        ${linkActive
-                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
-                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                        }`
-                      }
-                    >
-                      {({ isActive: linkActive }) => (
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                      )}
-                    </NavLink>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
-    </>
-  );
-};
-
-export default Sidebar;
-</file>
-
 <file path="src/hooks/queries/usePenjualan.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -6723,6 +6757,255 @@ export const penjualanService = {
 };
 </file>
 
+<file path="src/components/Sidebar.tsx">
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  UserCircle,
+  FolderKanban,
+  ChevronDown,
+  X,
+  ChevronRight
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const menuItems = [
+  {
+    title: 'Dashboard',
+    path: '/',
+    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
+  },
+  {
+    title: 'Management',
+    icon: <Briefcase size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Penjualan', path: '/management/penjualan' },
+      { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
+      { title: 'Batal Transaksi', path: '/management/batal-transaksi' },
+      { title: 'Kavling', path: '/management/kavling' },
+      { title: 'Notaris', path: '/management/notaris' },
+      { title: 'Bank', path: '/management/bank' },
+    ],
+  },
+  {
+    title: 'Customer',
+    icon: <Users size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Data Sosial', path: '/customer/data-sosial' },
+      { title: 'SPR', path: '/customer/spr' },
+      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
+      { title: 'Kavling', path: '/customer/kavling' },
+      { title: 'Tagihan', path: '/customer/tagihan' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    icon: <UserCircle size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Agents', path: '/marketing/agents' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent' },
+    ],
+  },
+  {
+    title: 'Proyek',
+    icon: <FolderKanban size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'SPK', path: '/proyek/spk' },
+      { title: 'Progress', path: '/proyek/progress' },
+    ],
+  },
+];
+
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+}
+
+const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
+  const location = useLocation();
+
+  // State untuk kontrol expand/shrink
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    const initialOpenMenus: Record<string, boolean> = {};
+    menuItems.forEach(item => {
+      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
+        initialOpenMenus[item.title] = true;
+      }
+    });
+    return initialOpenMenus;
+  });
+
+  const handleMenuClick = (title: string) => {
+    // Jika shrink aktif dan user klik menu, otomatis expand agar submenu terlihat
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setOpenMenus((prev) => ({ ...prev, [title]: true }));
+    } else {
+      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+    }
+  };
+
+  const checkActive = (path?: string, submenus?: { path: string }[]) => {
+    if (path && location.pathname === path) return true;
+    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
+    return false;
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <aside
+        /* PERBAIKAN: 
+          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
+          - Base class selalu merender state "Expanded" (untuk Mobile).
+          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
+        */
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
+          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
+          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
+        `}
+      >
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
+        >
+          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
+              B
+            </div>
+            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
+              Bumantaraz
+            </span>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
+          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
+            Main Menu
+          </p>
+
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const hasSubmenus = !!item.submenus;
+              const isActive = checkActive(item.path, item.submenus);
+              const isOpenMenu = openMenus[item.title];
+
+              return (
+                <div key={item.title} className="relative">
+                  {hasSubmenus ? (
+                    <>
+                      <button
+                        onClick={() => handleMenuClick(item.title)}
+                        title={!isExpanded ? item.title : undefined}
+                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
+                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                      >
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
+                            {item.icon}
+                          </span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                        <ChevronDown
+                          size={14}
+                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
+                            ${isOpenMenu ? 'rotate-180' : ''}
+                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
+                        />
+                      </button>
+
+                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
+                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
+                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
+                      `}>
+                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
+                          {item.submenus!.map((sub) => {
+                            return (
+                              <NavLink
+                                key={sub.title}
+                                to={sub.path}
+                                className={({ isActive: linkActive }) => `
+                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
+                                  ${linkActive
+                                    ? 'bg-black text-white shadow-md shadow-black/10'
+                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
+                                `}
+                              >
+                                {sub.title}
+                              </NavLink>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <NavLink
+                      to={item.path!}
+                      title={!isExpanded ? item.title : undefined}
+                      className={({ isActive: linkActive }) =>
+                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
+                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                        ${linkActive
+                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
+                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                        }`
+                      }
+                    >
+                      {({ isActive: linkActive }) => (
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
+                            {item.icon}
+                          </span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                      )}
+                    </NavLink>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Sidebar;
+</file>
+
 <file path="src/components/shared/DataTable.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useEffect } from 'react';
@@ -6988,78 +7271,6 @@ const DataTable = ({
 export default DataTable;
 </file>
 
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-import { useAuth } from './context/AuthContext';
-import { AuthProvider } from './providers/AuthProvider';
-import { QueryProvider } from './providers/QueryProvider';
-
-
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
-const GantiKavling = lazy(() => import('./pages/Management/GantiKavling'));
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-
-const App = () => {
-  return (
-    <QueryProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/verify/:id" element={<VerifyDocument />} />
-
-              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="management/penjualan" element={<Penjualan />} />
-                <Route path="management/ganti-kavling" element={<GantiKavling />} />
-                <Route path="management/kavling" element={<Kavling />} />
-                <Route path="management/notaris" element={<Notaris />} />
-                <Route path="management/bank" element={<Bank />} />
-                <Route path="customer/data-sosial" element={<DataSosial />} />
-                <Route path="customer/spr" element={<SPR />} />
-                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-                <Route path="customer/kavling" element={<CustomerKavling />} />
-                <Route path="customer/tagihan" element={<Tagihan />} />
-                <Route path="marketing/agents" element={<Agents />} />
-                <Route path="marketing/fee-agent" element={<FeeAgent />} />
-                <Route path="proyek/spk" element={<SPK />} />
-                <Route path="proyek/progress" element={<Progress />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryProvider>
-  );
-};
-
-export default App;
-</file>
-
 <file path="src/pages/Customer/SPR.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useState } from 'react';
@@ -7304,6 +7515,80 @@ const SPR = () => {
 };
 
 export default SPR;
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+import { useAuth } from './context/AuthContext';
+import { AuthProvider } from './providers/AuthProvider';
+import { QueryProvider } from './providers/QueryProvider';
+
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
+const GantiKavling = lazy(() => import('./pages/Management/GantiKavling'));
+const BatalTransaksi = lazy(() => import('./pages/Management/BatalTransaksi'));
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const App = () => {
+  return (
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/verify/:id" element={<VerifyDocument />} />
+
+              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="management/penjualan" element={<Penjualan />} />
+                <Route path="management/ganti-kavling" element={<GantiKavling />} />
+                <Route path="management/batal-transaksi" element={<BatalTransaksi />} />
+                <Route path="management/kavling" element={<Kavling />} />
+                <Route path="management/notaris" element={<Notaris />} />
+                <Route path="management/bank" element={<Bank />} />
+                <Route path="customer/data-sosial" element={<DataSosial />} />
+                <Route path="customer/spr" element={<SPR />} />
+                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+                <Route path="customer/kavling" element={<CustomerKavling />} />
+                <Route path="customer/tagihan" element={<Tagihan />} />
+                <Route path="marketing/agents" element={<Agents />} />
+                <Route path="marketing/fee-agent" element={<FeeAgent />} />
+                <Route path="proyek/spk" element={<SPK />} />
+                <Route path="proyek/progress" element={<Progress />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
+  );
+};
+
+export default App;
 </file>
 
 <file path="src/pages/Customer/Kavling.tsx">
@@ -9571,6 +9856,7 @@ const Penjualan = () => {
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
+  const [selectedCancelRow, setSelectedCancelRow] = useState<PenjualanData | null>(null);
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
@@ -10043,6 +10329,7 @@ const Penjualan = () => {
             {((row.status === 'BOOKED' || row.status === 'PROSES')) && (
               <button
                 onClick={() => {
+                  setSelectedCancelRow(row);
                   setCancelData({ id: row.id!, alasanBatal: '' });
                   setIsCancelModalOpen(true);
                 }}
@@ -10398,7 +10685,7 @@ const Penjualan = () => {
               disabled={createMutation.isPending || updateMutation.isPending}
               className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
             >
-              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : 'Simpan Penjualan'}
+              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : isEditing ? 'Edit Penjualan' : 'Booking'}
             </button>
           </div>
         </form>
@@ -10681,26 +10968,52 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Batalkan Penjualan">
-        <form onSubmit={handleCancelSubmit} className="space-y-4">
-          <div className="p-4 bg-red-50 text-red-800 border border-red-100 rounded-xl text-sm font-medium">
-            <strong>Peringatan!</strong> Membatalkan penjualan akan mengubah status transaksi ini menjadi "Batal" dan mengembalikan status Kavling menjadi "Available".
-          </div>
-          <Input
-            label="Alasan Pembatalan"
-            name="alasanBatal"
-            value={cancelData.alasanBatal}
-            onChange={(e) => setCancelData({ ...cancelData, alasanBatal: e.target.value })}
-            placeholder="Contoh: Customer mengundurkan diri / BI Checking ditolak"
-            required
-          />
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-            <button type="button" onClick={() => setIsCancelModalOpen(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-            <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-lg disabled:opacity-50">
-              {cancelMutation.isPending ? "Memproses..." : "Konfirmasi Batal"}
-            </button>
-          </div>
-        </form>
+      <Modal isOpen={isCancelModalOpen} onClose={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} title="Batalkan Penjualan">
+        {selectedCancelRow && (
+          <form onSubmit={handleCancelSubmit} className="space-y-5">
+            <div className="p-4 bg-red-50 text-red-800 border border-red-100 rounded-xl text-sm font-medium leading-relaxed">
+              <strong>Peringatan Tindakan!</strong> Membatalkan penjualan akan mengubah status transaksi ini menjadi "Batal", mengembalikan status Kavling menjadi "Available", dan menghapus tagihan yang belum terbayar.
+            </div>
+
+            {/* Detail Informasi Transaksi yang akan dibatalkan */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Detail Transaksi</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Customer</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kavling</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.perumahan} Blok {selectedCancelRow.blok}-{selectedCancelRow.nomorUnit}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
+                  <p className="text-sm font-bold text-blue-700">{formatRupiah(selectedCancelRow.hargaJual)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Metode</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.caraPembayaran.replace('_', ' ')}</p>
+                </div>
+              </div>
+            </div>
+
+            <Input
+              label="Alasan Pembatalan"
+              name="alasanBatal"
+              value={cancelData.alasanBatal}
+              onChange={(e) => setCancelData({ ...cancelData, alasanBatal: e.target.value })}
+              placeholder="Contoh: BI Checking ditolak / Customer mengundurkan diri..."
+              required
+            />
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <button type="button" onClick={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} className="px-5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50 transition-colors">Batal</button>
+              <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-lg shadow-red-500/20 disabled:opacity-50 transition-colors">
+                {cancelMutation.isPending ? "Memproses..." : "Konfirmasi Batal"}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
     </div>

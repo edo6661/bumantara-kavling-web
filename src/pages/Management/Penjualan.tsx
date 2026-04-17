@@ -585,6 +585,7 @@ const Penjualan = () => {
         </div>
       );
     }
+
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
@@ -610,7 +611,7 @@ const Penjualan = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
-            <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">1. Booking Fee</h5>
+            <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">1. Booking Fee & SPR</h5>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => {
@@ -635,12 +636,25 @@ const Penjualan = () => {
                   >
                     <Receipt size={14} /> Kwitansi
                   </button>
-                  <button
-                    onClick={() => sendToWhatsApp(row, 'Kwitansi Booking Fee')}
-                    className="p-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors cursor-pointer"
-                  >
-                    <UploadCloud size={16} />
-                  </button>
+                  {/* --- BAGIAN YANG DIUBAH: Tambahkan Tombol Lihat SPR --- */}
+                  {row.fileSpr ? (
+                    <a
+                      href={row.fileSpr}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer shadow-sm"
+                    >
+                      <FileText size={14} /> Lihat SPR
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => openSkemaModal(row)}
+                      className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer shadow-md"
+                    >
+                      <PenTool size={14} /> Buat SPR
+                    </button>
+                  )}
+                  {/* ----------------------------------------------------- */}
                 </>
               ) : (
                 <>
@@ -648,19 +662,9 @@ const Penjualan = () => {
                     <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Booking"}
                     <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
                   </label>
-
                 </>
               )}
-              {row.fileBuktiBooking && !row.fileSpr && (
-                <button
-                  onClick={() => openSkemaModal(row)}
-                  className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer shadow-md"
-                >
-                  <PenTool size={14} /> Isi Skema Pembayaran
-                </button>
-              )}
             </div>
-
           </div>
 
           <div className="space-y-3">
@@ -689,9 +693,11 @@ const Penjualan = () => {
                   >
                     <Receipt size={14} /> Kwitansi DP
                   </button>
+                  {/* Tombol kirim WA tetap ada, saya biarkan menggunakan icon UploadCloud karena sepertinya itu icon yang kamu gunakan sebelumnya */}
                   <button
                     onClick={() => sendToWhatsApp(row, 'Kwitansi DP')}
                     className="p-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition-colors cursor-pointer"
+                    title="Kirim via WhatsApp"
                   >
                     <UploadCloud size={16} />
                   </button>

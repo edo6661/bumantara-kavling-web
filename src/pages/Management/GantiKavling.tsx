@@ -23,16 +23,32 @@ const GantiKavling = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-
   const eligiblePenjualan = useMemo(() => {
     return penjualanData.filter((p: any) => p.status === 'BOOKED' || p.status === 'PROSES');
   }, [penjualanData]);
-
 
   const availableKavlings = useMemo(() => {
     if (!kavlingResponse?.items) return [];
     return kavlingResponse.items.filter(k => k.status === 'AVAILABLE');
   }, [kavlingResponse]);
+
+  // --- MEMO BARU: Ekstrak semua riwayat ganti kavling dari data penjualan ---
+  const riwayatGanti = useMemo(() => {
+    const history: any[] = [];
+    penjualanData.forEach((p: any) => {
+      if (p.riwayatGantiKavling && p.riwayatGantiKavling.length > 0) {
+        p.riwayatGantiKavling.forEach((riwayat: any) => {
+          history.push({
+            ...riwayat,
+            noTransaksi: p.id,
+            namaCustomer: p.nama,
+          });
+        });
+      }
+    });
+    // Urutkan dari yang terbaru (descending)
+    return history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [penjualanData]);
 
   const columns = [
     { header: 'No. Transaksi', accessor: 'id' },
@@ -66,6 +82,24 @@ const GantiKavling = () => {
     }
   ];
 
+  // --- KOLOM BARU UNTUK TABEL HISTORI ---
+  const columnsHistory = [
+    { header: 'Tanggal Ganti', accessor: 'createdAt', render: (val: string) => formatDate(val) },
+    { header: 'No. Transaksi', accessor: 'noTransaksi' },
+    { header: 'Customer', accessor: 'namaCustomer', render: (val: string) => <span className="font-bold">{val}</span> },
+    {
+      header: 'Kavling Lama',
+      accessor: 'kavlingLama',
+      render: (_: any, row: any) => <span className="text-red-600 font-medium">{row.kavlingLama?.perumahan?.nama} Blok {row.kavlingLama?.blok}-{row.kavlingLama?.nomorUnit}</span>
+    },
+    {
+      header: 'Kavling Baru',
+      accessor: 'kavlingBaru',
+      render: (_: any, row: any) => <span className="text-green-600 font-bold">{row.kavlingBaru?.perumahan?.nama} Blok {row.kavlingBaru?.blok}-{row.kavlingBaru?.nomorUnit}</span>
+    },
+    { header: 'Alasan', accessor: 'alasan', render: (val: string) => <span className="text-slate-500 italic">{val}</span> }
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
@@ -97,11 +131,23 @@ const GantiKavling = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Proses Ganti Kavling"
-        columns={columns}
-        data={eligiblePenjualan}
-      />
+      {/* Wrapper max-height untuk tabel utama */}
+      <div className="max-h-[450px] overflow-y-auto custom-scrollbar rounded-2xl shadow-sm border border-slate-200/60 bg-white">
+        <DataTable
+          title="Proses Ganti Kavling"
+          columns={columns}
+          data={eligiblePenjualan}
+        />
+      </div>
+
+      {/* Tabel Histori di bawahnya */}
+      <div className="mt-8">
+        <DataTable
+          title="Riwayat Ganti Kavling"
+          columns={columnsHistory}
+          data={riwayatGanti}
+        />
+      </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formulir Ganti Kavling">
         {selectedTransaksi && (
@@ -110,7 +156,6 @@ const GantiKavling = () => {
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Kavling Lama</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
                 <Input label="Harga Jual Lama" name="hargaLama" value={formatRupiah(selectedTransaksi.hargaJual)} readOnly disabled />
                 <Input label="Status Saat Ini" name="status" value={selectedTransaksi.status} readOnly disabled />
                 <Input label="Nama Customer" name="nama" value={selectedTransaksi.nama} readOnly disabled />
