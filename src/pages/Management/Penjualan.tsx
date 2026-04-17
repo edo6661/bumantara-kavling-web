@@ -217,11 +217,13 @@ const Penjualan = () => {
 
   // Tambahkan fungsi baru ini
   const openSkemaModal = (item: PenjualanData) => {
+    const tipeKavling = item.tipe?.toLowerCase() || '';
+    const autoDiskon = tipeKavling === 'aruna' ? 10000000 : 6000000;
     setFormData({
       ...item,
-      caraPembayaran: '', // Kosongkan agar user dipaksa milih
+      caraPembayaran: '',
       dp: 0,
-      diskonPenjualan: 0,
+      diskonPenjualan: autoDiskon,
       rekeningTujuanId: item.rekeningTujuanId ?? ''
     });
     setModalMode('skema');
@@ -296,9 +298,9 @@ const Penjualan = () => {
         let diskonPenjualan = 0;
         const tipeKavling = selectedKav.namaTipe.toLowerCase();
 
-        if (["ansara", "adara", "asvara"].includes(tipeKavling)) {
+        if (["Ansara", "Adara", "Asvara"].includes(tipeKavling)) {
           diskonPenjualan = 6000000;
-        } else if (tipeKavling === "aruna") {
+        } else if (tipeKavling === "Aruna") {
           diskonPenjualan = 10000000;
         }
 

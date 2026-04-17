@@ -1,0 +1,28 @@
+name: Continuous Deployment Frontend
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy ke Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ~/apps/bumantara-kavling-web
+
+            # Tarik commit terbaru
+            git pull origin main
+
+            # Rebuild image Nginx + React/Vite dan restart container
+            docker compose up -d --build
+
+            # Bersihkan sisa image lama agar disk server tidak penuh
+            docker image prune -af
