@@ -111,6 +111,7 @@ const Penjualan = () => {
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'skema'>('create');
   const [originalKavling, setOriginalKavling] = useState({ blok: '', unit: '' });
 
   const [printData, setPrintData] = useState<any>(null);
@@ -196,6 +197,7 @@ const Penjualan = () => {
         rekeningTujuanId: item.rekeningTujuanId ?? ''
       });
       setOriginalKavling({ blok: item.blok, unit: item.nomorUnit });
+      setModalMode('edit'); // Set mode
       setIsEditing(true);
     } else {
       setFormData({
@@ -204,9 +206,25 @@ const Penjualan = () => {
         perumahan: selectedPerumahan ? selectedPerumahan.nama : '',
       });
       setOriginalKavling({ blok: '', unit: '' });
+      setModalMode('create'); // Set mode
       setIsEditing(false);
     }
     setIsNewAgent(false);
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  // Tambahkan fungsi baru ini
+  const openSkemaModal = (item: PenjualanData) => {
+    setFormData({
+      ...item,
+      caraPembayaran: '', // Kosongkan agar user dipaksa milih
+      dp: 0,
+      diskonPenjualan: 0,
+      rekeningTujuanId: item.rekeningTujuanId ?? ''
+    });
+    setModalMode('skema');
+    setIsEditing(true);
     setErrors({});
     setIsModalOpen(true);
   };
@@ -306,12 +324,15 @@ const Penjualan = () => {
     if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
     if (!formData.agent.trim()) newErrors.agent = 'Agent wajib dipilih/diisi';
 
-    if (formData.caraPembayaran === 'KPR') {
-      if (!formData.bank?.trim()) newErrors.bank = 'Bank KPR wajib diisi';
-      if (calculatedPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus valid';
+    // Hanya validasi skema jika bukan mode create
+    if (modalMode !== 'create') {
+      if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
+      if (formData.caraPembayaran === 'KPR') {
+        if (!formData.bank?.trim()) newErrors.bank = 'Bank KPR wajib diisi';
+        if (calculatedPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus valid';
+      }
     }
 
     setErrors(newErrors);
@@ -366,15 +387,17 @@ const Penjualan = () => {
           luasTanah: Number(formData.luasTanah),
           tanggal: formData.tanggal,
           hargaJual: Number(formData.hargaJual),
-          hargaPromosi: Number(formData.hargaPromosi) || undefined,
-          diskonPenjualan: Number(formData.diskonPenjualan) || undefined,
-          dp: Number(formData.dp) || undefined,
           bookingFee: Number(formData.bookingFee) || undefined,
-          caraPembayaran: formData.caraPembayaran,
-          bank: formData.bank || undefined,
-          nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? calculatedPengajuanKpr : undefined,
           agent: formData.agent,
           rekeningTujuanId: formData.rekeningTujuanId ? Number(formData.rekeningTujuanId) : undefined,
+
+          // DUMMY DATA UNTUK LOLOS PRISMA (AKAN DIUPDATE NANTI DI SKEMA)
+          caraPembayaran: 'CASH_KERAS',
+          dp: undefined,
+          diskonPenjualan: undefined,
+          hargaPromosi: undefined,
+          bank: undefined,
+          nilaiPengajuanKpr: undefined,
         };
 
         const result = await createMutation.mutateAsync(payload);
@@ -618,12 +641,24 @@ const Penjualan = () => {
                   </button>
                 </>
               ) : (
-                <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
-                  <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Booking"}
-                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
-                </label>
+                <>
+                  <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Booking"}
+                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
+                  </label>
+
+                </>
+              )}
+              {row.fileBuktiBooking && !row.fileSpr && (
+                <button
+                  onClick={() => openSkemaModal(row)}
+                  className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer shadow-md"
+                >
+                  <PenTool size={14} /> Isi Skema Pembayaran
+                </button>
               )}
             </div>
+
           </div>
 
           <div className="space-y-3">
@@ -687,219 +722,221 @@ const Penjualan = () => {
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Penjualan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-6">
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                {!isNewAgent ? (
-                  <Select
-                    label="Agent Marketing"
-                    name="agent"
-                    value={formData.agent}
-                    onChange={(e) => {
-                      if (e.target.value === 'NEW') {
-                        setIsNewAgent(true);
-                        setFormData((prev) => ({ ...prev, agent: '' }));
-                      } else {
-                        handleChange(e);
-                      }
-                    }}
-                    error={errors.agent}
-                    options={[
-                      { value: '', label: '-- Pilih Agent --' },
-                      ...agentData.map((a: any) => ({ value: a.nama, label: a.nama })),
-                      { value: 'NEW', label: '+ Tambah Agent Baru...' }
-                    ]}
-                  />
-                ) : (
-                  <div className="relative animate-in fade-in zoom-in-95 duration-200">
-                    <Input
-                      label="Nama Agent Baru"
+          <div className={modalMode === 'skema' ? 'opacity-50 pointer-events-none' : ''}>
+            <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+              <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                  {!isNewAgent ? (
+                    <Select
+                      label="Agent Marketing"
                       name="agent"
                       value={formData.agent}
-                      onChange={handleChange}
-                      placeholder="Ketik nama agent..."
-                      error={errors.agent}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsNewAgent(false);
-                        setFormData((prev) => ({ ...prev, agent: '' }));
+                      onChange={(e) => {
+                        if (e.target.value === 'NEW') {
+                          setIsNewAgent(true);
+                          setFormData((prev) => ({ ...prev, agent: '' }));
+                        } else {
+                          handleChange(e);
+                        }
                       }}
-                      className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                    >
-                      Batal Tambah
-                    </button>
-                  </div>
-                )}
-              </div>
-              <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} />
-              <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
-              <Input label="Perusahaan (Opsional)" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
-              <div className="md:col-span-2">
-                <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} />
-              </div>
-              <div className="md:col-span-2">
-                <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
+                      error={errors.agent}
+                      options={[
+                        { value: '', label: '-- Pilih Agent --' },
+                        ...agentData.map((a: any) => ({ value: a.nama, label: a.nama })),
+                        { value: 'NEW', label: '+ Tambah Agent Baru...' }
+                      ]}
+                    />
+                  ) : (
+                    <div className="relative animate-in fade-in zoom-in-95 duration-200">
+                      <Input
+                        label="Nama Agent Baru"
+                        name="agent"
+                        value={formData.agent}
+                        onChange={handleChange}
+                        placeholder="Ketik nama agent..."
+                        error={errors.agent}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsNewAgent(false);
+                          setFormData((prev) => ({ ...prev, agent: '' }));
+                        }}
+                        className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
+                        Batal Tambah
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
+                <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} />
+                <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
+                <Input label="Perusahaan (Opsional)" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
+                <div className="md:col-span-2">
+                  <Input label="Alamat Sesuai KTP" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} />
+                </div>
+                <div className="md:col-span-2">
+                  <Input label="Alamat Koresponden" name="alamatKoresponden" value={formData.alamatKoresponden} onChange={handleChange} />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  label="Perumahan"
-                  name="perumahan"
-                  value={formData.perumahan}
-                  onChange={handleChange}
-                  error={errors.perumahan}
-                  disabled={true}
-                  options={[
-                    { value: '', label: '-- Pilih Perumahan --' },
-                    ...perumahanData.map((p) => ({ value: p.nama, label: p.nama }))
-                  ]}
-                />
-                <Input
-                  label="Tipe Kavling"
-                  name="tipe"
-                  value={formData.tipe}
-                  disabled={true}
-                />
-              </div>
+            <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+              <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    label="Perumahan"
+                    name="perumahan"
+                    value={formData.perumahan}
+                    onChange={handleChange}
+                    error={errors.perumahan}
+                    disabled={true}
+                    options={[
+                      { value: '', label: '-- Pilih Perumahan --' },
+                      ...perumahanData.map((p) => ({ value: p.nama, label: p.nama }))
+                    ]}
+                  />
+                  <Input
+                    label="Tipe Kavling"
+                    name="tipe"
+                    value={formData.tipe}
+                    disabled={true}
+                  />
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  label="Blok"
-                  name="blok"
-                  value={formData.blok}
-                  onChange={handleBlokChange}
-                  error={errors.blok}
-                  disabled={!formData.perumahan}
-                  options={[
-                    { value: '', label: '-- Pilih Blok --' },
-                    ...uniqueBloks.map(b => ({ value: b, label: b }))
-                  ]}
-                />
-                <Select
-                  label="Nomor Unit"
-                  name="nomorUnit"
-                  value={formData.nomorUnit}
-                  onChange={handleUnitChange}
-                  error={errors.nomorUnit}
-                  disabled={!formData.blok}
-                  options={[
-                    { value: '', label: '-- Pilih Unit --' },
-                    ...availableUnits.map(u => ({ value: u, label: u }))
-                  ]}
-                />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    label="Blok"
+                    name="blok"
+                    value={formData.blok}
+                    onChange={handleBlokChange}
+                    error={errors.blok}
+                    disabled={!formData.perumahan}
+                    options={[
+                      { value: '', label: '-- Pilih Blok --' },
+                      ...uniqueBloks.map(b => ({ value: b, label: b }))
+                    ]}
+                  />
+                  <Select
+                    label="Nomor Unit"
+                    name="nomorUnit"
+                    value={formData.nomorUnit}
+                    onChange={handleUnitChange}
+                    error={errors.nomorUnit}
+                    disabled={!formData.blok}
+                    options={[
+                      { value: '', label: '-- Pilih Unit --' },
+                      ...availableUnits.map(u => ({ value: u, label: u }))
+                    ]}
+                  />
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Luas Tanah (m²)"
-                  name="luasTanah"
-                  type="number"
-                  value={formData.luasTanah || ''}
-                  disabled={true}
-                />
-                <Input
-                  label="Luas Bangunan (m²)"
-                  name="luasBangunan"
-                  type="number"
-                  value={formData.luasBangunan || ''}
-                  disabled={true}
-                />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Luas Tanah (m²)"
+                    name="luasTanah"
+                    type="number"
+                    value={formData.luasTanah || ''}
+                    disabled={true}
+                  />
+                  <Input
+                    label="Luas Bangunan (m²)"
+                    name="luasBangunan"
+                    type="number"
+                    value={formData.luasBangunan || ''}
+                    disabled={true}
+                  />
+                </div>
 
-              <CurrencyInput
-                label="Harga Jual"
-                name="hargaJual"
-                value={formData.hargaJual}
-                onValueChange={handleCurrencyChange}
-                error={errors.hargaJual}
-                placeholder="0"
-                disabled={true}
-              />
-
-              <Select
-                label="Pembayaran Melalui Bank (Rekening PT)"
-                name="rekeningTujuanId"
-                value={formData.rekeningTujuanId || ''}
-                onChange={handleChange}
-                disabled
-                error={errors.rekeningTujuanId as string}
-                options={[
-                  { value: '', label: '-- Pilih Rekening Tujuan (Opsional) --' },
-                  ...bankList.filter(b => formData.perumahan ? b.perumahan === formData.perumahan : true).map(b => ({
-                    value: b.id,
-                    label: `${b.namaBank} - ${b.noRekening} (a/n ${b.atasNama})`
-                  }))
-                ]}
-              />
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Select
-                label="Cara Pembayaran"
-                name="caraPembayaran"
-                value={formData.caraPembayaran}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih --' },
-                  { value: 'CASH KERAS', label: 'CASH KERAS' },
-                  { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
-                  { value: 'KPR', label: 'KPR' }
-                ]}
-                error={errors.caraPembayaran}
-              />
-
-              <CurrencyInput
-                label="Down Payment (DP)"
-                name="dp"
-                value={formData.dp}
-                onValueChange={handleCurrencyChange}
-                placeholder="Masukkan Nominal DP"
-              />
-
-              <CurrencyInput
-                label="Diskon Penjualan"
-                name="diskonPenjualan"
-                value={formData.diskonPenjualan}
-                onValueChange={handleCurrencyChange}
-                placeholder="0"
-              />
-            </div>
-
-            {formData.caraPembayaran === 'KPR' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md animate-in fade-in zoom-in-95 duration-200">
-                <Input
-                  label="Bank KPR"
-                  name="bank"
-                  value={formData.bank}
-                  onChange={handleChange}
-                  placeholder="Contoh: BCA, BSI, Mandiri"
-                  error={errors.bank}
-                />
                 <CurrencyInput
-                  label="Nilai Pengajuan KPR"
-                  name="nilaiPengajuanKpr"
-                  value={calculatedPengajuanKpr}
-                  onValueChange={() => { }}
-                  error={errors.nilaiPengajuanKpr}
+                  label="Harga Jual"
+                  name="hargaJual"
+                  value={formData.hargaJual}
+                  onValueChange={handleCurrencyChange}
+                  error={errors.hargaJual}
                   placeholder="0"
                   disabled={true}
                 />
+
+                <Select
+                  label="Pembayaran Melalui Bank (Rekening PT)"
+                  name="rekeningTujuanId"
+                  value={formData.rekeningTujuanId || ''}
+                  onChange={handleChange}
+                  disabled
+                  error={errors.rekeningTujuanId as string}
+                  options={[
+                    { value: '', label: '-- Pilih Rekening Tujuan (Opsional) --' },
+                    ...bankList.filter(b => formData.perumahan ? b.perumahan === formData.perumahan : true).map(b => ({
+                      value: b.id,
+                      label: `${b.namaBank} - ${b.noRekening} (a/n ${b.atasNama})`
+                    }))
+                  ]}
+                />
               </div>
-            )}
+            </div>
           </div>
+          {modalMode !== 'create' && (
+            <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+              <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Skema Pembayaran</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Select
+                  label="Cara Pembayaran"
+                  name="caraPembayaran"
+                  value={formData.caraPembayaran}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: '-- Pilih --' },
+                    { value: 'CASH KERAS', label: 'CASH KERAS' },
+                    { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
+                    { value: 'KPR', label: 'KPR' }
+                  ]}
+                  error={errors.caraPembayaran}
+                />
+
+                <CurrencyInput
+                  label="Down Payment (DP)"
+                  name="dp"
+                  value={formData.dp}
+                  onValueChange={handleCurrencyChange}
+                  placeholder="Masukkan Nominal DP"
+                />
+
+                <CurrencyInput
+                  label="Diskon Penjualan"
+                  name="diskonPenjualan"
+                  value={formData.diskonPenjualan}
+                  onValueChange={handleCurrencyChange}
+                  placeholder="0"
+                />
+              </div>
+
+              {formData.caraPembayaran === 'KPR' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md animate-in fade-in zoom-in-95 duration-200">
+                  <Input
+                    label="Bank KPR"
+                    name="bank"
+                    value={formData.bank}
+                    onChange={handleChange}
+                    placeholder="Contoh: BCA, BSI, Mandiri"
+                    error={errors.bank}
+                  />
+                  <CurrencyInput
+                    label="Nilai Pengajuan KPR"
+                    name="nilaiPengajuanKpr"
+                    value={calculatedPengajuanKpr}
+                    onValueChange={() => { }}
+                    error={errors.nilaiPengajuanKpr}
+                    placeholder="0"
+                    disabled={true}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
