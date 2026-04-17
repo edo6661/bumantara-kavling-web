@@ -78,4 +78,14 @@ export const penjualanService = {
     const response = await api.patch(`/penjualan/${noTransaksi}`, data);
     return response.data.data;
   },
+  gantiKavling: async (
+    noTransaksi: string,
+    data: { kavlingBaruId: number; alasan: string },
+  ) => {
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/ganti-kavling`,
+      data,
+    );
+    return response.data.data;
+  },
 };

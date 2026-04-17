@@ -96,3 +96,21 @@ export const useUpdatePenjualan = () => {
     },
   });
 };
+
+export const useGantiKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { kavlingBaruId: number; alasan: string };
+    }) => penjualanService.gantiKavling(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    },
+  });
+};

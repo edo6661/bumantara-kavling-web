@@ -23,6 +23,7 @@ const menuItems = [
     icon: <Briefcase size={20} strokeWidth={1.5} />,
     submenus: [
       { title: 'Penjualan', path: '/management/penjualan' },
+      { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
       { title: 'Kavling', path: '/management/kavling' },
       { title: 'Notaris', path: '/management/notaris' },
       { title: 'Bank', path: '/management/bank' },
