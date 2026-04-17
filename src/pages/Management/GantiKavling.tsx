@@ -110,10 +110,11 @@ const GantiKavling = () => {
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Kavling Lama</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Nama Customer" name="nama" value={selectedTransaksi.nama} readOnly disabled />
-                <Input label="Kavling Lama" name="kavlingLama" value={`${selectedTransaksi.perumahan} Blok ${selectedTransaksi.blok}-${selectedTransaksi.nomorUnit}`} readOnly disabled />
+
                 <Input label="Harga Jual Lama" name="hargaLama" value={formatRupiah(selectedTransaksi.hargaJual)} readOnly disabled />
                 <Input label="Status Saat Ini" name="status" value={selectedTransaksi.status} readOnly disabled />
+                <Input label="Nama Customer" name="nama" value={selectedTransaksi.nama} readOnly disabled />
+                <Input label="Kavling Lama" name="kavlingLama" value={`${selectedTransaksi.perumahan} Blok ${selectedTransaksi.blok}-${selectedTransaksi.nomorUnit}`} readOnly disabled />
               </div>
             </div>
 

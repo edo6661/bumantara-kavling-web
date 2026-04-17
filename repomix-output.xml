@@ -906,6 +906,183 @@ const Home = () => {
 export default Home;
 </file>
 
+<file path="src/pages/Management/GantiKavling.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import PageLoader from "../PageLoader";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import { ArrowRightLeft } from 'lucide-react';
+import { useGetPenjualan, useGantiKavling } from "../../hooks/queries/usePenjualan";
+import { useGetKavlings } from "../../hooks/queries/useKavling";
+
+const GantiKavling = () => {
+  const { data: penjualanData = [], isLoading: loadingPenjualan } = useGetPenjualan();
+  const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
+  const gantiKavlingMutation = useGantiKavling();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTransaksi, setSelectedTransaksi] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    kavlingBaruId: '',
+    alasan: ''
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+
+  const eligiblePenjualan = useMemo(() => {
+    return penjualanData.filter((p: any) => p.status === 'BOOKED' || p.status === 'PROSES');
+  }, [penjualanData]);
+
+
+  const availableKavlings = useMemo(() => {
+    if (!kavlingResponse?.items) return [];
+    return kavlingResponse.items.filter(k => k.status === 'AVAILABLE');
+  }, [kavlingResponse]);
+
+  const columns = [
+    { header: 'No. Transaksi', accessor: 'id' },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+    { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
+    { header: 'Kavling Saat Ini', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
+    {
+      header: 'Status', accessor: 'status', render: (val: string) => (
+        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider rounded-md">
+          {val}
+        </span>
+      )
+    },
+    {
+      header: 'Aksi',
+      accessor: 'id',
+      render: (_: any, row: any) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedTransaksi(row);
+            setFormData({ kavlingBaruId: '', alasan: '' });
+            setErrors({});
+            setIsModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors cursor-pointer"
+        >
+          <ArrowRightLeft size={14} /> Ganti Kavling
+        </button>
+      )
+    }
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+    if (!formData.kavlingBaruId) newErrors.kavlingBaruId = "Kavling baru wajib dipilih";
+    if (formData.alasan.length < 5) newErrors.alasan = "Alasan wajib diisi (min. 5 karakter)";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      await gantiKavlingMutation.mutateAsync({
+        id: selectedTransaksi.id,
+        data: {
+          kavlingBaruId: Number(formData.kavlingBaruId),
+          alasan: formData.alasan
+        }
+      });
+      alert("Proses Ganti Kavling Berhasil!");
+      setIsModalOpen(false);
+      setSelectedTransaksi(null);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Terjadi kesalahan saat memproses ganti kavling");
+    }
+  };
+
+  if (loadingPenjualan || loadingKavling) return <PageLoader />;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Proses Ganti Kavling"
+        columns={columns}
+        data={eligiblePenjualan}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formulir Ganti Kavling">
+        {selectedTransaksi && (
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* INFO KAVLING LAMA (DISABLED) */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Kavling Lama</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input label="Nama Customer" name="nama" value={selectedTransaksi.nama} readOnly disabled />
+                <Input label="Kavling Lama" name="kavlingLama" value={`${selectedTransaksi.perumahan} Blok ${selectedTransaksi.blok}-${selectedTransaksi.nomorUnit}`} readOnly disabled />
+                <Input label="Harga Jual Lama" name="hargaLama" value={formatRupiah(selectedTransaksi.hargaJual)} readOnly disabled />
+                <Input label="Status Saat Ini" name="status" value={selectedTransaksi.status} readOnly disabled />
+              </div>
+            </div>
+
+            {/* INPUT KAVLING BARU */}
+            <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl">
+              <h4 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <ArrowRightLeft size={16} /> Pilih Kavling Baru
+              </h4>
+              <div className="grid grid-cols-1 gap-4">
+                <Select
+                  label="Pilih Unit Kavling Tersedia (Available)"
+                  name="kavlingBaruId"
+                  value={formData.kavlingBaruId}
+                  onChange={(e) => setFormData({ ...formData, kavlingBaruId: e.target.value })}
+                  error={errors.kavlingBaruId}
+                  options={[
+                    { value: '', label: '-- Pilih Kavling Baru --' },
+                    ...availableKavlings.map((k) => ({
+                      value: k.id,
+                      label: `${k.perumahan?.nama || ''} Blok ${k.blok}-${k.nomorUnit} (Tipe: ${k.namaTipe}) - ${formatRupiah(k.hargaJual)}`
+                    }))
+                  ]}
+                />
+                <Input
+                  label="Alasan Pindah / Ganti Kavling"
+                  name="alasan"
+                  value={formData.alasan}
+                  onChange={(e) => setFormData({ ...formData, alasan: e.target.value })}
+                  error={errors.alasan}
+                  placeholder="Contoh: Customer ingin upgrade ke tipe yang lebih besar..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={gantiKavlingMutation.isPending}
+                className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
+              >
+                {gantiKavlingMutation.isPending ? "Memproses..." : "Konfirmasi Ganti Kavling"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default GantiKavling;
+</file>
+
 <file path="src/pages/Marketing/OldFeeAgent.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -3685,354 +3862,6 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
 export default Navbar;
 </file>
 
-<file path="src/components/Sidebar.tsx">
-import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Briefcase,
-  Users,
-  UserCircle,
-  FolderKanban,
-  ChevronDown,
-  X,
-  ChevronRight
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-const menuItems = [
-  {
-    title: 'Dashboard',
-    path: '/',
-    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
-  },
-  {
-    title: 'Management',
-    icon: <Briefcase size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Penjualan', path: '/management/penjualan' },
-      { title: 'Kavling', path: '/management/kavling' },
-      { title: 'Notaris', path: '/management/notaris' },
-      { title: 'Bank', path: '/management/bank' },
-    ],
-  },
-  {
-    title: 'Customer',
-    icon: <Users size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial' },
-      { title: 'SPR', path: '/customer/spr' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
-      { title: 'Kavling', path: '/customer/kavling' },
-      { title: 'Tagihan', path: '/customer/tagihan' },
-    ],
-  },
-  {
-    title: 'Marketing',
-    icon: <UserCircle size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Agents', path: '/marketing/agents' },
-      { title: 'Fee Agent', path: '/marketing/fee-agent' },
-    ],
-  },
-  {
-    title: 'Proyek',
-    icon: <FolderKanban size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'SPK', path: '/proyek/spk' },
-      { title: 'Progress', path: '/proyek/progress' },
-    ],
-  },
-];
-
-interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-}
-
-const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
-  const location = useLocation();
-
-  // State untuk kontrol expand/shrink
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
-    const initialOpenMenus: Record<string, boolean> = {};
-    menuItems.forEach(item => {
-      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
-        initialOpenMenus[item.title] = true;
-      }
-    });
-    return initialOpenMenus;
-  });
-
-  const handleMenuClick = (title: string) => {
-    // Jika shrink aktif dan user klik menu, otomatis expand agar submenu terlihat
-    if (!isExpanded) {
-      setIsExpanded(true);
-      setOpenMenus((prev) => ({ ...prev, [title]: true }));
-    } else {
-      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-    }
-  };
-
-  const checkActive = (path?: string, submenus?: { path: string }[]) => {
-    if (path && location.pathname === path) return true;
-    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
-    return false;
-  };
-
-  return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      <aside
-        /* PERBAIKAN: 
-          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
-          - Base class selalu merender state "Expanded" (untuk Mobile).
-          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
-        */
-        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
-          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
-          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
-        `}
-      >
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
-        >
-          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
-        </button>
-
-        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
-              B
-            </div>
-            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
-              Bumantaraz
-            </span>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
-          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
-            Main Menu
-          </p>
-
-          <nav className="space-y-1">
-            {menuItems.map((item) => {
-              const hasSubmenus = !!item.submenus;
-              const isActive = checkActive(item.path, item.submenus);
-              const isOpenMenu = openMenus[item.title];
-
-              return (
-                <div key={item.title} className="relative">
-                  {hasSubmenus ? (
-                    <>
-                      <button
-                        onClick={() => handleMenuClick(item.title)}
-                        title={!isExpanded ? item.title : undefined}
-                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
-                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-                      >
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                        <ChevronDown
-                          size={14}
-                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
-                            ${isOpenMenu ? 'rotate-180' : ''}
-                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
-                        />
-                      </button>
-
-                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
-                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
-                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
-                      `}>
-                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
-                          {item.submenus!.map((sub) => {
-                            return (
-                              <NavLink
-                                key={sub.title}
-                                to={sub.path}
-                                className={({ isActive: linkActive }) => `
-                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
-                                  ${linkActive
-                                    ? 'bg-black text-white shadow-md shadow-black/10'
-                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
-                                `}
-                              >
-                                {sub.title}
-                              </NavLink>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <NavLink
-                      to={item.path!}
-                      title={!isExpanded ? item.title : undefined}
-                      className={({ isActive: linkActive }) =>
-                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
-                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                        ${linkActive
-                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
-                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                        }`
-                      }
-                    >
-                      {({ isActive: linkActive }) => (
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                      )}
-                    </NavLink>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
-    </>
-  );
-};
-
-export default Sidebar;
-</file>
-
-<file path="src/hooks/queries/usePenjualan.ts">
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  penjualanService,
-  type CreatePenjualanDTO,
-} from "../../services/penjualan.service";
-
-export const PENJUALAN_KEYS = {
-  all: ["penjualan"] as const,
-};
-
-export const useGetPenjualan = (params?: Record<string, unknown>) => {
-  return useQuery({
-    queryKey: [...PENJUALAN_KEYS.all, params],
-    queryFn: () => penjualanService.getAll(params),
-  });
-};
-
-export const useCreatePenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreatePenjualanDTO) => penjualanService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-    },
-  });
-};
-
-export const useCancelPenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, alasanBatal }: { id: string; alasanBatal: string }) =>
-      penjualanService.cancel(id, alasanBatal),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] }); // Tambahkan ini agar Tagihan yang batal ikut hilang
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-    },
-  });
-};
-
-export const useUploadBuktiPenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      type,
-      file,
-    }: {
-      id: string;
-      type: "booking" | "dp";
-      file: File;
-    }) => penjualanService.uploadBukti(id, type, file),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-    },
-  });
-};
-
-export const useUploadSignature = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      noTransaksi: string;
-      signatureBase64: string;
-      nama: string;
-      peran: string;
-      tanggal: string;
-    }) => penjualanService.uploadSignature(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-    },
-  });
-};
-
-export const useUpdatePenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: Partial<CreatePenjualanDTO>;
-    }) => penjualanService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-    },
-  });
-};
-</file>
-
 <file path="src/pages/Customer/DataSosial.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -5263,87 +5092,370 @@ const VerifyDocument = () => {
 export default VerifyDocument;
 </file>
 
-<file path="src/services/penjualan.service.ts">
-import api from "../lib/axios";
+<file path="src/components/Sidebar.tsx">
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  UserCircle,
+  FolderKanban,
+  ChevronDown,
+  X,
+  ChevronRight
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export interface CreatePenjualanDTO {
-  noIdentitas: string;
-  nama: string;
-  noTelepon: string;
-  alamat: string;
-  perusahaan?: string;
-  alamatKoresponden?: string;
-  perumahan: string;
-  blok: string;
-  nomorUnit: string;
-  tipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  tanggal: string;
-  hargaJual: number;
-  hargaPromosi?: number;
-  diskonPenjualan?: number;
-  dp?: number;
-  bookingFee?: number;
-  caraPembayaran: string;
-  bank?: string;
-  nilaiPengajuanKpr?: number;
-  agent: string;
-  rekeningTujuanId?: number;
+const menuItems = [
+  {
+    title: 'Dashboard',
+    path: '/',
+    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
+  },
+  {
+    title: 'Management',
+    icon: <Briefcase size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Penjualan', path: '/management/penjualan' },
+      { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
+      { title: 'Kavling', path: '/management/kavling' },
+      { title: 'Notaris', path: '/management/notaris' },
+      { title: 'Bank', path: '/management/bank' },
+    ],
+  },
+  {
+    title: 'Customer',
+    icon: <Users size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Data Sosial', path: '/customer/data-sosial' },
+      { title: 'SPR', path: '/customer/spr' },
+      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
+      { title: 'Kavling', path: '/customer/kavling' },
+      { title: 'Tagihan', path: '/customer/tagihan' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    icon: <UserCircle size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Agents', path: '/marketing/agents' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent' },
+    ],
+  },
+  {
+    title: 'Proyek',
+    icon: <FolderKanban size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'SPK', path: '/proyek/spk' },
+      { title: 'Progress', path: '/proyek/progress' },
+    ],
+  },
+];
+
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
-export const penjualanService = {
-  getAll: async (params?: Record<string, unknown>) => {
-    const response = await api.get("/penjualan", {
-      params: { limit: 100, ...params },
-    });
-    return response.data.data.items;
-  },
+const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
+  const location = useLocation();
 
-  create: async (data: CreatePenjualanDTO) => {
-    const response = await api.post("/penjualan", data);
-    return response.data.data;
-  },
-  cancel: async (noTransaksi: string, alasanBatal: string) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
-      alasanBatal,
-    });
-    return response.data.data;
-  },
-  uploadBukti: async (
-    noTransaksi: string,
-    type: "booking" | "dp",
-    file: File,
-  ) => {
-    const formData = new FormData();
-    formData.append("fileBukti", file);
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/upload/${type}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
-    );
+  // State untuk kontrol expand/shrink
+  const [isExpanded, setIsExpanded] = useState(true);
 
-    return response.data.data;
-  },
-  uploadSignature: async (data: {
-    noTransaksi: string;
-    signatureBase64: string;
-    nama: string;
-    peran: string;
-    tanggal: string;
-  }) => {
-    const response = await api.post(
-      `/penjualan/${data.noTransaksi}/signature`,
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    const initialOpenMenus: Record<string, boolean> = {};
+    menuItems.forEach(item => {
+      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
+        initialOpenMenus[item.title] = true;
+      }
+    });
+    return initialOpenMenus;
+  });
+
+  const handleMenuClick = (title: string) => {
+    // Jika shrink aktif dan user klik menu, otomatis expand agar submenu terlihat
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setOpenMenus((prev) => ({ ...prev, [title]: true }));
+    } else {
+      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+    }
+  };
+
+  const checkActive = (path?: string, submenus?: { path: string }[]) => {
+    if (path && location.pathname === path) return true;
+    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
+    return false;
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <aside
+        /* PERBAIKAN: 
+          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
+          - Base class selalu merender state "Expanded" (untuk Mobile).
+          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
+        */
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
+          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
+          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
+        `}
+      >
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
+        >
+          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
+
+        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
+              B
+            </div>
+            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
+              Bumantaraz
+            </span>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
+          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
+            Main Menu
+          </p>
+
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const hasSubmenus = !!item.submenus;
+              const isActive = checkActive(item.path, item.submenus);
+              const isOpenMenu = openMenus[item.title];
+
+              return (
+                <div key={item.title} className="relative">
+                  {hasSubmenus ? (
+                    <>
+                      <button
+                        onClick={() => handleMenuClick(item.title)}
+                        title={!isExpanded ? item.title : undefined}
+                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
+                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                      >
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
+                            {item.icon}
+                          </span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                        <ChevronDown
+                          size={14}
+                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
+                            ${isOpenMenu ? 'rotate-180' : ''}
+                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
+                        />
+                      </button>
+
+                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
+                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
+                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
+                      `}>
+                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
+                          {item.submenus!.map((sub) => {
+                            return (
+                              <NavLink
+                                key={sub.title}
+                                to={sub.path}
+                                className={({ isActive: linkActive }) => `
+                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
+                                  ${linkActive
+                                    ? 'bg-black text-white shadow-md shadow-black/10'
+                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
+                                `}
+                              >
+                                {sub.title}
+                              </NavLink>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <NavLink
+                      to={item.path!}
+                      title={!isExpanded ? item.title : undefined}
+                      className={({ isActive: linkActive }) =>
+                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
+                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                        ${linkActive
+                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
+                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                        }`
+                      }
+                    >
+                      {({ isActive: linkActive }) => (
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
+                            {item.icon}
+                          </span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                      )}
+                    </NavLink>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </aside>
+    </>
+  );
+};
+
+export default Sidebar;
+</file>
+
+<file path="src/hooks/queries/usePenjualan.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  penjualanService,
+  type CreatePenjualanDTO,
+} from "../../services/penjualan.service";
+
+export const PENJUALAN_KEYS = {
+  all: ["penjualan"] as const,
+};
+
+export const useGetPenjualan = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: [...PENJUALAN_KEYS.all, params],
+    queryFn: () => penjualanService.getAll(params),
+  });
+};
+
+export const useCreatePenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreatePenjualanDTO) => penjualanService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+    },
+  });
+};
+
+export const useCancelPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, alasanBatal }: { id: string; alasanBatal: string }) =>
+      penjualanService.cancel(id, alasanBatal),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] }); // Tambahkan ini agar Tagihan yang batal ikut hilang
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+    },
+  });
+};
+
+export const useUploadBuktiPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      type,
+      file,
+    }: {
+      id: string;
+      type: "booking" | "dp";
+      file: File;
+    }) => penjualanService.uploadBukti(id, type, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+    },
+  });
+};
+
+export const useUploadSignature = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      noTransaksi: string;
+      signatureBase64: string;
+      nama: string;
+      peran: string;
+      tanggal: string;
+    }) => penjualanService.uploadSignature(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
+};
+
+export const useUpdatePenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
       data,
-    );
-    return response.data.data;
-  },
-  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
-    return response.data.data;
-  },
+    }: {
+      id: string;
+      data: Partial<CreatePenjualanDTO>;
+    }) => penjualanService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+    },
+  });
+};
+
+export const useGantiKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { kavlingBaruId: number; alasan: string };
+    }) => penjualanService.gantiKavling(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    },
+  });
 };
 </file>
 
@@ -6517,74 +6629,98 @@ export const kavlingService = {
 };
 </file>
 
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-import { useAuth } from './context/AuthContext';
-import { AuthProvider } from './providers/AuthProvider';
-import { QueryProvider } from './providers/QueryProvider';
+<file path="src/services/penjualan.service.ts">
+import api from "../lib/axios";
 
+export interface CreatePenjualanDTO {
+  noIdentitas: string;
+  nama: string;
+  noTelepon: string;
+  alamat: string;
+  perusahaan?: string;
+  alamatKoresponden?: string;
+  perumahan: string;
+  blok: string;
+  nomorUnit: string;
+  tipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  tanggal: string;
+  hargaJual: number;
+  hargaPromosi?: number;
+  diskonPenjualan?: number;
+  dp?: number;
+  bookingFee?: number;
+  caraPembayaran: string;
+  bank?: string;
+  nilaiPengajuanKpr?: number;
+  agent: string;
+  rekeningTujuanId?: number;
+}
 
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
+export const penjualanService = {
+  getAll: async (params?: Record<string, unknown>) => {
+    const response = await api.get("/penjualan", {
+      params: { limit: 100, ...params },
+    });
+    return response.data.data.items;
+  },
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
+  create: async (data: CreatePenjualanDTO) => {
+    const response = await api.post("/penjualan", data);
+    return response.data.data;
+  },
+  cancel: async (noTransaksi: string, alasanBatal: string) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
+      alasanBatal,
+    });
+    return response.data.data;
+  },
+  uploadBukti: async (
+    noTransaksi: string,
+    type: "booking" | "dp",
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("fileBukti", file);
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/upload/${type}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+
+    return response.data.data;
+  },
+  uploadSignature: async (data: {
+    noTransaksi: string;
+    signatureBase64: string;
+    nama: string;
+    peran: string;
+    tanggal: string;
+  }) => {
+    const response = await api.post(
+      `/penjualan/${data.noTransaksi}/signature`,
+      data,
+    );
+    return response.data.data;
+  },
+  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
+    return response.data.data;
+  },
+  gantiKavling: async (
+    noTransaksi: string,
+    data: { kavlingBaruId: number; alasan: string },
+  ) => {
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/ganti-kavling`,
+      data,
+    );
+    return response.data.data;
+  },
 };
-
-const App = () => {
-  return (
-    <QueryProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/verify/:id" element={<VerifyDocument />} />
-
-              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="management/penjualan" element={<Penjualan />} />
-                <Route path="management/kavling" element={<Kavling />} />
-                <Route path="management/notaris" element={<Notaris />} />
-                <Route path="management/bank" element={<Bank />} />
-                <Route path="customer/data-sosial" element={<DataSosial />} />
-                <Route path="customer/spr" element={<SPR />} />
-                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-                <Route path="customer/kavling" element={<CustomerKavling />} />
-                <Route path="customer/tagihan" element={<Tagihan />} />
-                <Route path="marketing/agents" element={<Agents />} />
-                <Route path="marketing/fee-agent" element={<FeeAgent />} />
-                <Route path="proyek/spk" element={<SPK />} />
-                <Route path="proyek/progress" element={<Progress />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryProvider>
-  );
-};
-
-export default App;
 </file>
 
 <file path="src/components/shared/DataTable.tsx">
@@ -6850,6 +6986,78 @@ const DataTable = ({
 };
 
 export default DataTable;
+</file>
+
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+import { useAuth } from './context/AuthContext';
+import { AuthProvider } from './providers/AuthProvider';
+import { QueryProvider } from './providers/QueryProvider';
+
+
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
+const GantiKavling = lazy(() => import('./pages/Management/GantiKavling'));
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const App = () => {
+  return (
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/verify/:id" element={<VerifyDocument />} />
+
+              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="management/penjualan" element={<Penjualan />} />
+                <Route path="management/ganti-kavling" element={<GantiKavling />} />
+                <Route path="management/kavling" element={<Kavling />} />
+                <Route path="management/notaris" element={<Notaris />} />
+                <Route path="management/bank" element={<Bank />} />
+                <Route path="customer/data-sosial" element={<DataSosial />} />
+                <Route path="customer/spr" element={<SPR />} />
+                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+                <Route path="customer/kavling" element={<CustomerKavling />} />
+                <Route path="customer/tagihan" element={<Tagihan />} />
+                <Route path="marketing/agents" element={<Agents />} />
+                <Route path="marketing/fee-agent" element={<FeeAgent />} />
+                <Route path="proyek/spk" element={<SPK />} />
+                <Route path="proyek/progress" element={<Progress />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
+  );
+};
+
+export default App;
 </file>
 
 <file path="src/pages/Customer/SPR.tsx">

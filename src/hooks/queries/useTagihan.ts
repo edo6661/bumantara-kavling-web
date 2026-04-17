@@ -78,3 +78,15 @@ export const useUploadBuktiTagihan = () => {
     },
   });
 };
+
+export const useUploadRefundTagihan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, file }: { id: number; file: File }) =>
+      tagihanService.uploadRefund(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};

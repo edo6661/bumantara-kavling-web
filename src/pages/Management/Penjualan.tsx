@@ -120,6 +120,7 @@ const Penjualan = () => {
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelData, setCancelData] = useState({ id: '', alasanBatal: '' });
+  const [selectedCancelRow, setSelectedCancelRow] = useState<PenjualanData | null>(null);
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
@@ -592,6 +593,7 @@ const Penjualan = () => {
             {((row.status === 'BOOKED' || row.status === 'PROSES')) && (
               <button
                 onClick={() => {
+                  setSelectedCancelRow(row);
                   setCancelData({ id: row.id!, alasanBatal: '' });
                   setIsCancelModalOpen(true);
                 }}
@@ -947,7 +949,7 @@ const Penjualan = () => {
               disabled={createMutation.isPending || updateMutation.isPending}
               className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
             >
-              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : 'Simpan Penjualan'}
+              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : isEditing ? 'Edit Penjualan' : 'Booking'}
             </button>
           </div>
         </form>
@@ -1230,26 +1232,52 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Batalkan Penjualan">
-        <form onSubmit={handleCancelSubmit} className="space-y-4">
-          <div className="p-4 bg-red-50 text-red-800 border border-red-100 rounded-xl text-sm font-medium">
-            <strong>Peringatan!</strong> Membatalkan penjualan akan mengubah status transaksi ini menjadi "Batal" dan mengembalikan status Kavling menjadi "Available".
-          </div>
-          <Input
-            label="Alasan Pembatalan"
-            name="alasanBatal"
-            value={cancelData.alasanBatal}
-            onChange={(e) => setCancelData({ ...cancelData, alasanBatal: e.target.value })}
-            placeholder="Contoh: Customer mengundurkan diri / BI Checking ditolak"
-            required
-          />
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-            <button type="button" onClick={() => setIsCancelModalOpen(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50">Tutup</button>
-            <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-lg disabled:opacity-50">
-              {cancelMutation.isPending ? "Memproses..." : "Konfirmasi Batal"}
-            </button>
-          </div>
-        </form>
+      <Modal isOpen={isCancelModalOpen} onClose={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} title="Batalkan Penjualan">
+        {selectedCancelRow && (
+          <form onSubmit={handleCancelSubmit} className="space-y-5">
+            <div className="p-4 bg-red-50 text-red-800 border border-red-100 rounded-xl text-sm font-medium leading-relaxed">
+              <strong>Peringatan Tindakan!</strong> Membatalkan penjualan akan mengubah status transaksi ini menjadi "Batal", mengembalikan status Kavling menjadi "Available", dan menghapus tagihan yang belum terbayar.
+            </div>
+
+            {/* Detail Informasi Transaksi yang akan dibatalkan */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Detail Transaksi</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Customer</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kavling</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.perumahan} Blok {selectedCancelRow.blok}-{selectedCancelRow.nomorUnit}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
+                  <p className="text-sm font-bold text-blue-700">{formatRupiah(selectedCancelRow.hargaJual)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Metode</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.caraPembayaran.replace('_', ' ')}</p>
+                </div>
+              </div>
+            </div>
+
+            <Input
+              label="Alasan Pembatalan"
+              name="alasanBatal"
+              value={cancelData.alasanBatal}
+              onChange={(e) => setCancelData({ ...cancelData, alasanBatal: e.target.value })}
+              placeholder="Contoh: BI Checking ditolak / Customer mengundurkan diri..."
+              required
+            />
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <button type="button" onClick={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} className="px-5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50 transition-colors">Batal</button>
+              <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-lg shadow-red-500/20 disabled:opacity-50 transition-colors">
+                {cancelMutation.isPending ? "Memproses..." : "Konfirmasi Batal"}
+              </button>
+            </div>
+          </form>
+        )}
       </Modal>
 
     </div>

@@ -20,6 +20,8 @@ export interface TagihanData {
     noRekening: string;
     atasNama: string;
   } | null;
+  isRefunded?: boolean;
+  fileBuktiRefund?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -74,6 +76,14 @@ export const tagihanService = {
     const formData = new FormData();
     formData.append("fileBukti", file);
     const response = await api.patch(`/tagihan/${id}/upload-bukti`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data.data;
+  },
+  uploadRefund: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("fileBuktiRefund", file);
+    const response = await api.patch(`/tagihan/${id}/refund`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return response.data.data;
