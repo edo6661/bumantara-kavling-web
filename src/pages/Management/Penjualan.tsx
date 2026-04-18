@@ -108,6 +108,8 @@ const Penjualan = () => {
 
   const [isNewAgent, setIsNewAgent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSkemaModalOpen, setIsSkemaModalOpen] = useState(false);
+  const [selectedPenjualan, setSelectedPenjualan] = useState<PenjualanData | null>(null);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
   const [isEditing, setIsEditing] = useState(false);
@@ -215,21 +217,51 @@ const Penjualan = () => {
     setIsModalOpen(true);
   };
 
-  // Tambahkan fungsi baru ini
   const openSkemaModal = (item: PenjualanData) => {
     const tipeKavling = item.tipe?.toLowerCase() || '';
     const autoDiskon = tipeKavling === 'aruna' ? 10000000 : 6000000;
+
+    setSelectedPenjualan(item); // Simpan data untuk dirender sebagai teks
+
     setFormData({
       ...item,
       caraPembayaran: '',
       dp: 0,
       diskonPenjualan: autoDiskon,
-      rekeningTujuanId: item.rekeningTujuanId ?? ''
     });
-    setModalMode('skema');
-    setIsEditing(true);
+
     setErrors({});
-    setIsModalOpen(true);
+    setIsSkemaModalOpen(true); // Buka modal khusus skema
+  };
+  const handleSkemaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const newErrors: Record<string, string> = {};
+    if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
+    if (formData.caraPembayaran === 'KPR' && !formData.bank?.trim()) newErrors.bank = 'Bank KPR wajib diisi';
+    if (calculatedPengajuanKpr < 0) newErrors.nilaiPengajuanKpr = 'Perhitungan nilai pengajuan tidak valid';
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    try {
+      const updatePayload = {
+        caraPembayaran: formData.caraPembayaran,
+        bank: formData.bank || undefined,
+        nilaiPengajuanKpr: calculatedPengajuanKpr,
+        dp: Number(formData.dp) || undefined,
+        diskonPenjualan: Number(formData.diskonPenjualan) || undefined,
+      };
+
+      await updateMutation.mutateAsync({ id: selectedPenjualan!.id!, data: updatePayload });
+
+      setIsSkemaModalOpen(false);
+      setFormData(initialFormState);
+      setSelectedPenjualan(null);
+      alert("Skema pembayaran berhasil disimpan dan dokumen SPR sedang diproses!");
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan skema pembayaran');
+    }
   };
 
   const closeModal = () => {
@@ -665,7 +697,7 @@ const Penjualan = () => {
                 <>
                   <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                     <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Booking"}
-                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
                   </label>
                 </>
               )}
@@ -1290,6 +1322,116 @@ const Penjualan = () => {
               <button type="button" onClick={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} className="px-5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50 transition-colors">Batal</button>
               <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-lg shadow-red-500/20 disabled:opacity-50 transition-colors">
                 {cancelMutation.isPending ? "Memproses..." : "Konfirmasi Batal"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+      <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} title="Buat Surat Pesanan Rumah (SPR)">
+        {selectedPenjualan && (
+          <form onSubmit={handleSkemaSubmit} className="space-y-6">
+
+            {/* --- DATA READ-ONLY --- */}
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Informasi Penjualan</h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Customer</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedPenjualan.nama}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">NIK: {selectedPenjualan.noIdentitas}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kontak & Alamat</p>
+                  <p className="text-sm font-semibold text-slate-800">{selectedPenjualan.noTelepon}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 truncate" title={selectedPenjualan.alamat}>{selectedPenjualan.alamat}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kavling Dipilih</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedPenjualan.perumahan} - Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">Tipe {selectedPenjualan.tipe} (LB: {selectedPenjualan.luasBangunan} / LT: {selectedPenjualan.luasTanah})</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Harga Jual Unit</p>
+                  <p className="text-lg font-black text-blue-700">{formatRupiah(selectedPenjualan.hargaJual)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* --- FORM SKEMA PEMBAYARAN --- */}
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Skema Pembayaran</h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Select
+                  label="Cara Pembayaran"
+                  name="caraPembayaran"
+                  value={formData.caraPembayaran}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: '-- Pilih --' },
+                    { value: 'CASH KERAS', label: 'CASH KERAS' },
+                    { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
+                    { value: 'KPR', label: 'KPR' }
+                  ]}
+                  error={errors.caraPembayaran}
+                />
+
+                <CurrencyInput
+                  label="Down Payment (DP)"
+                  name="dp"
+                  value={formData.dp}
+                  onValueChange={handleCurrencyChange}
+                  placeholder="Masukkan Nominal DP"
+                />
+
+                <CurrencyInput
+                  label="Diskon Penjualan"
+                  name="diskonPenjualan"
+                  value={formData.diskonPenjualan}
+                  onValueChange={handleCurrencyChange}
+                  placeholder="0"
+                />
+              </div>
+
+              {formData.caraPembayaran && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 p-4 bg-blue-50 border border-blue-100 rounded-xl animate-in fade-in zoom-in-95 duration-200">
+                  {formData.caraPembayaran === 'KPR' && (
+                    <Input
+                      label="Bank KPR"
+                      name="bank"
+                      value={formData.bank}
+                      onChange={handleChange}
+                      placeholder="Contoh: BCA, BSI, Mandiri"
+                      error={errors.bank}
+                    />
+                  )}
+
+                  <div className={formData.caraPembayaran !== 'KPR' ? "md:col-span-2" : ""}>
+                    <CurrencyInput
+                      label={formData.caraPembayaran === 'KPR' ? "Nilai Pengajuan KPR" : "Nilai Pengajuan (Plafon)"}
+                      name="nilaiPengajuanKpr"
+                      value={calculatedPengajuanKpr}
+                      onValueChange={() => { }}
+                      error={errors.nilaiPengajuanKpr}
+                      placeholder="0"
+                      disabled={true}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-colors cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
+              >
+                {updateMutation.isPending ? 'Memproses...' : 'Simpan & Buat SPR'}
               </button>
             </div>
           </form>
