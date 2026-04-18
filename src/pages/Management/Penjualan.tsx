@@ -150,14 +150,14 @@ const Penjualan = () => {
   }, [availableKavlings, formData.blok]);
 
   const calculatedPengajuanKpr = useMemo(() => {
-    if (formData.caraPembayaran === 'KPR') {
+    if (formData.caraPembayaran) {
       const harga = Number(formData.hargaJual) || 0;
       const diskon = Number(formData.diskonPenjualan) || 0;
       const dp = Number(formData.dp) || 0;
       const bf = Number(formData.bookingFee) || 0;
 
-      const pengajuanKPR = harga - diskon - dp - bf;
-      return pengajuanKPR > 0 ? pengajuanKPR : 0;
+      const pengajuan = harga - diskon - dp - bf;
+      return pengajuan > 0 ? pengajuan : 0;
     }
     return 0;
   }, [formData.hargaJual, formData.diskonPenjualan, formData.dp, formData.bookingFee, formData.caraPembayaran]);
@@ -329,12 +329,15 @@ const Penjualan = () => {
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
     if (!formData.agent.trim()) newErrors.agent = 'Agent wajib dipilih/diisi';
 
-    // Hanya validasi skema jika bukan mode create
     if (modalMode !== 'create') {
       if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
+
       if (formData.caraPembayaran === 'KPR') {
         if (!formData.bank?.trim()) newErrors.bank = 'Bank KPR wajib diisi';
-        if (calculatedPengajuanKpr <= 0) newErrors.nilaiPengajuanKpr = 'Nilai pengajuan harus valid';
+      }
+
+      if (calculatedPengajuanKpr < 0) {
+        newErrors.nilaiPengajuanKpr = 'Perhitungan nilai pengajuan tidak valid';
       }
     }
 
@@ -364,7 +367,7 @@ const Penjualan = () => {
           hargaJual: Number(formData.hargaJual),
           caraPembayaran: formData.caraPembayaran,
           bank: formData.bank || undefined,
-          nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? calculatedPengajuanKpr : undefined,
+          nilaiPengajuanKpr: calculatedPengajuanKpr,
           dp: Number(formData.dp) || undefined,
           diskonPenjualan: Number(formData.diskonPenjualan) || undefined,
           hargaPromosi: Number(formData.hargaPromosi) || undefined,
@@ -924,25 +927,30 @@ const Penjualan = () => {
                 />
               </div>
 
-              {formData.caraPembayaran === 'KPR' && (
+              {formData.caraPembayaran && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md animate-in fade-in zoom-in-95 duration-200">
-                  <Input
-                    label="Bank KPR"
-                    name="bank"
-                    value={formData.bank}
-                    onChange={handleChange}
-                    placeholder="Contoh: BCA, BSI, Mandiri"
-                    error={errors.bank}
-                  />
-                  <CurrencyInput
-                    label="Nilai Pengajuan KPR"
-                    name="nilaiPengajuanKpr"
-                    value={calculatedPengajuanKpr}
-                    onValueChange={() => { }}
-                    error={errors.nilaiPengajuanKpr}
-                    placeholder="0"
-                    disabled={true}
-                  />
+                  {formData.caraPembayaran === 'KPR' && (
+                    <Input
+                      label="Bank KPR"
+                      name="bank"
+                      value={formData.bank}
+                      onChange={handleChange}
+                      placeholder="Contoh: BCA, BSI, Mandiri"
+                      error={errors.bank}
+                    />
+                  )}
+
+                  <div className={formData.caraPembayaran !== 'KPR' ? "md:col-span-2" : ""}>
+                    <CurrencyInput
+                      label={formData.caraPembayaran === 'KPR' ? "Nilai Pengajuan KPR" : "Nilai Pengajuan Plafon"}
+                      name="nilaiPengajuanKpr"
+                      value={calculatedPengajuanKpr}
+                      onValueChange={() => { }}
+                      error={errors.nilaiPengajuanKpr}
+                      placeholder="0"
+                      disabled={true}
+                    />
+                  </div>
                 </div>
               )}
             </div>
