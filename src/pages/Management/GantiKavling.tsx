@@ -18,6 +18,8 @@ const GantiKavling = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTransaksi, setSelectedTransaksi] = useState<any>(null);
   const [formData, setFormData] = useState({
+    blokBaru: '',
+    nomorUnitBaru: '',
     kavlingBaruId: '',
     alasan: ''
   });
@@ -32,7 +34,26 @@ const GantiKavling = () => {
     return kavlingResponse.items.filter(k => k.status === 'AVAILABLE');
   }, [kavlingResponse]);
 
-  // --- MEMO BARU: Ekstrak semua riwayat ganti kavling dari data penjualan ---
+  const uniqueBloks = useMemo(() => {
+    const bloks = availableKavlings.map(k => k.blok);
+    return [...new Set(bloks)].sort();
+  }, [availableKavlings]);
+
+  const availableUnits = useMemo(() => {
+    if (!formData.blokBaru) return [];
+    return availableKavlings
+      .filter(k => k.blok === formData.blokBaru)
+      .map(k => k.nomorUnit)
+      .sort();
+  }, [availableKavlings, formData.blokBaru]);
+
+  const selectedKavlingInfo = useMemo(() => {
+    return availableKavlings.find(
+      k => k.blok === formData.blokBaru && k.nomorUnit === formData.nomorUnitBaru
+    );
+  }, [availableKavlings, formData.blokBaru, formData.nomorUnitBaru]);
+
+
   const riwayatGanti = useMemo(() => {
     const history: any[] = [];
     penjualanData.forEach((p: any) => {
@@ -46,7 +67,7 @@ const GantiKavling = () => {
         });
       }
     });
-    // Urutkan dari yang terbaru (descending)
+
     return history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [penjualanData]);
 
@@ -70,7 +91,7 @@ const GantiKavling = () => {
           onClick={(e) => {
             e.stopPropagation();
             setSelectedTransaksi(row);
-            setFormData({ kavlingBaruId: '', alasan: '' });
+            setFormData({ blokBaru: '', nomorUnitBaru: '', kavlingBaruId: '', alasan: '' });
             setErrors({});
             setIsModalOpen(true);
           }}
@@ -82,7 +103,7 @@ const GantiKavling = () => {
     }
   ];
 
-  // --- KOLOM BARU UNTUK TABEL HISTORI ---
+
   const columnsHistory = [
     { header: 'Tanggal Ganti', accessor: 'createdAt', render: (val: string) => formatDate(val) },
     { header: 'No. Transaksi', accessor: 'noTransaksi' },
@@ -99,11 +120,10 @@ const GantiKavling = () => {
     },
     { header: 'Alasan', accessor: 'alasan', render: (val: string) => <span className="text-slate-500 italic">{val}</span> }
   ];
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
-    if (!formData.kavlingBaruId) newErrors.kavlingBaruId = "Kavling baru wajib dipilih";
+    if (!formData.kavlingBaruId) newErrors.kavlingBaruId = "Pilih unit terlebih dahulu";
     if (formData.alasan.length < 5) newErrors.alasan = "Alasan wajib diisi (min. 5 karakter)";
 
     if (Object.keys(newErrors).length > 0) {
@@ -122,6 +142,7 @@ const GantiKavling = () => {
       alert("Proses Ganti Kavling Berhasil!");
       setIsModalOpen(false);
       setSelectedTransaksi(null);
+      setFormData({ blokBaru: '', nomorUnitBaru: '', kavlingBaruId: '', alasan: '' });
     } catch (error: any) {
       alert(error.response?.data?.message || "Terjadi kesalahan saat memproses ganti kavling");
     }
@@ -151,47 +172,119 @@ const GantiKavling = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formulir Ganti Kavling">
         {selectedTransaksi && (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* INFO KAVLING LAMA (DISABLED) */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Kavling Lama</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Harga Jual Lama" name="hargaLama" value={formatRupiah(selectedTransaksi.hargaJual)} readOnly disabled />
-                <Input label="Status Saat Ini" name="status" value={selectedTransaksi.status} readOnly disabled />
-                <Input label="Nama Customer" name="nama" value={selectedTransaksi.nama} readOnly disabled />
-                <Input label="Kavling Lama" name="kavlingLama" value={`${selectedTransaksi.perumahan} Blok ${selectedTransaksi.blok}-${selectedTransaksi.nomorUnit}`} readOnly disabled />
+          <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* --- INFO KAVLING LAMA (TEKS SAJA) --- */}
+            <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Detail Transaksi Saat Ini</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Customer</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedTransaksi.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kavling Lama</p>
+                  <p className="text-sm font-bold text-red-600">
+                    {selectedTransaksi.perumahan} Blok {selectedTransaksi.blok}-{selectedTransaksi.nomorUnit}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Harga Jual Lama</p>
+                  <p className="text-sm font-bold text-slate-700">{formatRupiah(selectedTransaksi.hargaJual)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">ID Transaksi</p>
+                  <p className="text-sm font-mono text-slate-500">{selectedTransaksi.id}</p>
+                </div>
               </div>
             </div>
 
-            {/* INPUT KAVLING BARU */}
-            <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl">
-              <h4 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <ArrowRightLeft size={16} /> Pilih Kavling Baru
+            {/* --- PILIH KAVLING BARU (SAMA SEPERTI PENJUALAN) --- */}
+            <div className="p-5 bg-blue-50/50 border border-blue-200 rounded-2xl shadow-sm">
+              <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <ArrowRightLeft size={14} /> Pilih Unit Kavling Baru
               </h4>
-              <div className="grid grid-cols-1 gap-4">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
-                  label="Pilih Unit Kavling Tersedia (Available)"
-                  name="kavlingBaruId"
-                  value={formData.kavlingBaruId}
-                  onChange={(e) => setFormData({ ...formData, kavlingBaruId: e.target.value })}
-                  error={errors.kavlingBaruId}
+                  label="Pilih Blok"
+                  name="blokBaru"
+                  value={formData.blokBaru}
+                  onChange={(e) => setFormData({ ...formData, blokBaru: e.target.value, nomorUnitBaru: '', kavlingBaruId: '' })}
                   options={[
-                    { value: '', label: '-- Pilih Kavling Baru --' },
-                    ...availableKavlings.map((k) => ({
-                      value: k.id,
-                      label: `${k.perumahan?.nama || ''} Blok ${k.blok}-${k.nomorUnit} (Tipe: ${k.namaTipe}) - ${formatRupiah(k.hargaJual)}`
-                    }))
+                    { value: '', label: '-- Pilih Blok --' },
+                    ...uniqueBloks.map(b => ({ value: b, label: `${b}` }))
                   ]}
                 />
-                <Input
-                  label="Alasan Pindah / Ganti Kavling"
-                  name="alasan"
-                  value={formData.alasan}
-                  onChange={(e) => setFormData({ ...formData, alasan: e.target.value })}
-                  error={errors.alasan}
-                  placeholder="Contoh: Customer ingin upgrade ke tipe yang lebih besar..."
+                <Select
+                  label="Pilih Nomor Unit"
+                  name="nomorUnitBaru"
+                  value={formData.nomorUnitBaru}
+                  onChange={(e) => {
+                    const unit = e.target.value;
+                    const kav = availableKavlings.find(k => k.blok === formData.blokBaru && k.nomorUnit === unit);
+                    setFormData({ ...formData, nomorUnitBaru: unit, kavlingBaruId: kav?.id?.toString() || '' });
+                  }}
+                  disabled={!formData.blokBaru}
+
+                  options={[
+                    { value: '', label: '-- Pilih Nomor Unit --' },
+                    ...availableUnits.map(u => ({ value: u, label: u }))
+                  ]}
+                  error={errors.kavlingBaruId}
                 />
               </div>
+
+              {/* INFO OTOMATIS KAVLING BARU (LENGKAP) */}
+              {selectedKavlingInfo && (
+                <div className="mt-5 p-4 bg-white rounded-xl border border-blue-100 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in zoom-in-95 duration-200 shadow-sm">
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Perumahan</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.perumahan?.nama || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Tipe Kavling</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.namaTipe}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Luas Tanah</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.luasTanah} m²</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Luas Bangunan</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.luasBangunan} m²</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Harga Jual Baru</p>
+                    <p className="text-sm font-black text-blue-700">{formatRupiah(selectedKavlingInfo.hargaJual)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Rekening Bank PT</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {selectedKavlingInfo.rekeningTujuan
+                        ? `${selectedKavlingInfo.rekeningTujuan.namaBank} - ${selectedKavlingInfo.rekeningTujuan.noRekening}`
+                        : 'Belum Diatur'}
+                    </p>
+                    {selectedKavlingInfo.rekeningTujuan && (
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        a/n {selectedKavlingInfo.rekeningTujuan.atasNama}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ALASAN GANTI */}
+            <div className="px-1">
+              <Input
+                label="Alasan Pindah / Ganti Kavling"
+                name="alasan"
+                value={formData.alasan}
+                onChange={(e) => setFormData({ ...formData, alasan: e.target.value })}
+                error={errors.alasan}
+                placeholder="Contoh: Customer ingin upgrade ke tipe yang lebih besar..."
+              />
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
@@ -204,8 +297,8 @@ const GantiKavling = () => {
               </button>
               <button
                 type="submit"
-                disabled={gantiKavlingMutation.isPending}
-                className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
+                disabled={gantiKavlingMutation.isPending || !formData.kavlingBaruId}
+                className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition shadow-lg disabled:opacity-50 cursor-pointer"
               >
                 {gantiKavlingMutation.isPending ? "Memproses..." : "Konfirmasi Ganti Kavling"}
               </button>
