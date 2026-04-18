@@ -510,7 +510,9 @@ const Tagihan = () => {
                         rekeningTujuanId: rekeningTujuanId,
                         tipe: targetPenjualan?.tipe,
                         caraPembayaran: targetPenjualan?.pembiayaan,
-                        bank: targetPenjualan?.bank
+                        bank: targetPenjualan?.bank,
+                        agent: targetPenjualan?.agent || '-',
+                        pembuat: targetPenjualan?.createdBy || 'Admin'
                       });
                     }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition shadow-md cursor-pointer">
                       <Printer size={14} /> Kwitansi
@@ -848,6 +850,7 @@ const Tagihan = () => {
                   </div>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
                   <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
+
                 </div>
 
 

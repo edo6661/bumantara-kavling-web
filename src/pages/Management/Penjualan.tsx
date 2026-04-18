@@ -56,6 +56,7 @@ interface PenjualanData {
   progressCicilan?: string;
   rekeningTujuanId?: number | '';
   ttdData?: any;
+  createdBy?: string;
 }
 
 const initialFormState: PenjualanData = {
@@ -654,7 +655,7 @@ const Penjualan = () => {
                 onClick={() => {
                   setPrintType('invoice');
                   setPrintTitle('Booking Fee');
-                  setPrintData({ ...row, nominalCetak: row.bookingFee });
+                  setPrintData({ ...row, nominalCetak: row.bookingFee, pembuat: row.createdBy || 'Admin' });
                 }}
                 className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
               >
@@ -667,7 +668,7 @@ const Penjualan = () => {
                     onClick={() => {
                       setPrintType('kwitansi');
                       setPrintTitle('Booking Fee');
-                      setPrintData({ ...row, nominalCetak: row.bookingFee });
+                      setPrintData({ ...row, nominalCetak: row.bookingFee, pembuat: row.createdBy || 'Admin' });
                     }}
                     className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors cursor-pointer shadow-sm"
                   >
@@ -1061,6 +1062,9 @@ const Penjualan = () => {
                         <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{printData.perumahan}</strong></p>
                         <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
                         <p className="text-xs text-slate-600 font-medium m-0">Skema Pembayaran: <strong>{printData.caraPembayaran?.replace('_', ' ')}</strong></p>
+                        <p className="text-xs text-slate-600 font-medium m-0">
+                          Agent Marketing: <strong>{printData.agent || '-'}</strong>
+                        </p>
                       </td>
                       <td className="py-4 px-4 border-b border-slate-100 text-right align-top text-lg font-black text-slate-900">
                         {formatRupiah(printData.nominalCetak || 0)}
@@ -1157,6 +1161,11 @@ const Penjualan = () => {
                   </div>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
                   <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
+                  <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Hormat Kami,</span>
+                  <span className="text-[10px] text-slate-900 font-black mt-0.5 tracking-wide uppercase">
+                    {printData.pembuat}
+
+                  </span>
                 </div>
 
                 {/* Hanya tampilkan area tanda tangan jika kwitansi */}
@@ -1431,7 +1440,7 @@ const Penjualan = () => {
                 disabled={updateMutation.isPending}
                 className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-colors cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
               >
-                {updateMutation.isPending ? 'Memproses...' : 'Simpan & Buat SPR'}
+                {updateMutation.isPending ? 'Memproses...' : 'Proses SPR'}
               </button>
             </div>
           </form>

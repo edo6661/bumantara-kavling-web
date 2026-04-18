@@ -7,6 +7,7 @@ export interface VerifyInvoiceData {
   jatuhTempo: string;
   status: string;
   tanggalDibuat: string;
+  pembuat: string;
   customer: {
     nama: string;
     noHp: string;
@@ -41,6 +42,7 @@ export interface VerifySprData {
   bookingFee: number;
   caraPembayaran: string;
   bank: string;
+  pembuat: string;
   customer: {
     nama: string;
     noHp: string;
