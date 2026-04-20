@@ -5,34 +5,110 @@ import Modal from "../../components/shared/Modal";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileUp, Eye, CheckCircle2, AlertCircle, Ban } from 'lucide-react';
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import {
+  FileUp, Eye, CheckCircle2, AlertCircle, Ban,
+  Check, X, Clock,
+  XCircle
+} from 'lucide-react';
+import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
-
+import { storage } from "../../utils/storage";
 const BatalTransaksi = () => {
-  const { data: penjualanData = [], isLoading } = useGetPenjualan();
+  const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('pengajuan');
+  const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal();
+  const approveMutation = useApproveBatal();
+  const { data: penjualanData = [], isLoading: loadingPenjualan } = useGetPenjualan();
   const uploadRefundMutation = useUploadRefundTagihan();
-
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [selectedTagihan, setSelectedTagihan] = useState<any>(null);
   const [refundFile, setRefundFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  // Filter hanya transaksi yang BATAL
+  const user = storage.getUser();
+  const isAdmin = user?.role === 'ADMIN';
+  const handleApproveReject = async (id: number, isApproved: boolean) => {
+    const actionText = isApproved ? 'menyetujui' : 'menolak';
+    if (!window.confirm(`Apakah Anda yakin ingin ${actionText} pengajuan pembatalan ini?`)) return;
+    try {
+      await approveMutation.mutateAsync({ id, isApproved });
+      alert(`Pengajuan berhasil ${isApproved ? 'disetujui' : 'ditolak'}.`);
+    } catch (error: any) {
+      alert(error.response?.data?.message || `Gagal memproses pengajuan.`);
+    }
+  };
+  const columnsApproval = [
+    { header: 'Tgl Pengajuan', accessor: 'createdAt', render: (val: string) => formatDate(val) },
+    {
+      header: 'Customer',
+      accessor: 'penjualan',
+      render: (val: any) => (
+        <div>
+          <p className="font-bold text-slate-900">{val?.customer?.nama}</p>
+          <p className="text-xs text-slate-500">Trx: {val?.noTransaksi}</p>
+        </div>
+      )
+    },
+    {
+      header: 'Kavling',
+      accessor: 'penjualan',
+      render: (val: any) => `${val?.kavling?.perumahan?.nama} Blok ${val?.kavling?.blok}-${val?.kavling?.nomorUnit}`
+    },
+    { header: 'Alasan Batal', accessor: 'alasan', render: (val: string) => <span className="text-sm italic text-slate-600">{val}</span> },
+    {
+      header: 'Diajukan Oleh',
+      accessor: 'requestedBy',
+      render: (val: any) => val ? <span className="font-medium text-slate-700">{val.nama}</span> : '-'
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string, row: any) => {
+        if (val === 'PENDING') return <span className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md w-fit"><Clock size={12} /> Menunggu</span>;
+        if (val === 'APPROVED') return (
+          <div className="flex flex-col">
+            <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md w-fit"><CheckCircle2 size={12} /> Disetujui</span>
+            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.nama || 'Admin'}</span>
+          </div>
+        );
+        return (
+          <div className="flex flex-col">
+            <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md w-fit"><XCircle size={12} /> Ditolak</span>
+            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.nama || 'Admin'}</span>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Aksi (Admin)',
+      accessor: 'id',
+      render: (_: any, row: any) => {
+        if (row.status === 'PENDING' && isAdmin) {
+          return (
+            <div className="flex items-center gap-2">
+              <button onClick={() => handleApproveReject(row.id, true)} disabled={approveMutation.isPending} className="p-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer shadow-sm" title="Setujui Batal">
+                <Check size={16} />
+              </button>
+              <button onClick={() => handleApproveReject(row.id, false)} disabled={approveMutation.isPending} className="p-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition cursor-pointer shadow-sm" title="Tolak Pengajuan">
+                <X size={16} />
+              </button>
+            </div>
+          );
+        }
+        return <span className="text-slate-300 text-xs">-</span>;
+      }
+    }
+  ];
   const canceledTransactions = useMemo(() => {
     return penjualanData.filter((p: any) => p.status === 'BATAL');
   }, [penjualanData]);
-
-  const columns = [
+  const columnsRefund = [
     { header: 'No. Transaksi', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+    { header: 'Tanggal Batal', accessor: 'updatedAt', render: (val: string) => formatDate(val) },
     { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
     { header: 'Kavling', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
     {
       header: 'Total Dana Masuk',
       accessor: 'tagihan',
       render: (_: any, row: any) => {
-        // Hitung total tagihan yang sudah LUNAS
         const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
         const total = tagihanLunas.reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
         return <span className="font-bold text-slate-900">{formatRupiah(total)}</span>;
@@ -46,7 +122,6 @@ const BatalTransaksi = () => {
       )
     },
   ];
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -58,14 +133,12 @@ const BatalTransaksi = () => {
       setRefundFile(file);
     }
   };
-
   const handleRefundSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!refundFile || !selectedTagihan) {
       alert("Silakan pilih file bukti refund terlebih dahulu!");
       return;
     }
-
     try {
       await uploadRefundMutation.mutateAsync({
         id: selectedTagihan.id,
@@ -79,11 +152,8 @@ const BatalTransaksi = () => {
       alert(error.response?.data?.message || "Gagal mengunggah bukti refund");
     }
   };
-
-  const expandedRowRender = (row: any) => {
-    // Ambil tagihan yang statusnya LUNAS saja karena itu yang masuk akal di-refund
+  const expandedRowRenderRefund = (row: any) => {
     const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
-
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-100 pb-3 gap-4">
@@ -94,9 +164,7 @@ const BatalTransaksi = () => {
             <p className="text-sm text-slate-600 mt-1">{row.alasanBatal || 'Tidak ada alasan yang dicantumkan.'}</p>
           </div>
         </div>
-
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 mt-4">Dana yang Masuk (Bisa Di-refund)</h4>
-
         {tagihanLunas.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -154,24 +222,51 @@ const BatalTransaksi = () => {
           </div>
         ) : (
           <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <p className="text-sm text-slate-500 italic">Belum ada dana yang dibayarkan oleh customer ini.</p>
+            <p className="text-sm text-slate-500 italic">Belum ada dana yang dibayarkan oleh customer ini (0 Rupiah).</p>
           </div>
         )}
       </div>
     );
   };
-
-  if (isLoading) return <PageLoader />;
-
+  if (loadingPengajuan || loadingPenjualan) return <PageLoader />;
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Daftar Transaksi Batal"
-        columns={columns}
-        data={canceledTransactions}
-        expandedRowRender={expandedRowRender}
-      />
-
+      {/* TABS NAVIGATION */}
+      <div className="flex border-b border-slate-200 mb-6 overflow-x-auto hide-scrollbar bg-white p-2 rounded-t-2xl shadow-sm">
+        <button
+          type="button"
+          onClick={() => setActiveTab('pengajuan')}
+          className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'pengajuan' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+        >
+          Antrean Persetujuan Pembatalan
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('refund')}
+          className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'refund' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+        >
+          Proses Pengembalian Dana (Refund)
+        </button>
+      </div>
+      {/* TAB 1: PENGAJUAN */}
+      {activeTab === 'pengajuan' && (
+        <DataTable
+          title="Daftar Pengajuan Pembatalan Transaksi"
+          columns={columnsApproval}
+          data={pengajuanList}
+        />
+      )}
+      {/* TAB 2: REFUND */}
+      {activeTab === 'refund' && (
+        <DataTable
+          title="Daftar Transaksi Batal"
+          columns={columnsRefund}
+          data={canceledTransactions}
+          expandedRowRender={expandedRowRenderRefund}
+        />
+      )}
       {/* MODAL PROSES REFUND */}
       <Modal isOpen={isRefundModalOpen} onClose={() => setIsRefundModalOpen(false)} title="Proses Pengembalian Dana (Refund)">
         <form onSubmit={handleRefundSubmit} className="space-y-5">
@@ -180,7 +275,6 @@ const BatalTransaksi = () => {
             <p className="text-sm font-black text-blue-900 mb-1">{selectedTagihan?.pembayaran}</p>
             <p className="text-lg font-black text-blue-700">{formatRupiah(selectedTagihan?.nominal || 0)}</p>
           </div>
-
           <div className="space-y-2">
             <p className="text-xs text-slate-500 leading-relaxed font-medium">
               Jika dana {selectedTagihan?.pembayaran} dikembalikan kepada customer, silakan unggah bukti transfer pengembalian dana di bawah ini. Jika dana hangus (tidak di-refund), Anda tidak perlu melakukan aksi ini.
@@ -197,7 +291,6 @@ const BatalTransaksi = () => {
               </p>
             )}
           </div>
-
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <button
               type="button"
@@ -217,7 +310,6 @@ const BatalTransaksi = () => {
           </div>
         </form>
       </Modal>
-
       {/* MODAL LIGHTBOX PREVIEW GAMBAR REFUND */}
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Bukti Transfer Refund">
         <div className="flex flex-col items-center">
@@ -235,7 +327,7 @@ const BatalTransaksi = () => {
               href={previewImage || '#'}
               target="_blank"
               rel="noreferrer"
-              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer"
             >
               Buka Tab Baru
             </a>
@@ -248,9 +340,7 @@ const BatalTransaksi = () => {
           </div>
         </div>
       </Modal>
-
     </div>
   );
 };
-
 export default BatalTransaksi;

@@ -5,7 +5,7 @@ import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import { formatDate, formatRupiah } from "../../utils/formatters";
-import { FileText, Receipt, Printer, UploadCloud, Ban, PenTool } from 'lucide-react';
+import { FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
@@ -55,6 +55,7 @@ interface PenjualanData {
   fileSpr?: string | null;
   progressCicilan?: string;
   rekeningTujuanId?: number | '';
+  isPendingBatal?: boolean;
   ttdData?: any;
   createdBy?: string;
 }
@@ -628,23 +629,29 @@ const Penjualan = () => {
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
           <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
-          <div className="flex items-center gap-3">
-            {((row.status === 'BOOKED' || row.status === 'PROSES')) && (
-              <button
-                onClick={() => {
-                  setSelectedCancelRow(row);
-                  setCancelData({ id: row.id!, alasanBatal: '' });
-                  setIsCancelModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-md text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
-              >
-                <Ban size={12} /> Batalkan Transaksi
-              </button>
-            )}
-            <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${row.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-700'}`}>
-              Status: {row.status}
-            </span>
-          </div>
+          {row.isPendingBatal ? (
+            <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-[10px] font-bold uppercase tracking-wider">
+              <Clock size={12} className="animate-spin" /> Sedang Diajukan Pembatalan
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              {((row.status === 'BOOKED' || row.status === 'PROSES')) && (
+                <button
+                  onClick={() => {
+                    setSelectedCancelRow(row);
+                    setCancelData({ id: row.id!, alasanBatal: '' });
+                    setIsCancelModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-md text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                >
+                  <Ban size={12} /> Ajulkan Pembatalan
+                </button>
+              )}
+              <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${row.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-50 text-blue-700'}`}>
+                Status: {row.status}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1061,7 +1068,6 @@ const Penjualan = () => {
                         <p className="text-base font-black text-slate-900 m-0 mb-2">{printTitle}</p>
                         <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{printData.perumahan}</strong></p>
                         <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
-                        <p className="text-xs text-slate-600 font-medium m-0">Skema Pembayaran: <strong>{printData.caraPembayaran?.replace('_', ' ')}</strong></p>
                         <p className="text-xs text-slate-600 font-medium m-0">
                           Agent Marketing: <strong>{printData.agent || '-'}</strong>
                         </p>
@@ -1289,11 +1295,12 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={isCancelModalOpen} onClose={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} title="Batalkan Penjualan">
+      <Modal isOpen={isCancelModalOpen} onClose={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} title="Ajukan Pembatalan Penjualan">
         {selectedCancelRow && (
           <form onSubmit={handleCancelSubmit} className="space-y-5">
-            <div className="p-4 bg-red-50 text-red-800 border border-red-100 rounded-xl text-sm font-medium leading-relaxed">
-              <strong>Peringatan Tindakan!</strong> Membatalkan penjualan akan mengubah status transaksi ini menjadi "Batal", mengembalikan status Kavling menjadi "Available", dan menghapus tagihan yang belum terbayar.
+            {/* PERUBAHAN TEKS PERINGATAN DI SINI */}
+            <div className="p-4 bg-orange-50 text-orange-800 border border-orange-200 rounded-xl text-sm font-medium leading-relaxed">
+              <strong>Peringatan Tindakan!</strong> Tindakan ini akan mengirimkan <strong>Pengajuan Pembatalan</strong> ke Admin. Transaksi tidak akan langsung dibatalkan sampai Admin menyetujuinya. <br /><br />Jika disetujui, status transaksi menjadi "Batal", Kavling kembali "Available", dan tagihan belum terbayar akan dihapus.
             </div>
 
             {/* Detail Informasi Transaksi yang akan dibatalkan */}
@@ -1314,7 +1321,7 @@ const Penjualan = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Metode</p>
-                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.caraPembayaran.replace('_', ' ')}</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.caraPembayaran.replace(/_/g, ' ')}</p>
                 </div>
               </div>
             </div>
@@ -1329,8 +1336,10 @@ const Penjualan = () => {
             />
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
               <button type="button" onClick={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} className="px-5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50 transition-colors">Batal</button>
+
+              {/* PERUBAHAN TEKS TOMBOL DI SINI */}
               <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-lg shadow-red-500/20 disabled:opacity-50 transition-colors">
-                {cancelMutation.isPending ? "Memproses..." : "Konfirmasi Batal"}
+                {cancelMutation.isPending ? "Memproses..." : "Ajukan Pembatalan"}
               </button>
             </div>
           </form>

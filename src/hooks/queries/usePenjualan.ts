@@ -6,8 +6,9 @@ import {
 
 export const PENJUALAN_KEYS = {
   all: ["penjualan"] as const,
+  pengajuanBatal: ["pengajuan-batal"] as const,
+  pengajuanGantiKavling: ["pengajuan-ganti-kavling"] as const,
 };
-
 export const useGetPenjualan = (params?: Record<string, unknown>) => {
   return useQuery({
     queryKey: [...PENJUALAN_KEYS.all, params],
@@ -36,7 +37,7 @@ export const useCancelPenjualan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] }); // Tambahkan ini agar Tagihan yang batal ikut hilang
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
       queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
     },
   });
@@ -111,6 +112,51 @@ export const useGantiKavling = () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["kavlings"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    },
+  });
+};
+
+export const useGetPengajuanBatal = (status?: string) => {
+  return useQuery({
+    queryKey: [...PENJUALAN_KEYS.pengajuanBatal, status],
+    queryFn: () => penjualanService.getPengajuanBatal(status),
+  });
+};
+
+export const useGetPengajuanGantiKavling = (status?: string) => {
+  return useQuery({
+    queryKey: [...PENJUALAN_KEYS.pengajuanGantiKavling, status],
+    queryFn: () => penjualanService.getPengajuanGantiKavling(status),
+  });
+};
+
+export const useApproveBatal = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isApproved }: { id: number; isApproved: boolean }) =>
+      penjualanService.approveBatal(id, isApproved),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: PENJUALAN_KEYS.pengajuanBatal,
+      });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+    },
+  });
+};
+
+export const useApproveGantiKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isApproved }: { id: number; isApproved: boolean }) =>
+      penjualanService.approveGantiKavling(id, isApproved),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: PENJUALAN_KEYS.pengajuanGantiKavling,
+      });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
     },
   });
 };
