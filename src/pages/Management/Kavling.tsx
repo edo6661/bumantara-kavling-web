@@ -40,7 +40,7 @@ interface KavlingFormState {
   namaTipe: string;
   luasBangunan: number | '';
   luasTanah: number | '';
-  hargaJual: number | '';
+  hargaDasar: number | '';
   status: string;
   rekeningTujuanId: number | '';
   filePbg: string;
@@ -56,7 +56,7 @@ const initialFormState: KavlingFormState = {
   namaTipe: '',
   luasBangunan: '',
   luasTanah: '',
-  hargaJual: '',
+  hargaDasar: '',
   status: 'AVAILABLE',
   rekeningTujuanId: '',
   filePbg: '',
@@ -151,7 +151,7 @@ const Kavling = () => {
     { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Tipe Rumah', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
-    { header: 'Harga Jual', accessor: 'hargaJual', render: (val: number) => formatRupiah(val) },
+    { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) },
     {
       header: 'Status',
       accessor: 'status',
@@ -208,7 +208,7 @@ const Kavling = () => {
         namaTipe: item.namaTipe,
         luasBangunan: item.luasBangunan,
         luasTanah: item.luasTanah,
-        hargaJual: item.hargaJual,
+        hargaDasar: item.hargaDasar,
         status: item.status,
         rekeningTujuanId: item.rekeningTujuanId || '',
         filePbg: item.filePbg || '',
@@ -270,7 +270,7 @@ const Kavling = () => {
     if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe Rumah wajib diisi';
     if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
     if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
-    if (formData.hargaJual === '' || formData.hargaJual <= 0) newErrors.hargaJual = 'Harga Jual tidak valid';
+    if (formData.hargaDasar === '' || formData.hargaDasar <= 0) newErrors.hargaDasar = 'Harga Dasar tidak valid';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -287,7 +287,7 @@ const Kavling = () => {
       namaTipe: formData.namaTipe,
       luasBangunan: Number(formData.luasBangunan),
       luasTanah: Number(formData.luasTanah),
-      hargaJual: Number(formData.hargaJual),
+      hargaDasar: Number(formData.hargaDasar),
       status: formData.status,
       rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
       filePbg: formData.filePbg || undefined,
@@ -424,8 +424,8 @@ const Kavling = () => {
                 onChange={handleSortChange}
               >
                 <option value="">Terbaru (Default)</option>
-                <option value="hargaJual:asc">Harga: Rendah ke Tinggi</option>
-                <option value="hargaJual:desc">Harga: Tinggi ke Rendah</option>
+                <option value="hargaDasar:asc">Harga: Rendah ke Tinggi</option>
+                <option value="hargaDasar:desc">Harga: Tinggi ke Rendah</option>
                 <option value="luasBangunan:desc">Luas Bangunan: Terbesar</option>
                 <option value="blok:asc">Blok: A - Z</option>
               </select>
@@ -524,7 +524,7 @@ const Kavling = () => {
                 ]}
               />
 
-              <Input label="Harga Jual (Rp)" type="number" name="hargaJual" value={formData.hargaJual} onChange={handleChange} error={errors.hargaJual} />
+              <Input label="Harga Dasar (Rp)" type="number" name="hargaDasar" value={formData.hargaDasar} onChange={handleChange} error={errors.hargaDasar} />
 
               <div className="md:col-span-2">
                 <Select

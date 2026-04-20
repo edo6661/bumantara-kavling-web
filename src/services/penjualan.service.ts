@@ -14,6 +14,9 @@ export interface CreatePenjualanDTO {
   luasBangunan: number;
   luasTanah: number;
   tanggal: string;
+  hargaDasar: number;
+  plafonAwal?: number;
+  biayaKpr?: number;
   hargaJual: number;
   hargaPromosi?: number;
   diskonPenjualan?: number;

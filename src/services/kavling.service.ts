@@ -9,7 +9,7 @@ export interface KavlingData {
   namaTipe: string;
   luasBangunan: number;
   luasTanah: number;
-  hargaJual: number;
+  hargaDasar: number;
   status: string;
   rekeningTujuanId: number | null;
   rekeningTujuan?: {
@@ -35,7 +35,7 @@ export interface CreateKavlingDTO {
   namaTipe: string;
   luasBangunan: number;
   luasTanah: number;
-  hargaJual: number;
+  hargaDasar: number;
   status?: string;
   rekeningTujuanId?: number;
   filePbg?: string;
