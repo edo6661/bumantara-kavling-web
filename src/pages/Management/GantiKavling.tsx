@@ -12,7 +12,8 @@ import { useGetKavlings } from "../../hooks/queries/useKavling";
 import { storage } from "../../utils/storage";
 
 const GantiKavling = () => {
-  const { data: penjualanData = [], isLoading: loadingPenjualan } = useGetPenjualan();
+  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const penjualanData = penjualanResponse?.items || [];
   const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
   const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanGantiKavling();
 
@@ -197,8 +198,8 @@ const GantiKavling = () => {
                     <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.luasBangunan} m²</p>
                   </div>
                   <div>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Harga Jual Baru</p>
-                    <p className="text-sm font-black text-blue-700">{formatRupiah(selectedKavlingInfo.hargaJual)}</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Harga Dasar</p>
+                    <p className="text-sm font-black text-blue-700">{formatRupiah(selectedKavlingInfo.hargaDasar)}</p>
                   </div>
                   <div>
                     <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Rekening Bank PT</p>

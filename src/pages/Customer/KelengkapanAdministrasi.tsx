@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -11,7 +12,8 @@ import { XCircle, FileUp, ImageIcon, ZoomIn, ShoppingCart } from "lucide-react";
 
 const KelengkapanAdministrasi = () => {
   const { data: customers = [], isLoading } = useGetCustomers();
-  const { data: penjualanData = [], isLoading: isLoadingPenjualan } = useGetPenjualan();
+  const { data: penjualanResponse, isLoading: isLoadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const penjualanData = penjualanResponse?.items || [];
   const uploadMutation = useUploadCustomerDoc();
 
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);

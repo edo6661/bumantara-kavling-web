@@ -35,8 +35,8 @@ const initialFormState: AgentFormState = {
 const Agents = () => {
   const { data: agentData = [], isLoading } = useGetAgents();
   // Ambil data penjualan untuk detail
-  const { data: penjualanList = [] } = useGetPenjualan();
-
+  const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
+  const penjualanList = penjualanResponse?.items || [];
   const createMutation = useCreateAgent();
   const updateMutation = useUpdateAgent();
   const deleteMutation = useDeleteAgent();
@@ -326,7 +326,7 @@ const Agents = () => {
                 </div>
                 <div className="text-right">
                   <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :
-                      selectedDetailPenjualan.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                    selectedDetailPenjualan.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
                     }`}>
                     {selectedDetailPenjualan.status}
                   </span>

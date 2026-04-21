@@ -53,7 +53,8 @@ interface GroupedAgentFee {
 
 const FeeAgent = () => {
   const { data: feeData = [], isLoading } = useGetFeeAgents();
-  const { data: penjualanList = [] } = useGetPenjualan();
+  const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
+  const penjualanList = penjualanResponse?.items || [];
 
   const updateMutation = useUpdateFeeAgent();
   const uploadMutation = useUploadBuktiFee();

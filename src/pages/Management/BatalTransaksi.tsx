@@ -17,7 +17,8 @@ const BatalTransaksi = () => {
   const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('pengajuan');
   const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal();
   const approveMutation = useApproveBatal();
-  const { data: penjualanData = [], isLoading: loadingPenjualan } = useGetPenjualan();
+  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const penjualanData = penjualanResponse?.items || [];
   const uploadRefundMutation = useUploadRefundTagihan();
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [selectedTagihan, setSelectedTagihan] = useState<any>(null);

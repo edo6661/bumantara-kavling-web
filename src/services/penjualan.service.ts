@@ -32,9 +32,10 @@ export interface CreatePenjualanDTO {
 export const penjualanService = {
   getAll: async (params?: Record<string, unknown>) => {
     const response = await api.get("/penjualan", {
-      params: { limit: 100, ...params },
+      params: { ...params },
     });
-    return response.data.data.items;
+
+    return response.data.data;
   },
 
   create: async (data: CreatePenjualanDTO) => {

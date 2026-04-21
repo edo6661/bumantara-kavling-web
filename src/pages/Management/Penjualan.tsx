@@ -1,11 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import { formatDate, formatRupiah } from "../../utils/formatters";
-import { FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn, Eye } from 'lucide-react';
+import {
+  FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn, Eye,
+  ChevronDown, ChevronUp, Filter, ArrowUpDown, PieChart, CheckCircle2, Wallet,
+  Edit2
+} from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
@@ -102,13 +107,38 @@ const initialFormState: PenjualanData = {
 };
 
 const Penjualan = () => {
-  const { data: penjualanData = [], isLoading } = useGetPenjualan();
+  const { selectedPerumahan } = useAuth();
+
+  // === STATE UNTUK EXPAND/SHRINK CARD ===
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+
+  // === LOGIKA URL PARAMS UNTUK SERVER-SIDE PAGINATION ===
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') || '';
+  const orderBy = searchParams.get('orderBy') || '';
+  const limit = 10;
+
+  // Passing parameter paginasi & filter ke React Query
+  const { data: penjualanResponse, isLoading } = useGetPenjualan({
+    page,
+    limit,
+    search,
+    status: statusFilter !== '' ? statusFilter : undefined,
+    orderBy: orderBy !== '' ? orderBy : undefined
+  });
+
+  const penjualanData = penjualanResponse?.items || [];
+  const meta = penjualanResponse?.meta;
+  const summary = meta?.summary || {}; // Data summary terhitung dari backend
+
+  // === FETCH DATA MASTER ===
   const { data: agentData = [] } = useGetAgents();
   const { data: perumahanData = [] } = useGetPerumahan();
   const { data: kavlingResponse } = useGetKavlings({ limit: 500 });
   const { data: bankList = [] } = useGetBankRekening();
-
-  const { selectedPerumahan } = useAuth();
   const kavlingList = useMemo(() => kavlingResponse?.items || [], [kavlingResponse]);
 
   const createMutation = useCreatePenjualan();
@@ -143,15 +173,33 @@ const Penjualan = () => {
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<SignatureCanvas>(null);
 
+  // === HANDLER UNTUK PAGINASI & FILTER URL ===
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('status', e.target.value); else prev.delete('status');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
+      prev.set('page', '1'); return prev;
+    });
+  };
 
   const openDetailModal = (item: PenjualanData) => {
     setDetailData(item);
     setIsDetailModalOpen(true);
   };
-
-
-
-
 
   const handleRecalculateDependencies = (name: string, value: any, prev: PenjualanData) => {
     const merged = { ...prev, [name]: value };
@@ -160,7 +208,6 @@ const Penjualan = () => {
     const base = Number(merged.hargaDasar) || 0;
     const diskon = Number(merged.diskonPenjualan) || 0;
     const bf = 5000000;
-
 
     let plafon = 0;
     if (['diskonPenjualan', 'hargaDasar', 'bookingFee', 'caraPembayaran'].includes(name)) {
@@ -171,7 +218,6 @@ const Penjualan = () => {
     }
 
     if (name === 'plafonAwal') plafon = Number(value) || 0;
-
 
     if (merged.caraPembayaran === 'KPR') {
       if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal'].includes(name)) {
@@ -194,7 +240,6 @@ const Penjualan = () => {
         updates.hargaJual = currentNilaiKpr + Number(value);
       }
     } else {
-
       updates.biayaKpr = 0;
       updates.nilaiPengajuanKpr = 0;
       updates.dp = 0;
@@ -234,7 +279,7 @@ const Penjualan = () => {
   const columns = [
     { header: 'ID Penjualan', accessor: 'id' },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    { header: 'Nama Customer', accessor: 'nama' },
+    { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
     { header: 'Perumahan', accessor: 'perumahan' },
     { header: 'Kavling', accessor: 'blok', render: (_: unknown, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
     {
@@ -250,26 +295,45 @@ const Penjualan = () => {
     {
       header: 'Status',
       accessor: 'status',
-      render: (val: string) => (
-        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-          {val}
-        </span>
-      )
+      render: (val: string) => {
+        let bgClass = 'bg-blue-100 text-blue-800'; // Default BOOKED
+        if (val === 'PROSES') bgClass = 'bg-yellow-100 text-yellow-800';
+        if (val === 'LUNAS' || val === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800';
+        if (val === 'BATAL') bgClass = 'bg-red-100 text-red-800';
+        return (
+          <span className={`${bgClass} px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider`}>
+            {val}
+          </span>
+        )
+      }
     },
-    // TAMBAHAN KOLOM AKSI
     {
       header: 'Aksi',
       accessor: 'id',
       render: (_: unknown, row: PenjualanData) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // Mencegah event row / expand ter-trigger
-            openDetailModal(row);
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-        >
-          <Eye size={14} /> Detail
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDetailModal(row);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+            title="Lihat Detail"
+          >
+            <Eye size={14} /> Detail
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openModal(row);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+            title="Edit Penjualan"
+          >
+            <Edit2 size={14} /> Edit
+          </button>
+        </div>
       )
     }
   ];
@@ -354,6 +418,7 @@ const Penjualan = () => {
     setIsNewAgent(false);
     setErrors({});
   };
+
   const saveSignature = async () => {
     if (sigCanvas.current?.isEmpty()) {
       alert("Tanda tangan tidak boleh kosong!");
@@ -385,7 +450,6 @@ const Penjualan = () => {
       alert(error.response?.data?.message || "Gagal menyimpan tanda tangan");
     }
   };
-
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -701,7 +765,6 @@ const Penjualan = () => {
               )}
             </div>
 
-            {/* PREVIEW BUKTI BOOKING */}
             {row.fileBuktiBooking && (
               <div className="mt-4 border-t border-slate-200 pt-3">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Bukti Transfer Booking Fee</p>
@@ -719,7 +782,6 @@ const Penjualan = () => {
             )}
           </div>
 
-          {/* DOWN PAYMENT (HANYA MUNCUL JIKA KPR) */}
           {row.caraPembayaran === 'KPR' && (
             <div className="space-y-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
               <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">2. Down Payment</h5>
@@ -836,17 +898,120 @@ const Penjualan = () => {
   };
 
 
-  if (isLoading) return <PageLoader />;
+  if (isLoading && penjualanData.length === 0) return <PageLoader />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+        <div
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <PieChart size={18} className="text-slate-600" />
+            <h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Penjualan</h3>
+          </div>
+          {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </div>
+
+        {isSummaryExpanded && (
+          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Wallet size={16} className="text-slate-600" /></div>
+                <p className="text-xs font-bold text-slate-500 uppercase">Total Transaksi</p>
+              </div>
+              <p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p>
+            </div>
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
+                <p className="text-xs font-bold text-blue-700 uppercase">Booked / Proses</p>
+              </div>
+              <p className="text-2xl font-black text-blue-800">{(summary['BOOKED'] || 0) + (summary['PROSES'] || 0)}</p>
+            </div>
+            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-emerald-600" /></div>
+                <p className="text-xs font-bold text-emerald-700 uppercase">Lunas</p>
+              </div>
+              <p className="text-2xl font-black text-emerald-800">{summary['LUNAS'] || 0}</p>
+            </div>
+            <div className="bg-red-50 border border-red-100 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Ban size={16} className="text-red-600" /></div>
+                <p className="text-xs font-bold text-red-700 uppercase">Batal</p>
+              </div>
+              <p className="text-2xl font-black text-red-800">{summary['BATAL'] || 0}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+        <div
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <Filter size={18} className="text-slate-600" />
+            <h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3>
+          </div>
+          {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </div>
+
+        {isFilterExpanded && (
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Status Transaksi</label>
+              <select
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+              >
+                <option value="">Semua Status</option>
+                <option value="BOOKED">Booked</option>
+                <option value="PROSES">Proses (Sudah BF)</option>
+                <option value="LUNAS">Lunas</option>
+                <option value="BATAL">Batal</option>
+              </select>
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
+
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
+              <select
+                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                value={orderBy}
+                onChange={handleSortChange}
+              >
+                <option value="">Terbaru (Default)</option>
+                <option value="hargaJual:asc">Harga Jual: Rendah ke Tinggi</option>
+                <option value="hargaJual:desc">Harga Jual: Tinggi ke Rendah</option>
+                <option value="nama:asc">Nama Customer: A - Z</option>
+              </select>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <DataTable
         title="Data Penjualan"
         columns={columns}
         data={penjualanData}
         onAdd={() => openModal()}
-        onEdit={(item) => openModal(item as PenjualanData)}
         expandedRowRender={expandedRowRender}
+
+        // Props Server-Side
+        serverSide={true}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Penjualan Baru"}>
@@ -1024,7 +1189,6 @@ const Penjualan = () => {
         </form>
       </Modal>
 
-      {/* --- MODAL SKEMA PEMBAYARAN (SPR) --- */}
       <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} title="Buat Surat Pesanan Rumah (SPR)">
         {selectedPenjualan && (
           <form onSubmit={handleSkemaSubmit} className="space-y-6">
@@ -1136,7 +1300,6 @@ const Penjualan = () => {
                 </p>
               </div>
 
-              {/* RANGKUMAN FINAL VISUAL */}
               <div className="mt-5 p-5 bg-slate-900 rounded-xl space-y-3 shadow-md">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Rangkuman Akhir Transaksi</h4>
 
@@ -1200,7 +1363,6 @@ const Penjualan = () => {
         )}
       </Modal>
 
-      {/* --- MODAL PRINT PDF --- */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="bg-white" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}>
@@ -1385,7 +1547,6 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      {/* --- MODAL CANCEL TRANSAKSI --- */}
       <Modal isOpen={isCancelModalOpen} onClose={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} title="Ajukan Pembatalan Penjualan">
         {selectedCancelRow && (
           <form onSubmit={handleCancelSubmit} className="space-y-5">
@@ -1434,7 +1595,6 @@ const Penjualan = () => {
         )}
       </Modal>
 
-      {/* --- MODAL PREVIEW GAMBAR LIGHTBOX --- */}
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen / Bukti">
         <div className="flex flex-col items-center">
           {previewImage && (
@@ -1449,7 +1609,6 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      {/* --- MODAL TANDA TANGAN DIGITAL --- */}
       <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital Kwitansi">
         <div className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1474,11 +1633,10 @@ const Penjualan = () => {
           </div>
         </div>
       </Modal>
+
       <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Detail Informasi Transaksi">
         {detailData && (
           <div className="space-y-6">
-
-            {/* 1. Data Pembeli & Marketing */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">1. Data Pembeli & Marketing</h4>
               <div className="grid grid-cols-2 gap-y-4 gap-x-6">
@@ -1505,7 +1663,6 @@ const Penjualan = () => {
               </div>
             </div>
 
-            {/* 2. Data Kavling */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">2. Data Kavling</h4>
               <div className="grid grid-cols-2 gap-y-4 gap-x-6">
@@ -1528,12 +1685,10 @@ const Penjualan = () => {
               </div>
             </div>
 
-            {/* 3. Kalkulasi Pembayaran */}
             <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-md">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2">
                 3. Kalkulasi Transaksi ({detailData.caraPembayaran ? detailData.caraPembayaran.replace(/_/g, ' ') : 'CASH KERAS'})
               </h4>
-
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
                   <span className="font-medium text-slate-300">Harga Dasar Kavling</span>
@@ -1548,7 +1703,6 @@ const Penjualan = () => {
                   <span className="font-bold text-red-400">{formatRupiah(detailData.bookingFee || 5000000)}</span>
                 </div>
 
-                {/* Rumus Plafon Awal */}
                 <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mt-2 mb-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-bold text-blue-400">Plafon Awal</span>
@@ -1559,7 +1713,6 @@ const Penjualan = () => {
                   </p>
                 </div>
 
-                {/* Khusus KPR */}
                 {(detailData.caraPembayaran === 'KPR' || detailData.caraPembayaran === 'KPR') && (
                   <>
                     <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
@@ -1571,7 +1724,6 @@ const Penjualan = () => {
                         <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal × 6%
                       </p>
                     </div>
-
                     <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-bold text-purple-400">Nilai Pengajuan KPR</span>
@@ -1581,7 +1733,6 @@ const Penjualan = () => {
                         <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal + Biaya KPR
                       </p>
                     </div>
-
                     <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-4">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-bold text-amber-400">Down Payment (DP) 10%</span>
@@ -1594,7 +1745,6 @@ const Penjualan = () => {
                   </>
                 )}
 
-                {/* Harga Jual Final */}
                 <div className="bg-emerald-900/40 p-4 rounded-xl border border-emerald-800 mt-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-base font-black text-emerald-400 uppercase tracking-wider">Harga Jual Final</span>
@@ -1608,15 +1758,11 @@ const Penjualan = () => {
                     }
                   </p>
                 </div>
-
               </div>
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-200">
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-colors cursor-pointer"
-              >
+              <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-colors cursor-pointer">
                 Tutup Detail
               </button>
             </div>

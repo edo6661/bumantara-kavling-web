@@ -11,7 +11,8 @@ import Select from "../../components/shared/Select";
 import SignatureCanvas from 'react-signature-canvas';
 
 const SPR = () => {
-  const { data: penjualanData = [], isLoading } = useGetPenjualan();
+  const { data: penjualanResponse, isLoading } = useGetPenjualan({ limit: 500 });
+  const penjualanData = penjualanResponse?.items || [];
   const uploadSignatureMutation = useUploadSignature();
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);

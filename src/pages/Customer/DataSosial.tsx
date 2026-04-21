@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -29,7 +30,8 @@ const initialFormState: CreateCustomerDTO = {
 
 const DataSosial = () => {
   const { data: customers = [], isLoading } = useGetCustomers();
-  const { data: penjualanData = [], isLoading: isLoadingPenjualan } = useGetPenjualan();
+  const { data: penjualanResponse, isLoading: isLoadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const penjualanData = penjualanResponse?.items || [];
 
   const createMutation = useCreateCustomer();
   const updateMutation = useUpdateCustomer();
