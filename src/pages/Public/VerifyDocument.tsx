@@ -93,7 +93,6 @@ const VerifyDocument = () => {
   return (
     <div className="min-h-screen bg-slate-100/50 py-12 px-4 font-sans flex flex-col items-center justify-start">
 
-      {/* Header Validasi & Tombol Download (di luar area Print) */}
       <div className="w-full max-w-3xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-emerald-50 border border-emerald-200 p-5 rounded-t-2xl sm:rounded-2xl mb-4 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0 shadow-inner shadow-emerald-700/20">
@@ -112,17 +111,14 @@ const VerifyDocument = () => {
         </button>
       </div>
 
-      {/* PRINT AREA: Identik 100% dengan layout di Tagihan & Penjualan Panel */}
       <div className="w-full max-w-3xl shadow-2xl relative bg-white">
         <div
           id="print-area"
           className="bg-white"
           style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}
         >
-          {/* Menggunakan p-6 (sama seperti di Tagihan/Penjualan) */}
           <div className="p-6 flex flex-col min-h-[800px]">
 
-            {/* --- 1. HEADER --- */}
             <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
               <div>
                 <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
@@ -149,7 +145,6 @@ const VerifyDocument = () => {
               </div>
             </div>
 
-            {/* --- 2. INFORMASI CUSTOMER --- */}
             <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
               <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
                 {isKwitansi ? 'Telah Diterima Dari:' : isSpr ? 'Pihak Pemesan:' : 'Ditagihkan Kepada:'}
@@ -159,7 +154,6 @@ const VerifyDocument = () => {
               <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{data.customer.alamat || '-'}</p>
             </div>
 
-            {/* --- 3. TABEL DESKRIPSI PEMBAYARAN --- */}
             <div className="rounded-xl border border-slate-200 overflow-hidden mb-6">
               <table className="w-full border-collapse bg-white">
                 <thead>
@@ -190,12 +184,9 @@ const VerifyDocument = () => {
               </table>
             </div>
 
-            {/* --- 4 & 5. INFORMASI REKENING & TOTAL --- */}
             <div className="flex flex-row justify-between items-start gap-6 mb-6">
 
-              {/* Bagian Kiri: Rekening / Info Status */}
               <div className="flex-1">
-                {/* Tampilan Rekening jika Invoice/Kwitansi */}
                 {(isInvoice || isKwitansi) && invData.kavling.rekeningTujuan && (
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
@@ -206,7 +197,6 @@ const VerifyDocument = () => {
                     <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">A/N: {invData.kavling.rekeningTujuan.atasNama}</p>
                   </div>
                 )}
-                {/* Tampilan Status jika SPR */}
                 {isSpr && (
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block w-full">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
@@ -219,23 +209,8 @@ const VerifyDocument = () => {
                 )}
               </div>
 
-              {/* Bagian Kanan: Kalkulasi Total */}
               <div className="w-[280px] space-y-3">
-                {/* Rincian Harga untuk Tagihan Awal / DP / SPR */}
-                {(isInvoice || isKwitansi) && (invData.pembayaran.toLowerCase().includes('booking') || invData.pembayaran.toLowerCase().includes('dp')) && (
-                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                      <span>Harga Jual Unit</span>
-                      <span className="text-slate-800 text-xs">{formatRupiah(invData.transaksi.hargaJual || 0)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                      <span>Sisa Belum Dibayar</span>
-                      <span className="text-red-600 text-xs">
-                        {formatRupiah(invData.transaksi.hargaJual || 0)}
-                      </span>
-                    </div>
-                  </div>
-                )}
+
 
                 {isSpr && (
                   <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -250,7 +225,6 @@ const VerifyDocument = () => {
                   </div>
                 )}
 
-                {/* Box Total Akhir */}
                 <div className={`flex justify-between items-center p-4 rounded-xl border-2 ${isKwitansi ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
                   <span className="text-xs font-black uppercase tracking-[0.2em]">{isSpr ? 'Harga Jual' : 'Total'}</span>
                   <span className="text-xl font-black">{formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}</span>
@@ -258,7 +232,6 @@ const VerifyDocument = () => {
               </div>
             </div>
 
-            {/* --- 6. CATATAN / NOTES --- */}
             <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl text-[9px] text-slate-600 leading-relaxed text-left">
               <p className="font-bold text-slate-800 mb-1 uppercase tracking-widest">Catatan:</p>
               <ul className="list-disc pl-4 space-y-0.5">
@@ -268,7 +241,6 @@ const VerifyDocument = () => {
               </ul>
             </div>
 
-            {/* --- 7. QR CODE & TTD --- */}
             <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
               <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
                 <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>

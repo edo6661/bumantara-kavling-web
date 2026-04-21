@@ -24,6 +24,7 @@ import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
 import { useAuth } from "../../context/AuthContext";
 import SignatureCanvas from 'react-signature-canvas';
+import type { AgentData } from '../../services/agent.service';
 
 interface PenjualanData {
   id?: string;
@@ -265,7 +266,9 @@ const Penjualan = () => {
 
   const uniqueBloks = useMemo(() => {
     const bloks = availableKavlings.map(k => k.blok);
-    return [...new Set(bloks)].sort();
+    return [...new Set(bloks)].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+    );
   }, [availableKavlings]);
 
   const availableUnits = useMemo(() => {
@@ -273,7 +276,7 @@ const Penjualan = () => {
     return availableKavlings
       .filter(k => k.blok === formData.blok)
       .map(k => k.nomorUnit)
-      .sort();
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }, [availableKavlings, formData.blok]);
 
   const columns = [
@@ -1036,7 +1039,9 @@ const Penjualan = () => {
                     error={errors.agent}
                     options={[
                       { value: '', label: '-- Pilih Agent --' },
-                      ...agentData.map((a: any) => ({ value: a.nama, label: a.nama })),
+                      ...[...agentData]
+                        .sort((a: AgentData, b: AgentData) => a.nama.localeCompare(b.nama))
+                        .map((a: AgentData) => ({ value: a.nama, label: a.nama })),
                       { value: 'NEW', label: '+ Tambah Agent Baru...' }
                     ]}
                   />

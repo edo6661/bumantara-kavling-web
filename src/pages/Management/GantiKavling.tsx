@@ -39,7 +39,9 @@ const GantiKavling = () => {
 
   const uniqueBloks = useMemo(() => {
     const bloks = availableKavlings.map(k => k.blok);
-    return [...new Set(bloks)].sort();
+    return [...new Set(bloks)].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+    );
   }, [availableKavlings]);
 
   const availableUnits = useMemo(() => {
