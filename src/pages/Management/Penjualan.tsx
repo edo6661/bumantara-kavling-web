@@ -310,7 +310,9 @@ const Penjualan = () => {
     let initialBiayaKpr = Number(item.biayaKpr) || 0;
     let initialNilaiKpr = Number(item.nilaiPengajuanKpr) || 0;
     let initialDp = Number(item.dp) || 0;
-    const initialPlafon = Number(item.plafonAwal) || plafon;
+    const initialPlafon = (Number(item.diskonPenjualan) === 0 && diskonTerpakai > 0)
+      ? plafon
+      : (Number(item.plafonAwal) || plafon);
     let initialHargaJual = Number(item.hargaJual) || 0;
     if (caraBayar === 'KPR') {
       if (initialBiayaKpr === 0 && initialDp === 0) {
@@ -323,7 +325,7 @@ const Penjualan = () => {
       initialBiayaKpr = 0;
       initialNilaiKpr = 0;
       initialDp = 0;
-      if (initialHargaJual === 0) initialHargaJual = initialPlafon;
+      initialHargaJual = initialPlafon;
     }
 
     setSelectedPenjualan(item);
@@ -542,6 +544,7 @@ const Penjualan = () => {
           plafonAwal: formData.plafonAwal,
           hargaJual: formData.hargaJual,
           bookingFee: 5000000,
+          diskonPenjualan: formData.diskonPenjualan,
           caraPembayaran: 'CASH_KERAS',
         };
 

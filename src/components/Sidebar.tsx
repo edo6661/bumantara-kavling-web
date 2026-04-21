@@ -27,15 +27,16 @@ const menuItems = [
       { title: 'Batal Transaksi', path: '/management/batal-transaksi' },
     ],
   },
-  // ------------------------------------------
+
   {
     title: 'Management',
     icon: <Briefcase size={20} strokeWidth={1.5} />,
     submenus: [
-      // Menu penjualan sudah dipindah ke atas
+
       { title: 'Kavling', path: '/management/kavling' },
       { title: 'Notaris', path: '/management/notaris' },
       { title: 'Bank', path: '/management/bank' },
+      { title: 'Audit Log', path: '/management/audit-log' },
     ],
   },
   {
@@ -74,7 +75,7 @@ interface SidebarProps {
 const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
 
-  // State untuk kontrol expand/shrink
+
   const [isExpanded, setIsExpanded] = useState(true);
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
@@ -88,7 +89,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   });
 
   const handleMenuClick = (title: string) => {
-    // Jika shrink aktif dan user klik menu, otomatis expand agar submenu terlihat
+
     if (!isExpanded) {
       setIsExpanded(true);
       setOpenMenus((prev) => ({ ...prev, [title]: true }));

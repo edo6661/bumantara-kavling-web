@@ -1,128 +1,4 @@
-This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
-
-<file_summary>
-This section contains a summary of this file.
-
-<purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
-It is designed to be easily consumable by AI systems for analysis, code review,
-or other automated processes.
-</purpose>
-
-<file_format>
-The content is organized as follows:
-1. This summary section
-2. Repository information
-3. Directory structure
-4. Repository files (if enabled)
-5. Multiple file entries, each consisting of:
-  - File path as an attribute
-  - Full contents of the file
-</file_format>
-
-<usage_guidelines>
-- This file should be treated as read-only. Any changes should be made to the
-  original repository files, not this packed version.
-- When processing this file, use the file path to distinguish
-  between different files in the repository.
-- Be aware that this file may contain sensitive information. Handle it with
-  the same level of security as you would the original repository.
-</usage_guidelines>
-
-<notes>
-- Some files may have been excluded based on .gitignore rules and Repomix's configuration
-- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json, prisma/schema.prisma
-- Files matching these patterns are excluded: **/*.test.ts
-- Files matching patterns in .gitignore are excluded
-- Files matching default ignore patterns are excluded
-- Files are sorted by Git change count (files with more changes are at the bottom)
-</notes>
-
-</file_summary>
-
-<directory_structure>
-package.json
-src/App.tsx
-src/components/layouts/RootLayout.tsx
-src/components/Navbar.tsx
-src/components/shared/CurrencyInput.tsx
-src/components/shared/DataTable.tsx
-src/components/shared/FileInput.tsx
-src/components/shared/Input.tsx
-src/components/shared/Modal.tsx
-src/components/shared/Select.tsx
-src/components/Sidebar.tsx
-src/context/AuthContext.tsx
-src/hooks/queries/useAgent.ts
-src/hooks/queries/useBankRekening.ts
-src/hooks/queries/useCustomer.ts
-src/hooks/queries/useCustomerKavling.ts
-src/hooks/queries/useDashboard.ts
-src/hooks/queries/useFeeAgent.ts
-src/hooks/queries/useKavling.ts
-src/hooks/queries/useNotaris.ts
-src/hooks/queries/usePenjualan.ts
-src/hooks/queries/usePerumahan.ts
-src/hooks/queries/useTagihan.ts
-src/hooks/queries/useVerify.ts
-src/hooks/useCrud.ts
-src/hooks/useForm.ts
-src/index.css
-src/lib/axios.ts
-src/main.tsx
-src/pages/Customer/DataSosial.tsx
-src/pages/Customer/Kavling.tsx
-src/pages/Customer/KelengkapanAdministrasi.tsx
-src/pages/Customer/OldKavling.tsx
-src/pages/Customer/SPR.tsx
-src/pages/Customer/Tagihan.tsx
-src/pages/Dashboard.tsx
-src/pages/Home.tsx
-src/pages/Login.tsx
-src/pages/Management/Bank.tsx
-src/pages/Management/BatalTransaksi.tsx
-src/pages/Management/GantiKavling.tsx
-src/pages/Management/Kavling.tsx
-src/pages/Management/Notaris.tsx
-src/pages/Management/Penjualan.tsx
-src/pages/Marketing/Agents.tsx
-src/pages/Marketing/FeeAgent.tsx
-src/pages/Marketing/OldFeeAgent.tsx
-src/pages/PageLoader.tsx
-src/pages/Proyek/Progress.tsx
-src/pages/Proyek/SPK.tsx
-src/pages/Public/VerifyDocument.tsx
-src/pages/TimMarketing/TimMarketing.tsx
-src/providers/AuthProvider.tsx
-src/providers/QueryProvider.tsx
-src/services/agent.service.ts
-src/services/auth.service.ts
-src/services/bankRekening.service.ts
-src/services/customer.service.ts
-src/services/customerKavling.service.ts
-src/services/dashboard.service.ts
-src/services/feeAgent.service.ts
-src/services/kavling.service.ts
-src/services/notaris.service.ts
-src/services/penjualan.service.ts
-src/services/perumahan.service.ts
-src/services/tagihan.service.ts
-src/services/verify.service.ts
-src/types/api_response.ts
-src/types/common.ts
-src/types/models/agent.ts
-src/types/models/perumahan.ts
-src/types/models/user.ts
-src/utils/errorHandler.ts
-src/utils/formatters.ts
-src/utils/storage.ts
-tsconfig.json
-vite.config.ts
-</directory_structure>
-
-<files>
-This section contains the contents of the repository's files.
+tolong simpan kode frontend nya:
 
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6731,101 +6607,6 @@ const VerifyDocument = () => {
 export default VerifyDocument;
 </file>
 
-<file path="src/services/kavling.service.ts">
-import api from "../lib/axios";
-
-export interface KavlingData {
-  id: number;
-  perumahanId: number;
-  perumahan?: { id: number; nama: string };
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaDasar: number;
-  status: string;
-  rekeningTujuanId: number | null;
-  rekeningTujuan?: {
-    namaBank: string;
-    noRekening: string;
-    atasNama: string;
-  } | null;
-  filePbg: string | null;
-  fileSertifikatTanah: string | null;
-  fileNopPbb: string | null;
-  penjualan?: {
-    customer?: {
-      nama: string;
-      noHp: string;
-    };
-  }[];
-}
-
-export interface CreateKavlingDTO {
-  perumahanId: number;
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaDasar: number;
-  status?: string;
-  rekeningTujuanId?: number;
-  filePbg?: string;
-  fileSertifikatTanah?: string;
-  fileNopPbb?: string;
-}
-
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  summary?: Record<string, number>;
-}
-
-export interface KavlingResponse {
-  items: KavlingData[];
-  meta: PaginationMeta;
-}
-
-export interface GetKavlingParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  perumahanId?: number;
-  status?: string;
-  orderBy?: string;
-}
-
-export const kavlingService = {
-  getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {
-    const response = await api.get("/kavling", {
-      params: { limit: 10, page: 1, ...params },
-    });
-    return response.data.data;
-  },
-
-  create: async (data: CreateKavlingDTO) => {
-    const response = await api.post("/kavling", data);
-    return response.data.data;
-  },
-
-  update: async (id: number, data: Partial<CreateKavlingDTO>) => {
-    const response = await api.patch(`/kavling/${id}`, data);
-    return response.data.data;
-  },
-
-  delete: async (id: number) => {
-    const response = await api.delete(`/kavling/${id}`);
-    return response.data;
-  },
-};
-</file>
-
 <file path="src/hooks/queries/usePenjualan.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -6991,125 +6772,97 @@ export const useApproveGantiKavling = () => {
 };
 </file>
 
-<file path="src/services/penjualan.service.ts">
+<file path="src/services/kavling.service.ts">
 import api from "../lib/axios";
 
-export interface CreatePenjualanDTO {
-  noIdentitas: string;
-  nama: string;
-  noTelepon: string;
-  alamat: string;
-  perusahaan?: string;
-  alamatKoresponden?: string;
-  perumahan: string;
+export interface KavlingData {
+  id: number;
+  perumahanId: number;
+  perumahan?: { id: number; nama: string };
   blok: string;
   nomorUnit: string;
-  tipe: string;
+  namaTipe: string;
   luasBangunan: number;
   luasTanah: number;
-  tanggal: string;
   hargaDasar: number;
-  plafonAwal?: number;
-  biayaKpr?: number;
-  hargaJual: number;
-  hargaPromosi?: number;
-  diskonPenjualan?: number;
-  dp?: number;
-  bookingFee?: number;
-  caraPembayaran: string;
-  bank?: string;
-  nilaiPengajuanKpr?: number;
-  agent: string;
-  rekeningTujuanId?: number;
+  status: string;
+  rekeningTujuanId: number | null;
+  rekeningTujuan?: {
+    namaBank: string;
+    noRekening: string;
+    atasNama: string;
+  } | null;
+  filePbg: string | null;
+  fileSertifikatTanah: string | null;
+  fileNopPbb: string | null;
+  penjualan?: {
+    customer?: {
+      nama: string;
+      noHp: string;
+    };
+  }[];
 }
 
-export const penjualanService = {
-  getAll: async (params?: Record<string, unknown>) => {
-    const response = await api.get("/penjualan", {
-      params: { limit: 100, ...params },
+export interface CreateKavlingDTO {
+  perumahanId: number;
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  hargaDasar: number;
+  status?: string;
+  rekeningTujuanId?: number;
+  filePbg?: string;
+  fileSertifikatTanah?: string;
+  fileNopPbb?: string;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  summary?: Record<string, number>;
+}
+
+export interface KavlingResponse {
+  items: KavlingData[];
+  meta: PaginationMeta;
+}
+
+export interface GetKavlingParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  perumahanId?: number;
+  status?: string;
+  orderBy?: string;
+}
+
+export const kavlingService = {
+  getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {
+    const response = await api.get("/kavling", {
+      params: { limit: 10, page: 1, ...params },
     });
-    return response.data.data.items;
+    return response.data.data;
   },
 
-  create: async (data: CreatePenjualanDTO) => {
-    const response = await api.post("/penjualan", data);
+  create: async (data: CreateKavlingDTO) => {
+    const response = await api.post("/kavling", data);
     return response.data.data;
   },
-  cancel: async (noTransaksi: string, alasanBatal: string) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
-      alasanBatal,
-    });
-    return response.data.data;
-  },
-  uploadBukti: async (
-    noTransaksi: string,
-    type: "booking" | "dp",
-    file: File,
-  ) => {
-    const formData = new FormData();
-    formData.append("fileBukti", file);
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/upload/${type}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
-    );
 
+  update: async (id: number, data: Partial<CreateKavlingDTO>) => {
+    const response = await api.patch(`/kavling/${id}`, data);
     return response.data.data;
   },
-  uploadSignature: async (data: {
-    noTransaksi: string;
-    signatureBase64: string;
-    nama: string;
-    peran: string;
-    tanggal: string;
-  }) => {
-    const response = await api.post(
-      `/penjualan/${data.noTransaksi}/signature`,
-      data,
-    );
-    return response.data.data;
-  },
-  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
-    return response.data.data;
-  },
-  gantiKavling: async (
-    noTransaksi: string,
-    data: { kavlingBaruId: number; alasan: string },
-  ) => {
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/ganti-kavling`,
-      data,
-    );
-    return response.data.data;
-  },
-  getPengajuanBatal: async (status?: string) => {
-    const response = await api.get("/penjualan/pengajuan-batal", {
-      params: { status },
-    });
-    return response.data.data;
-  },
-  getPengajuanGantiKavling: async (status?: string) => {
-    const response = await api.get("/penjualan/pengajuan-ganti-kavling", {
-      params: { status },
-    });
-    return response.data.data;
-  },
-  approveBatal: async (id: number, isApproved: boolean) => {
-    const response = await api.post(
-      `/penjualan/pengajuan-batal/${id}/approve`,
-      { isApproved },
-    );
-    return response.data.data;
-  },
-  approveGantiKavling: async (id: number, isApproved: boolean) => {
-    const response = await api.post(
-      `/penjualan/pengajuan-ganti-kavling/${id}/approve`,
-      { isApproved },
-    );
-    return response.data.data;
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/kavling/${id}`);
+    return response.data;
   },
 };
 </file>
@@ -7368,6 +7121,129 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 };
 
 export default Sidebar;
+</file>
+
+<file path="src/services/penjualan.service.ts">
+import api from "../lib/axios";
+
+export interface CreatePenjualanDTO {
+  noIdentitas: string;
+  nama: string;
+  noTelepon: string;
+  alamat: string;
+  perusahaan?: string;
+  alamatKoresponden?: string;
+  perumahan: string;
+  blok: string;
+  nomorUnit: string;
+  tipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  tanggal: string;
+  hargaDasar: number;
+  plafonAwal?: number;
+  biayaKpr?: number;
+  hargaJual: number;
+  hargaPromosi?: number;
+  diskonPenjualan?: number;
+  dp?: number;
+  bookingFee?: number;
+  caraPembayaran: string;
+  bank?: string;
+  nilaiPengajuanKpr?: number;
+  agent: string;
+  rekeningTujuanId?: number;
+}
+
+export const penjualanService = {
+  getAll: async (params?: Record<string, unknown>) => {
+    const response = await api.get("/penjualan", {
+      params: { limit: 100, ...params },
+    });
+    return response.data.data.items;
+  },
+
+  create: async (data: CreatePenjualanDTO) => {
+    const response = await api.post("/penjualan", data);
+    return response.data.data;
+  },
+  cancel: async (noTransaksi: string, alasanBatal: string) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
+      alasanBatal,
+    });
+    return response.data.data;
+  },
+  uploadBukti: async (
+    noTransaksi: string,
+    type: "booking" | "dp",
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("fileBukti", file);
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/upload/${type}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+
+    return response.data.data;
+  },
+  uploadSignature: async (data: {
+    noTransaksi: string;
+    signatureBase64: string;
+    nama: string;
+    peran: string;
+    tanggal: string;
+  }) => {
+    const response = await api.post(
+      `/penjualan/${data.noTransaksi}/signature`,
+      data,
+    );
+    return response.data.data;
+  },
+  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
+    return response.data.data;
+  },
+  gantiKavling: async (
+    noTransaksi: string,
+    data: { kavlingBaruId: number; alasan: string },
+  ) => {
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/ganti-kavling`,
+      data,
+    );
+    return response.data.data;
+  },
+  getPengajuanBatal: async (status?: string) => {
+    const response = await api.get("/penjualan/pengajuan-batal", {
+      params: { status },
+    });
+    return response.data.data;
+  },
+  getPengajuanGantiKavling: async (status?: string) => {
+    const response = await api.get("/penjualan/pengajuan-ganti-kavling", {
+      params: { status },
+    });
+    return response.data.data;
+  },
+  approveBatal: async (id: number, isApproved: boolean) => {
+    const response = await api.post(
+      `/penjualan/pengajuan-batal/${id}/approve`,
+      { isApproved },
+    );
+    return response.data.data;
+  },
+  approveGantiKavling: async (id: number, isApproved: boolean) => {
+    const response = await api.post(
+      `/penjualan/pengajuan-ganti-kavling/${id}/approve`,
+      { isApproved },
+    );
+    return response.data.data;
+  },
+};
 </file>
 
 <file path="src/components/shared/DataTable.tsx">
@@ -10108,7 +9984,7 @@ import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import { formatDate, formatRupiah } from "../../utils/formatters";
-import { FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn } from 'lucide-react';
+import { FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn, Eye } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
@@ -10222,6 +10098,9 @@ const Penjualan = () => {
 
   const [isNewAgent, setIsNewAgent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailData, setDetailData] = useState<PenjualanData | null>(null);
+
   const [isSkemaModalOpen, setIsSkemaModalOpen] = useState(false);
   const [selectedPenjualan, setSelectedPenjualan] = useState<PenjualanData | null>(null);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
@@ -10243,10 +10122,16 @@ const Penjualan = () => {
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<SignatureCanvas>(null);
 
-  // ==========================================
-  // KALKULATOR OTOMATIS (SKEMA PEMBAYARAN)
-  // Menaruh hasil otomatis langsung ke dalam `updates`
-  // ==========================================
+
+  const openDetailModal = (item: PenjualanData) => {
+    setDetailData(item);
+    setIsDetailModalOpen(true);
+  };
+
+
+
+
+
   const handleRecalculateDependencies = (name: string, value: any, prev: PenjualanData) => {
     const merged = { ...prev, [name]: value };
     const updates: any = { [name]: value };
@@ -10255,7 +10140,7 @@ const Penjualan = () => {
     const diskon = Number(merged.diskonPenjualan) || 0;
     const bf = 5000000;
 
-    // 1. Kalkulasi Plafon Awal
+
     let plafon = 0;
     if (['diskonPenjualan', 'hargaDasar', 'bookingFee', 'caraPembayaran'].includes(name)) {
       plafon = Math.max(0, base - diskon - bf);
@@ -10266,7 +10151,7 @@ const Penjualan = () => {
 
     if (name === 'plafonAwal') plafon = Number(value) || 0;
 
-    // 2. Kalkulasi Hierarki Ke Bawah (Sesuai Cara Pembayaran)
+
     if (merged.caraPembayaran === 'KPR') {
       if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal'].includes(name)) {
         updates.biayaKpr = plafon * 0.06;
@@ -10288,7 +10173,7 @@ const Penjualan = () => {
         updates.hargaJual = currentNilaiKpr + Number(value);
       }
     } else {
-      // CASH KERAS / BERTAHAP
+
       updates.biayaKpr = 0;
       updates.nilaiPengajuanKpr = 0;
       updates.dp = 0;
@@ -10350,6 +10235,22 @@ const Penjualan = () => {
         </span>
       )
     },
+    // TAMBAHAN KOLOM AKSI
+    {
+      header: 'Aksi',
+      accessor: 'id',
+      render: (_: unknown, row: PenjualanData) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // Mencegah event row / expand ter-trigger
+            openDetailModal(row);
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+        >
+          <Eye size={14} /> Detail
+        </button>
+      )
+    }
   ];
 
   const openModal = (item?: PenjualanData) => {
@@ -10620,7 +10521,7 @@ const Penjualan = () => {
           plafonAwal: formData.plafonAwal,
           hargaJual: formData.hargaJual,
           bookingFee: 5000000,
-          caraPembayaran: 'CASH_KERAS', // Default
+          caraPembayaran: 'CASH_KERAS',
         };
 
         const result = await createMutation.mutateAsync(payload);
@@ -11548,6 +11449,155 @@ const Penjualan = () => {
             </button>
           </div>
         </div>
+      </Modal>
+      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Detail Informasi Transaksi">
+        {detailData && (
+          <div className="space-y-6">
+
+            {/* 1. Data Pembeli & Marketing */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">1. Data Pembeli & Marketing</h4>
+              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Customer</p>
+                  <p className="text-sm font-bold text-slate-900">{detailData.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">No Identitas (NIK)</p>
+                  <p className="text-sm font-medium text-slate-800">{detailData.noIdentitas}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">No Telepon</p>
+                  <p className="text-sm font-medium text-slate-800">{detailData.noTelepon || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Agent Marketing</p>
+                  <p className="text-sm font-bold text-blue-700">{detailData.agent}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Domisili</p>
+                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{detailData.alamat}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Data Kavling */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">2. Data Kavling</h4>
+              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Perumahan</p>
+                  <p className="text-sm font-bold text-slate-900">{detailData.perumahan}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Blok & Nomor Unit</p>
+                  <p className="text-sm font-bold text-slate-900">Blok {detailData.blok} - {detailData.nomorUnit}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Tipe Unit</p>
+                  <p className="text-sm font-medium text-slate-800">{detailData.tipe || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Dimensi</p>
+                  <p className="text-sm font-medium text-slate-800">LT: {detailData.luasTanah} m² / LB: {detailData.luasBangunan} m²</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Kalkulasi Pembayaran */}
+            <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-md">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2">
+                3. Kalkulasi Transaksi ({detailData.caraPembayaran ? detailData.caraPembayaran.replace(/_/g, ' ') : 'CASH KERAS'})
+              </h4>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium text-slate-300">Harga Dasar Kavling</span>
+                  <span className="font-bold text-white">{formatRupiah(detailData.hargaDasar || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium text-slate-300">- Diskon Penjualan</span>
+                  <span className="font-bold text-red-400">{formatRupiah(detailData.diskonPenjualan || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium text-slate-300">- Booking Fee</span>
+                  <span className="font-bold text-red-400">{formatRupiah(detailData.bookingFee || 5000000)}</span>
+                </div>
+
+                {/* Rumus Plafon Awal */}
+                <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mt-2 mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-bold text-blue-400">Plafon Awal</span>
+                    <span className="text-sm font-bold text-blue-400">{formatRupiah(detailData.plafonAwal || 0)}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-mono">
+                    <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - Diskon Penjualan - Booking Fee
+                  </p>
+                </div>
+
+                {/* Khusus KPR */}
+                {(detailData.caraPembayaran === 'KPR' || detailData.caraPembayaran === 'KPR') && (
+                  <>
+                    <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-indigo-400">Biaya KPR (6%)</span>
+                        <span className="text-sm font-bold text-indigo-400">{formatRupiah(detailData.biayaKpr || 0)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal × 6%
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-purple-400">Nilai Pengajuan KPR</span>
+                        <span className="text-sm font-bold text-purple-400">{formatRupiah(detailData.nilaiPengajuanKpr || 0)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal + Biaya KPR
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-amber-400">Down Payment (DP) 10%</span>
+                        <span className="text-sm font-bold text-amber-400">{formatRupiah(detailData.dp || 0)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Nilai Pengajuan KPR × 10%
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* Harga Jual Final */}
+                <div className="bg-emerald-900/40 p-4 rounded-xl border border-emerald-800 mt-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-base font-black text-emerald-400 uppercase tracking-wider">Harga Jual Final</span>
+                    <span className="text-lg font-black text-emerald-400">{formatRupiah(detailData.hargaJual || 0)}</span>
+                  </div>
+                  <p className="text-[10px] text-emerald-600/70 font-mono">
+                    <strong className="text-emerald-500/80">Kalkulasi:</strong> {
+                      detailData.caraPembayaran === 'KPR' || detailData.caraPembayaran === 'KPR'
+                        ? 'Nilai Pengajuan KPR + Down Payment (DP)'
+                        : 'Harga Jual final menyesuaikan besaran Plafon Awal'
+                    }
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-200">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
     </div>

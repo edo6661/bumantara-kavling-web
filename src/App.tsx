@@ -25,6 +25,7 @@ const Progress = lazy(() => import('./pages/Proyek/Progress'));
 const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
 const GantiKavling = lazy(() => import('./pages/Management/GantiKavling'));
 const BatalTransaksi = lazy(() => import('./pages/Management/BatalTransaksi'));
+const AuditLog = lazy(() => import('./pages/Management/AuditLog'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
@@ -59,6 +60,7 @@ const App = () => {
                 <Route path="marketing/fee-agent" element={<FeeAgent />} />
                 <Route path="proyek/spk" element={<SPK />} />
                 <Route path="proyek/progress" element={<Progress />} />
+                <Route path="management/audit-log" element={<AuditLog />} />
               </Route>
             </Routes>
           </Suspense>
