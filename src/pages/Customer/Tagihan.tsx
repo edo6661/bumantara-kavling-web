@@ -193,9 +193,11 @@ const Tagihan = () => {
       return {
         ...found,
         tipe: found.tipe || '-',
-        pembiayaan: found.pembiayaan?.replace('_', ' ') || '-',
+        pembiayaan: found.pembiayaan?.replace(/_/g, ' ') || '-',
         status: found.status || 'TIDAK DIKETAHUI',
-        harga: Number(found.harga) || 0,
+
+        harga: Number(found.totalHargaJual) || 0,
+
         lebihTanah: Number(found.lebihTanah) || 0,
         biayaStrategis: Number(found.biayaStrategis) || 0,
         totalHargaJual: Number(found.totalHargaJual) || 0,
@@ -410,8 +412,7 @@ const Tagihan = () => {
     const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
     const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
 
-    const totalTerbayarBfDp = row.totalTerbayarBfDp || 0;
-    const piutangCicilan = Math.max(0, totalHargaJual - totalTerbayarBfDp);
+    const piutangCicilan = Math.max(0, totalHargaJual);
 
     const totalTerbayarCicilan = row.totalTerbayarKeseluruhan;
     const sisaPembayaran = Math.max(0, piutangCicilan - totalTerbayarCicilan);
@@ -941,31 +942,6 @@ const Tagihan = () => {
                 </div>
               </div>
             </div>
-
-            {detailPenjualanData && (
-              <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
-                <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3 border-b border-indigo-100 pb-2">Rincian Finansial Transaksi</h4>
-                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600 font-medium">Harga Jual:</span>
-                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.harga || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600 font-medium">Lebih Tanah:</span>
-                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.lebihTanah || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600 font-medium">Biaya Strategis:</span>
-                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.biayaStrategis || 0)}</span>
-                  </div>
-                  <div className="flex justify-between items-center col-span-2 mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
-                    <span className="text-sm font-bold text-slate-700">Total Harga Keseluruhan:</span>
-                    <span className="text-lg font-black text-slate-900">{formatRupiah((detailPenjualanData.harga + detailPenjualanData.lebihTanah + detailPenjualanData.biayaStrategis) || 0)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedDetailRow(null)}

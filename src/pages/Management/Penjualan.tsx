@@ -107,14 +107,21 @@ const initialFormState: PenjualanData = {
   rekeningTujuanId: '',
 };
 
+interface BiayaTambahan {
+  id: string;
+  nama: string;
+  nominal: number;
+}
+
 const Penjualan = () => {
   const { selectedPerumahan } = useAuth();
 
-  // === STATE UNTUK EXPAND/SHRINK CARD ===
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
-  // === LOGIKA URL PARAMS UNTUK SERVER-SIDE PAGINATION ===
+
+  const [biayaTambahanList, setBiayaTambahanList] = useState<BiayaTambahan[]>([]);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -122,7 +129,6 @@ const Penjualan = () => {
   const orderBy = searchParams.get('orderBy') || '';
   const limit = 10;
 
-  // Passing parameter paginasi & filter ke React Query
   const { data: penjualanResponse, isLoading } = useGetPenjualan({
     page,
     limit,
@@ -133,9 +139,8 @@ const Penjualan = () => {
 
   const penjualanData = penjualanResponse?.items || [];
   const meta = penjualanResponse?.meta;
-  const summary = meta?.summary || {}; // Data summary terhitung dari backend
+  const summary = meta?.summary || {};
 
-  // === FETCH DATA MASTER ===
   const { data: agentData = [] } = useGetAgents();
   const { data: perumahanData = [] } = useGetPerumahan();
   const { data: kavlingResponse } = useGetKavlings({ limit: 500 });
@@ -174,7 +179,6 @@ const Penjualan = () => {
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<SignatureCanvas>(null);
 
-  // === HANDLER UNTUK PAGINASI & FILTER URL ===
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
   };
@@ -208,7 +212,11 @@ const Penjualan = () => {
 
     const base = Number(merged.hargaDasar) || 0;
     const diskon = Number(merged.diskonPenjualan) || 0;
-    const bf = 5000000;
+    const bf = Number(merged.bookingFee) || 5000000;
+
+
+    const baseHargaJual = Math.max(0, base - diskon);
+    updates.hargaJual = baseHargaJual;
 
     let plafon = 0;
     if (['diskonPenjualan', 'hargaDasar', 'bookingFee', 'caraPembayaran'].includes(name)) {
@@ -218,36 +226,23 @@ const Penjualan = () => {
       plafon = Number(merged.plafonAwal) || 0;
     }
 
-    if (name === 'plafonAwal') plafon = Number(value) || 0;
-
     if (merged.caraPembayaran === 'KPR') {
-      if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal'].includes(name)) {
+      if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal', 'bookingFee'].includes(name)) {
         updates.biayaKpr = plafon * 0.06;
         updates.nilaiPengajuanKpr = plafon + updates.biayaKpr;
         updates.dp = updates.nilaiPengajuanKpr * 0.1;
-        updates.hargaJual = updates.nilaiPengajuanKpr + updates.dp;
       }
       else if (name === 'biayaKpr') {
         updates.nilaiPengajuanKpr = plafon + Number(value);
         updates.dp = updates.nilaiPengajuanKpr * 0.1;
-        updates.hargaJual = updates.nilaiPengajuanKpr + updates.dp;
       }
       else if (name === 'nilaiPengajuanKpr') {
         updates.dp = Number(value) * 0.1;
-        updates.hargaJual = Number(value) + updates.dp;
-      }
-      else if (name === 'dp') {
-        const currentNilaiKpr = Number(merged.nilaiPengajuanKpr) || 0;
-        updates.hargaJual = currentNilaiKpr + Number(value);
       }
     } else {
       updates.biayaKpr = 0;
       updates.nilaiPengajuanKpr = 0;
       updates.dp = 0;
-
-      if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal'].includes(name)) {
-        updates.hargaJual = plafon;
-      }
       if (name === 'caraPembayaran') updates.bank = '';
     }
 
@@ -299,7 +294,7 @@ const Penjualan = () => {
       header: 'Status',
       accessor: 'status',
       render: (val: string) => {
-        let bgClass = 'bg-blue-100 text-blue-800'; // Default BOOKED
+        let bgClass = 'bg-blue-100 text-blue-800';
         if (val === 'PROSES') bgClass = 'bg-yellow-100 text-yellow-800';
         if (val === 'LUNAS' || val === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800';
         if (val === 'BATAL') bgClass = 'bg-red-100 text-red-800';
@@ -380,19 +375,20 @@ const Penjualan = () => {
     const initialPlafon = (Number(item.diskonPenjualan) === 0 && diskonTerpakai > 0)
       ? plafon
       : (Number(item.plafonAwal) || plafon);
-    let initialHargaJual = Number(item.hargaJual) || 0;
+
+
+    const initialHargaJual = Math.max(0, base - diskonTerpakai);
+
     if (caraBayar === 'KPR') {
       if (initialBiayaKpr === 0 && initialDp === 0) {
         initialBiayaKpr = initialPlafon * 0.06;
         initialNilaiKpr = initialPlafon + initialBiayaKpr;
         initialDp = initialNilaiKpr * 0.1;
-        initialHargaJual = initialNilaiKpr + initialDp;
       }
     } else {
       initialBiayaKpr = 0;
       initialNilaiKpr = 0;
       initialDp = 0;
-      initialHargaJual = initialPlafon;
     }
 
     setSelectedPenjualan(item);
@@ -411,6 +407,7 @@ const Penjualan = () => {
     });
 
     setErrors({});
+    setBiayaTambahanList([]);
     setIsSkemaModalOpen(true);
   };
 
@@ -420,6 +417,26 @@ const Penjualan = () => {
     setIsEditing(false);
     setIsNewAgent(false);
     setErrors({});
+  };
+
+
+  const handleAddBiayaTambahan = () => {
+    setBiayaTambahanList([
+      ...biayaTambahanList,
+      { id: Date.now().toString(), nama: 'Uang Muka', nominal: 0 }
+    ]);
+  };
+
+  const handleRemoveBiayaTambahan = (id: string) => {
+    setBiayaTambahanList(biayaTambahanList.filter(b => b.id !== id));
+  };
+
+  const handleChangeBiayaTambahanNama = (id: string, nama: string) => {
+    setBiayaTambahanList(biayaTambahanList.map(b => b.id === id ? { ...b, nama } : b));
+  };
+
+  const handleChangeBiayaTambahanNominal = (id: string, nominal: number) => {
+    setBiayaTambahanList(biayaTambahanList.map(b => b.id === id ? { ...b, nominal } : b));
   };
 
   const saveSignature = async () => {
@@ -551,10 +568,16 @@ const Penjualan = () => {
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: formData.caraPembayaran === 'KPR' ? formData.dp : undefined,
         diskonPenjualan: formData.diskonPenjualan,
+
+        biayaTambahan: biayaTambahanList
+          .map((b) => ({
+            nama: b.nama,
+            nominal: Number(b.nominal)
+          }))
+          .filter((b) => b.nama.trim() !== '' && b.nominal > 0),
       };
 
       await updateMutation.mutateAsync({ id: selectedPenjualan!.id!, data: updatePayload });
-
       setIsSkemaModalOpen(false);
       setFormData(initialFormState);
       setSelectedPenjualan(null);
@@ -900,7 +923,6 @@ const Penjualan = () => {
     }
   };
 
-
   if (isLoading && penjualanData.length === 0) return <PageLoader />;
 
   return (
@@ -1007,8 +1029,6 @@ const Penjualan = () => {
         data={penjualanData}
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
-
-        // Props Server-Side
         serverSide={true}
         searchTerm={search}
         onSearchChange={handleSearchChange}
@@ -1216,139 +1236,141 @@ const Penjualan = () => {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Skema & Kalkulasi Harga</h4>
+            <Select
+              label="Cara Pembayaran"
+              name="caraPembayaran"
+              value={formData.caraPembayaran}
+              onChange={handleChange}
+              options={[
+                { value: '', label: '-- Pilih --' },
+                { value: 'CASH KERAS', label: 'CASH KERAS' },
+                { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
+                { value: 'KPR', label: 'KPR' }
+              ]}
+              error={errors.caraPembayaran}
+            />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  label="Cara Pembayaran"
-                  name="caraPembayaran"
-                  value={formData.caraPembayaran}
-                  onChange={handleChange}
-                  options={[
-                    { value: '', label: '-- Pilih --' },
-                    { value: 'CASH KERAS', label: 'CASH KERAS' },
-                    { value: 'CASH BERTAHAP', label: 'CASH BERTAHAP' },
-                    { value: 'KPR', label: 'KPR' }
-                  ]}
-                  error={errors.caraPembayaran}
-                />
+            <div className="mt-5 p-5 bg-slate-900 rounded-xl space-y-4 shadow-md">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Rangkuman Akhir Transaksi</h4>
 
-                <CurrencyInput
-                  label="Diskon Penjualan"
-                  name="diskonPenjualan"
-                  value={formData.diskonPenjualan}
-                  onValueChange={handleCurrencyChange}
-                  placeholder="0"
-                />
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-slate-300">Harga Dasar</span>
+                <span className="text-sm font-bold text-white">{formatRupiah(formData.hargaDasar || 0)}</span>
+              </div>
 
-                <div className="md:col-span-2 border-t border-slate-100 pt-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-slate-300 w-full">- Diskon Penjualan</p>
+                <div className="w-48 sm:w-64">
                   <CurrencyInput
-                    label="Plafon Awal"
-                    name="plafonAwal"
-                    value={formData.plafonAwal || 0}
+                    label=""
+                    name="diskonPenjualan"
+                    value={formData.diskonPenjualan}
                     onValueChange={handleCurrencyChange}
                     placeholder="0"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">Plafon Awal Default = Harga Dasar - Diskon - Booking Fee</p>
                 </div>
               </div>
 
-              {formData.caraPembayaran === 'KPR' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl animate-in fade-in zoom-in-95 duration-200">
-                  <Input
-                    label="Bank KPR"
-                    name="bank"
-                    value={formData.bank}
-                    onChange={handleChange}
-                    placeholder="BCA / BSI / MANDIRI"
-                    error={errors.bank}
-                  />
-
+              <div className="flex items-center justify-between mt-1">
+                <div className="flex items-center gap-3 w-full">
+                  <span className="text-xs font-medium text-slate-300">- Booking Fee</span>
+                  <button
+                    type="button"
+                    className="bg-white hover:bg-slate-200 transition-colors rounded px-2 text-black font-bold text-sm leading-tight"
+                    onClick={handleAddBiayaTambahan}
+                  >
+                    +
+                  </button>
+                </div>
+                <div className="w-48 sm:w-64">
                   <CurrencyInput
-                    label="Biaya KPR"
-                    name="biayaKpr"
-                    value={formData.biayaKpr || 0}
+                    label=""
+                    name="bookingFee"
+                    value={formData.bookingFee}
                     onValueChange={handleCurrencyChange}
                     placeholder="0"
                   />
+                </div>
+              </div>
 
-                  <CurrencyInput
-                    label="Nilai Pengajuan KPR"
-                    name="nilaiPengajuanKpr"
-                    value={formData.nilaiPengajuanKpr || 0}
-                    onValueChange={handleCurrencyChange}
-                    placeholder="0"
-                  />
-
-                  <div className="md:col-span-3 border-t border-blue-200/60 pt-3">
+              {biayaTambahanList.map((biaya) => (
+                <div key={biaya.id} className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-3 w-full pr-4">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveBiayaTambahan(biaya.id)}
+                      className="bg-red-500 hover:bg-red-600 transition-colors text-white rounded px-2 font-bold text-sm leading-tight"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="text"
+                      value={biaya.nama}
+                      onChange={(e) => handleChangeBiayaTambahanNama(biaya.id, e.target.value)}
+                      className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500 w-full max-w-[200px]"
+                      placeholder="Nama Biaya (Misal: Uang Muka)"
+                    />
+                  </div>
+                  <div className="w-48 sm:w-64">
                     <CurrencyInput
-                      label="Down Payment / DP"
-                      name="dp"
-                      value={formData.dp || 0}
-                      onValueChange={handleCurrencyChange}
+                      label=""
+                      name={`biaya_${biaya.id}`}
+                      value={biaya.nominal}
+                      onValueChange={(_, val) => handleChangeBiayaTambahanNominal(biaya.id, val)}
                       placeholder="0"
                     />
                   </div>
                 </div>
-              )}
+              ))}
 
-              <div className="mt-4 pt-3 border-t border-slate-200">
-                <CurrencyInput
-                  label="Harga Jual Final"
-                  name="hargaJual"
-                  value={formData.hargaJual || 0}
-                  onValueChange={handleCurrencyChange}
-                />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  {formData.caraPembayaran === 'KPR' ? 'Harga Jual KPR = Nilai Pengajuan KPR + DP' : 'Harga Jual Cash = Plafon Awal'}
-                </p>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
+                <span className="text-xs font-medium text-blue-300">Plafon Awal <span className="hidden sm:inline">(Harga Dasar - Diskon - BF)</span></span>
+                <span className="text-sm font-bold text-blue-400">{formatRupiah(formData.plafonAwal || 0)}</span>
               </div>
 
-              <div className="mt-5 p-5 bg-slate-900 rounded-xl space-y-3 shadow-md">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Rangkuman Akhir Transaksi</h4>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-slate-300">Harga Dasar</span>
-                  <span className="text-sm font-bold text-white">{formatRupiah(formData.hargaDasar || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-slate-300">- Diskon Penjualan</span>
-                  <span className="text-sm font-bold text-red-400">{formatRupiah(formData.diskonPenjualan || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-slate-300">- Booking Fee</span>
-                  <span className="text-sm font-bold text-red-400">{formatRupiah(5000000)}</span>
-                </div>
-
-                <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                  <span className="text-xs font-medium text-blue-300">Plafon Awal <span className="hidden sm:inline">(Harga Dasar - Diskon - BF)</span></span>
-                  <span className="text-sm font-bold text-blue-400">{formatRupiah(formData.plafonAwal || 0)}</span>
-                </div>
-
-                {formData.caraPembayaran === 'KPR' && (
-                  <>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs font-medium text-slate-300">+ Biaya KPR <span className="hidden sm:inline">(6% dari Plafon Awal)</span></span>
-                      <span className="text-sm font-bold text-white">{formatRupiah(formData.biayaKpr || 0)}</span>
+              {formData.caraPembayaran === 'KPR' && (
+                <>
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-xs font-medium text-slate-300 w-full">Bank KPR</p>
+                    <div className="w-48 sm:w-64">
+                      <Input
+                        label=""
+                        name="bank"
+                        value={formData.bank}
+                        onChange={handleChange}
+                        placeholder="BCA / BSI / MANDIRI"
+                        error={errors.bank}
+                      />
                     </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                      <span className="text-xs font-medium text-indigo-300">Nilai Pengajuan KPR <span className="hidden sm:inline">(Plafon Awal + Biaya KPR)</span></span>
-                      <span className="text-sm font-bold text-indigo-400">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-xs font-medium text-slate-300">+ Biaya KPR <span className="hidden sm:inline">(6% dari Plafon Awal)</span></span>
+                    <span className="text-sm font-bold text-white">{formatRupiah(formData.biayaKpr || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
+                    <span className="text-xs font-medium text-indigo-300">Nilai Pengajuan KPR <span className="hidden sm:inline">(Plafon Awal + Biaya KPR)</span></span>
+                    <span className="text-sm font-bold text-indigo-400">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-xs font-medium text-slate-300 w-full">+ DP KPR</span>
+                    <div className="w-48 sm:w-64">
+                      <CurrencyInput
+                        label=""
+                        name="dp"
+                        value={formData.dp || 0}
+                        onValueChange={handleCurrencyChange}
+                        placeholder="0"
+                      />
                     </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs font-medium text-slate-300">+ Down Payment / DP <span className="hidden sm:inline">(10% dari Pengajuan)</span></span>
-                      <span className="text-sm font-bold text-white">{formatRupiah(formData.dp || 0)}</span>
-                    </div>
-                  </>
-                )}
+                  </div>
+                </>
+              )}
 
-                <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                  <span className="text-sm font-bold text-white uppercase tracking-widest">
-                    Harga Jual Final {formData.caraPembayaran === 'KPR' ? <span className="text-[10px] text-slate-400 hidden sm:inline">(Pengajuan + DP)</span> : ''}
-                  </span>
-                  <span className="text-xl font-black text-white">{formatRupiah(formData.hargaJual || 0)}</span>
-                </div>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
+                <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">
+                  Harga Jual
+                </span>
+                <span className="text-xl font-black text-emerald-400">{formatRupiah(formData.hargaJual || 0)}</span>
               </div>
             </div>
 
@@ -1716,6 +1738,7 @@ const Penjualan = () => {
                   <p className="text-[10px] text-slate-500 font-mono">
                     <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - Diskon Penjualan - Booking Fee
                   </p>
+
                 </div>
 
                 {(detailData.caraPembayaran === 'KPR' || detailData.caraPembayaran === 'KPR') && (
