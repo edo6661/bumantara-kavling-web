@@ -310,16 +310,18 @@ const Penjualan = () => {
       accessor: 'id',
       render: (_: unknown, row: PenjualanData) => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              openDetailModal(row);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-            title="Lihat Detail"
-          >
-            <Eye size={14} /> Detail
-          </button>
+          {row.hargaJual && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openDetailModal(row);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              title="Lihat Detail"
+            >
+              <Eye size={14} /> Detail
+            </button>
+          )}
 
           <button
             onClick={(e) => {
@@ -563,7 +565,7 @@ const Penjualan = () => {
         bank: formData.bank || undefined,
         hargaDasar: formData.hargaDasar,
         hargaJual: formData.hargaJual,
-        plafonAwal: formData.plafonAwal,
+        plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
         biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: formData.caraPembayaran === 'KPR' ? formData.dp : undefined,
@@ -631,11 +633,8 @@ const Penjualan = () => {
           rekeningTujuanId: formData.rekeningTujuanId ? Number(formData.rekeningTujuanId) : undefined,
 
           hargaDasar: formData.hargaDasar,
-          plafonAwal: formData.plafonAwal,
-          hargaJual: formData.hargaJual,
           bookingFee: 5000000,
           diskonPenjualan: formData.diskonPenjualan,
-          caraPembayaran: 'CASH_KERAS',
         };
 
         const result = await createMutation.mutateAsync(payload);
@@ -926,72 +925,82 @@ const Penjualan = () => {
   if (isLoading && penjualanData.length === 0) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-[1400px] mx-auto">
 
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+      {/* SUMMARY CARDS */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
-          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
           onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
         >
-          <div className="flex items-center gap-2">
-            <PieChart size={18} className="text-slate-600" />
-            <h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Penjualan</h3>
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+              <PieChart size={18} />
+            </div>
+            <h3 className="font-bold text-slate-900 tracking-tight">Ringkasan Penjualan</h3>
           </div>
-          {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+          <button className="text-slate-400 hover:text-slate-600 transition-colors">
+            {isSummaryExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
         </div>
 
         {isSummaryExpanded && (
-          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
-            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Wallet size={16} className="text-slate-600" /></div>
-                <p className="text-xs font-bold text-slate-500 uppercase">Total Transaksi</p>
+          <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-5 bg-slate-50/30">
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center"><Wallet size={18} className="text-slate-600" /></div>
+                <p className="text-xs font-semibold text-slate-500 uppercase">Total Transaksi</p>
               </div>
-              <p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p>
+              <p className="text-3xl font-bold text-slate-900">{meta?.totalItems || 0}</p>
             </div>
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
-                <p className="text-xs font-bold text-blue-700 uppercase">Booked / Proses</p>
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center"><Clock size={18} className="text-blue-600" /></div>
+                <p className="text-xs font-semibold text-slate-500 uppercase">Booked / Proses</p>
               </div>
-              <p className="text-2xl font-black text-blue-800">{(summary['BOOKED'] || 0) + (summary['PROSES'] || 0)}</p>
+              <p className="text-3xl font-bold text-blue-700">{(summary['BOOKED'] || 0) + (summary['PROSES'] || 0)}</p>
             </div>
-            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-emerald-600" /></div>
-                <p className="text-xs font-bold text-emerald-700 uppercase">Lunas</p>
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center"><CheckCircle2 size={18} className="text-emerald-600" /></div>
+                <p className="text-xs font-semibold text-slate-500 uppercase">Lunas</p>
               </div>
-              <p className="text-2xl font-black text-emerald-800">{summary['LUNAS'] || 0}</p>
+              <p className="text-3xl font-bold text-emerald-700">{summary['LUNAS'] || 0}</p>
             </div>
-            <div className="bg-red-50 border border-red-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Ban size={16} className="text-red-600" /></div>
-                <p className="text-xs font-bold text-red-700 uppercase">Batal</p>
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center"><Ban size={18} className="text-red-600" /></div>
+                <p className="text-xs font-semibold text-slate-500 uppercase">Batal</p>
               </div>
-              <p className="text-2xl font-black text-red-800">{summary['BATAL'] || 0}</p>
+              <p className="text-3xl font-bold text-red-700">{summary['BATAL'] || 0}</p>
             </div>
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+      {/* FILTER SECTION */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
-          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
           onClick={() => setIsFilterExpanded(!isFilterExpanded)}
         >
-          <div className="flex items-center gap-2">
-            <Filter size={18} className="text-slate-600" />
-            <h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3>
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg">
+              <Filter size={18} />
+            </div>
+            <h3 className="font-bold text-slate-900 tracking-tight">Filter & Urutkan</h3>
           </div>
-          {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+          <button className="text-slate-400 hover:text-slate-600 transition-colors">
+            {isFilterExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
         </div>
 
         {isFilterExpanded && (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white">
             <div className="relative">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Status Transaksi</label>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Status Transaksi</label>
               <select
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 appearance-none transition-all shadow-sm"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
               >
@@ -1001,13 +1010,13 @@ const Penjualan = () => {
                 <option value="LUNAS">Lunas</option>
                 <option value="BATAL">Batal</option>
               </select>
-              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
 
             <div className="relative">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Urutkan Berdasarkan</label>
               <select
-                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                className="w-full px-4 pl-10 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 appearance-none transition-all shadow-sm"
                 value={orderBy}
                 onChange={handleSortChange}
               >
@@ -1016,13 +1025,14 @@ const Penjualan = () => {
                 <option value="hargaJual:desc">Harga Jual: Tinggi ke Rendah</option>
                 <option value="nama:asc">Nama Customer: A - Z</option>
               </select>
-              <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
-              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-[34px] pointer-events-none text-slate-400" />
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
           </div>
         )}
       </div>
 
+      {/* DATA TABLE */}
       <DataTable
         title="Data Penjualan"
         columns={columns}
@@ -1037,12 +1047,18 @@ const Penjualan = () => {
         onPageChange={handlePageChange}
       />
 
+      {/* FORM MODAL CREATE/EDIT */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Penjualan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+        <form onSubmit={handleSubmit} className="space-y-8">
+
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 className="text-sm font-bold text-slate-900 mb-5 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-600">1</div>
+              Data Pembeli & Marketing
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="md:col-span-2 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100/50 mb-2">
+                {/* Agent Selection Logic */}
                 {!isNewAgent ? (
                   <Select
                     label="Agent Marketing"
@@ -1081,7 +1097,7 @@ const Penjualan = () => {
                         setIsNewAgent(false);
                         setFormData((prev) => ({ ...prev, agent: '' }));
                       }}
-                      className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      className="absolute right-2 top-0 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
                     >
                       Batal Tambah
                     </button>
@@ -1101,10 +1117,13 @@ const Penjualan = () => {
             </div>
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 className="text-sm font-bold text-slate-900 mb-5 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-600">2</div>
+              Data Kavling
+            </h4>
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Select
                   label="Perumahan"
                   name="perumahan"
@@ -1125,7 +1144,7 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Select
                   label="Blok"
                   name="blok"
@@ -1152,7 +1171,7 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Input
                   label="Luas Tanah (m²)"
                   name="luasTanah"
@@ -1169,7 +1188,7 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <CurrencyInput
                   label="Harga Dasar Kavling"
                   name="hargaDasar"
@@ -1199,39 +1218,38 @@ const Penjualan = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+          <div className="flex justify-end gap-4 pt-4 border-t border-slate-200">
+            <button type="button" onClick={closeModal} className="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
               Batal
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-xl hover:bg-slate-800 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
             >
-              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : isEditing ? 'Edit Penjualan' : 'Booking Unit'}
+              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : isEditing ? 'Simpan Perubahan' : 'Booking Unit'}
             </button>
           </div>
         </form>
       </Modal>
 
+      {/* MODAL SKEMA / SPR (Ubah bg-slate-900 ke styling yang lebih terang) */}
       <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} title="Buat Surat Pesanan Rumah (SPR)">
         {selectedPenjualan && (
           <form onSubmit={handleSkemaSubmit} className="space-y-6">
-
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Informasi Pembeli</h4>
-
+            <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 shadow-sm">
+              <h4 className="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-4 border-b border-indigo-100/50 pb-2">Informasi Pembeli</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6">
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Customer</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Nama Customer</p>
                   <p className="text-sm font-bold text-slate-900">{selectedPenjualan.nama}</p>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">NIK: {selectedPenjualan.noIdentitas}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">NIK: {selectedPenjualan.noIdentitas}</p>
                 </div>
                 <div className="md:col-span-2">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kavling Dipilih</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Kavling Dipilih</p>
                   <p className="text-sm font-bold text-slate-900">{selectedPenjualan.perumahan} - Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}</p>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">Tipe {selectedPenjualan.tipe} (LB: {selectedPenjualan.luasBangunan} / LT: {selectedPenjualan.luasTanah})</p>
-                  <p className="text-xs font-bold text-blue-600 mt-1">Harga Dasar Kavling: {formatRupiah(selectedPenjualan.hargaDasar || 0)}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Tipe {selectedPenjualan.tipe} (LB: {selectedPenjualan.luasBangunan} / LT: {selectedPenjualan.luasTanah})</p>
+                  <p className="text-sm font-bold text-indigo-600 mt-2">Harga Dasar: {formatRupiah(selectedPenjualan.hargaDasar || 0)}</p>
                 </div>
               </div>
             </div>
@@ -1250,16 +1268,16 @@ const Penjualan = () => {
               error={errors.caraPembayaran}
             />
 
-            <div className="mt-5 p-5 bg-slate-900 rounded-xl space-y-4 shadow-md">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Rangkuman Akhir Transaksi</h4>
+            <div className="mt-6 p-6 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-200 pb-3">Rangkuman Akhir Transaksi</h4>
 
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-slate-300">Harga Dasar</span>
-                <span className="text-sm font-bold text-white">{formatRupiah(formData.hargaDasar || 0)}</span>
+                <span className="text-sm font-medium text-slate-600">Harga Dasar</span>
+                <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.hargaDasar || 0)}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-slate-300 w-full">- Diskon Penjualan</p>
+                <p className="text-sm font-medium text-slate-600 w-full">- Diskon Penjualan</p>
                 <div className="w-48 sm:w-64">
                   <CurrencyInput
                     label=""
@@ -1273,10 +1291,10 @@ const Penjualan = () => {
 
               <div className="flex items-center justify-between mt-1">
                 <div className="flex items-center gap-3 w-full">
-                  <span className="text-xs font-medium text-slate-300">- Booking Fee</span>
+                  <span className="text-sm font-medium text-slate-600">- Booking Fee</span>
                   <button
                     type="button"
-                    className="bg-white hover:bg-slate-200 transition-colors rounded px-2 text-black font-bold text-sm leading-tight"
+                    className="w-6 h-6 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors rounded-md text-slate-700 font-bold shadow-sm"
                     onClick={handleAddBiayaTambahan}
                   >
                     +
@@ -1299,7 +1317,7 @@ const Penjualan = () => {
                     <button
                       type="button"
                       onClick={() => handleRemoveBiayaTambahan(biaya.id)}
-                      className="bg-red-500 hover:bg-red-600 transition-colors text-white rounded px-2 font-bold text-sm leading-tight"
+                      className="w-6 h-6 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors rounded-md font-bold"
                     >
                       -
                     </button>
@@ -1307,8 +1325,8 @@ const Penjualan = () => {
                       type="text"
                       value={biaya.nama}
                       onChange={(e) => handleChangeBiayaTambahanNama(biaya.id, e.target.value)}
-                      className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500 w-full max-w-[200px]"
-                      placeholder="Nama Biaya (Misal: Uang Muka)"
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 w-full max-w-[200px] shadow-sm"
+                      placeholder="Nama Biaya"
                     />
                   </div>
                   <div className="w-48 sm:w-64">
@@ -1323,15 +1341,15 @@ const Penjualan = () => {
                 </div>
               ))}
 
-              <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                <span className="text-xs font-medium text-blue-300">Plafon Awal <span className="hidden sm:inline">(Harga Dasar - Diskon - BF)</span></span>
-                <span className="text-sm font-bold text-blue-400">{formatRupiah(formData.plafonAwal || 0)}</span>
-              </div>
 
               {formData.caraPembayaran === 'KPR' && (
                 <>
-                  <div className="flex items-center justify-between mt-3">
-                    <p className="text-xs font-medium text-slate-300 w-full">Bank KPR</p>
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-4">
+                    <span className="text-sm font-semibold text-indigo-700">Plafon Awal <span className="hidden sm:inline font-normal text-slate-500">(Dasar - Diskon - BF)</span></span>
+                    <span className="text-base font-bold text-indigo-700">{formatRupiah(formData.plafonAwal || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm font-medium text-slate-600 w-full">Bank KPR</p>
                     <div className="w-48 sm:w-64">
                       <Input
                         label=""
@@ -1344,15 +1362,15 @@ const Penjualan = () => {
                     </div>
                   </div>
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs font-medium text-slate-300">+ Biaya KPR <span className="hidden sm:inline">(6% dari Plafon Awal)</span></span>
-                    <span className="text-sm font-bold text-white">{formatRupiah(formData.biayaKpr || 0)}</span>
+                    <span className="text-sm font-medium text-slate-600">+ Biaya KPR <span className="hidden sm:inline text-slate-400">(6% dari Plafon)</span></span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.biayaKpr || 0)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                    <span className="text-xs font-medium text-indigo-300">Nilai Pengajuan KPR <span className="hidden sm:inline">(Plafon Awal + Biaya KPR)</span></span>
-                    <span className="text-sm font-bold text-indigo-400">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-3">
+                    <span className="text-sm font-semibold text-blue-700">Nilai Pengajuan KPR</span>
+                    <span className="text-base font-bold text-blue-700">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-xs font-medium text-slate-300 w-full">+ DP KPR</span>
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-sm font-medium text-slate-600 w-full">+ DP KPR</span>
                     <div className="w-48 sm:w-64">
                       <CurrencyInput
                         label=""
@@ -1366,24 +1384,24 @@ const Penjualan = () => {
                 </>
               )}
 
-              <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">
+              <div className="flex justify-between items-center p-4 bg-emerald-50 border border-emerald-200 rounded-xl mt-6">
+                <span className="text-sm font-bold text-emerald-800 uppercase tracking-widest">
                   Harga Jual
                 </span>
-                <span className="text-xl font-black text-emerald-400">{formatRupiah(formData.hargaJual || 0)}</span>
+                <span className="text-xl font-black text-emerald-700">{formatRupiah(formData.hargaJual || 0)}</span>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-              <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+            <div className="flex justify-end gap-4 pt-4 border-t border-slate-200">
+              <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={updateMutation.isPending}
-                className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-colors cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-xl hover:bg-slate-800 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
-                {updateMutation.isPending ? 'Memproses...' : 'Simpan Skema & Proses SPR'}
+                {updateMutation.isPending ? 'Memproses...' : 'Simpan & Proses SPR'}
               </button>
             </div>
           </form>
@@ -1775,14 +1793,14 @@ const Penjualan = () => {
 
                 <div className="bg-emerald-900/40 p-4 rounded-xl border border-emerald-800 mt-4">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-base font-black text-emerald-400 uppercase tracking-wider">Harga Jual Final</span>
+                    <span className="text-base font-black text-emerald-400 uppercase tracking-wider">Harga Jual</span>
                     <span className="text-lg font-black text-emerald-400">{formatRupiah(detailData.hargaJual || 0)}</span>
                   </div>
                   <p className="text-[10px] text-emerald-600/70 font-mono">
                     <strong className="text-emerald-500/80">Kalkulasi:</strong> {
                       detailData.caraPembayaran === 'KPR' || detailData.caraPembayaran === 'KPR'
                         ? 'Nilai Pengajuan KPR + Down Payment (DP)'
-                        : 'Harga Jual final menyesuaikan besaran Plafon Awal'
+                        : 'Harga Jual menyesuaikan besaran Plafon Awal'
                     }
                   </p>
                 </div>

@@ -31,6 +31,8 @@ export interface VerifyInvoiceData {
     hargaJual: number;
     sisaBelumDibayar: number;
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ttdData?: any;
 }
 
 export interface VerifySprData {

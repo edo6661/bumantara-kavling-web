@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -7,17 +7,19 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud, Edit2, Trash2, Eye, ZoomIn } from 'lucide-react';
+import { FileText, Printer, UploadCloud, Edit2, Trash2, Eye, ZoomIn, PenTool } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
+import SignatureCanvas from 'react-signature-canvas';
 import {
   useGetTagihans,
   useCreateTagihan,
   useUpdateTagihan,
   useDeleteTagihan,
-  useUploadBuktiTagihan
+  useUploadBuktiTagihan,
+  useUploadTagihanSignature
 } from "../../hooks/queries/useTagihan";
 import { useGetCustomers } from "../../hooks/queries/useCustomer";
 import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
@@ -64,6 +66,7 @@ const Tagihan = () => {
   const updateMutation = useUpdateTagihan();
   const deleteMutation = useDeleteTagihan();
   const uploadBuktiMutation = useUploadBuktiTagihan();
+  const uploadSignatureMutation = useUploadTagihanSignature();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<TagihanFormState>(initialFormState);
@@ -77,6 +80,10 @@ const Tagihan = () => {
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedDetailRow, setSelectedDetailRow] = useState<any>(null);
+
+  const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
+  const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
+  const sigCanvas = useRef<SignatureCanvas>(null);
 
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
@@ -106,7 +113,6 @@ const Tagihan = () => {
       const lowerPay = item.pembayaran.toLowerCase();
       const isBfOrDp = lowerPay.includes('booking') || lowerPay.includes('dp') || lowerPay.includes('down payment');
 
-      // Pisahkan penjumlahan antara tagihan cicilan dengan BF/DP agar "Sisa Pembayaran" akurat
       if (item.status === 'LUNAS') {
         if (isBfOrDp) {
           groups[groupKey].totalTerbayarBfDp += Number(item.nominal);
@@ -115,7 +121,6 @@ const Tagihan = () => {
         }
       }
 
-      // Filter: Hanya tampilkan tagihan yang BUKAN Booking Fee atau DP
       if (!isBfOrDp) {
         if (item.status === 'BELUM_BAYAR') {
           groups[groupKey].unpaidCount += 1;
@@ -127,7 +132,6 @@ const Tagihan = () => {
       }
     });
 
-    // Sembunyikan customer yang belum memiliki tagihan cicilan bertahap
     return Object.values(groups).filter(g => g.cicilan.length > 0);
   }, [tagihans]);
 
@@ -225,10 +229,10 @@ const Tagihan = () => {
         kavlingLabel: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
         pembayaran: item.pembayaran,
         nominal: item.nominal,
-        jatuhTempo: formatDateForInput(item.jatuhTempo as any),
+        jatuhTempo: formatDateForInput(item.jatuhTempo ? String(item.jatuhTempo) : ''),
         status: item.status,
         fileBukti: item.fileBukti || '',
-        reminderBerikutnya: formatDateForInput(item.reminderBerikutnya as any),
+        reminderBerikutnya: formatDateForInput(item.reminderBerikutnya ? String(item.reminderBerikutnya) : ''),
       });
       setIsEditing(true);
       setIsAutoFilled(true);
@@ -280,6 +284,50 @@ const Tagihan = () => {
     }
   };
 
+  const saveSignature = async () => {
+    if (sigCanvas.current?.isEmpty()) {
+      alert("Tanda tangan tidak boleh kosong!");
+      return;
+    }
+    if (!ttdData.nama.trim()) {
+      alert("Nama penandatangan wajib diisi!");
+      return;
+    }
+    const canvas = sigCanvas.current?.getCanvas();
+    if (!canvas) return;
+    const signatureBase64 = canvas.toDataURL('image/png');
+
+    try {
+      await uploadSignatureMutation.mutateAsync({
+        noTagihanId: Number(printData.id),
+        signatureBase64,
+        nama: ttdData.nama,
+        peran: ttdData.sebagai,
+        tanggal: ttdData.tanggal,
+      });
+
+      alert(`Tanda tangan berhasil disimpan!`);
+
+      setPrintData((prev: any) => ({
+        ...prev,
+        ttdData: {
+          ...prev.ttdData,
+          [ttdData.sebagai]: { nama: ttdData.nama, tanggal: ttdData.tanggal, url: signatureBase64 }
+        }
+      }));
+      setIsTtdModalOpen(false);
+    } catch (error) {
+      let errorMessage = "Gagal menyimpan tanda tangan";
+      if (error && typeof error === 'object' && 'response' in error) {
+        const resData = (error as any).response?.data;
+        if (resData && resData.message) {
+          errorMessage = resData.message;
+        }
+      }
+      alert(errorMessage);
+    }
+  };
+
   const handleShareWA = () => {
     if (!printData) return;
 
@@ -292,13 +340,11 @@ const Tagihan = () => {
     }
     const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
 
-    // --- PERBAIKAN: Gunakan replace untuk memastikan prefix konsisten ---
     let docId = printData.noTagihan;
     if (printType === 'kwitansi' && docId.startsWith('INV-')) {
       docId = docId.replace('INV-', 'KWT-');
     }
     const documentLink = `${window.location.origin}/verify/${docId}`;
-    // -------------------------------------------------------------------
 
     let rekeningText = '';
     let rekening: any = printData.rekeningTujuan;
@@ -384,17 +430,22 @@ const Tagihan = () => {
         });
       }
       closeModal();
-    } catch (error: any) {
-      const responseData = error.response?.data;
-      if (responseData?.error && Array.isArray(responseData.error)) {
-        const backendErrors: Record<string, string> = {};
-        responseData.error.forEach((err: { field: string; message: string }) => {
-          backendErrors[err.field] = err.message;
-        });
-        setErrors(backendErrors);
-      } else {
-        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+    } catch (error) {
+      let errorMessage = 'Terjadi kesalahan saat menyimpan data';
+      if (error && typeof error === 'object' && 'response' in error) {
+        const resData = (error as any).response?.data;
+        if (resData?.error && Array.isArray(resData.error)) {
+          const backendErrors: Record<string, string> = {};
+          resData.error.forEach((err: { field: string; message: string }) => {
+            backendErrors[err.field] = err.message;
+          });
+          setErrors(backendErrors);
+          return;
+        } else if (resData?.message) {
+          errorMessage = resData.message;
+        }
       }
+      alert(errorMessage);
     }
   };
 
@@ -402,8 +453,12 @@ const Tagihan = () => {
     if (window.confirm(`Hapus data tagihan ${item.pembayaran} untuk ${item.namaCustomer}?`)) {
       try {
         await deleteMutation.mutateAsync(item.id);
-      } catch (error: any) {
-        alert(error.response?.data?.message || 'Gagal menghapus tagihan');
+      } catch (error) {
+        let errorMessage = 'Gagal menghapus tagihan';
+        if (error && typeof error === 'object' && 'response' in error) {
+          errorMessage = (error as any).response?.data?.message || errorMessage;
+        }
+        alert(errorMessage);
       }
     }
   };
@@ -492,10 +547,10 @@ const Tagihan = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => openModal(c as any)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer border border-transparent hover:border-blue-100" title="Edit Cicilan">
+                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer border border-transparent hover:border-blue-100" title="Edit Cicilan">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(c as any)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer border border-transparent hover:border-red-100" title="Hapus Cicilan">
+                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer border border-transparent hover:border-red-100" title="Hapus Cicilan">
                     <Trash2 size={16} />
                   </button>
                   <div className="w-px h-6 bg-slate-200 mx-1"></div>
@@ -536,7 +591,7 @@ const Tagihan = () => {
                       }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer">
                         <FileText size={14} /> Invoice
                       </button>
-                      <button onClick={() => openModal(c as any)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md cursor-pointer">
+                      <button onClick={() => openModal(c)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md cursor-pointer">
                         <UploadCloud size={14} /> Upload Bukti
                       </button>
                     </>
@@ -851,10 +906,51 @@ const Tagihan = () => {
                   </div>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
                   <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
-
+                  <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Hormat Kami,</span>
+                  <span className="text-[10px] text-slate-900 font-black mt-0.5 tracking-wide uppercase">
+                    {printData.pembuat}
+                  </span>
                 </div>
 
+                {printType === 'kwitansi' && (
+                  <div className="text-center w-[200px] relative">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                      Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
+                    </p>
 
+                    {(() => {
+                      const ttdRole = printTitle.includes('Booking Fee') ? 'Kwitansi_Booking' : 'Kwitansi_DP';
+                      const ttdObj = printData.ttdData?.[ttdRole];
+
+                      if (ttdObj?.url) {
+                        return (
+                          <div className="flex flex-col items-center justify-center my-2 h-16">
+                            <img src={ttdObj.url} alt="Tanda Tangan" className="h-14 object-contain" crossOrigin="anonymous" />
+                            <span className="text-[7px] text-slate-400 font-medium">Signed at: {formatDate(ttdObj.tanggal)}</span>
+                          </div>
+                        );
+                      }
+                      return <div className="h-16 w-full"></div>;
+                    })()}
+
+                    <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
+                      MARKETING
+                    </p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
+                  </div>
+                )}
+
+                {printType === 'invoice' && (
+                  <div className="text-center w-[200px] relative">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
+                      Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
+                    </p>
+                    <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
+                      MARKETING
+                    </p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -862,6 +958,21 @@ const Tagihan = () => {
 
         <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
           <button onClick={() => setPrintData(null)} className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-slate-50 transition-colors">Tutup</button>
+
+          {printType === 'kwitansi' && (
+            <button onClick={() => {
+              setTtdData({
+                nama: 'Marketing',
+                tanggal: new Date().toISOString().split('T')[0],
+                sebagai: printTitle.includes('Booking Fee') ? 'Kwitansi_Booking' : 'Kwitansi_DP'
+              });
+              setIsTtdModalOpen(true);
+              setTimeout(() => sigCanvas.current?.clear(), 100);
+            }} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-blue-700 transition-colors shadow-md flex items-center gap-2">
+              <PenTool size={16} /> Tanda Tangan
+            </button>
+          )}
+
           <button onClick={handleShareWA} className="px-6 py-2.5 bg-green-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer hover:bg-green-600 shadow-md shadow-green-500/20 flex items-center gap-2 transition-colors">
             Kirim via WA
           </button>
@@ -897,6 +1008,32 @@ const Tagihan = () => {
               className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-md"
             >
               Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL TANDA TANGAN */}
+      <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital Kwitansi">
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input label="Nama Penandatangan" value={ttdData.nama} onChange={(e) => setTtdData({ ...ttdData, nama: e.target.value })} placeholder="Nama Marketing..." />
+            <Input label="Tanggal Tanda Tangan" type="date" value={ttdData.tanggal} onChange={(e) => setTtdData({ ...ttdData, tanggal: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider ml-1 mb-2 block">Area Tanda Tangan</label>
+            <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white overflow-hidden shadow-inner">
+              <SignatureCanvas ref={sigCanvas} penColor="black" backgroundColor="white" canvasProps={{ width: 600, height: 200, className: 'sigCanvas w-full cursor-crosshair' }} />
+            </div>
+            <div className="flex justify-between items-center mt-2 px-1">
+              <p className="text-xs font-medium text-slate-400">Pastikan tanda tangan berada di dalam kotak.</p>
+              <button type="button" onClick={() => sigCanvas.current?.clear()} className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer transition-colors">Hapus / Ulangi</button>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button onClick={() => setIsTtdModalOpen(false)} disabled={uploadSignatureMutation.isPending} className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-50 transition-colors disabled:opacity-50">Batal</button>
+            <button onClick={saveSignature} disabled={uploadSignatureMutation.isPending} className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-colors disabled:opacity-50">
+              {uploadSignatureMutation.isPending ? "Menyimpan..." : "Simpan Tanda Tangan"}
             </button>
           </div>
         </div>

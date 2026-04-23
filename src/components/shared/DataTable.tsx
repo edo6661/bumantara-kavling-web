@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
@@ -17,8 +16,6 @@ interface DataTableProps {
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
   expandedRowRender?: (row: any) => React.ReactNode;
-
-
   serverSide?: boolean;
   searchTerm?: string;
   onSearchChange?: (val: string) => void;
@@ -32,10 +29,8 @@ const DataTable = ({
   serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
 }: DataTableProps) => {
 
-
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-
 
   useEffect(() => {
     if (serverSide && onSearchChange) {
@@ -52,11 +47,9 @@ const DataTable = ({
     setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
   };
 
-
   const filteredData = useMemo(() => {
     if (serverSide) return data;
     if (!localSearchTerm) return data;
-
     const lowercasedTerm = localSearchTerm.toLowerCase();
     return data.filter((row) => {
       return columns.some((col) => {
@@ -68,7 +61,6 @@ const DataTable = ({
   }, [data, localSearchTerm, columns, serverSide]);
 
   const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
-
 
   const getPageNumbers = () => {
     const delta = 1;
@@ -84,38 +76,37 @@ const DataTable = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-md/10">
-      <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white/50 backdrop-blur-sm">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
+      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h2>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
             {!serverSide && (
-              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-full border border-slate-200/50">
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
                 {filteredData.length} Data
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-64 group">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
+          <div className="relative w-full sm:w-72 group">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
             <input
               type="text"
               placeholder="Cari data..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all shadow-sm/5 text-slate-900 placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
           {onAdd && (
             <button
               onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2 rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-black/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
             >
-              <Plus size={16} strokeWidth={3} />
+              <Plus size={16} strokeWidth={2.5} />
               Tambah Data
             </button>
           )}
@@ -125,19 +116,19 @@ const DataTable = ({
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-sm text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-widest border-b border-slate-100">
-              {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
+              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center"></th>}
               {columns.map((col, index) => (
-                <th key={index} className="px-6 py-4 whitespace-nowrap font-bold">
+                <th key={index} className="px-6 py-3.5 whitespace-nowrap">
                   {col.header}
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
+                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24">Aksi</th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-100">
             {filteredData.length > 0 ? (
               filteredData.map((row, rowIndex) => {
                 const isExpanded = !!expandedRows[rowIndex];
@@ -147,25 +138,25 @@ const DataTable = ({
                       onClick={() => {
                         if (expandedRowRender) toggleRow(rowIndex);
                       }}
-                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50/80'} ${isExpanded ? 'bg-slate-50' : ''}`}
+                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-slate-50/50' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-black transition-colors">
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
                           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                         </td>
                       )}
                       {columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-6 py-4 text-slate-600 whitespace-nowrap font-medium">
+                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
                           {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                         </td>
                       ))}
                       {(onEdit || onDelete) && (
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             {onEdit && (
                               <button
                                 onClick={() => onEdit(row)}
-                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
                                 title="Edit"
                               >
                                 <Edit2 size={16} />
@@ -174,7 +165,8 @@ const DataTable = ({
                             {onDelete && (
                               <button
                                 onClick={() => onDelete(row)}
-                                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                                title="Hapus"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -184,8 +176,8 @@ const DataTable = ({
                       )}
                     </tr>
                     {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/40">
-                        <td colSpan={totalCols} className="px-6 py-6 border-b border-slate-100">
+                      <tr className="bg-slate-50/30 border-t-0">
+                        <td colSpan={totalCols} className="px-6 py-5 border-b border-slate-100">
                           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                             {expandedRowRender(row)}
                           </div>
@@ -197,13 +189,13 @@ const DataTable = ({
               })
             ) : (
               <tr>
-                <td colSpan={totalCols} className="px-6 py-24 text-center">
+                <td colSpan={totalCols} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center max-w-xs mx-auto">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 ring-8 ring-slate-50/30">
-                      <FileX2 size={28} className="text-slate-300" />
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-slate-50/50">
+                      <FileX2 size={24} className="text-slate-300" />
                     </div>
-                    <h3 className="text-slate-900 font-bold mb-1">Data tidak ditemukan</h3>
-                    <p className="text-slate-400 text-xs font-medium leading-relaxed">
+                    <h3 className="text-slate-900 font-semibold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-500 text-sm">
                       Kami tidak dapat menemukan data yang Anda cari.
                     </p>
                   </div>
@@ -214,10 +206,9 @@ const DataTable = ({
         </table>
       </div>
 
-      {/* CUSTOM PAGINATION UI */}
       {serverSide && totalPages > 1 && (
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/50 backdrop-blur-sm">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="text-xs font-semibold text-slate-500">
             Halaman {page} dari {totalPages}
           </span>
           <div className="flex items-center gap-1.5">
@@ -226,7 +217,7 @@ const DataTable = ({
               disabled={page === 1}
               className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </button>
 
             {getPageNumbers().map((num, idx) => (
@@ -236,8 +227,8 @@ const DataTable = ({
                 <button
                   key={idx}
                   onClick={() => onPageChange?.(num as number)}
-                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${page === num
-                    ? 'bg-black text-white shadow-md'
+                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${page === num
+                    ? 'bg-slate-900 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-100'
                     }`}
                 >
@@ -251,7 +242,7 @@ const DataTable = ({
               disabled={page === totalPages}
               className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>

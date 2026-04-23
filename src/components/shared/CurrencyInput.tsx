@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
-  label: string;
+  label?: string;
   error?: string;
   value: number | string;
   onValueChange: (name: string, value: number) => void;
@@ -19,12 +19,20 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
 
   return (
     <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
-        {label}
-      </label>
+      {label && (
+        <label
+          className={`text-xs font-semibold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-slate-900'}`}
+        >
+          {label}
+        </label>
+      )}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="text-slate-500 font-medium text-sm">Rp</span>
+          {/* Teks Rp meredup jika input disabled */}
+          <span className={`font-medium text-sm transition-colors ${props.disabled ? 'text-slate-400 opacity-60' : 'text-slate-400 group-focus-within:text-slate-900'}`}>
+            Rp
+          </span>
         </div>
         <input
           type="text"
@@ -32,10 +40,11 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
           value={displayValue}
           onChange={handleChange}
           autoComplete="off"
-          className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-slate-400 shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200
+          className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
+            disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
             ${error
-              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-              : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black text-slate-900 bg-white'
+              ? 'border-red-300 bg-red-50/50 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 text-slate-900 shadow-sm'
             }`}
           {...props}
         />
@@ -48,4 +57,5 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
     </div>
   );
 };
+
 export default CurrencyInput;

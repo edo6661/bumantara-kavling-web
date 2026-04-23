@@ -90,3 +90,19 @@ export const useUploadRefundTagihan = () => {
     },
   });
 };
+
+export const useUploadTagihanSignature = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      noTagihanId: number;
+      signatureBase64: string;
+      nama: string;
+      peran: string;
+      tanggal: string;
+    }) => tagihanService.uploadSignature(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+    },
+  });
+};

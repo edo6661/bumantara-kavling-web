@@ -1,4 +1,4 @@
-tolong simpan kode frontend:
+kode frontend:
 
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -2215,7 +2215,7 @@ export const authService = {
 import React from 'react';
 
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
-  label: string;
+  label?: string;
   error?: string;
   value: number | string;
   onValueChange: (name: string, value: number) => void;
@@ -2233,12 +2233,20 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
 
   return (
     <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
-        {label}
-      </label>
+      {label && (
+        <label
+          className={`text-xs font-semibold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-slate-900'}`}
+        >
+          {label}
+        </label>
+      )}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="text-slate-500 font-medium text-sm">Rp</span>
+          {/* Teks Rp meredup jika input disabled */}
+          <span className={`font-medium text-sm transition-colors ${props.disabled ? 'text-slate-400 opacity-60' : 'text-slate-400 group-focus-within:text-slate-900'}`}>
+            Rp
+          </span>
         </div>
         <input
           type="text"
@@ -2246,10 +2254,11 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
           value={displayValue}
           onChange={handleChange}
           autoComplete="off"
-          className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-slate-400 shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200
+          className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
+            disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
             ${error
-              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-              : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black text-slate-900 bg-white'
+              ? 'border-red-300 bg-red-50/50 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 text-slate-900 shadow-sm'
             }`}
           {...props}
         />
@@ -2262,6 +2271,7 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
     </div>
   );
 };
+
 export default CurrencyInput;
 </file>
 
@@ -3996,21 +4006,27 @@ export const verifyService = {
 import type { InputHTMLAttributes } from 'react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+  label?: string;
   error?: string;
 }
 
 const Input = ({ label, error, ...props }: InputProps) => {
   return (
     <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
-        {label}
-      </label>
+      {label && (
+        <label
+          className={`text-xs font-semibold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-slate-900'}`}
+        >
+          {label}
+        </label>
+      )}
       <input
-        className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none placeholder:text-slate-400 shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200
+        className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
+          disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
           ${error
-            ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-            : 'border-slate-200 hover:border-slate-300 focus:bg-white focus:ring-4 focus:ring-black/5 focus:border-black text-slate-900 bg-white'
+            ? 'border-red-300 bg-red-50/50 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-900'
+            : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 text-slate-900 shadow-sm'
           }`}
         {...props}
       />
@@ -4059,31 +4075,30 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-all"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-all"
             onClick={onClose}
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="relative bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-slate-200 overflow-hidden"
+            className="relative bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl ring-1 ring-slate-900/5 overflow-hidden"
           >
-            <div className="flex justify-between items-center px-8 py-5 border-b border-slate-100 bg-white shrink-0">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-md shrink-0 z-10">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Formulir Penginputan Data</p>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
               >
                 <X size={20} strokeWidth={2.5} />
               </button>
             </div>
 
-            <div className="p-8 overflow-y-auto custom-scrollbar bg-white">
+            <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-50/30">
               {children}
             </div>
           </motion.div>
@@ -4106,7 +4121,7 @@ interface Option {
 }
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;
+  label?: string;
   options: Option[];
   error?: string;
 }
@@ -4114,27 +4129,35 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 const Select = ({ label, options, error, ...props }: SelectProps) => {
   return (
     <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
-        {label}
-      </label>
+      {label && (
+        <label
+          className={`text-xs font-semibold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-slate-900'}`}
+        >
+          {label}
+        </label>
+      )}
       <div className="relative">
         <select
-          className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-300 outline-none cursor-pointer appearance-none shadow-sm/50 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed disabled:border-slate-200
+          className={`peer w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none appearance-none
+            disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+            ${props.disabled ? '' : 'cursor-pointer'}
             ${error
-              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-              : 'border-slate-200 hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black text-slate-900 bg-white'
+              ? 'border-red-300 bg-red-50/50 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 text-slate-900 shadow-sm'
             }`}
           {...props}
         >
-          <option value="" disabled>Pilih {label}...</option>
+          <option value="" disabled>Pilih {label || 'Opsi'}...</option>
           {options.map((opt) => (
             <option key={opt.value} value={opt.value} className="py-2">
               {opt.label}
             </option>
           ))}
         </select>
-        {/* Custom Arrow Icon */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 group-focus-within:text-black transition-colors">
+
+        {/* Ikon panah dibuat merespon state disabled dari elemen select (peer-disabled) */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400 peer-focus:text-slate-900 peer-disabled:opacity-40 transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -7101,8 +7124,6 @@ interface DataTableProps {
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
   expandedRowRender?: (row: any) => React.ReactNode;
-
-
   serverSide?: boolean;
   searchTerm?: string;
   onSearchChange?: (val: string) => void;
@@ -7116,10 +7137,8 @@ const DataTable = ({
   serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
 }: DataTableProps) => {
 
-
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-
 
   useEffect(() => {
     if (serverSide && onSearchChange) {
@@ -7136,11 +7155,9 @@ const DataTable = ({
     setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
   };
 
-
   const filteredData = useMemo(() => {
     if (serverSide) return data;
     if (!localSearchTerm) return data;
-
     const lowercasedTerm = localSearchTerm.toLowerCase();
     return data.filter((row) => {
       return columns.some((col) => {
@@ -7152,7 +7169,6 @@ const DataTable = ({
   }, [data, localSearchTerm, columns, serverSide]);
 
   const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
-
 
   const getPageNumbers = () => {
     const delta = 1;
@@ -7168,38 +7184,37 @@ const DataTable = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-md/10">
-      <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white/50 backdrop-blur-sm">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
+      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h2>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
             {!serverSide && (
-              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-widest rounded-full border border-slate-200/50">
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
                 {filteredData.length} Data
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 font-medium">Kelola dan pantau informasi operasional secara real-time.</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-64 group">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-black transition-colors" />
+          <div className="relative w-full sm:w-72 group">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
             <input
               type="text"
               placeholder="Cari data..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all shadow-sm/5 text-slate-900 placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
           {onAdd && (
             <button
               onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-5 py-2 rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-black/10 transition-all duration-300 font-bold text-xs uppercase tracking-widest active:scale-95 cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
             >
-              <Plus size={16} strokeWidth={3} />
+              <Plus size={16} strokeWidth={2.5} />
               Tambah Data
             </button>
           )}
@@ -7209,19 +7224,19 @@ const DataTable = ({
       <div className="overflow-x-auto custom-scrollbar">
         <table className="w-full text-sm text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/50 text-slate-500 text-[11px] uppercase font-bold tracking-widest border-b border-slate-100">
-              {expandedRowRender && <th className="px-4 py-4 w-10 text-center"></th>}
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
+              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center"></th>}
               {columns.map((col, index) => (
-                <th key={index} className="px-6 py-4 whitespace-nowrap font-bold">
+                <th key={index} className="px-6 py-3.5 whitespace-nowrap">
                   {col.header}
                 </th>
               ))}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-4 text-center whitespace-nowrap w-24">Aksi</th>
+                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24">Aksi</th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-100">
             {filteredData.length > 0 ? (
               filteredData.map((row, rowIndex) => {
                 const isExpanded = !!expandedRows[rowIndex];
@@ -7231,25 +7246,25 @@ const DataTable = ({
                       onClick={() => {
                         if (expandedRowRender) toggleRow(rowIndex);
                       }}
-                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50/80'} ${isExpanded ? 'bg-slate-50' : ''}`}
+                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-slate-50/50' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-black transition-colors">
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
                           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                         </td>
                       )}
                       {columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-6 py-4 text-slate-600 whitespace-nowrap font-medium">
+                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
                           {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                         </td>
                       ))}
                       {(onEdit || onDelete) && (
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             {onEdit && (
                               <button
                                 onClick={() => onEdit(row)}
-                                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
                                 title="Edit"
                               >
                                 <Edit2 size={16} />
@@ -7258,7 +7273,8 @@ const DataTable = ({
                             {onDelete && (
                               <button
                                 onClick={() => onDelete(row)}
-                                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                                title="Hapus"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -7268,8 +7284,8 @@ const DataTable = ({
                       )}
                     </tr>
                     {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/40">
-                        <td colSpan={totalCols} className="px-6 py-6 border-b border-slate-100">
+                      <tr className="bg-slate-50/30 border-t-0">
+                        <td colSpan={totalCols} className="px-6 py-5 border-b border-slate-100">
                           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                             {expandedRowRender(row)}
                           </div>
@@ -7281,13 +7297,13 @@ const DataTable = ({
               })
             ) : (
               <tr>
-                <td colSpan={totalCols} className="px-6 py-24 text-center">
+                <td colSpan={totalCols} className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center max-w-xs mx-auto">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 ring-8 ring-slate-50/30">
-                      <FileX2 size={28} className="text-slate-300" />
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-slate-50/50">
+                      <FileX2 size={24} className="text-slate-300" />
                     </div>
-                    <h3 className="text-slate-900 font-bold mb-1">Data tidak ditemukan</h3>
-                    <p className="text-slate-400 text-xs font-medium leading-relaxed">
+                    <h3 className="text-slate-900 font-semibold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-500 text-sm">
                       Kami tidak dapat menemukan data yang Anda cari.
                     </p>
                   </div>
@@ -7298,10 +7314,9 @@ const DataTable = ({
         </table>
       </div>
 
-      {/* CUSTOM PAGINATION UI */}
       {serverSide && totalPages > 1 && (
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white/50 backdrop-blur-sm">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="text-xs font-semibold text-slate-500">
             Halaman {page} dari {totalPages}
           </span>
           <div className="flex items-center gap-1.5">
@@ -7310,7 +7325,7 @@ const DataTable = ({
               disabled={page === 1}
               className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </button>
 
             {getPageNumbers().map((num, idx) => (
@@ -7320,8 +7335,8 @@ const DataTable = ({
                 <button
                   key={idx}
                   onClick={() => onPageChange?.(num as number)}
-                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${page === num
-                    ? 'bg-black text-white shadow-md'
+                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${page === num
+                    ? 'bg-slate-900 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-slate-100'
                     }`}
                 >
@@ -7335,7 +7350,7 @@ const DataTable = ({
               disabled={page === totalPages}
               className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
@@ -9404,9 +9419,11 @@ const Tagihan = () => {
       return {
         ...found,
         tipe: found.tipe || '-',
-        pembiayaan: found.pembiayaan?.replace('_', ' ') || '-',
+        pembiayaan: found.pembiayaan?.replace(/_/g, ' ') || '-',
         status: found.status || 'TIDAK DIKETAHUI',
-        harga: Number(found.harga) || 0,
+
+        harga: Number(found.totalHargaJual) || 0,
+
         lebihTanah: Number(found.lebihTanah) || 0,
         biayaStrategis: Number(found.biayaStrategis) || 0,
         totalHargaJual: Number(found.totalHargaJual) || 0,
@@ -9621,8 +9638,7 @@ const Tagihan = () => {
     const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
     const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
 
-    const totalTerbayarBfDp = row.totalTerbayarBfDp || 0;
-    const piutangCicilan = Math.max(0, totalHargaJual - totalTerbayarBfDp);
+    const piutangCicilan = Math.max(0, totalHargaJual);
 
     const totalTerbayarCicilan = row.totalTerbayarKeseluruhan;
     const sisaPembayaran = Math.max(0, piutangCicilan - totalTerbayarCicilan);
@@ -10152,31 +10168,6 @@ const Tagihan = () => {
                 </div>
               </div>
             </div>
-
-            {detailPenjualanData && (
-              <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
-                <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3 border-b border-indigo-100 pb-2">Rincian Finansial Transaksi</h4>
-                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600 font-medium">Harga Jual:</span>
-                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.harga || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600 font-medium">Lebih Tanah:</span>
-                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.lebihTanah || 0)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-slate-600 font-medium">Biaya Strategis:</span>
-                    <span className="text-sm font-bold text-slate-900">{formatRupiah(detailPenjualanData.biayaStrategis || 0)}</span>
-                  </div>
-                  <div className="flex justify-between items-center col-span-2 mt-2 p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
-                    <span className="text-sm font-bold text-slate-700">Total Harga Keseluruhan:</span>
-                    <span className="text-lg font-black text-slate-900">{formatRupiah((detailPenjualanData.harga + detailPenjualanData.lebihTanah + detailPenjualanData.biayaStrategis) || 0)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedDetailRow(null)}
@@ -10306,13 +10297,20 @@ const initialFormState: PenjualanData = {
   rekeningTujuanId: '',
 };
 
+interface BiayaTambahan {
+  id: string;
+  nama: string;
+  nominal: number;
+}
+
 const Penjualan = () => {
   const { selectedPerumahan } = useAuth();
 
-
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
-  const [isAddUangMuka, setIsAddUangMuka] = useState(false);
+
+
+  const [biayaTambahanList, setBiayaTambahanList] = useState<BiayaTambahan[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
@@ -10320,7 +10318,6 @@ const Penjualan = () => {
   const statusFilter = searchParams.get('status') || '';
   const orderBy = searchParams.get('orderBy') || '';
   const limit = 10;
-
 
   const { data: penjualanResponse, isLoading } = useGetPenjualan({
     page,
@@ -10333,7 +10330,6 @@ const Penjualan = () => {
   const penjualanData = penjualanResponse?.items || [];
   const meta = penjualanResponse?.meta;
   const summary = meta?.summary || {};
-
 
   const { data: agentData = [] } = useGetAgents();
   const { data: perumahanData = [] } = useGetPerumahan();
@@ -10373,7 +10369,6 @@ const Penjualan = () => {
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<SignatureCanvas>(null);
 
-
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
   };
@@ -10407,7 +10402,11 @@ const Penjualan = () => {
 
     const base = Number(merged.hargaDasar) || 0;
     const diskon = Number(merged.diskonPenjualan) || 0;
-    const bf = 5000000;
+    const bf = Number(merged.bookingFee) || 5000000;
+
+
+    const baseHargaJual = Math.max(0, base - diskon);
+    updates.hargaJual = baseHargaJual;
 
     let plafon = 0;
     if (['diskonPenjualan', 'hargaDasar', 'bookingFee', 'caraPembayaran'].includes(name)) {
@@ -10417,36 +10416,23 @@ const Penjualan = () => {
       plafon = Number(merged.plafonAwal) || 0;
     }
 
-    if (name === 'plafonAwal') plafon = Number(value) || 0;
-
     if (merged.caraPembayaran === 'KPR') {
-      if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal'].includes(name)) {
+      if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal', 'bookingFee'].includes(name)) {
         updates.biayaKpr = plafon * 0.06;
         updates.nilaiPengajuanKpr = plafon + updates.biayaKpr;
         updates.dp = updates.nilaiPengajuanKpr * 0.1;
-        updates.hargaJual = updates.nilaiPengajuanKpr + updates.dp;
       }
       else if (name === 'biayaKpr') {
         updates.nilaiPengajuanKpr = plafon + Number(value);
         updates.dp = updates.nilaiPengajuanKpr * 0.1;
-        updates.hargaJual = updates.nilaiPengajuanKpr + updates.dp;
       }
       else if (name === 'nilaiPengajuanKpr') {
         updates.dp = Number(value) * 0.1;
-        updates.hargaJual = Number(value) + updates.dp;
-      }
-      else if (name === 'dp') {
-        const currentNilaiKpr = Number(merged.nilaiPengajuanKpr) || 0;
-        updates.hargaJual = currentNilaiKpr + Number(value);
       }
     } else {
       updates.biayaKpr = 0;
       updates.nilaiPengajuanKpr = 0;
       updates.dp = 0;
-
-      if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal'].includes(name)) {
-        updates.hargaJual = plafon;
-      }
       if (name === 'caraPembayaran') updates.bank = '';
     }
 
@@ -10514,16 +10500,18 @@ const Penjualan = () => {
       accessor: 'id',
       render: (_: unknown, row: PenjualanData) => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              openDetailModal(row);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
-            title="Lihat Detail"
-          >
-            <Eye size={14} /> Detail
-          </button>
+          {row.hargaJual && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openDetailModal(row);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              title="Lihat Detail"
+            >
+              <Eye size={14} /> Detail
+            </button>
+          )}
 
           <button
             onClick={(e) => {
@@ -10579,19 +10567,20 @@ const Penjualan = () => {
     const initialPlafon = (Number(item.diskonPenjualan) === 0 && diskonTerpakai > 0)
       ? plafon
       : (Number(item.plafonAwal) || plafon);
-    let initialHargaJual = Number(item.hargaJual) || 0;
+
+
+    const initialHargaJual = Math.max(0, base - diskonTerpakai);
+
     if (caraBayar === 'KPR') {
       if (initialBiayaKpr === 0 && initialDp === 0) {
         initialBiayaKpr = initialPlafon * 0.06;
         initialNilaiKpr = initialPlafon + initialBiayaKpr;
         initialDp = initialNilaiKpr * 0.1;
-        initialHargaJual = initialNilaiKpr + initialDp;
       }
     } else {
       initialBiayaKpr = 0;
       initialNilaiKpr = 0;
       initialDp = 0;
-      initialHargaJual = initialPlafon;
     }
 
     setSelectedPenjualan(item);
@@ -10610,6 +10599,7 @@ const Penjualan = () => {
     });
 
     setErrors({});
+    setBiayaTambahanList([]);
     setIsSkemaModalOpen(true);
   };
 
@@ -10619,6 +10609,26 @@ const Penjualan = () => {
     setIsEditing(false);
     setIsNewAgent(false);
     setErrors({});
+  };
+
+
+  const handleAddBiayaTambahan = () => {
+    setBiayaTambahanList([
+      ...biayaTambahanList,
+      { id: Date.now().toString(), nama: 'Uang Muka', nominal: 0 }
+    ]);
+  };
+
+  const handleRemoveBiayaTambahan = (id: string) => {
+    setBiayaTambahanList(biayaTambahanList.filter(b => b.id !== id));
+  };
+
+  const handleChangeBiayaTambahanNama = (id: string, nama: string) => {
+    setBiayaTambahanList(biayaTambahanList.map(b => b.id === id ? { ...b, nama } : b));
+  };
+
+  const handleChangeBiayaTambahanNominal = (id: string, nominal: number) => {
+    setBiayaTambahanList(biayaTambahanList.map(b => b.id === id ? { ...b, nominal } : b));
   };
 
   const saveSignature = async () => {
@@ -10745,15 +10755,21 @@ const Penjualan = () => {
         bank: formData.bank || undefined,
         hargaDasar: formData.hargaDasar,
         hargaJual: formData.hargaJual,
-        plafonAwal: formData.plafonAwal,
+        plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
         biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: formData.caraPembayaran === 'KPR' ? formData.dp : undefined,
         diskonPenjualan: formData.diskonPenjualan,
+
+        biayaTambahan: biayaTambahanList
+          .map((b) => ({
+            nama: b.nama,
+            nominal: Number(b.nominal)
+          }))
+          .filter((b) => b.nama.trim() !== '' && b.nominal > 0),
       };
 
       await updateMutation.mutateAsync({ id: selectedPenjualan!.id!, data: updatePayload });
-
       setIsSkemaModalOpen(false);
       setFormData(initialFormState);
       setSelectedPenjualan(null);
@@ -10807,11 +10823,8 @@ const Penjualan = () => {
           rekeningTujuanId: formData.rekeningTujuanId ? Number(formData.rekeningTujuanId) : undefined,
 
           hargaDasar: formData.hargaDasar,
-          plafonAwal: formData.plafonAwal,
-          hargaJual: formData.hargaJual,
           bookingFee: 5000000,
           diskonPenjualan: formData.diskonPenjualan,
-          caraPembayaran: 'CASH_KERAS',
         };
 
         const result = await createMutation.mutateAsync(payload);
@@ -11099,76 +11112,85 @@ const Penjualan = () => {
     }
   };
 
-
   if (isLoading && penjualanData.length === 0) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-[1400px] mx-auto">
 
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+      {/* SUMMARY CARDS */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
-          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
           onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
         >
-          <div className="flex items-center gap-2">
-            <PieChart size={18} className="text-slate-600" />
-            <h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Penjualan</h3>
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+              <PieChart size={18} />
+            </div>
+            <h3 className="font-bold text-slate-900 tracking-tight">Ringkasan Penjualan</h3>
           </div>
-          {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+          <button className="text-slate-400 hover:text-slate-600 transition-colors">
+            {isSummaryExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
         </div>
 
         {isSummaryExpanded && (
-          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
-            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Wallet size={16} className="text-slate-600" /></div>
-                <p className="text-xs font-bold text-slate-500 uppercase">Total Transaksi</p>
+          <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-5 bg-slate-50/30">
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center"><Wallet size={18} className="text-slate-600" /></div>
+                <p className="text-xs font-semibold text-slate-500 uppercase">Total Transaksi</p>
               </div>
-              <p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p>
+              <p className="text-3xl font-bold text-slate-900">{meta?.totalItems || 0}</p>
             </div>
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
-                <p className="text-xs font-bold text-blue-700 uppercase">Booked / Proses</p>
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center"><Clock size={18} className="text-blue-600" /></div>
+                <p className="text-xs font-semibold text-slate-500 uppercase">Booked / Proses</p>
               </div>
-              <p className="text-2xl font-black text-blue-800">{(summary['BOOKED'] || 0) + (summary['PROSES'] || 0)}</p>
+              <p className="text-3xl font-bold text-blue-700">{(summary['BOOKED'] || 0) + (summary['PROSES'] || 0)}</p>
             </div>
-            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-emerald-600" /></div>
-                <p className="text-xs font-bold text-emerald-700 uppercase">Lunas</p>
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center"><CheckCircle2 size={18} className="text-emerald-600" /></div>
+                <p className="text-xs font-semibold text-slate-500 uppercase">Lunas</p>
               </div>
-              <p className="text-2xl font-black text-emerald-800">{summary['LUNAS'] || 0}</p>
+              <p className="text-3xl font-bold text-emerald-700">{summary['LUNAS'] || 0}</p>
             </div>
-            <div className="bg-red-50 border border-red-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Ban size={16} className="text-red-600" /></div>
-                <p className="text-xs font-bold text-red-700 uppercase">Batal</p>
+            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center"><Ban size={18} className="text-red-600" /></div>
+                <p className="text-xs font-semibold text-slate-500 uppercase">Batal</p>
               </div>
-              <p className="text-2xl font-black text-red-800">{summary['BATAL'] || 0}</p>
+              <p className="text-3xl font-bold text-red-700">{summary['BATAL'] || 0}</p>
             </div>
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+      {/* FILTER SECTION */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
-          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
           onClick={() => setIsFilterExpanded(!isFilterExpanded)}
         >
-          <div className="flex items-center gap-2">
-            <Filter size={18} className="text-slate-600" />
-            <h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3>
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg">
+              <Filter size={18} />
+            </div>
+            <h3 className="font-bold text-slate-900 tracking-tight">Filter & Urutkan</h3>
           </div>
-          {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+          <button className="text-slate-400 hover:text-slate-600 transition-colors">
+            {isFilterExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
         </div>
 
         {isFilterExpanded && (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-white">
             <div className="relative">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Status Transaksi</label>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Status Transaksi</label>
               <select
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 appearance-none transition-all shadow-sm"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
               >
@@ -11178,13 +11200,13 @@ const Penjualan = () => {
                 <option value="LUNAS">Lunas</option>
                 <option value="BATAL">Batal</option>
               </select>
-              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
 
             <div className="relative">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Urutkan Berdasarkan</label>
               <select
-                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
+                className="w-full px-4 pl-10 py-2.5 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 appearance-none transition-all shadow-sm"
                 value={orderBy}
                 onChange={handleSortChange}
               >
@@ -11193,21 +11215,20 @@ const Penjualan = () => {
                 <option value="hargaJual:desc">Harga Jual: Tinggi ke Rendah</option>
                 <option value="nama:asc">Nama Customer: A - Z</option>
               </select>
-              <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
-              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-[34px] pointer-events-none text-slate-400" />
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
           </div>
         )}
       </div>
 
+      {/* DATA TABLE */}
       <DataTable
         title="Data Penjualan"
         columns={columns}
         data={penjualanData}
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
-
-
         serverSide={true}
         searchTerm={search}
         onSearchChange={handleSearchChange}
@@ -11216,12 +11237,18 @@ const Penjualan = () => {
         onPageChange={handlePageChange}
       />
 
+      {/* FORM MODAL CREATE/EDIT */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Penjualan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Pembeli & Marketing</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+        <form onSubmit={handleSubmit} className="space-y-8">
+
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 className="text-sm font-bold text-slate-900 mb-5 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-600">1</div>
+              Data Pembeli & Marketing
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="md:col-span-2 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100/50 mb-2">
+                {/* Agent Selection Logic */}
                 {!isNewAgent ? (
                   <Select
                     label="Agent Marketing"
@@ -11260,7 +11287,7 @@ const Penjualan = () => {
                         setIsNewAgent(false);
                         setFormData((prev) => ({ ...prev, agent: '' }));
                       }}
-                      className="absolute right-1 top-0 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      className="absolute right-2 top-0 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
                     >
                       Batal Tambah
                     </button>
@@ -11280,10 +11307,13 @@ const Penjualan = () => {
             </div>
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Kavling</h4>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 className="text-sm font-bold text-slate-900 mb-5 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <div className="w-6 h-6 rounded-md bg-slate-100 flex items-center justify-center text-slate-600">2</div>
+              Data Kavling
+            </h4>
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Select
                   label="Perumahan"
                   name="perumahan"
@@ -11304,7 +11334,7 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Select
                   label="Blok"
                   name="blok"
@@ -11331,7 +11361,7 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Input
                   label="Luas Tanah (m²)"
                   name="luasTanah"
@@ -11348,7 +11378,7 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <CurrencyInput
                   label="Harga Dasar Kavling"
                   name="hargaDasar"
@@ -11378,39 +11408,38 @@ const Penjualan = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+          <div className="flex justify-end gap-4 pt-4 border-t border-slate-200">
+            <button type="button" onClick={closeModal} className="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
               Batal
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-xl hover:bg-slate-800 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
             >
-              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : isEditing ? 'Edit Penjualan' : 'Booking Unit'}
+              {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : isEditing ? 'Simpan Perubahan' : 'Booking Unit'}
             </button>
           </div>
         </form>
       </Modal>
 
+      {/* MODAL SKEMA / SPR (Ubah bg-slate-900 ke styling yang lebih terang) */}
       <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} title="Buat Surat Pesanan Rumah (SPR)">
         {selectedPenjualan && (
           <form onSubmit={handleSkemaSubmit} className="space-y-6">
-
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Informasi Pembeli</h4>
-
+            <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100 shadow-sm">
+              <h4 className="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-4 border-b border-indigo-100/50 pb-2">Informasi Pembeli</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6">
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Customer</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Nama Customer</p>
                   <p className="text-sm font-bold text-slate-900">{selectedPenjualan.nama}</p>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">NIK: {selectedPenjualan.noIdentitas}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">NIK: {selectedPenjualan.noIdentitas}</p>
                 </div>
                 <div className="md:col-span-2">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kavling Dipilih</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-semibold mb-1">Kavling Dipilih</p>
                   <p className="text-sm font-bold text-slate-900">{selectedPenjualan.perumahan} - Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}</p>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">Tipe {selectedPenjualan.tipe} (LB: {selectedPenjualan.luasBangunan} / LT: {selectedPenjualan.luasTanah})</p>
-                  <p className="text-xs font-bold text-blue-600 mt-1">Harga Dasar Kavling: {formatRupiah(selectedPenjualan.hargaDasar || 0)}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Tipe {selectedPenjualan.tipe} (LB: {selectedPenjualan.luasBangunan} / LT: {selectedPenjualan.luasTanah})</p>
+                  <p className="text-sm font-bold text-indigo-600 mt-2">Harga Dasar: {formatRupiah(selectedPenjualan.hargaDasar || 0)}</p>
                 </div>
               </div>
             </div>
@@ -11429,160 +11458,140 @@ const Penjualan = () => {
               error={errors.caraPembayaran}
             />
 
-            <div className="mt-5 p-5 bg-slate-900 rounded-xl space-y-3 shadow-md">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Rangkuman Akhir Transaksi</h4>
+            <div className="mt-6 p-6 bg-slate-50 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-200 pb-3">Rangkuman Akhir Transaksi</h4>
 
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-slate-300">Harga Dasar</span>
-                <span className="text-sm font-bold text-white">{formatRupiah(formData.hargaDasar || 0)}</span>
+                <span className="text-sm font-medium text-slate-600">Harga Dasar</span>
+                <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.hargaDasar || 0)}</span>
               </div>
+
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-slate-300 w-full">- Diskon Penjualan</p>
-
-                <CurrencyInput
-                  label="Diskon Penjualan"
-                  name="diskonPenjualan"
-                  value={formData.diskonPenjualan}
-                  onValueChange={handleCurrencyChange}
-                  placeholder="0"
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <span className="text-xs font-medium text-slate-300">- Booking Fee</span>
-                  <button className='bg-white rounded-xl px-2 text-black' onClick={() => {
-                    setIsAddUangMuka(!isAddUangMuka)
-                  }}>+</button>
-                </div>
-                <span className="text-sm font-bold text-red-400">{formatRupiah(5000000)}</span>
-              </div>
-              {isAddUangMuka ? (
-                <>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-medium text-slate-300">- Uang Muka</span>
-
-                    </div>
-                    <span className="text-sm font-bold text-red-400">{formatRupiah(5000000)}</span>
-                  </div>
-
-                </>
-              ) : <> </>}
-
-              <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                <span className="text-xs font-medium text-blue-300">Plafon Awal <span className="hidden sm:inline">(Harga Dasar - Diskon - BF)</span></span>
-                <span className="text-sm font-bold text-blue-400">{formatRupiah(formData.plafonAwal || 0)}</span>
-              </div>
-
-              {formData.caraPembayaran === 'KPR' && (
-                <>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs font-medium text-slate-300">+ Biaya KPR <span className="hidden sm:inline">(6% dari Plafon Awal)</span></span>
-                    <span className="text-sm font-bold text-white">{formatRupiah(formData.biayaKpr || 0)}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                    <span className="text-xs font-medium text-indigo-300">Nilai Pengajuan KPR <span className="hidden sm:inline">(Plafon Awal + Biaya KPR)</span></span>
-                    <span className="text-sm font-bold text-indigo-400">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs font-medium text-slate-300">+ Down Payment / DP <span className="hidden sm:inline">(10% dari Pengajuan)</span></span>
-                    <span className="text-sm font-bold text-white">{formatRupiah(formData.dp || 0)}</span>
-                  </div>
-                </>
-              )}
-
-              <div className="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
-                <span className="text-sm font-bold text-white uppercase tracking-widest">
-                  Harga Jual Final {formData.caraPembayaran === 'KPR' ? <span className="text-[10px] text-slate-400 hidden sm:inline">(Pengajuan + DP)</span> : ''}
-                </span>
-                <span className="text-xl font-black text-white">{formatRupiah(formData.hargaJual || 0)}</span>
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Skema & Kalkulasi Harga</h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-
-
-
-                <div className="md:col-span-2 border-t border-slate-100 pt-3">
+                <p className="text-sm font-medium text-slate-600 w-full">- Diskon Penjualan</p>
+                <div className="w-48 sm:w-64">
                   <CurrencyInput
-                    label="Plafon Awal"
-                    name="plafonAwal"
-                    value={formData.plafonAwal || 0}
+                    label=""
+                    name="diskonPenjualan"
+                    value={formData.diskonPenjualan}
                     onValueChange={handleCurrencyChange}
                     placeholder="0"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">Plafon Awal Default = Harga Dasar - Diskon - Booking Fee</p>
                 </div>
               </div>
 
-              {formData.caraPembayaran === 'KPR' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl animate-in fade-in zoom-in-95 duration-200">
-                  <Input
-                    label="Bank KPR"
-                    name="bank"
-                    value={formData.bank}
-                    onChange={handleChange}
-                    placeholder="BCA / BSI / MANDIRI"
-                    error={errors.bank}
-                  />
-
+              <div className="flex items-center justify-between mt-1">
+                <div className="flex items-center gap-3 w-full">
+                  <span className="text-sm font-medium text-slate-600">- Booking Fee</span>
+                  <button
+                    type="button"
+                    className="w-6 h-6 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors rounded-md text-slate-700 font-bold shadow-sm"
+                    onClick={handleAddBiayaTambahan}
+                  >
+                    +
+                  </button>
+                </div>
+                <div className="w-48 sm:w-64">
                   <CurrencyInput
-                    label="Biaya KPR"
-                    name="biayaKpr"
-                    value={formData.biayaKpr || 0}
+                    label=""
+                    name="bookingFee"
+                    value={formData.bookingFee}
                     onValueChange={handleCurrencyChange}
                     placeholder="0"
                   />
+                </div>
+              </div>
 
-                  <CurrencyInput
-                    label="Nilai Pengajuan KPR"
-                    name="nilaiPengajuanKpr"
-                    value={formData.nilaiPengajuanKpr || 0}
-                    onValueChange={handleCurrencyChange}
-                    placeholder="0"
-                  />
-
-                  <div className="md:col-span-3 border-t border-blue-200/60 pt-3">
+              {biayaTambahanList.map((biaya) => (
+                <div key={biaya.id} className="flex items-center justify-between mt-1">
+                  <div className="flex items-center gap-3 w-full pr-4">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveBiayaTambahan(biaya.id)}
+                      className="w-6 h-6 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors rounded-md font-bold"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="text"
+                      value={biaya.nama}
+                      onChange={(e) => handleChangeBiayaTambahanNama(biaya.id, e.target.value)}
+                      className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 w-full max-w-[200px] shadow-sm"
+                      placeholder="Nama Biaya"
+                    />
+                  </div>
+                  <div className="w-48 sm:w-64">
                     <CurrencyInput
-                      label="Down Payment / DP"
-                      name="dp"
-                      value={formData.dp || 0}
-                      onValueChange={handleCurrencyChange}
+                      label=""
+                      name={`biaya_${biaya.id}`}
+                      value={biaya.nominal}
+                      onValueChange={(_, val) => handleChangeBiayaTambahanNominal(biaya.id, val)}
                       placeholder="0"
                     />
                   </div>
                 </div>
+              ))}
+
+
+              {formData.caraPembayaran === 'KPR' && (
+                <>
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-4">
+                    <span className="text-sm font-semibold text-indigo-700">Plafon Awal <span className="hidden sm:inline font-normal text-slate-500">(Dasar - Diskon - BF)</span></span>
+                    <span className="text-base font-bold text-indigo-700">{formatRupiah(formData.plafonAwal || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm font-medium text-slate-600 w-full">Bank KPR</p>
+                    <div className="w-48 sm:w-64">
+                      <Input
+                        label=""
+                        name="bank"
+                        value={formData.bank}
+                        onChange={handleChange}
+                        placeholder="BCA / BSI / MANDIRI"
+                        error={errors.bank}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm font-medium text-slate-600">+ Biaya KPR <span className="hidden sm:inline text-slate-400">(6% dari Plafon)</span></span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.biayaKpr || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-3">
+                    <span className="text-sm font-semibold text-blue-700">Nilai Pengajuan KPR</span>
+                    <span className="text-base font-bold text-blue-700">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-sm font-medium text-slate-600 w-full">+ DP KPR</span>
+                    <div className="w-48 sm:w-64">
+                      <CurrencyInput
+                        label=""
+                        name="dp"
+                        value={formData.dp || 0}
+                        onValueChange={handleCurrencyChange}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
-              <div className="mt-4 pt-3 border-t border-slate-200">
-                <CurrencyInput
-                  label="Harga Jual Final"
-                  name="hargaJual"
-                  value={formData.hargaJual || 0}
-                  onValueChange={handleCurrencyChange}
-                />
-                <p className="text-[10px] text-slate-500 mt-1">
-                  {formData.caraPembayaran === 'KPR' ? 'Harga Jual KPR = Nilai Pengajuan KPR + DP' : 'Harga Jual Cash = Plafon Awal'}
-                </p>
+              <div className="flex justify-between items-center p-4 bg-emerald-50 border border-emerald-200 rounded-xl mt-6">
+                <span className="text-sm font-bold text-emerald-800 uppercase tracking-widest">
+                  Harga Jual
+                </span>
+                <span className="text-xl font-black text-emerald-700">{formatRupiah(formData.hargaJual || 0)}</span>
               </div>
-
-
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-              <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer">
+            <div className="flex justify-end gap-4 pt-4 border-t border-slate-200">
+              <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={updateMutation.isPending}
-                className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-colors cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-xl hover:bg-slate-800 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
               >
-                {updateMutation.isPending ? 'Memproses...' : 'Simpan Skema & Proses SPR'}
+                {updateMutation.isPending ? 'Memproses...' : 'Simpan & Proses SPR'}
               </button>
             </div>
           </form>
@@ -11974,14 +11983,14 @@ const Penjualan = () => {
 
                 <div className="bg-emerald-900/40 p-4 rounded-xl border border-emerald-800 mt-4">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-base font-black text-emerald-400 uppercase tracking-wider">Harga Jual Final</span>
+                    <span className="text-base font-black text-emerald-400 uppercase tracking-wider">Harga Jual</span>
                     <span className="text-lg font-black text-emerald-400">{formatRupiah(detailData.hargaJual || 0)}</span>
                   </div>
                   <p className="text-[10px] text-emerald-600/70 font-mono">
                     <strong className="text-emerald-500/80">Kalkulasi:</strong> {
                       detailData.caraPembayaran === 'KPR' || detailData.caraPembayaran === 'KPR'
                         ? 'Nilai Pengajuan KPR + Down Payment (DP)'
-                        : 'Harga Jual final menyesuaikan besaran Plafon Awal'
+                        : 'Harga Jual menyesuaikan besaran Plafon Awal'
                     }
                   </p>
                 </div>

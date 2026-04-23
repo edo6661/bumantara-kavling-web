@@ -88,4 +88,19 @@ export const tagihanService = {
     });
     return response.data.data;
   },
+  uploadSignature: async (data: {
+    noTagihanId: number;
+    signatureBase64: string;
+    nama: string;
+    peran: string;
+    tanggal: string;
+  }) => {
+    const response = await api.post(`/tagihan/${data.noTagihanId}/signature`, {
+      signatureBase64: data.signatureBase64,
+      nama: data.nama,
+      peran: data.peran,
+      tanggal: data.tanggal,
+    });
+    return response.data.data;
+  },
 };

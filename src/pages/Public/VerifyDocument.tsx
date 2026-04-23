@@ -258,16 +258,11 @@ const VerifyDocument = () => {
                 </span>
               </div>
 
-              <div className="text-center w-[200px] relative">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
-                  Tangerang, {formatDate(tanggalDoc)}
-                </p>
-                <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
-                  {isSpr ? 'MARKETING' : 'MARKETING'}
-                </p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{perumahanName}</p>
-              </div>
+
             </div>
+
+
+
 
           </div>
         </div>
