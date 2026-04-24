@@ -169,7 +169,7 @@ const Dashboard = () => {
                       </p>
                     </td>
                     <td className="py-4 px-4 font-medium text-slate-700">{trx.kavling}</td>
-                    <td className="py-4 px-4 text-slate-600">{trx.type.replace('_', ' ')}</td>
+                    <td className="py-4 px-4 text-slate-600">{trx.type}</td>
                     <td className="py-4 px-4 text-right font-bold text-slate-900">
                       {formatRupiah(trx.amount)}
                     </td>

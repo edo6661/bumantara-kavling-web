@@ -9,7 +9,8 @@ import { formatDate, formatRupiah } from "../../utils/formatters";
 import {
   FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn, Eye,
   ChevronDown, ChevronUp, Filter, ArrowUpDown, PieChart, CheckCircle2, Wallet,
-  Edit2
+  Edit2,
+  Building2
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
@@ -178,6 +179,23 @@ const Penjualan = () => {
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<SignatureCanvas>(null);
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+  const [bankData, setBankData] = useState({ id: '', bank: '' });
+
+  const handleBankSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateMutation.mutateAsync({
+        id: bankData.id,
+        data: { bank: bankData.bank }
+      });
+      setIsBankModalOpen(false);
+      setBankData({ id: '', bank: '' });
+      alert("Data Bank KPR berhasil disimpan!");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal menyimpan Bank KPR.");
+    }
+  };
 
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
@@ -604,7 +622,6 @@ const Penjualan = () => {
 
     const newErrors: Record<string, string> = {};
     if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (formData.caraPembayaran === 'KPR' && !formData.bank?.trim()) newErrors.bank = 'Bank KPR wajib diisi';
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -815,14 +832,27 @@ const Penjualan = () => {
                     <Receipt size={14} /> Kwitansi
                   </button>
                   {row.fileSpr ? (
-                    <a
-                      href={row.fileSpr}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer shadow-sm"
-                    >
-                      <FileText size={14} /> Lihat SPR
-                    </a>
+                    <>
+                      <a
+                        href={row.fileSpr}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-lg hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer shadow-sm"
+                      >
+                        <FileText size={14} /> Lihat SPR
+                      </a>
+                      {row.caraPembayaran === 'KPR' && (
+                        <button
+                          onClick={() => {
+                            setBankData({ id: row.id!, bank: row.bank || '' });
+                            setIsBankModalOpen(true);
+                          }}
+                          className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer shadow-sm"
+                        >
+                          <Building2 size={14} /> {row.bank ? 'Edit Bank' : 'Isi Bank KPR'}
+                        </button>
+                      )}
+                    </>
                   ) : (
                     <button
                       onClick={() => openSkemaModal(row)}
@@ -1398,19 +1428,7 @@ const Penjualan = () => {
                     <span className="text-sm font-semibold text-indigo-700">Plafon Awal <span className="hidden sm:inline font-normal text-slate-500">(Dasar - Diskon - BF)</span></span>
                     <span className="text-base font-bold text-indigo-700">{formatRupiah(formData.plafonAwal || 0)}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <p className="text-sm font-medium text-slate-600 w-full">Bank KPR</p>
-                    <div className="w-48 sm:w-64">
-                      <Input
-                        label=""
-                        name="bank"
-                        value={formData.bank}
-                        onChange={handleChange}
-                        placeholder="BCA / BSI / MANDIRI"
-                        error={errors.bank}
-                      />
-                    </div>
-                  </div>
+
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-sm font-medium text-slate-600">+ Biaya KPR <span className="hidden sm:inline text-slate-400">(6% dari Plafon)</span></span>
                     <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.biayaKpr || 0)}</span>
@@ -1864,6 +1882,39 @@ const Penjualan = () => {
             </div>
           </div>
         )}
+      </Modal>
+      <Modal isOpen={isBankModalOpen} onClose={() => setIsBankModalOpen(false)} title="Informasi Bank KPR">
+        <form onSubmit={handleBankSubmit} className="space-y-5">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+            <p className="text-xs font-medium text-slate-600 mb-3">
+              Masukkan nama Bank yang menyetujui pengajuan KPR customer.
+            </p>
+            <Input
+              label="Nama Bank KPR"
+              name="bank"
+              value={bankData.bank}
+              onChange={(e) => setBankData({ ...bankData, bank: e.target.value })}
+              placeholder="Contoh: MANDIRI / BTN / BSI"
+              required
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsBankModalOpen(false)}
+              className="px-5 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-50 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="px-6 py-2 bg-black text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 shadow-md transition-colors disabled:opacity-50"
+            >
+              {updateMutation.isPending ? "Menyimpan..." : "Simpan Bank KPR"}
+            </button>
+          </div>
+        </form>
       </Modal>
 
     </div>

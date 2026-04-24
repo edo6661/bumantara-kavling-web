@@ -90,7 +90,7 @@ const KelengkapanAdministrasi = () => {
                   <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
                     <td className="p-3 text-slate-600 font-medium">{formatDate(item.tanggal)}</td>
                     <td className="p-3 font-semibold text-slate-800">{item.perumahan} - Blok {item.blok}-{item.nomorUnit}</td>
-                    <td className="p-3 text-slate-600">{item.caraPembayaran.replace('_', ' ')}</td>
+                    <td className="p-3 text-slate-600">{item.caraPembayaran}</td>
                     <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.hargaJual)}</td>
                     <td className="p-3 text-center">
                       <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
