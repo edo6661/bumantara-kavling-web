@@ -205,18 +205,24 @@ const Penjualan = () => {
     setDetailData(item);
     setIsDetailModalOpen(true);
   };
-
-  const handleRecalculateDependencies = (name: string, value: any, prev: PenjualanData) => {
+  const handleRecalculateDependencies = (
+    name: string,
+    value: any,
+    prev: PenjualanData,
+    currentBiayaTambahanList: BiayaTambahan[] = biayaTambahanList
+  ) => {
     const merged = { ...prev, [name]: value };
     const updates: any = { [name]: value };
 
     const base = Number(merged.hargaDasar) || 0;
     const diskon = Number(merged.diskonPenjualan) || 0;
     const bf = Number(merged.bookingFee) || 5000000;
-
+    const totalTambahan = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
 
     const baseHargaJual = Math.max(0, base - diskon);
-    updates.hargaJual = baseHargaJual;
+    if (merged.caraPembayaran !== 'KPR') {
+      updates.hargaJual = baseHargaJual;
+    }
 
     let plafon = 0;
     if (['diskonPenjualan', 'hargaDasar', 'bookingFee', 'caraPembayaran'].includes(name)) {
@@ -229,15 +235,27 @@ const Penjualan = () => {
     if (merged.caraPembayaran === 'KPR') {
       if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal', 'bookingFee'].includes(name)) {
         updates.biayaKpr = plafon * 0.06;
-        updates.nilaiPengajuanKpr = plafon + updates.biayaKpr;
-        updates.dp = updates.nilaiPengajuanKpr * 0.1;
+
+        // Kalkulasi Nilai Pengajuan KPR Baru
+        updates.nilaiPengajuanKpr = plafon + updates.biayaKpr + totalTambahan;
+
+        const hargaJualSetelahDiskon = updates.nilaiPengajuanKpr / 0.9;
+        updates.hargaJual = hargaJualSetelahDiskon + diskon;
+        updates.dp = hargaJualSetelahDiskon * 0.1;
       }
       else if (name === 'biayaKpr') {
-        updates.nilaiPengajuanKpr = plafon + Number(value);
-        updates.dp = updates.nilaiPengajuanKpr * 0.1;
+        updates.nilaiPengajuanKpr = plafon + Number(value) + totalTambahan;
+
+        const hargaJualSetelahDiskon = updates.nilaiPengajuanKpr / 0.9;
+        updates.hargaJual = hargaJualSetelahDiskon + diskon;
+        updates.dp = hargaJualSetelahDiskon * 0.1;
       }
       else if (name === 'nilaiPengajuanKpr') {
-        updates.dp = Number(value) * 0.1;
+        const val = Number(value);
+        const hargaJualSetelahDiskon = val / 0.9;
+
+        updates.hargaJual = hargaJualSetelahDiskon + diskon;
+        updates.dp = hargaJualSetelahDiskon * 0.1;
       }
     } else {
       updates.biayaKpr = 0;
@@ -248,7 +266,6 @@ const Penjualan = () => {
 
     return updates;
   };
-
   const availableKavlings = useMemo(() => {
     return kavlingList.filter(k =>
       k.perumahan?.nama === formData.perumahan &&
@@ -378,14 +395,18 @@ const Penjualan = () => {
       ? plafon
       : (Number(item.plafonAwal) || plafon);
 
-
-    const initialHargaJual = Math.max(0, base - diskonTerpakai);
+    let initialHargaJual = Math.max(0, base - diskonTerpakai);
 
     if (caraBayar === 'KPR') {
       if (initialBiayaKpr === 0 && initialDp === 0) {
         initialBiayaKpr = initialPlafon * 0.06;
         initialNilaiKpr = initialPlafon + initialBiayaKpr;
-        initialDp = initialNilaiKpr * 0.1;
+
+        const hjsd = initialNilaiKpr / 0.9;
+        initialHargaJual = hjsd + diskonTerpakai;
+        initialDp = hjsd * 0.1;
+      } else {
+        initialHargaJual = Number(item.hargaJual) || initialHargaJual;
       }
     } else {
       initialBiayaKpr = 0;
@@ -420,17 +441,44 @@ const Penjualan = () => {
     setIsNewAgent(false);
     setErrors({});
   };
+  const updateKprWithBiayaTambahan = (newList: BiayaTambahan[]) => {
+    if (formData.caraPembayaran === 'KPR') {
+      setFormData(prev => {
+        const totalTambahan = newList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+        const base = Number(prev.hargaDasar) || 0;
+        const diskon = Number(prev.diskonPenjualan) || 0;
+        const bf = Number(prev.bookingFee) || 5000000;
 
+        const plafon = Math.max(0, base - diskon - bf);
+        const biayaKpr = plafon * 0.06;
+
+        const nilaiPengajuanKpr = plafon + biayaKpr + totalTambahan;
+        const hargaJualSetelahDiskon = nilaiPengajuanKpr / 0.9;
+
+        return {
+          ...prev,
+          biayaKpr,
+          nilaiPengajuanKpr,
+          dp: hargaJualSetelahDiskon * 0.1,
+          hargaJual: hargaJualSetelahDiskon + diskon
+        };
+      });
+    }
+  };
 
   const handleAddBiayaTambahan = () => {
-    setBiayaTambahanList([
+    const newList = [
       ...biayaTambahanList,
       { id: Date.now().toString(), nama: 'Uang Muka', nominal: 0 }
-    ]);
+    ];
+    setBiayaTambahanList(newList);
+    updateKprWithBiayaTambahan(newList);
   };
 
   const handleRemoveBiayaTambahan = (id: string) => {
-    setBiayaTambahanList(biayaTambahanList.filter(b => b.id !== id));
+    const newList = biayaTambahanList.filter(b => b.id !== id);
+    setBiayaTambahanList(newList);
+    updateKprWithBiayaTambahan(newList);
   };
 
   const handleChangeBiayaTambahanNama = (id: string, nama: string) => {
@@ -438,7 +486,9 @@ const Penjualan = () => {
   };
 
   const handleChangeBiayaTambahanNominal = (id: string, nominal: number) => {
-    setBiayaTambahanList(biayaTambahanList.map(b => b.id === id ? { ...b, nominal } : b));
+    const newList = biayaTambahanList.map(b => b.id === id ? { ...b, nominal } : b);
+    setBiayaTambahanList(newList);
+    updateKprWithBiayaTambahan(newList);
   };
 
   const saveSignature = async () => {
@@ -1785,7 +1835,7 @@ const Penjualan = () => {
                         <span className="text-sm font-bold text-amber-400">{formatRupiah(detailData.dp || 0)}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono">
-                        <strong className="text-slate-400">Kalkulasi:</strong> Nilai Pengajuan KPR × 10%
+                        <strong className="text-slate-400">Kalkulasi:</strong> (Nilai Pengajuan KPR / 0.9) × 10%
                       </p>
                     </div>
                   </>
@@ -1798,9 +1848,9 @@ const Penjualan = () => {
                   </div>
                   <p className="text-[10px] text-emerald-600/70 font-mono">
                     <strong className="text-emerald-500/80">Kalkulasi:</strong> {
-                      detailData.caraPembayaran === 'KPR' || detailData.caraPembayaran === 'KPR'
-                        ? 'Nilai Pengajuan KPR + Down Payment (DP)'
-                        : 'Harga Jual menyesuaikan besaran Plafon Awal'
+                      detailData.caraPembayaran === 'KPR'
+                        ? '(Nilai Pengajuan KPR / 0.9) + Diskon Penjualan'
+                        : 'Harga Dasar - Diskon Penjualan'
                     }
                   </p>
                 </div>
