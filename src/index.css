@@ -4,8 +4,8 @@
   --font-sans: "Montserrat", system-ui, sans-serif;
   --font-heading: "", var(--font-sans);
 
-  --radius-btn: 6px; /* Sedikit lebih membulat dari 4px */
-  --radius-card: 12px; /* Card lebih membulat */
+  --radius-btn: 8px; /* Sedikit lebih membulat untuk kesan modern */
+  --radius-card: 16px;
 
   --color-sidebar-bg: var(--sidebar-bg);
   --color-sidebar-text: var(--sidebar-text);
@@ -20,31 +20,32 @@
   --section-padding-y: 6rem;
   --transition-base: all 0.3s ease-in-out;
 
-  --theme-background: #f8fafc; /* Diubah sedikit ke abu-abu kebiruan sangat muda agar area putih menonjol */
+  /* Background dibuat sedikit abu-abu sangat muda (slate-50) agar card putih lebih kontras */
+  --theme-background: #f8fafc;
   --theme-foreground: #0f172a;
 
   /* Sidebar Black & White Theme */
   --sidebar-bg: #ffffff;
   --sidebar-text: #000000;
-  --sidebar-border: #e5e5e5;
-  --sidebar-hover-bg: #f3f4f6;
-  --sidebar-active-bg: #000000;
+  --sidebar-border: #e2e8f0;
+  --sidebar-hover-bg: #f1f5f9;
+  --sidebar-active-bg: #0f172a;
   --sidebar-active-text: #ffffff;
-  --sidebar-submenu-bg: #fafafa;
+  --sidebar-submenu-bg: #f8fafc;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --theme-background: #000000;
-    --theme-foreground: #ffffff;
+    --theme-background: #020617;
+    --theme-foreground: #f8fafc;
 
-    --sidebar-bg: #000000;
-    --sidebar-text: #ffffff;
-    --sidebar-border: #262626;
-    --sidebar-hover-bg: #171717;
-    --sidebar-active-bg: #ffffff;
-    --sidebar-active-text: #000000;
-    --sidebar-submenu-bg: #0a0a0a;
+    --sidebar-bg: #020617;
+    --sidebar-text: #f8fafc;
+    --sidebar-border: #1e293b;
+    --sidebar-hover-bg: #0f172a;
+    --sidebar-active-bg: #f8fafc;
+    --sidebar-active-text: #020617;
+    --sidebar-submenu-bg: #020617;
   }
 }
 
@@ -58,7 +59,7 @@ body {
   color: var(--theme-foreground);
   font-family: var(--font-sans);
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased; /* Membuat teks lebih tajam */
+  -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
@@ -69,13 +70,13 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading);
-  letter-spacing: -0.02em; /* Sedikit dirapatkan agar terlihat lebih modern/premium */
+  letter-spacing: -0.02em;
 }
 
 /* Custom Scrollbar Premium */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -84,7 +85,8 @@ h6 {
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 10px;
+  border-radius: 999px;
+  border: 2px solid var(--theme-background); /* Memberikan efek padding */
 }
 
 ::-webkit-scrollbar-thumb:hover {

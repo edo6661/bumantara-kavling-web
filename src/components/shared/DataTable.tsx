@@ -97,7 +97,7 @@ const DataTable = ({
               placeholder="Cari data..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all text-slate-900 placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
             />
           </div>
 
@@ -138,7 +138,7 @@ const DataTable = ({
                       onClick={() => {
                         if (expandedRowRender) toggleRow(rowIndex);
                       }}
-                      className={`transition-colors duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-slate-50/50' : 'bg-white'}`}
+                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80 hover:shadow-sm relative z-10' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
                         <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
