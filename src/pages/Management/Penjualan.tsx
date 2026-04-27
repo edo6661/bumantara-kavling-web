@@ -72,6 +72,7 @@ interface PenjualanData {
   ttdData?: any;
   createdBy?: string;
   riwayatSpr?: any[];
+  tagihan?: any[];
 }
 
 const initialFormState: PenjualanData = {
@@ -1911,10 +1912,9 @@ const Penjualan = () => {
                   <p className="text-[10px] text-slate-500 font-mono">
                     <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - Diskon Penjualan - Booking Fee
                   </p>
-
                 </div>
 
-                {(detailData.caraPembayaran === 'KPR' || detailData.caraPembayaran === 'KPR') && (
+                {detailData.caraPembayaran === 'KPR' && (
                   <>
                     <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
                       <div className="flex justify-between items-center mb-1">
@@ -1925,22 +1925,44 @@ const Penjualan = () => {
                         <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal × 6%
                       </p>
                     </div>
+
+                    <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-indigo-400">Plafon Kredit</span>
+                        <span className="text-sm font-bold text-indigo-400">{formatRupiah(detailData.plafonKredit || 0)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal + Biaya KPR
+                      </p>
+                    </div>
+
                     <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-bold text-purple-400">Nilai Pengajuan KPR</span>
                         <span className="text-sm font-bold text-purple-400">{formatRupiah(detailData.nilaiPengajuanKpr || 0)}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono">
-                        <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal + Biaya KPR
+                        <strong className="text-slate-400">Kalkulasi:</strong> Plafon Kredit - Total Biaya Tambahan
                       </p>
                     </div>
-                    <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-4">
+
+                    {/* <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-bold text-amber-400">Down Payment (DP) 10%</span>
+                        <span className="text-sm font-bold text-amber-400">Semua Uang Muka (DP)</span>
                         <span className="text-sm font-bold text-amber-400">{formatRupiah(detailData.dp || 0)}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono">
-                        <strong className="text-slate-400">Kalkulasi:</strong> (Nilai Pengajuan KPR / 0.9) × 10%
+                        <strong className="text-slate-400">Kalkulasi:</strong> Total Tagihan DP yang harus dibayar
+                      </p>
+                    </div> */}
+
+                    <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-orange-400">DP Tidak Dibayar 10%</span>
+                        <span className="text-sm font-bold text-orange-400">{formatRupiah(detailData.dpTidakDibayar || 0)}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        <strong className="text-slate-400">Kalkulasi:</strong> ((Harga Jual - Diskon) × 10%) - Booking Fee
                       </p>
                     </div>
                   </>
@@ -1961,6 +1983,36 @@ const Penjualan = () => {
                 </div>
               </div>
             </div>
+
+            {(() => {
+              const biayaTambahanList = detailData.tagihan?.filter((t: any) => t.noTagihan?.startsWith('INV-ADD-')) || [];
+              if (biayaTambahanList.length === 0) return null;
+
+              const totalBiayaTambahan = biayaTambahanList.reduce((acc: number, curr: any) => acc + Number(curr.nominal || 0), 0);
+
+              return (
+                <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
+                  <p className="text-xs font-bold text-amber-400 mb-2 border-b border-slate-700/50 pb-1">Biaya Lainnya / Tambahan</p>
+                  <div className="space-y-2">
+                    {biayaTambahanList.map((biaya: any, idx: number) => (
+                      <div key={idx} className="flex justify-between items-center text-sm">
+                        <div>
+                          <span className="font-medium text-slate-300">+ {biaya.pembayaran}</span>
+                          <p className="text-[10px] text-slate-500 font-mono mt-0.5 flex items-center gap-1">
+                            <Clock size={10} /> Dibuat: {formatDate(biaya.createdAt || biaya.jatuhTempo)}
+                          </p>
+                        </div>
+                        <span className="font-bold text-amber-400">{formatRupiah(biaya.nominal || 0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-3 pt-2 border-t border-slate-700/50">
+                    <span className="font-bold text-amber-300">Total Biaya Tambahan</span>
+                    <span className="font-black text-amber-400">{formatRupiah(totalBiayaTambahan)}</span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {detailData.riwayatSpr && detailData.riwayatSpr.length > 0 && (
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mt-4">
