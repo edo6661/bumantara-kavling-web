@@ -1976,7 +1976,7 @@ const Penjualan = () => {
 
                 <div className="bg-emerald-900/40 p-5 rounded-xl border border-emerald-800 mt-6">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-black text-emerald-400 uppercase tracking-wider">Harga Jual Final</span>
+                    <span className="text-sm font-black text-emerald-400 uppercase tracking-wider">Harga Jual</span>
                     <span className="text-xl font-black text-emerald-400 tabular-nums">{formatRupiah(detailData.hargaJual || 0)}</span>
                   </div>
                   <p className="text-[10px] text-emerald-600/70 font-mono">
