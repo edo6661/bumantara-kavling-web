@@ -1,5 +1,4 @@
 import React from 'react';
-
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
   label?: string;
   error?: string;
@@ -7,16 +6,15 @@ interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   onValueChange: (name: string, value: number) => void;
   name: string;
 }
-
 const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
-  const displayValue = value === 0 || value === '' ? '' : new Intl.NumberFormat('id-ID').format(Number(value));
-
+  const numericValue = Number(value);
+  const isValidNumber = !Number.isNaN(numericValue) && value !== null && value !== undefined && value !== '';
+  const displayValue = isValidNumber && numericValue !== 0 ? new Intl.NumberFormat('id-ID').format(numericValue) : '';
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
-    const numericValue = rawValue ? Number(rawValue) : 0;
-    onValueChange(name, numericValue);
+    const newNumericValue = rawValue ? Number(rawValue) : 0;
+    onValueChange(name, newNumericValue);
   };
-
   return (
     <div className="flex flex-col gap-1.5 mb-4 group w-full">
       {label && (
@@ -29,7 +27,6 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
       )}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          {/* Teks Rp meredup jika input disabled */}
           <span className={`font-medium text-sm transition-colors ${props.disabled ? 'text-slate-400 opacity-60' : 'text-slate-400 group-focus-within:text-slate-900'}`}>
             Rp
           </span>
@@ -41,7 +38,7 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
           onChange={handleChange}
           autoComplete="off"
           className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
-            disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+            disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
             ${error
               ? 'border-red-300 bg-red-50/50 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-900'
               : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 text-slate-900 shadow-sm'
@@ -57,5 +54,4 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
     </div>
   );
 };
-
 export default CurrencyInput;

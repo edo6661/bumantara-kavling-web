@@ -17,6 +17,8 @@ export interface CreatePenjualanDTO {
   hargaDasar: number;
   plafonAwal?: number;
   biayaKpr?: number;
+  plafonKredit?: number;
+  dpTidakDibayar?: number;
   hargaJual: number;
   hargaPromosi?: number;
   diskonPenjualan?: number;

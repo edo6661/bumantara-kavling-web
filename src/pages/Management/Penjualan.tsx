@@ -36,6 +36,8 @@ interface PenjualanData {
   noIdentitas: string;
   alasanBatal?: string | null;
   perusahaan: string;
+  plafonKredit?: number;
+  dpTidakDibayar?: number;
   alamatKoresponden: string;
   perumahan: string;
   blok: string;
@@ -69,6 +71,7 @@ interface PenjualanData {
   isPendingBatal?: boolean;
   ttdData?: any;
   createdBy?: string;
+  riwayatSpr?: any[];
 }
 
 const initialFormState: PenjualanData = {
@@ -90,6 +93,8 @@ const initialFormState: PenjualanData = {
   hargaDasar: 0,
   plafonAwal: 0,
   biayaKpr: 0,
+  plafonKredit: 0,
+  dpTidakDibayar: 0,
   nilaiPengajuanKpr: 0,
   hargaJual: 0,
   dp: 0,
@@ -122,6 +127,7 @@ const Penjualan = () => {
 
 
   const [biayaTambahanList, setBiayaTambahanList] = useState<BiayaTambahan[]>([]);
+  const [historyBiayaTambahan, setHistoryBiayaTambahan] = useState<{ id: string, nama: string, nominal: number, tanggal: string }[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
@@ -160,6 +166,8 @@ const Penjualan = () => {
   const [detailData, setDetailData] = useState<PenjualanData | null>(null);
 
   const [isSkemaModalOpen, setIsSkemaModalOpen] = useState(false);
+  const [isRevisiSpr, setIsRevisiSpr] = useState(false);
+  const [keteranganRevisi, setKeteranganRevisi] = useState('');
   const [selectedPenjualan, setSelectedPenjualan] = useState<PenjualanData | null>(null);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
@@ -235,48 +243,37 @@ const Penjualan = () => {
     const base = Number(merged.hargaDasar) || 0;
     const diskon = Number(merged.diskonPenjualan) || 0;
     const bf = Number(merged.bookingFee) || 5000000;
-    const totalTambahan = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
-
-    const baseHargaJual = Math.max(0, base - diskon);
-    if (merged.caraPembayaran !== 'KPR') {
-      updates.hargaJual = baseHargaJual;
-    }
-
-    let plafon = 0;
-    if (['diskonPenjualan', 'hargaDasar', 'bookingFee', 'caraPembayaran'].includes(name)) {
-      plafon = Math.max(0, base - diskon - bf);
-      updates.plafonAwal = plafon;
-    } else {
-      plafon = Number(merged.plafonAwal) || 0;
-    }
+    const totalTambahanBaru = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+    const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
+    const totalTambahan = totalTambahanBaru + totalTambahanLama;
 
     if (merged.caraPembayaran === 'KPR') {
-      if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal', 'bookingFee'].includes(name)) {
-        updates.biayaKpr = plafon * 0.06;
+      const plafonAwal = Math.max(0, base - diskon - bf);
+      const biayaKpr = plafonAwal * 0.06;
+      const plafonKredit = plafonAwal + biayaKpr;
 
-        // Kalkulasi Nilai Pengajuan KPR Baru
-        updates.nilaiPengajuanKpr = plafon + updates.biayaKpr + totalTambahan;
+      // PERBAIKAN: Plafon Kredit dikurang Total Biaya Tambahan
+      const nilaiPengajuanKpr = plafonKredit - totalTambahan;
 
-        const hargaJualSetelahDiskon = updates.nilaiPengajuanKpr / 0.9;
-        updates.hargaJual = hargaJualSetelahDiskon + diskon;
-        updates.dp = hargaJualSetelahDiskon * 0.1;
-      }
-      else if (name === 'biayaKpr') {
-        updates.nilaiPengajuanKpr = plafon + Number(value) + totalTambahan;
+      // REVISI FORMULA HARGA JUAL
+      const baseHargaJual = plafonKredit / 0.9;
+      const hargaJual = baseHargaJual + diskon;
 
-        const hargaJualSetelahDiskon = updates.nilaiPengajuanKpr / 0.9;
-        updates.hargaJual = hargaJualSetelahDiskon + diskon;
-        updates.dp = hargaJualSetelahDiskon * 0.1;
-      }
-      else if (name === 'nilaiPengajuanKpr') {
-        const val = Number(value);
-        const hargaJualSetelahDiskon = val / 0.9;
+      const dpKotor = baseHargaJual * 0.1;
+      const dpBersih = dpKotor - bf;
 
-        updates.hargaJual = hargaJualSetelahDiskon + diskon;
-        updates.dp = hargaJualSetelahDiskon * 0.1;
-      }
+      updates.plafonAwal = plafonAwal;
+      updates.biayaKpr = biayaKpr;
+      updates.plafonKredit = plafonKredit;
+      updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
+      updates.dp = dpBersih;
+      updates.dpTidakDibayar = dpBersih;
+      updates.hargaJual = hargaJual;
     } else {
+      updates.hargaJual = Math.max(0, base - diskon);
       updates.biayaKpr = 0;
+      updates.plafonKredit = 0;
+      updates.dpTidakDibayar = 0;
       updates.nilaiPengajuanKpr = 0;
       updates.dp = 0;
       if (name === 'caraPembayaran') updates.bank = '';
@@ -395,41 +392,43 @@ const Penjualan = () => {
     setIsModalOpen(true);
   };
 
-  const openSkemaModal = (item: any) => {
+  const openSkemaModal = (item: any, isRevisi = false) => {
+    setBiayaTambahanList([]);
     const tipeKavling = item.tipe?.toLowerCase() || '';
     const autoDiskon = tipeKavling === 'aruna' ? 10000000 : 6000000;
     const diskonTerpakai = (Number(item.diskonPenjualan) > 0) ? Number(item.diskonPenjualan) : autoDiskon;
 
     const base = Number(item.hargaDasar || item.hargaJual) || 0;
-    const bf = 5000000;
-    const caraBayar = item.caraPembayaran ? item.caraPembayaran.replace(/_/g, " ") : 'CASH KERAS';
+    const bf = Number(item.bookingFee) || 5000000;
+    const caraBayar = item.caraPembayaran ? item.caraPembayaran : 'CASH KERAS';
 
-    const plafon = Math.max(0, base - diskonTerpakai - bf);
+    const plafonAwal = Math.max(0, base - diskonTerpakai - bf);
+
 
     let initialBiayaKpr = Number(item.biayaKpr) || 0;
+    let initialPlafonKredit = Number(item.plafonKredit) || 0;
+
+    let initialDpTidakDibayar = Number(item.dpTidakDibayar) || 0;
     let initialNilaiKpr = Number(item.nilaiPengajuanKpr) || 0;
     let initialDp = Number(item.dp) || 0;
-    const initialPlafon = (Number(item.diskonPenjualan) === 0 && diskonTerpakai > 0)
-      ? plafon
-      : (Number(item.plafonAwal) || plafon);
-
-    let initialHargaJual = Math.max(0, base - diskonTerpakai);
+    let initialHargaJual = Number(item.hargaJual) || 0;
 
     if (caraBayar === 'KPR') {
-      if (initialBiayaKpr === 0 && initialDp === 0) {
-        initialBiayaKpr = initialPlafon * 0.06;
-        initialNilaiKpr = initialPlafon + initialBiayaKpr;
+      if (initialBiayaKpr === 0 || initialPlafonKredit === 0) {
+        initialBiayaKpr = plafonAwal * 0.06;
+        initialPlafonKredit = plafonAwal + initialBiayaKpr;
 
-        const hjsd = initialNilaiKpr / 0.9;
-        initialHargaJual = hjsd + diskonTerpakai;
-        initialDp = hjsd * 0.1;
-      } else {
-        initialHargaJual = Number(item.hargaJual) || initialHargaJual;
+        const hargaJualSetelahDiskon = initialPlafonKredit / 0.9;
+        initialHargaJual = hargaJualSetelahDiskon + diskonTerpakai;
+
+        const dpKotorAwal = hargaJualSetelahDiskon * 0.1;
+        initialDpTidakDibayar = dpKotorAwal - bf;
+
+        initialNilaiKpr = initialPlafonKredit;
+        initialDp = initialDpTidakDibayar;
       }
     } else {
-      initialBiayaKpr = 0;
-      initialNilaiKpr = 0;
-      initialDp = 0;
+      initialHargaJual = Math.max(0, base - diskonTerpakai);
     }
 
     setSelectedPenjualan(item);
@@ -440,15 +439,29 @@ const Penjualan = () => {
       bookingFee: bf,
       caraPembayaran: caraBayar,
       biayaKpr: initialBiayaKpr,
+      plafonKredit: initialPlafonKredit,
+      dpTidakDibayar: initialDpTidakDibayar,
       nilaiPengajuanKpr: initialNilaiKpr,
       dp: initialDp,
       diskonPenjualan: diskonTerpakai,
-      plafonAwal: initialPlafon,
+      plafonAwal: plafonAwal,
       hargaJual: initialHargaJual,
     });
 
     setErrors({});
-    setBiayaTambahanList([]);
+
+    const existingTambahan = (item.tagihan || [])
+      .filter((t: any) => t.noTagihan && t.noTagihan.includes('INV-ADD-'))
+      .map((t: any) => ({
+        id: t.id.toString(),
+        nama: t.pembayaran,
+        nominal: Number(t.nominal),
+        tanggal: t.createdAt || t.updatedAt || item.tanggal
+      }));
+
+    setHistoryBiayaTambahan(existingTambahan);
+    setIsRevisiSpr(isRevisi);
+    setKeteranganRevisi('');
     setIsSkemaModalOpen(true);
   };
 
@@ -462,23 +475,34 @@ const Penjualan = () => {
   const updateKprWithBiayaTambahan = (newList: BiayaTambahan[]) => {
     if (formData.caraPembayaran === 'KPR') {
       setFormData(prev => {
-        const totalTambahan = newList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+        const totalTambahanBaru = newList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+        const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
+        const totalTambahan = totalTambahanBaru + totalTambahanLama;
         const base = Number(prev.hargaDasar) || 0;
         const diskon = Number(prev.diskonPenjualan) || 0;
         const bf = Number(prev.bookingFee) || 5000000;
 
-        const plafon = Math.max(0, base - diskon - bf);
-        const biayaKpr = plafon * 0.06;
+        const plafonAwal = Math.max(0, base - diskon - bf);
+        const biayaKpr = plafonAwal * 0.06;
+        const plafonKredit = plafonAwal + biayaKpr;
 
-        const nilaiPengajuanKpr = plafon + biayaKpr + totalTambahan;
-        const hargaJualSetelahDiskon = nilaiPengajuanKpr / 0.9;
+        const nilaiPengajuanKpr = plafonKredit - totalTambahan;
+
+        const baseHargaJual = plafonKredit / 0.9;
+        const hargaJual = baseHargaJual + diskon;
+
+        const dpKotor = baseHargaJual * 0.1;
+        const dpBersih = dpKotor - bf;
 
         return {
           ...prev,
+          plafonAwal,
           biayaKpr,
+          plafonKredit,
           nilaiPengajuanKpr,
-          dp: hargaJualSetelahDiskon * 0.1,
-          hargaJual: hargaJualSetelahDiskon + diskon
+          dp: dpBersih,
+          dpTidakDibayar: dpBersih,
+          hargaJual,
         };
       });
     }
@@ -634,9 +658,12 @@ const Penjualan = () => {
         hargaJual: formData.hargaJual,
         plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
         biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
+        plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
+        dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: formData.caraPembayaran === 'KPR' ? formData.dp : undefined,
         diskonPenjualan: formData.diskonPenjualan,
+        keteranganUpdateSpr: isRevisiSpr ? keteranganRevisi : undefined,
 
         biayaTambahan: biayaTambahanList
           .map((b) => ({
@@ -650,6 +677,7 @@ const Penjualan = () => {
       setIsSkemaModalOpen(false);
       setFormData(initialFormState);
       setSelectedPenjualan(null);
+      setBiayaTambahanList([]);
       alert("Skema pembayaran berhasil disimpan dan dokumen SPR siap dicetak!");
     } catch (error: any) {
       alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan skema pembayaran');
@@ -841,16 +869,26 @@ const Penjualan = () => {
                       >
                         <FileText size={14} /> Lihat SPR
                       </a>
+
                       {row.caraPembayaran === 'KPR' && (
-                        <button
-                          onClick={() => {
-                            setBankData({ id: row.id!, bank: row.bank || '' });
-                            setIsBankModalOpen(true);
-                          }}
-                          className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer shadow-sm"
-                        >
-                          <Building2 size={14} /> {row.bank ? 'Edit Bank' : 'Isi Bank KPR'}
-                        </button>
+                        <>
+
+                          <button
+                            onClick={() => {
+                              setBankData({ id: row.id!, bank: row.bank || '' });
+                              setIsBankModalOpen(true);
+                            }}
+                            className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer shadow-sm"
+                          >
+                            <Building2 size={14} /> {row.bank ? 'Edit Bank' : 'Isi Bank KPR'}
+                          </button>
+                          <button
+                            onClick={() => openSkemaModal(row, true)}
+                            className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold rounded-lg hover:bg-orange-500 hover:text-white transition-colors cursor-pointer shadow-sm"
+                          >
+                            <PenTool size={14} /> Tambah Biaya
+                          </button>
+                        </>
                       )}
                     </>
                   ) : (
@@ -1391,6 +1429,23 @@ const Penjualan = () => {
                 </div>
               </div>
 
+              {historyBiayaTambahan.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-slate-200 border-dashed">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Riwayat Biaya Tambahan (Tersimpan)</p>
+                  {historyBiayaTambahan.map((biaya) => (
+                    <div key={biaya.id} className="flex justify-between items-center py-2 px-3 bg-slate-100/50 rounded-lg mb-1">
+                      <div>
+                        <p className="text-sm font-bold text-slate-700">{biaya.nama}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                          <Clock size={10} /> {formatDate(biaya.tanggal)}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold text-slate-600">{formatRupiah(biaya.nominal)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {biayaTambahanList.map((biaya) => (
                 <div key={biaya.id} className="flex items-center justify-between mt-1">
                   <div className="flex items-center gap-3 w-full pr-4">
@@ -1422,43 +1477,75 @@ const Penjualan = () => {
               ))}
 
 
-              {formData.caraPembayaran === 'KPR' && (
+              {(formData.caraPembayaran === 'KPR') && (
                 <>
-                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-4">
-                    <span className="text-sm font-semibold text-indigo-700">Plafon Awal <span className="hidden sm:inline font-normal text-slate-500">(Dasar - Diskon - BF)</span></span>
-                    <span className="text-base font-bold text-indigo-700">{formatRupiah(formData.plafonAwal || 0)}</span>
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-4 mb-2">
+                    <span className="text-sm font-semibold text-slate-600">Plafon <span className="hidden sm:inline font-normal text-slate-400">(Dasar - Diskon - BF)</span></span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.plafonAwal || 0)}</span>
                   </div>
 
-                  <div className="flex justify-between items-center mt-2">
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-slate-600">+ Biaya KPR <span className="hidden sm:inline text-slate-400">(6% dari Plafon)</span></span>
                     <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.biayaKpr || 0)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-3">
+
+                  <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-bold text-indigo-400">Plafon Kredit</span>
+                      <span className="text-sm font-bold text-indigo-400">{formatRupiah(formData.plafonKredit || 0)}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      <strong className="text-slate-400">Kalkulasi:</strong> Plafon + Biaya KPR
+                    </p>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-3 mb-2">
                     <span className="text-sm font-semibold text-blue-700">Nilai Pengajuan KPR</span>
                     <span className="text-base font-bold text-blue-700">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-sm font-medium text-slate-600 w-full">+ DP KPR</span>
-                    <div className="w-48 sm:w-64">
-                      <CurrencyInput
-                        label=""
-                        name="dp"
-                        value={formData.dp || 0}
-                        onValueChange={handleCurrencyChange}
-                        placeholder="0"
-                      />
+                  <p className="text-[10px] text-slate-500 font-mono text-right mb-4">
+                    Plafon Kredit - Total Biaya Tambahan
+                  </p>
+
+                  <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-bold text-amber-400">DP Tidak Dibayar 10%</span>
+                      <span className="text-sm font-bold text-amber-400">{formatRupiah(formData.dpTidakDibayar || 0)}</span>
                     </div>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      <strong className="text-slate-400">Kalkulasi:</strong> ((Harga Jual - Diskon) × 10%) - Booking Fee
+                    </p>
                   </div>
                 </>
               )}
 
               <div className="flex justify-between items-center p-4 bg-emerald-50 border border-emerald-200 rounded-xl mt-6">
-                <span className="text-sm font-bold text-emerald-800 uppercase tracking-widest">
-                  Harga Jual
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-emerald-800 uppercase tracking-widest">
+                    Harga Jual
+                  </span>
+                  {formData.caraPembayaran === 'KPR' && (
+                    <span className="text-[10px] text-emerald-600/80 font-mono mt-1">
+                      (Plafon Kredit / 0.9) + Diskon
+                    </span>
+                  )}
+                </div>
                 <span className="text-xl font-black text-emerald-700">{formatRupiah(formData.hargaJual || 0)}</span>
               </div>
             </div>
+            {isRevisiSpr && (
+              <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                <h4 className="text-xs font-bold text-orange-800 uppercase tracking-wider mb-2">Keterangan Revisi SPR</h4>
+                <Input
+                  name="keteranganRevisi"
+                  value={keteranganRevisi}
+                  onChange={(e) => setKeteranganRevisi(e.target.value)}
+                  placeholder="Contoh: Penambahan biaya strategis / Pindah bank KPR..."
+                  required
+                />
+                <p className="text-[10px] text-orange-600 mt-1">Dokumen SPR lama akan otomatis diarsipkan ke dalam sistem.</p>
+              </div>
+            )}
 
             <div className="flex justify-end gap-4 pt-4 border-t border-slate-200">
               <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
@@ -1684,7 +1771,7 @@ const Penjualan = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Metode</p>
-                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.caraPembayaran.replace(/_/g, ' ')}</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.caraPembayaran}</p>
                 </div>
               </div>
             </div>
@@ -1800,7 +1887,7 @@ const Penjualan = () => {
 
             <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-md">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2">
-                3. Kalkulasi Transaksi ({detailData.caraPembayaran ? detailData.caraPembayaran.replace(/_/g, ' ') : 'CASH KERAS'})
+                3. Kalkulasi Transaksi ({detailData.caraPembayaran ? detailData.caraPembayaran : 'CASH KERAS'})
               </h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
@@ -1867,7 +1954,7 @@ const Penjualan = () => {
                   <p className="text-[10px] text-emerald-600/70 font-mono">
                     <strong className="text-emerald-500/80">Kalkulasi:</strong> {
                       detailData.caraPembayaran === 'KPR'
-                        ? '(Nilai Pengajuan KPR / 0.9) + Diskon Penjualan'
+                        ? '(Plafon Kredit / 0.9) + Diskon Penjualan'
                         : 'Harga Dasar - Diskon Penjualan'
                     }
                   </p>
@@ -1875,6 +1962,33 @@ const Penjualan = () => {
               </div>
             </div>
 
+            {detailData.riwayatSpr && detailData.riwayatSpr.length > 0 && (
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mt-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">
+                  Riwayat Perubahan Dokumen SPR
+                </h4>
+                <div className="divide-y divide-slate-100">
+                  {detailData.riwayatSpr.map((riwayat: any, idx: number) => (
+                    <div key={idx} className="py-3 flex justify-between items-center group">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{riwayat.keterangan || 'Update Dokumen'}</p>
+                        <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                          <Clock size={10} /> {formatDate(riwayat.createdAt)}
+                        </p>
+                      </div>
+                      <a
+                        href={riwayat.fileSpr}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[10px] font-bold rounded-md hover:bg-black hover:text-white transition-all border border-slate-200"
+                      >
+                        Lihat PDF Lama
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end pt-4 border-t border-slate-200">
               <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-colors cursor-pointer">
                 Tutup Detail

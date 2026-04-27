@@ -7,7 +7,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud, Edit2, Trash2, Eye, ZoomIn, PenTool } from 'lucide-react';
+import { FileText, Printer, UploadCloud, Edit2, Trash2, ZoomIn, PenTool } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import CurrencyInput from "../../components/shared/CurrencyInput";
@@ -69,7 +69,7 @@ const Tagihan = () => {
   const uploadSignatureMutation = useUploadTagihanSignature();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<TagihanFormState>(initialFormState);
+  const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [isAutoFilled, setIsAutoFilled] = useState(false);
@@ -83,7 +83,7 @@ const Tagihan = () => {
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
-  const sigCanvas = useRef<SignatureCanvas>(null);
+  const sigCanvas = useRef<any>(null);
 
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
@@ -105,23 +105,21 @@ const Tagihan = () => {
           reminderSelanjutnya: '',
           unpaidCount: 0,
           totalTerbayarKeseluruhan: 0,
-          totalTerbayarBfDp: 0,
           cicilan: []
         };
       }
 
       const lowerPay = item.pembayaran.toLowerCase();
-      const isBfOrDp = lowerPay.includes('booking') || lowerPay.includes('dp') || lowerPay.includes('down payment');
+      // PERBAIKAN: Booking Fee dikecualikan, tidak mengurangi 'totalTerbayarKeseluruhan' atau tampil sebagai cicilan internal
+      const isBf = lowerPay.includes('booking');
 
       if (item.status === 'LUNAS') {
-        if (isBfOrDp) {
-          groups[groupKey].totalTerbayarBfDp += Number(item.nominal);
-        } else {
+        if (!isBf) {
           groups[groupKey].totalTerbayarKeseluruhan += Number(item.nominal);
         }
       }
 
-      if (!isBfOrDp) {
+      if (!isBf) {
         if (item.status === 'BELUM_BAYAR') {
           groups[groupKey].unpaidCount += 1;
         }
@@ -150,7 +148,7 @@ const Tagihan = () => {
     {
       header: 'Reminder Selanjutnya',
       accessor: 'reminderSelanjutnya',
-      render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
+      render: (val: string) => val ? formatDate(val) : '-'
     },
     {
       header: 'Aksi',
@@ -164,7 +162,7 @@ const Tagihan = () => {
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
           title="Lihat Detail Penjualan"
         >
-          <Eye size={14} /> Detail Penjualan
+          Detail Penjualan
         </button>
       )
     },
@@ -199,9 +197,7 @@ const Tagihan = () => {
         tipe: found.tipe || '-',
         pembiayaan: found.pembiayaan?.replace(/_/g, ' ') || '-',
         status: found.status || 'TIDAK DIKETAHUI',
-
         harga: Number(found.totalHargaJual) || 0,
-
         lebihTanah: Number(found.lebihTanah) || 0,
         biayaStrategis: Number(found.biayaStrategis) || 0,
         totalHargaJual: Number(found.totalHargaJual) || 0,
@@ -465,8 +461,9 @@ const Tagihan = () => {
 
   const expandedRowRender = (row: any) => {
     const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
-    const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
 
+    // Total Harga Akhir
+    const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
     const piutangCicilan = Math.max(0, totalHargaJual);
 
     const totalTerbayarCicilan = row.totalTerbayarKeseluruhan;
@@ -648,7 +645,7 @@ const Tagihan = () => {
   if (formData.customerId && !customerOptions.some(opt => opt.value === Number(formData.customerId))) {
     customerOptions.push({
       value: Number(formData.customerId),
-      label: formData.customerLabel || `Customer Terpilih`
+      label: formData.customerLabel || 'Customer Terpilih'
     });
   }
 
@@ -663,14 +660,14 @@ const Tagihan = () => {
   if (formData.penjualanId && !kavlingOptions.some(opt => opt.value === Number(formData.penjualanId))) {
     kavlingOptions.push({
       value: Number(formData.penjualanId),
-      label: formData.kavlingLabel || `Kavling Terpilih`
+      label: formData.kavlingLabel || 'Kavling Terpilih'
     });
   }
 
   if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div>
       <DataTable
         title="Data Tagihan Customer"
         columns={columns}
@@ -719,7 +716,7 @@ const Tagihan = () => {
               <CurrencyInput
                 label="Nominal"
                 name="nominal"
-                value={formData.nominal}
+                value={formData.nominal as number}
                 onValueChange={handleCurrencyChange}
                 error={errors.nominal}
                 placeholder="0"
@@ -769,11 +766,11 @@ const Tagihan = () => {
         </form>
       </Modal>
 
+      {/* MODAL PRINT DOKUMEN */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="bg-white" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}>
             <div className="p-6">
-              {/* --- 1. HEADER (JUDUL DOKUMEN & LOGO) --- */}
               <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
                 <div>
                   <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
@@ -802,7 +799,6 @@ const Tagihan = () => {
                 </div>
               </div>
 
-              {/* --- 2. INFORMASI CUSTOMER --- */}
               <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
                   {printType === 'kwitansi' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:'}
@@ -812,7 +808,6 @@ const Tagihan = () => {
                 <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{(customers.find(c => c.id === printData?.customerId))?.alamatKoresponden || printData.alamat || '-'}</p>
               </div>
 
-              {/* --- 3. TABEL DESKRIPSI PEMBAYARAN --- */}
               <div className="rounded-xl border border-slate-200 overflow-hidden mb-6">
                 <table className="w-full border-collapse bg-white">
                   <thead>
@@ -838,7 +833,6 @@ const Tagihan = () => {
               </div>
 
               <div className="flex flex-row justify-between items-start gap-6 mb-6">
-                {/* --- 4. INFORMASI REKENING TRANSFER --- */}
                 <div className="flex-1">
                   {(() => {
                     let rekening: any = printData.rekeningTujuan;
@@ -860,7 +854,6 @@ const Tagihan = () => {
                   })()}
                 </div>
 
-                {/* --- 5. TOTAL TAGIHAN --- */}
                 <div className="w-[280px] space-y-3">
                   {(printData.hargaJual > 0) && (
                     <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -884,7 +877,6 @@ const Tagihan = () => {
                 </div>
               </div>
 
-              {/* --- 6. CATATAN / NOTES --- */}
               <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl text-[9px] text-slate-600 leading-relaxed">
                 <p className="font-bold text-slate-800 mb-1 uppercase tracking-widest">Catatan:</p>
                 <ul className="list-disc pl-4 space-y-0.5">
@@ -894,7 +886,6 @@ const Tagihan = () => {
                 </ul>
               </div>
 
-              {/* --- 7. QR CODE & TTD --- */}
               <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
                 <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
                   <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
@@ -905,7 +896,7 @@ const Tagihan = () => {
                     />
                   </div>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
-                  <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
+                  <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">[www.purisafana.com](https://www.purisafana.com)</span>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Hormat Kami,</span>
                   <span className="text-[10px] text-slate-900 font-black mt-0.5 tracking-wide uppercase">
                     {printData.pembuat}
@@ -933,18 +924,6 @@ const Tagihan = () => {
                       return <div className="h-16 w-full"></div>;
                     })()}
 
-                    <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
-                      MARKETING
-                    </p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
-                  </div>
-                )}
-
-                {printType === 'invoice' && (
-                  <div className="text-center w-[200px] relative">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
-                      Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
-                    </p>
                     <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
                       MARKETING
                     </p>

@@ -6,16 +6,15 @@ import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import PageLoader from "../PageLoader";
 import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
 import { useGetTagihans } from '../../hooks/queries/useTagihan';
-
+import CurrencyInput from '../../components/shared/CurrencyInput';
 interface KavlingData {
   id: string;
   perumahan: string;
-  status: string; // Status Penjualan
-  statusKavling: string; // Status Unit Kavling
+  status: string;
+  statusKavling: string;
   lantai: string;
   blok: string;
   unit: string;
@@ -30,7 +29,8 @@ interface KavlingData {
   tanggalPembayaranBphtb: string;
   pembiayaan: string;
   sp3r: string;
-  harga: number;
+  hargaDasarKavling: number; // Tambahan Baru dari UseCase
+  diskonPenjualan: number;   // Tambahan Baru dari UseCase
   lebihTanah: number;
   biayaStrategis: number;
   totalHargaJual: number;
@@ -81,7 +81,7 @@ const initialFormState: KavlingData = {
   rekeningTujuanId: 0,
   perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
   tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
-  harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
+  hargaDasarKavling: 0, diskonPenjualan: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
   nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
   pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
   ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
@@ -96,13 +96,13 @@ const CustomerKavling = () => {
   const updateMutation = useUpdateCustomerKavling();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<KavlingData>(initialFormState);
+  const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
   const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
 
   const columns = [
-    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => val },
     { header: 'Perumahan', accessor: 'perumahan' },
     { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
     { header: 'Tipe', accessor: 'tipe' },
@@ -131,6 +131,9 @@ const CustomerKavling = () => {
   const openModal = (item: any) => {
     setFormData({
       ...item,
+      hargaDasarKavling: item.hargaDasarKavling || 0,
+      diskonPenjualan: item.diskonPenjualan || 0,
+      totalHargaJual: item.totalHargaJual || 0,
       tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
       tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
       tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
@@ -148,11 +151,14 @@ const CustomerKavling = () => {
 
   const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
     const d = { ...currentData };
-    d.totalHargaJual = (Number(d.harga) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+
+    // Total Harga Akhir yang dinamis (Harga Jual dari Penjualan + Lebih Tanah + Biaya Strategis)
+    const hargaBase = (Number(d.totalHargaJual) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+
     d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
-    d.nrNilaiPenyerahan = d.totalHargaJual - d.nrTotalSubsidi;
+    d.nrNilaiPenyerahan = hargaBase - d.nrTotalSubsidi;
     d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
-    d.pjNilaiPenyerahan = d.totalHargaJual - d.pjTotalSubsidi;
+    d.pjNilaiPenyerahan = hargaBase - d.pjTotalSubsidi;
     d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
     d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
     d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
@@ -165,6 +171,20 @@ const CustomerKavling = () => {
 
     setFormData((prev) => {
       const updatedData = { ...prev, [name]: parsedValue };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: value };
       return calculateDerivedFields(updatedData);
     });
     if (errors[name]) {
@@ -190,11 +210,11 @@ const CustomerKavling = () => {
     const getStr = (val: string | undefined) => val === '' ? undefined : val;
 
     const payload = {
-      statusKavling: getStr(formData.statusKavling), // Menggunakan statusKavling
+      statusKavling: getStr(formData.statusKavling),
       namaTipe: getStr(formData.tipe),
       luasBangunan: getNum(formData.luasBangunan),
       luasTanah: getNum(formData.luasTanah),
-      hargaJualKavling: getNum(formData.harga),
+      // hargaDasarKavling TIDAK di lempar karena read-only
       rekeningTujuanId: getNum(formData.rekeningTujuanId),
 
       notarisId: getNum(formData.notarisId),
@@ -281,7 +301,7 @@ const CustomerKavling = () => {
   const expandedRowRender = (row: KavlingData) => {
     const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
     const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
-    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar; // Kalkulasi Sisa Pembayaran
+    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar;
 
     return (
       <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
@@ -331,10 +351,10 @@ const CustomerKavling = () => {
     );
   };
 
-  if (isLoading || isLoadingTagihan) return <PageLoader />;
+  if (isLoading || isLoadingTagihan) return;
 
   return (
-    <div className="space-y-6">
+    <div>
       <DataTable
         title="Data Kavling Customer"
         columns={columns}
@@ -363,7 +383,6 @@ const CustomerKavling = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
 
-              {/* Diperbaiki: Mapping dropdown menggunakan nilai yang sesuai dengan Backend Enum */}
               <Select
                 label="Status Kavling"
                 name="statusKavling"
@@ -386,7 +405,6 @@ const CustomerKavling = () => {
               <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
               <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
 
-              {/* Diperbaiki: Mapping Pembiayaan */}
               <Select
                 label="Pembiayaan"
                 name="pembiayaan"
@@ -402,7 +420,6 @@ const CustomerKavling = () => {
               <Select label="SP3R" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
               <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
 
-              {/* Diperbaiki: Akad PPJB menjadi Dropdown/Select */}
               <Select
                 label="Akad PPJB"
                 name="akadPpjb"
@@ -423,12 +440,15 @@ const CustomerKavling = () => {
 
           {activeTab === 'harga' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Harga Standar Kavling (Rp)" type="number" name="harga" value={formData.harga === 0 ? '' : formData.harga} onChange={handleChange} />
-              <Input label="Lebih Tanah (Rp)" type="number" name="lebihTanah" value={formData.lebihTanah === 0 ? '' : formData.lebihTanah} onChange={handleChange} />
-              <Input label="Biaya Strategis (Rp)" type="number" name="biayaStrategis" value={formData.biayaStrategis === 0 ? '' : formData.biayaStrategis} onChange={handleChange} />
+              <CurrencyInput label="Harga Jual (Sistem Nett)" name="totalHargaJual" value={formData.totalHargaJual} onValueChange={handleCurrencyChange} disabled={true} />
+              <CurrencyInput label="Diskon Penjualan (Sistem)" name="diskonPenjualan" value={formData.diskonPenjualan} onValueChange={handleCurrencyChange} disabled={true} />
+
+              <CurrencyInput label="Lebih Tanah Tambahan" name="lebihTanah" value={formData.lebihTanah} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Strategis Tambahan" name="biayaStrategis" value={formData.biayaStrategis} onValueChange={handleCurrencyChange} />
+
               <div className="md:col-span-2 mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Jual</span>
-                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.totalHargaJual)}</span>
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Kavling</span>
+                <span className="text-2xl font-black text-slate-900">{formatRupiah((formData.totalHargaJual || 0) + (formData.lebihTanah || 0) + (formData.biayaStrategis || 0) - (formData.diskonPenjualan || 0))}</span>
               </div>
             </div>
           )}
@@ -436,14 +456,14 @@ const CustomerKavling = () => {
           {activeTab === 'nilai' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
-              <Input label="Biaya KPR & Asuransi" type="number" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi === 0 ? '' : formData.nrBiayaKprAsuransi} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran === 0 ? '' : formData.nrDiskonAngsuran} onChange={handleChange} />
-              <Input label="Diskon Cash & Lainnya" type="number" name="nrDiskonCash" value={formData.nrDiskonCash === 0 ? '' : formData.nrDiskonCash} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="nrBiayaBbn" value={formData.nrBiayaBbn === 0 ? '' : formData.nrBiayaBbn} onChange={handleChange} />
-              <Input label="Biaya Notaris AJB" type="number" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb === 0 ? '' : formData.nrBiayaNotarisAjb} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal === 0 ? '' : formData.nrBiayaAppraisal} onChange={handleChange} />
-              <Input label="Biaya BPHTB" type="number" name="nrBiayaBphtb" value={formData.nrBiayaBphtb === 0 ? '' : formData.nrBiayaBphtb} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="nrLainLain" value={formData.nrLainLain === 0 ? '' : formData.nrLainLain} onChange={handleChange} />
+              <CurrencyInput label="Biaya KPR & Asuransi" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Angsuran" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus</span>
                 <span className="font-black text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
@@ -453,23 +473,23 @@ const CustomerKavling = () => {
                 <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
               </div>
               <SectionTitle title="Pajak Nilai Rumah" />
-              <Input label="PPN" type="number" name="nrPpn" value={formData.nrPpn === 0 ? '' : formData.nrPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="nrBphtb" value={formData.nrBphtb === 0 ? '' : formData.nrBphtb} onChange={handleChange} />
-              <Input label="PPh" type="number" name="nrPph" value={formData.nrPph === 0 ? '' : formData.nrPph} onChange={handleChange} />
+              <CurrencyInput label="PPN" name="nrPpn" value={formData.nrPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="nrBphtb" value={formData.nrBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="nrPph" value={formData.nrPph} onValueChange={handleCurrencyChange} />
             </div>
           )}
 
           {activeTab === 'pajak' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <SectionTitle title="Subsidi & Bonus (Pajak)" />
-              <Input label="Biaya KPR" type="number" name="pjBiayaKpr" value={formData.pjBiayaKpr === 0 ? '' : formData.pjBiayaKpr} onChange={handleChange} />
-              <Input label="Biaya Asuransi" type="number" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi === 0 ? '' : formData.pjBiayaAsuransi} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran === 0 ? '' : formData.pjDiskonAngsuran} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="pjBiayaBbn" value={formData.pjBiayaBbn === 0 ? '' : formData.pjBiayaBbn} onChange={handleChange} />
-              <Input label="Biaya Pembuatan AJB" type="number" name="pjBiayaAjb" value={formData.pjBiayaAjb === 0 ? '' : formData.pjBiayaAjb} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal === 0 ? '' : formData.pjBiayaAppraisal} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtb" value={formData.pjBphtb === 0 ? '' : formData.pjBphtb} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="pjLainLain" value={formData.pjLainLain === 0 ? '' : formData.pjLainLain} onChange={handleChange} />
+              <CurrencyInput label="Biaya KPR" name="pjBiayaKpr" value={formData.pjBiayaKpr} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Asuransi" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Angsuran" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="pjBiayaBbn" value={formData.pjBiayaBbn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Pembuatan AJB" name="pjBiayaAjb" value={formData.pjBiayaAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="pjBphtb" value={formData.pjBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="pjLainLain" value={formData.pjLainLain} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
                 <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
@@ -479,9 +499,9 @@ const CustomerKavling = () => {
                 <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
               </div>
               <SectionTitle title="Detail Pajak" />
-              <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn === 0 ? '' : formData.pjPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak === 0 ? '' : formData.pjBphtbPajak} onChange={handleChange} />
-              <Input label="PPh" type="number" name="pjPph" value={formData.pjPph === 0 ? '' : formData.pjPph} onChange={handleChange} />
+              <CurrencyInput label="PPN" name="pjPpn" value={formData.pjPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="pjBphtbPajak" value={formData.pjBphtbPajak} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="pjPph" value={formData.pjPph} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 mt-2 p-4 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
                 <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
                 <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
@@ -492,25 +512,25 @@ const CustomerKavling = () => {
           {activeTab === 'ajb' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
-              <Input label="NJOP Tanah per Meter" type="number" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter === 0 ? '' : formData.ajbNjopTanahPerMeter} onChange={handleChange} />
-              <Input label="Total NJOP Tanah" type="number" name="ajbNjopTanah" value={formData.ajbNjopTanah === 0 ? '' : formData.ajbNjopTanah} onChange={handleChange} />
-              <Input label="NJOP Bangunan per Meter" type="number" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter === 0 ? '' : formData.ajbNjopBangunanPerMeter} onChange={handleChange} />
-              <Input label="Total NJOP Bangunan" type="number" name="ajbNjopBangunan" value={formData.ajbNjopBangunan === 0 ? '' : formData.ajbNjopBangunan} onChange={handleChange} />
+              <CurrencyInput label="NJOP Tanah per Meter" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Total NJOP Tanah" name="ajbNjopTanah" value={formData.ajbNjopTanah} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="NJOP Bangunan per Meter" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Total NJOP Bangunan" name="ajbNjopBangunan" value={formData.ajbNjopBangunan} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 bg-slate-50 p-5 rounded-xl flex justify-between items-center border border-slate-200 mb-4 shadow-sm">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">NJOP Tanah + Bangunan</span>
                 <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.ajbNjopTotal)}</span>
               </div>
               <SectionTitle title="Kewajiban Pajak AJB" />
-              <Input label="PPN" type="number" name="ajbPpn" value={formData.ajbPpn === 0 ? '' : formData.ajbPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="ajbBphtb" value={formData.ajbBphtb === 0 ? '' : formData.ajbBphtb} onChange={handleChange} />
-              <Input label="PPh" type="number" name="ajbPph" value={formData.ajbPph === 0 ? '' : formData.ajbPph} onChange={handleChange} />
+              <CurrencyInput label="PPN" name="ajbPpn" value={formData.ajbPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="ajbBphtb" value={formData.ajbBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="ajbPph" value={formData.ajbPph} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
                 <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">BPHTB + PPh (AJB)</span>
                 <span className="text-xl font-black text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
               </div>
               <SectionTitle title="Lain-lain" />
-              <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb === 0 ? '' : formData.ajbSelisihPajakPbb} onChange={handleChange} />
-              <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping === 0 ? '' : formData.ajbUping} onChange={handleChange} />
+              <CurrencyInput label="Selisih (BPHTB+PPh) Pajak - PBB" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Uping" name="ajbUping" value={formData.ajbUping} onValueChange={handleCurrencyChange} />
             </div>
           )}
 
@@ -551,7 +571,7 @@ const CustomerKavling = () => {
           </div>
         </form>
       </Modal>
-    </div>
+    </div >
   );
 };
 

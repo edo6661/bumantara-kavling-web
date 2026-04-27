@@ -1,4 +1,4 @@
-tolong simpan kode frontend nya:
+kode frontend:
 
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -2732,7 +2732,6 @@ export default RootLayout;
 
 <file path="src/components/shared/CurrencyInput.tsx">
 import React from 'react';
-
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
   label?: string;
   error?: string;
@@ -2740,16 +2739,15 @@ interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   onValueChange: (name: string, value: number) => void;
   name: string;
 }
-
 const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
-  const displayValue = value === 0 || value === '' ? '' : new Intl.NumberFormat('id-ID').format(Number(value));
-
+  const numericValue = Number(value);
+  const isValidNumber = !Number.isNaN(numericValue) && value !== null && value !== undefined && value !== '';
+  const displayValue = isValidNumber && numericValue !== 0 ? new Intl.NumberFormat('id-ID').format(numericValue) : '';
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
-    const numericValue = rawValue ? Number(rawValue) : 0;
-    onValueChange(name, numericValue);
+    const newNumericValue = rawValue ? Number(rawValue) : 0;
+    onValueChange(name, newNumericValue);
   };
-
   return (
     <div className="flex flex-col gap-1.5 mb-4 group w-full">
       {label && (
@@ -2762,7 +2760,6 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
       )}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          {/* Teks Rp meredup jika input disabled */}
           <span className={`font-medium text-sm transition-colors ${props.disabled ? 'text-slate-400 opacity-60' : 'text-slate-400 group-focus-within:text-slate-900'}`}>
             Rp
           </span>
@@ -2774,7 +2771,7 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
           onChange={handleChange}
           autoComplete="off"
           className={`w-full pl-11 pr-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
-            disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+            disabled:bg-slate-100 disabled:text-slate-500 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
             ${error
               ? 'border-red-300 bg-red-50/50 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 text-slate-900'
               : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 text-slate-900 shadow-sm'
@@ -2790,7 +2787,6 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
     </div>
   );
 };
-
 export default CurrencyInput;
 </file>
 
@@ -4517,7 +4513,7 @@ const DataSosial = () => {
                   <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
                     <td className="p-3 text-slate-600 font-medium">{formatDate(item.tanggal)}</td>
                     <td className="p-3 font-semibold text-slate-800">{item.perumahan} - Blok {item.blok}-{item.nomorUnit}</td>
-                    <td className="p-3 text-slate-600">{item.caraPembayaran.replace('_', ' ')}</td>
+                    <td className="p-3 text-slate-600">{item.caraPembayaran}</td>
                     <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.hargaJual)}</td>
                     <td className="p-3 text-center">
                       <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700' : item.status === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -4583,504 +4579,6 @@ const DataSosial = () => {
 };
 
 export default DataSosial;
-</file>
-
-<file path="src/pages/Customer/KelengkapanAdministrasi.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import FileInput from "../../components/shared/FileInput";
-import PageLoader from "../PageLoader";
-import { formatRupiah, formatDate } from "../../utils/formatters";
-import { useGetCustomers, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import type { CustomerData, CustomerDocType } from "../../services/customer.service";
-import { XCircle, FileUp, ImageIcon, ZoomIn, ShoppingCart } from "lucide-react";
-
-const KelengkapanAdministrasi = () => {
-  const { data: customers = [], isLoading } = useGetCustomers();
-  const { data: penjualanResponse, isLoading: isLoadingPenjualan } = useGetPenjualan({ limit: 500 });
-  const penjualanData = penjualanResponse?.items || [];
-  const uploadMutation = useUploadCustomerDoc();
-
-  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  const renderTableThumbnail = (url: string | null) => {
-    if (!url) return (
-      <div className="flex items-center gap-2 text-red-400 font-medium text-[10px] uppercase tracking-wider">
-        <XCircle size={14} /> Kosong
-      </div>
-    );
-    return (
-      <div
-        onClick={(e) => {
-          e.stopPropagation();
-          setPreviewImage(url);
-        }}
-        className="relative w-12 h-8 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group"
-      >
-        <img src={url} alt="Dokumen" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-          <ZoomIn size={12} className="text-white" />
-        </div>
-      </div>
-    );
-  };
-
-  const columns = [
-    { header: 'Nama Customer', accessor: 'nama' },
-    { header: 'KTP', accessor: 'fileKtp', render: (val: string | null) => renderTableThumbnail(val) },
-    { header: 'KK', accessor: 'fileKk', render: (val: string | null) => renderTableThumbnail(val) },
-    { header: 'NPWP', accessor: 'fileNpwp', render: (val: string | null) => renderTableThumbnail(val) },
-  ];
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: CustomerDocType) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedCustomer) return;
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
-      e.target.value = "";
-      return;
-    }
-    try {
-      await uploadMutation.mutateAsync({ id: selectedCustomer.id, docType, file });
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah gambar");
-    }
-  };
-
-  const expandedRowRender = (row: CustomerData) => {
-    const customerSales = penjualanData.filter((p: any) => p.noIdentitas === row.nikKtp);
-    return (
-      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <ShoppingCart size={16} className="text-blue-600" /> Riwayat Pembelian & Penjualan
-          </h4>
-        </div>
-        {customerSales.length > 0 ? (
-          <div className="overflow-x-auto border border-slate-200 rounded-lg">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead>
-                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
-                  <th className="p-3 font-bold">Tanggal</th>
-                  <th className="p-3 font-bold">Kavling</th>
-                  <th className="p-3 font-bold">Pembayaran</th>
-                  <th className="p-3 font-bold text-right">Nilai Transaksi</th>
-                  <th className="p-3 font-bold text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {customerSales.map((item: any) => (
-                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
-                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.tanggal)}</td>
-                    <td className="p-3 font-semibold text-slate-800">{item.perumahan} - Blok {item.blok}-{item.nomorUnit}</td>
-                    <td className="p-3 text-slate-600">{item.caraPembayaran}</td>
-                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.hargaJual)}</td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
-                        item.status === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                        {item.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">
-            Belum ada riwayat transaksi penjualan untuk customer ini.
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  if (isLoading || isLoadingPenjualan) return <PageLoader />;
-
-  return (
-    <div className="space-y-6">
-      <DataTable
-        title="Administrasi Berkas Gambar"
-        columns={columns}
-        data={customers}
-        onEdit={(item) => {
-          setSelectedCustomer(item as CustomerData);
-          setIsManageModalOpen(true);
-        }}
-        expandedRowRender={expandedRowRender}
-      />
-
-      {/* MODAL KELOLA & UPLOAD */}
-      <Modal
-        isOpen={isManageModalOpen}
-        onClose={() => setIsManageModalOpen(false)}
-        title={`Manajemen Berkas: ${selectedCustomer?.nama}`}
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(['fileKtp', 'fileKk', 'fileNpwp'] as CustomerDocType[]).map((type) => (
-              <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                  {type.replace('file', '')}
-                </span>
-                <div
-                  onClick={() => selectedCustomer?.[type] && setPreviewImage(selectedCustomer[type] as string)}
-                  className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'
-                    }`}
-                >
-                  {selectedCustomer?.[type] ? (
-                    <>
-                      <img src={selectedCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <ZoomIn size={20} className="text-white" />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 text-slate-400">
-                      <ImageIcon size={24} strokeWidth={1.5} />
-                      <span className="text-[9px] font-bold">KOSONG</span>
-                    </div>
-                  )}
-                </div>
-                <FileInput
-                  label="Ganti Gambar"
-                  accept="image/*"
-                  onChange={(e) => handleUpload(e, type)}
-                  disabled={uploadMutation.isPending}
-                />
-              </div>
-            ))}
-          </div>
-
-          {uploadMutation.isPending && (
-            <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-xs animate-pulse">
-              <FileUp size={16} /> Sedang Menyinkronkan...
-            </div>
-          )}
-
-          <div className="flex justify-end pt-4 border-t">
-            <button
-              onClick={() => setIsManageModalOpen(false)}
-              className="px-8 py-2 bg-black text-white rounded-xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-800 cursor-pointer"
-            >
-              Simpan & Tutup
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* MODAL LIGHTBOX PREVIEW */}
-      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
-        <div className="flex flex-col items-center">
-          {previewImage && (
-            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
-            </div>
-          )}
-          <div className="mt-6 flex gap-3">
-            <a
-              href={previewImage || '#'}
-              target="_blank"
-              rel="noreferrer"
-              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
-            >
-              Buka Tab Baru
-            </a>
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-};
-
-export default KelengkapanAdministrasi;
-</file>
-
-<file path="src/pages/Dashboard.tsx">
-import { useNavigate } from 'react-router-dom';
-import {
-  Building2,
-  Wallet,
-  AlertCircle,
-  HardHat,
-  ArrowRight,
-  Clock,
-  Award,
-  FileText,
-  ChevronRight
-} from 'lucide-react';
-import { formatRupiah } from '../utils/formatters';
-import { useGetDashboardSummary } from '../hooks/queries/useDashboard';
-import PageLoader from './PageLoader';
-
-const Dashboard = () => {
-  const navigate = useNavigate();
-  const { data: dashboardData, isLoading } = useGetDashboardSummary();
-
-  if (isLoading || !dashboardData) return <PageLoader />;
-
-  const { stats, recentTransactions, topAgents, documentAlerts } = dashboardData;
-
-  const statCards = [
-    {
-      title: 'Total Pendapatan',
-      value: formatRupiah(stats.totalPendapatan),
-      trend: 'Pembayaran Lunas',
-      isPositive: true,
-      icon: <Wallet className="text-slate-700" size={24} />,
-      bgColor: 'bg-slate-100',
-      link: '/customer/tagihan'
-    },
-    {
-      title: 'Kavling Terjual',
-      value: `${stats.kavlingTerjual} Unit`,
-      trend: `Dari Total ${stats.totalKavling} Unit`,
-      isPositive: true,
-      icon: <Building2 className="text-blue-700" size={24} />,
-      bgColor: 'bg-blue-50',
-      link: '/management/penjualan'
-    },
-    {
-      title: 'Tagihan Jatuh Tempo',
-      value: formatRupiah(stats.tagihanJatuhTempo),
-      trend: `${stats.customerJatuhTempo} Customer`,
-      isPositive: false,
-      icon: <AlertCircle className="text-red-700" size={24} />,
-      bgColor: 'bg-red-50',
-      link: '/customer/tagihan'
-    },
-    {
-      title: 'Proyek Aktif (SPK)',
-      value: `${stats.proyekAktif} Unit`,
-      trend: 'Sedang Dibangun',
-      isPositive: true,
-      icon: <HardHat className="text-amber-700" size={24} />,
-      bgColor: 'bg-amber-50',
-      link: '/proyek/spk'
-    },
-  ];
-
-  const percentTerjual = stats.totalKavling > 0 ? Math.round((stats.kavlingTerjual / stats.totalKavling) * 100) : 0;
-  const availableKavling = stats.totalKavling - stats.kavlingTerjual;
-  const percentAvailable = stats.totalKavling > 0 ? Math.round((availableKavling / stats.totalKavling) * 100) : 0;
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header Greeting */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
-            Selamat datang kembali! 👋
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Berikut adalah ringkasan performa operasional dan finansial hari ini.
-          </p>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, index) => (
-          <div
-            key={index}
-            onClick={() => navigate(stat.link)}
-            className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group cursor-pointer hover:-translate-y-1"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
-                {stat.icon}
-              </div>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {stat.trend}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">{stat.title}</h3>
-              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Kavling Overview */}
-        <div
-          className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm cursor-pointer hover:shadow-md hover:border-slate-300 transition-all"
-          onClick={() => navigate('/management/penjualan')}
-        >
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Status Kavling</h3>
-            <button className="text-slate-400 hover:text-black transition-colors cursor-pointer">
-              <ArrowRight size={20} />
-            </button>
-          </div>
-          <div className="space-y-5">
-            <div>
-              <div className="flex justify-between text-sm font-medium mb-2">
-                <span className="text-slate-700">Terjual / Proses</span>
-                <span className="text-slate-900 font-bold">{stats.kavlingTerjual} Unit ({percentTerjual}%)</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-black h-2.5 rounded-full" style={{ width: `${percentTerjual}%` }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm font-medium mb-2">
-                <span className="text-slate-700">Tersedia</span>
-                <span className="text-slate-900 font-bold">{availableKavling} Unit ({percentAvailable}%)</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${percentAvailable}%` }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Penjualan Terbaru */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Penjualan Terbaru</h3>
-            <button
-              onClick={() => navigate('/management/penjualan')}
-              className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer"
-            >
-              Lihat Semua
-            </button>
-          </div>
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-sm text-left">
-              <thead>
-                <tr className="text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
-                  <th className="pb-3 pr-4">Customer</th>
-                  <th className="pb-3 px-4">Kavling</th>
-                  <th className="pb-3 px-4">Pembayaran</th>
-                  <th className="pb-3 px-4 text-right">Nilai Jual</th>
-                  <th className="pb-3 pl-4 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {recentTransactions.length > 0 ? recentTransactions.map((trx) => (
-                  <tr key={trx.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={() => navigate('/management/penjualan')}>
-                    <td className="py-4 pr-4">
-                      <p className="font-bold text-slate-900">{trx.customer}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                        <Clock size={12} /> {trx.date}
-                      </p>
-                    </td>
-                    <td className="py-4 px-4 font-medium text-slate-700">{trx.kavling}</td>
-                    <td className="py-4 px-4 text-slate-600">{trx.type}</td>
-                    <td className="py-4 px-4 text-right font-bold text-slate-900">
-                      {formatRupiah(trx.amount)}
-                    </td>
-                    <td className="py-4 pl-4 text-center">
-                      <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${trx.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
-                        trx.status === 'PROSES' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                        {trx.status}
-                      </span>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500 italic">Belum ada transaksi terbaru.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Agent Marketing */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <Award size={18} className="text-amber-500" />
-              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Top Agent</h3>
-            </div>
-          </div>
-          <div className="space-y-3 flex-1">
-            {topAgents.length > 0 ? topAgents.map((agent, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-amber-50/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
-                    #{idx + 1}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{agent.name}</p>
-                    <p className="text-xs text-slate-500">{agent.closing} Closing Penjualan</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Pencairan Fee</p>
-                  <p className="text-sm font-bold text-slate-900">{agent.feeStatus}</p>
-                </div>
-              </div>
-            )) : (
-              <p className="text-sm text-slate-500 italic text-center py-4">Belum ada data agent.</p>
-            )}
-          </div>
-          <button onClick={() => navigate('/marketing/fee-agent')} className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
-            Lihat Data Fee <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* Kelengkapan Dokumen */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-2">
-              <FileText size={18} className="text-red-500" />
-              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Alert Dokumen Customer</h3>
-            </div>
-            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
-              {documentAlerts.length} Belum Lengkap
-            </span>
-          </div>
-          <div className="space-y-3 flex-1">
-            <p className="text-xs text-slate-500 mb-2">Customer yang telah booking namun belum melengkapi berkas:</p>
-            {documentAlerts.length > 0 ? documentAlerts.map((alert, idx) => (
-              <div key={idx} className="p-3 border border-red-100 bg-red-50/30 rounded-xl cursor-pointer hover:bg-red-50 transition-colors" onClick={() => navigate('/customer/kelengkapan-administrasi')}>
-                <div className="flex justify-between items-start mb-1">
-                  <p className="font-bold text-slate-900 text-sm">{alert.customer}</p>
-                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    {alert.kavling}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {alert.missing.map((doc, i) => (
-                    <span key={i} className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
-                      Kekurangan: {doc}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )) : (
-              <p className="text-sm text-slate-500 italic text-center py-4">Semua dokumen customer lengkap.</p>
-            )}
-          </div>
-          <button onClick={() => navigate('/customer/kelengkapan-administrasi')} className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer">
-            Lengkapi Dokumen <ChevronRight size={14} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Dashboard;
 </file>
 
 <file path="src/pages/Management/GantiKavling.tsx">
@@ -6383,6 +5881,504 @@ export const useApproveGantiKavling = () => {
 };
 </file>
 
+<file path="src/pages/Customer/KelengkapanAdministrasi.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import FileInput from "../../components/shared/FileInput";
+import PageLoader from "../PageLoader";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import { useGetCustomers, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import type { CustomerData, CustomerDocType } from "../../services/customer.service";
+import { XCircle, FileUp, ImageIcon, ZoomIn, ShoppingCart } from "lucide-react";
+
+const KelengkapanAdministrasi = () => {
+  const { data: customers = [], isLoading } = useGetCustomers();
+  const { data: penjualanResponse, isLoading: isLoadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const penjualanData = penjualanResponse?.items || [];
+  const uploadMutation = useUploadCustomerDoc();
+
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const renderTableThumbnail = (url: string | null) => {
+    if (!url) return (
+      <div className="flex items-center gap-2 text-red-400 font-medium text-[10px] uppercase tracking-wider">
+        <XCircle size={14} /> Kosong
+      </div>
+    );
+    return (
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          setPreviewImage(url);
+        }}
+        className="relative w-12 h-8 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group"
+      >
+        <img src={url} alt="Dokumen" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <ZoomIn size={12} className="text-white" />
+        </div>
+      </div>
+    );
+  };
+
+  const columns = [
+    { header: 'Nama Customer', accessor: 'nama' },
+    { header: 'KTP', accessor: 'fileKtp', render: (val: string | null) => renderTableThumbnail(val) },
+    { header: 'KK', accessor: 'fileKk', render: (val: string | null) => renderTableThumbnail(val) },
+    { header: 'NPWP', accessor: 'fileNpwp', render: (val: string | null) => renderTableThumbnail(val) },
+  ];
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: CustomerDocType) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedCustomer) return;
+    if (!file.type.startsWith('image/')) {
+      alert("Hanya file gambar yang diperbolehkan!");
+      e.target.value = "";
+      return;
+    }
+    try {
+      await uploadMutation.mutateAsync({ id: selectedCustomer.id, docType, file });
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal mengunggah gambar");
+    }
+  };
+
+  const expandedRowRender = (row: CustomerData) => {
+    const customerSales = penjualanData.filter((p: any) => p.noIdentitas === row.nikKtp);
+    return (
+      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <ShoppingCart size={16} className="text-blue-600" /> Riwayat Pembelian & Penjualan
+          </h4>
+        </div>
+        {customerSales.length > 0 ? (
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
+                  <th className="p-3 font-bold">Tanggal</th>
+                  <th className="p-3 font-bold">Kavling</th>
+                  <th className="p-3 font-bold">Pembayaran</th>
+                  <th className="p-3 font-bold text-right">Nilai Transaksi</th>
+                  <th className="p-3 font-bold text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {customerSales.map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
+                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.tanggal)}</td>
+                    <td className="p-3 font-semibold text-slate-800">{item.perumahan} - Blok {item.blok}-{item.nomorUnit}</td>
+                    <td className="p-3 text-slate-600">{item.caraPembayaran}</td>
+                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.hargaJual)}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
+                        item.status === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                        {item.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">
+            Belum ada riwayat transaksi penjualan untuk customer ini.
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading || isLoadingPenjualan) return <PageLoader />;
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Administrasi Berkas Gambar"
+        columns={columns}
+        data={customers}
+        onEdit={(item) => {
+          setSelectedCustomer(item as CustomerData);
+          setIsManageModalOpen(true);
+        }}
+        expandedRowRender={expandedRowRender}
+      />
+
+      {/* MODAL KELOLA & UPLOAD */}
+      <Modal
+        isOpen={isManageModalOpen}
+        onClose={() => setIsManageModalOpen(false)}
+        title={`Manajemen Berkas: ${selectedCustomer?.nama}`}
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(['fileKtp', 'fileKk', 'fileNpwp'] as CustomerDocType[]).map((type) => (
+              <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  {type.replace('file', '')}
+                </span>
+                <div
+                  onClick={() => selectedCustomer?.[type] && setPreviewImage(selectedCustomer[type] as string)}
+                  className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'
+                    }`}
+                >
+                  {selectedCustomer?.[type] ? (
+                    <>
+                      <img src={selectedCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <ZoomIn size={20} className="text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-slate-400">
+                      <ImageIcon size={24} strokeWidth={1.5} />
+                      <span className="text-[9px] font-bold">KOSONG</span>
+                    </div>
+                  )}
+                </div>
+                <FileInput
+                  label="Ganti Gambar"
+                  accept="image/*"
+                  onChange={(e) => handleUpload(e, type)}
+                  disabled={uploadMutation.isPending}
+                />
+              </div>
+            ))}
+          </div>
+
+          {uploadMutation.isPending && (
+            <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-xs animate-pulse">
+              <FileUp size={16} /> Sedang Menyinkronkan...
+            </div>
+          )}
+
+          <div className="flex justify-end pt-4 border-t">
+            <button
+              onClick={() => setIsManageModalOpen(false)}
+              className="px-8 py-2 bg-black text-white rounded-xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-800 cursor-pointer"
+            >
+              Simpan & Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL LIGHTBOX PREVIEW */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a
+              href={previewImage || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+            >
+              Buka Tab Baru
+            </a>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default KelengkapanAdministrasi;
+</file>
+
+<file path="src/pages/Dashboard.tsx">
+import { useNavigate } from 'react-router-dom';
+import {
+  Building2,
+  Wallet,
+  AlertCircle,
+  HardHat,
+  ArrowRight,
+  Clock,
+  Award,
+  FileText,
+  ChevronRight
+} from 'lucide-react';
+import { formatRupiah } from '../utils/formatters';
+import { useGetDashboardSummary } from '../hooks/queries/useDashboard';
+import PageLoader from './PageLoader';
+
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const { data: dashboardData, isLoading } = useGetDashboardSummary();
+
+  if (isLoading || !dashboardData) return <PageLoader />;
+
+  const { stats, recentTransactions, topAgents, documentAlerts } = dashboardData;
+
+  const statCards = [
+    {
+      title: 'Total Pendapatan',
+      value: formatRupiah(stats.totalPendapatan),
+      trend: 'Pembayaran Lunas',
+      isPositive: true,
+      icon: <Wallet className="text-slate-700" size={24} />,
+      bgColor: 'bg-slate-100',
+      link: '/customer/tagihan'
+    },
+    {
+      title: 'Kavling Terjual',
+      value: `${stats.kavlingTerjual} Unit`,
+      trend: `Dari Total ${stats.totalKavling} Unit`,
+      isPositive: true,
+      icon: <Building2 className="text-blue-700" size={24} />,
+      bgColor: 'bg-blue-50',
+      link: '/management/penjualan'
+    },
+    {
+      title: 'Tagihan Jatuh Tempo',
+      value: formatRupiah(stats.tagihanJatuhTempo),
+      trend: `${stats.customerJatuhTempo} Customer`,
+      isPositive: false,
+      icon: <AlertCircle className="text-red-700" size={24} />,
+      bgColor: 'bg-red-50',
+      link: '/customer/tagihan'
+    },
+    {
+      title: 'Proyek Aktif (SPK)',
+      value: `${stats.proyekAktif} Unit`,
+      trend: 'Sedang Dibangun',
+      isPositive: true,
+      icon: <HardHat className="text-amber-700" size={24} />,
+      bgColor: 'bg-amber-50',
+      link: '/proyek/spk'
+    },
+  ];
+
+  const percentTerjual = stats.totalKavling > 0 ? Math.round((stats.kavlingTerjual / stats.totalKavling) * 100) : 0;
+  const availableKavling = stats.totalKavling - stats.kavlingTerjual;
+  const percentAvailable = stats.totalKavling > 0 ? Math.round((availableKavling / stats.totalKavling) * 100) : 0;
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Header Greeting */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
+            Selamat datang kembali! 👋
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Berikut adalah ringkasan performa operasional dan finansial hari ini.
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat, index) => (
+          <div
+            key={index}
+            onClick={() => navigate(stat.link)}
+            className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-md transition-all group cursor-pointer hover:-translate-y-1"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
+                {stat.icon}
+              </div>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${stat.isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {stat.trend}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">{stat.title}</h3>
+              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Status Kavling Overview */}
+        <div
+          className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm cursor-pointer hover:shadow-md hover:border-slate-300 transition-all"
+          onClick={() => navigate('/management/penjualan')}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Status Kavling</h3>
+            <button className="text-slate-400 hover:text-black transition-colors cursor-pointer">
+              <ArrowRight size={20} />
+            </button>
+          </div>
+          <div className="space-y-5">
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Terjual / Proses</span>
+                <span className="text-slate-900 font-bold">{stats.kavlingTerjual} Unit ({percentTerjual}%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-black h-2.5 rounded-full" style={{ width: `${percentTerjual}%` }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm font-medium mb-2">
+                <span className="text-slate-700">Tersedia</span>
+                <span className="text-slate-900 font-bold">{availableKavling} Unit ({percentAvailable}%)</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${percentAvailable}%` }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Penjualan Terbaru */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-bold text-slate-900 text-lg tracking-tight">Penjualan Terbaru</h3>
+            <button
+              onClick={() => navigate('/management/penjualan')}
+              className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-black transition-colors cursor-pointer"
+            >
+              Lihat Semua
+            </button>
+          </div>
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
+                  <th className="pb-3 pr-4">Customer</th>
+                  <th className="pb-3 px-4">Kavling</th>
+                  <th className="pb-3 px-4">Pembayaran</th>
+                  <th className="pb-3 px-4 text-right">Nilai Jual</th>
+                  <th className="pb-3 pl-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {recentTransactions.length > 0 ? recentTransactions.map((trx) => (
+                  <tr key={trx.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={() => navigate('/management/penjualan')}>
+                    <td className="py-4 pr-4">
+                      <p className="font-bold text-slate-900">{trx.customer}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                        <Clock size={12} /> {trx.date}
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 font-medium text-slate-700">{trx.kavling}</td>
+                    <td className="py-4 px-4 text-slate-600">{trx.type}</td>
+                    <td className="py-4 px-4 text-right font-bold text-slate-900">
+                      {formatRupiah(trx.amount)}
+                    </td>
+                    <td className="py-4 pl-4 text-center">
+                      <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-md ${trx.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
+                        trx.status === 'PROSES' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                        {trx.status}
+                      </span>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-500 italic">Belum ada transaksi terbaru.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Agent Marketing */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <Award size={18} className="text-amber-500" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Top Agent</h3>
+            </div>
+          </div>
+          <div className="space-y-3 flex-1">
+            {topAgents.length > 0 ? topAgents.map((agent, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-amber-50/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">
+                    #{idx + 1}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{agent.name}</p>
+                    <p className="text-xs text-slate-500">{agent.closing} Closing Penjualan</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Total Pencairan Fee</p>
+                  <p className="text-sm font-bold text-slate-900">{agent.feeStatus}</p>
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-slate-500 italic text-center py-4">Belum ada data agent.</p>
+            )}
+          </div>
+          <button onClick={() => navigate('/marketing/fee-agent')} className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
+            Lihat Data Fee <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Kelengkapan Dokumen */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-red-500" />
+              <h3 className="font-bold text-slate-900 text-lg tracking-tight">Alert Dokumen Customer</h3>
+            </div>
+            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-[10px] font-bold rounded-full">
+              {documentAlerts.length} Belum Lengkap
+            </span>
+          </div>
+          <div className="space-y-3 flex-1">
+            <p className="text-xs text-slate-500 mb-2">Customer yang telah booking namun belum melengkapi berkas:</p>
+            {documentAlerts.length > 0 ? documentAlerts.map((alert, idx) => (
+              <div key={idx} className="p-3 border border-red-100 bg-red-50/30 rounded-xl cursor-pointer hover:bg-red-50 transition-colors" onClick={() => navigate('/customer/kelengkapan-administrasi')}>
+                <div className="flex justify-between items-start mb-1">
+                  <p className="font-bold text-slate-900 text-sm">{alert.customer}</p>
+                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    {alert.kavling}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {alert.missing.map((doc, i) => (
+                    <span key={i} className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                      Kekurangan: {doc}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-slate-500 italic text-center py-4">Semua dokumen customer lengkap.</p>
+            )}
+          </div>
+          <button onClick={() => navigate('/customer/kelengkapan-administrasi')} className="w-full mt-4 py-2 flex items-center justify-center gap-1 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer">
+            Lengkapi Dokumen <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
+</file>
+
 <file path="src/pages/Marketing/Agents.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
@@ -7410,6 +7406,8 @@ export interface CreatePenjualanDTO {
   hargaDasar: number;
   plafonAwal?: number;
   biayaKpr?: number;
+  plafonKredit?: number;
+  dpTidakDibayar?: number;
   hargaJual: number;
   hargaPromosi?: number;
   diskonPenjualan?: number;
@@ -7856,16 +7854,15 @@ import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import PageLoader from "../PageLoader";
 import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
 import { useGetTagihans } from '../../hooks/queries/useTagihan';
-
+import CurrencyInput from '../../components/shared/CurrencyInput';
 interface KavlingData {
   id: string;
   perumahan: string;
-  status: string; // Status Penjualan
-  statusKavling: string; // Status Unit Kavling
+  status: string;
+  statusKavling: string;
   lantai: string;
   blok: string;
   unit: string;
@@ -7880,7 +7877,8 @@ interface KavlingData {
   tanggalPembayaranBphtb: string;
   pembiayaan: string;
   sp3r: string;
-  harga: number;
+  hargaDasarKavling: number; // Tambahan Baru dari UseCase
+  diskonPenjualan: number;   // Tambahan Baru dari UseCase
   lebihTanah: number;
   biayaStrategis: number;
   totalHargaJual: number;
@@ -7931,7 +7929,7 @@ const initialFormState: KavlingData = {
   rekeningTujuanId: 0,
   perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
   tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
-  harga: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
+  hargaDasarKavling: 0, diskonPenjualan: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
   nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
   pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
   ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
@@ -7946,13 +7944,13 @@ const CustomerKavling = () => {
   const updateMutation = useUpdateCustomerKavling();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<KavlingData>(initialFormState);
+  const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
 
   const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
 
   const columns = [
-    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => val },
     { header: 'Perumahan', accessor: 'perumahan' },
     { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
     { header: 'Tipe', accessor: 'tipe' },
@@ -7981,6 +7979,9 @@ const CustomerKavling = () => {
   const openModal = (item: any) => {
     setFormData({
       ...item,
+      hargaDasarKavling: item.hargaDasarKavling || 0,
+      diskonPenjualan: item.diskonPenjualan || 0,
+      totalHargaJual: item.totalHargaJual || 0,
       tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
       tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
       tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
@@ -7998,11 +7999,14 @@ const CustomerKavling = () => {
 
   const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
     const d = { ...currentData };
-    d.totalHargaJual = (Number(d.harga) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+
+    // Total Harga Akhir yang dinamis (Harga Jual dari Penjualan + Lebih Tanah + Biaya Strategis)
+    const hargaBase = (Number(d.totalHargaJual) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+
     d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
-    d.nrNilaiPenyerahan = d.totalHargaJual - d.nrTotalSubsidi;
+    d.nrNilaiPenyerahan = hargaBase - d.nrTotalSubsidi;
     d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
-    d.pjNilaiPenyerahan = d.totalHargaJual - d.pjTotalSubsidi;
+    d.pjNilaiPenyerahan = hargaBase - d.pjTotalSubsidi;
     d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
     d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
     d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
@@ -8015,6 +8019,20 @@ const CustomerKavling = () => {
 
     setFormData((prev) => {
       const updatedData = { ...prev, [name]: parsedValue };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: value };
       return calculateDerivedFields(updatedData);
     });
     if (errors[name]) {
@@ -8040,11 +8058,11 @@ const CustomerKavling = () => {
     const getStr = (val: string | undefined) => val === '' ? undefined : val;
 
     const payload = {
-      statusKavling: getStr(formData.statusKavling), // Menggunakan statusKavling
+      statusKavling: getStr(formData.statusKavling),
       namaTipe: getStr(formData.tipe),
       luasBangunan: getNum(formData.luasBangunan),
       luasTanah: getNum(formData.luasTanah),
-      hargaJualKavling: getNum(formData.harga),
+      // hargaDasarKavling TIDAK di lempar karena read-only
       rekeningTujuanId: getNum(formData.rekeningTujuanId),
 
       notarisId: getNum(formData.notarisId),
@@ -8131,7 +8149,7 @@ const CustomerKavling = () => {
   const expandedRowRender = (row: KavlingData) => {
     const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
     const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
-    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar; // Kalkulasi Sisa Pembayaran
+    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar;
 
     return (
       <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
@@ -8181,10 +8199,10 @@ const CustomerKavling = () => {
     );
   };
 
-  if (isLoading || isLoadingTagihan) return <PageLoader />;
+  if (isLoading || isLoadingTagihan) return;
 
   return (
-    <div className="space-y-6">
+    <div>
       <DataTable
         title="Data Kavling Customer"
         columns={columns}
@@ -8213,7 +8231,6 @@ const CustomerKavling = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
 
-              {/* Diperbaiki: Mapping dropdown menggunakan nilai yang sesuai dengan Backend Enum */}
               <Select
                 label="Status Kavling"
                 name="statusKavling"
@@ -8236,7 +8253,6 @@ const CustomerKavling = () => {
               <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
               <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
 
-              {/* Diperbaiki: Mapping Pembiayaan */}
               <Select
                 label="Pembiayaan"
                 name="pembiayaan"
@@ -8252,7 +8268,6 @@ const CustomerKavling = () => {
               <Select label="SP3R" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
               <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
 
-              {/* Diperbaiki: Akad PPJB menjadi Dropdown/Select */}
               <Select
                 label="Akad PPJB"
                 name="akadPpjb"
@@ -8273,12 +8288,15 @@ const CustomerKavling = () => {
 
           {activeTab === 'harga' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Harga Standar Kavling (Rp)" type="number" name="harga" value={formData.harga === 0 ? '' : formData.harga} onChange={handleChange} />
-              <Input label="Lebih Tanah (Rp)" type="number" name="lebihTanah" value={formData.lebihTanah === 0 ? '' : formData.lebihTanah} onChange={handleChange} />
-              <Input label="Biaya Strategis (Rp)" type="number" name="biayaStrategis" value={formData.biayaStrategis === 0 ? '' : formData.biayaStrategis} onChange={handleChange} />
+              <CurrencyInput label="Harga Jual (Sistem Nett)" name="totalHargaJual" value={formData.totalHargaJual} onValueChange={handleCurrencyChange} disabled={true} />
+              <CurrencyInput label="Diskon Penjualan (Sistem)" name="diskonPenjualan" value={formData.diskonPenjualan} onValueChange={handleCurrencyChange} disabled={true} />
+
+              <CurrencyInput label="Lebih Tanah Tambahan" name="lebihTanah" value={formData.lebihTanah} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Strategis Tambahan" name="biayaStrategis" value={formData.biayaStrategis} onValueChange={handleCurrencyChange} />
+
               <div className="md:col-span-2 mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Jual</span>
-                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.totalHargaJual)}</span>
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Kavling</span>
+                <span className="text-2xl font-black text-slate-900">{formatRupiah((formData.totalHargaJual || 0) + (formData.lebihTanah || 0) + (formData.biayaStrategis || 0) - (formData.diskonPenjualan || 0))}</span>
               </div>
             </div>
           )}
@@ -8286,14 +8304,14 @@ const CustomerKavling = () => {
           {activeTab === 'nilai' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
-              <Input label="Biaya KPR & Asuransi" type="number" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi === 0 ? '' : formData.nrBiayaKprAsuransi} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran === 0 ? '' : formData.nrDiskonAngsuran} onChange={handleChange} />
-              <Input label="Diskon Cash & Lainnya" type="number" name="nrDiskonCash" value={formData.nrDiskonCash === 0 ? '' : formData.nrDiskonCash} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="nrBiayaBbn" value={formData.nrBiayaBbn === 0 ? '' : formData.nrBiayaBbn} onChange={handleChange} />
-              <Input label="Biaya Notaris AJB" type="number" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb === 0 ? '' : formData.nrBiayaNotarisAjb} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal === 0 ? '' : formData.nrBiayaAppraisal} onChange={handleChange} />
-              <Input label="Biaya BPHTB" type="number" name="nrBiayaBphtb" value={formData.nrBiayaBphtb === 0 ? '' : formData.nrBiayaBphtb} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="nrLainLain" value={formData.nrLainLain === 0 ? '' : formData.nrLainLain} onChange={handleChange} />
+              <CurrencyInput label="Biaya KPR & Asuransi" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Angsuran" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus</span>
                 <span className="font-black text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
@@ -8303,23 +8321,23 @@ const CustomerKavling = () => {
                 <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
               </div>
               <SectionTitle title="Pajak Nilai Rumah" />
-              <Input label="PPN" type="number" name="nrPpn" value={formData.nrPpn === 0 ? '' : formData.nrPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="nrBphtb" value={formData.nrBphtb === 0 ? '' : formData.nrBphtb} onChange={handleChange} />
-              <Input label="PPh" type="number" name="nrPph" value={formData.nrPph === 0 ? '' : formData.nrPph} onChange={handleChange} />
+              <CurrencyInput label="PPN" name="nrPpn" value={formData.nrPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="nrBphtb" value={formData.nrBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="nrPph" value={formData.nrPph} onValueChange={handleCurrencyChange} />
             </div>
           )}
 
           {activeTab === 'pajak' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <SectionTitle title="Subsidi & Bonus (Pajak)" />
-              <Input label="Biaya KPR" type="number" name="pjBiayaKpr" value={formData.pjBiayaKpr === 0 ? '' : formData.pjBiayaKpr} onChange={handleChange} />
-              <Input label="Biaya Asuransi" type="number" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi === 0 ? '' : formData.pjBiayaAsuransi} onChange={handleChange} />
-              <Input label="Diskon Angsuran" type="number" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran === 0 ? '' : formData.pjDiskonAngsuran} onChange={handleChange} />
-              <Input label="Biaya Balik Nama Sertifikat" type="number" name="pjBiayaBbn" value={formData.pjBiayaBbn === 0 ? '' : formData.pjBiayaBbn} onChange={handleChange} />
-              <Input label="Biaya Pembuatan AJB" type="number" name="pjBiayaAjb" value={formData.pjBiayaAjb === 0 ? '' : formData.pjBiayaAjb} onChange={handleChange} />
-              <Input label="Biaya Appraisal" type="number" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal === 0 ? '' : formData.pjBiayaAppraisal} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtb" value={formData.pjBphtb === 0 ? '' : formData.pjBphtb} onChange={handleChange} />
-              <Input label="Lain-lain (Utilitas, Fisik)" type="number" name="pjLainLain" value={formData.pjLainLain === 0 ? '' : formData.pjLainLain} onChange={handleChange} />
+              <CurrencyInput label="Biaya KPR" name="pjBiayaKpr" value={formData.pjBiayaKpr} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Asuransi" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Angsuran" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="pjBiayaBbn" value={formData.pjBiayaBbn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Pembuatan AJB" name="pjBiayaAjb" value={formData.pjBiayaAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="pjBphtb" value={formData.pjBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="pjLainLain" value={formData.pjLainLain} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
                 <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
@@ -8329,9 +8347,9 @@ const CustomerKavling = () => {
                 <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
               </div>
               <SectionTitle title="Detail Pajak" />
-              <Input label="PPN" type="number" name="pjPpn" value={formData.pjPpn === 0 ? '' : formData.pjPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="pjBphtbPajak" value={formData.pjBphtbPajak === 0 ? '' : formData.pjBphtbPajak} onChange={handleChange} />
-              <Input label="PPh" type="number" name="pjPph" value={formData.pjPph === 0 ? '' : formData.pjPph} onChange={handleChange} />
+              <CurrencyInput label="PPN" name="pjPpn" value={formData.pjPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="pjBphtbPajak" value={formData.pjBphtbPajak} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="pjPph" value={formData.pjPph} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 mt-2 p-4 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
                 <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
                 <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
@@ -8342,25 +8360,25 @@ const CustomerKavling = () => {
           {activeTab === 'ajb' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
-              <Input label="NJOP Tanah per Meter" type="number" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter === 0 ? '' : formData.ajbNjopTanahPerMeter} onChange={handleChange} />
-              <Input label="Total NJOP Tanah" type="number" name="ajbNjopTanah" value={formData.ajbNjopTanah === 0 ? '' : formData.ajbNjopTanah} onChange={handleChange} />
-              <Input label="NJOP Bangunan per Meter" type="number" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter === 0 ? '' : formData.ajbNjopBangunanPerMeter} onChange={handleChange} />
-              <Input label="Total NJOP Bangunan" type="number" name="ajbNjopBangunan" value={formData.ajbNjopBangunan === 0 ? '' : formData.ajbNjopBangunan} onChange={handleChange} />
+              <CurrencyInput label="NJOP Tanah per Meter" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Total NJOP Tanah" name="ajbNjopTanah" value={formData.ajbNjopTanah} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="NJOP Bangunan per Meter" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Total NJOP Bangunan" name="ajbNjopBangunan" value={formData.ajbNjopBangunan} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 bg-slate-50 p-5 rounded-xl flex justify-between items-center border border-slate-200 mb-4 shadow-sm">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">NJOP Tanah + Bangunan</span>
                 <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.ajbNjopTotal)}</span>
               </div>
               <SectionTitle title="Kewajiban Pajak AJB" />
-              <Input label="PPN" type="number" name="ajbPpn" value={formData.ajbPpn === 0 ? '' : formData.ajbPpn} onChange={handleChange} />
-              <Input label="BPHTB" type="number" name="ajbBphtb" value={formData.ajbBphtb === 0 ? '' : formData.ajbBphtb} onChange={handleChange} />
-              <Input label="PPh" type="number" name="ajbPph" value={formData.ajbPph === 0 ? '' : formData.ajbPph} onChange={handleChange} />
+              <CurrencyInput label="PPN" name="ajbPpn" value={formData.ajbPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="ajbBphtb" value={formData.ajbBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="ajbPph" value={formData.ajbPph} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
                 <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">BPHTB + PPh (AJB)</span>
                 <span className="text-xl font-black text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
               </div>
               <SectionTitle title="Lain-lain" />
-              <Input label="Selisih (BPHTB+PPh) Pajak - PBB" type="number" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb === 0 ? '' : formData.ajbSelisihPajakPbb} onChange={handleChange} />
-              <Input label="Uping" type="number" name="ajbUping" value={formData.ajbUping === 0 ? '' : formData.ajbUping} onChange={handleChange} />
+              <CurrencyInput label="Selisih (BPHTB+PPh) Pajak - PBB" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Uping" name="ajbUping" value={formData.ajbUping} onValueChange={handleCurrencyChange} />
             </div>
           )}
 
@@ -8401,7 +8419,7 @@ const CustomerKavling = () => {
           </div>
         </form>
       </Modal>
-    </div>
+    </div >
   );
 };
 
@@ -9261,7 +9279,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud, Edit2, Trash2, Eye, ZoomIn, PenTool } from 'lucide-react';
+import { FileText, Printer, UploadCloud, Edit2, Trash2, ZoomIn, PenTool } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import CurrencyInput from "../../components/shared/CurrencyInput";
@@ -9323,7 +9341,7 @@ const Tagihan = () => {
   const uploadSignatureMutation = useUploadTagihanSignature();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<TagihanFormState>(initialFormState);
+  const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [isAutoFilled, setIsAutoFilled] = useState(false);
@@ -9337,7 +9355,7 @@ const Tagihan = () => {
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
-  const sigCanvas = useRef<SignatureCanvas>(null);
+  const sigCanvas = useRef<any>(null);
 
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
@@ -9359,23 +9377,21 @@ const Tagihan = () => {
           reminderSelanjutnya: '',
           unpaidCount: 0,
           totalTerbayarKeseluruhan: 0,
-          totalTerbayarBfDp: 0,
           cicilan: []
         };
       }
 
       const lowerPay = item.pembayaran.toLowerCase();
-      const isBfOrDp = lowerPay.includes('booking') || lowerPay.includes('dp') || lowerPay.includes('down payment');
+      // PERBAIKAN: Booking Fee dikecualikan, tidak mengurangi 'totalTerbayarKeseluruhan' atau tampil sebagai cicilan internal
+      const isBf = lowerPay.includes('booking');
 
       if (item.status === 'LUNAS') {
-        if (isBfOrDp) {
-          groups[groupKey].totalTerbayarBfDp += Number(item.nominal);
-        } else {
+        if (!isBf) {
           groups[groupKey].totalTerbayarKeseluruhan += Number(item.nominal);
         }
       }
 
-      if (!isBfOrDp) {
+      if (!isBf) {
         if (item.status === 'BELUM_BAYAR') {
           groups[groupKey].unpaidCount += 1;
         }
@@ -9404,7 +9420,7 @@ const Tagihan = () => {
     {
       header: 'Reminder Selanjutnya',
       accessor: 'reminderSelanjutnya',
-      render: (val: string) => val ? <span className="text-blue-600 font-medium">{formatDate(val)}</span> : <span className="text-slate-400">-</span>
+      render: (val: string) => val ? formatDate(val) : '-'
     },
     {
       header: 'Aksi',
@@ -9418,7 +9434,7 @@ const Tagihan = () => {
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
           title="Lihat Detail Penjualan"
         >
-          <Eye size={14} /> Detail Penjualan
+          Detail Penjualan
         </button>
       )
     },
@@ -9453,9 +9469,7 @@ const Tagihan = () => {
         tipe: found.tipe || '-',
         pembiayaan: found.pembiayaan?.replace(/_/g, ' ') || '-',
         status: found.status || 'TIDAK DIKETAHUI',
-
         harga: Number(found.totalHargaJual) || 0,
-
         lebihTanah: Number(found.lebihTanah) || 0,
         biayaStrategis: Number(found.biayaStrategis) || 0,
         totalHargaJual: Number(found.totalHargaJual) || 0,
@@ -9719,8 +9733,9 @@ const Tagihan = () => {
 
   const expandedRowRender = (row: any) => {
     const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
-    const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
 
+    // Total Harga Akhir
+    const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
     const piutangCicilan = Math.max(0, totalHargaJual);
 
     const totalTerbayarCicilan = row.totalTerbayarKeseluruhan;
@@ -9902,7 +9917,7 @@ const Tagihan = () => {
   if (formData.customerId && !customerOptions.some(opt => opt.value === Number(formData.customerId))) {
     customerOptions.push({
       value: Number(formData.customerId),
-      label: formData.customerLabel || `Customer Terpilih`
+      label: formData.customerLabel || 'Customer Terpilih'
     });
   }
 
@@ -9917,14 +9932,14 @@ const Tagihan = () => {
   if (formData.penjualanId && !kavlingOptions.some(opt => opt.value === Number(formData.penjualanId))) {
     kavlingOptions.push({
       value: Number(formData.penjualanId),
-      label: formData.kavlingLabel || `Kavling Terpilih`
+      label: formData.kavlingLabel || 'Kavling Terpilih'
     });
   }
 
   if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div>
       <DataTable
         title="Data Tagihan Customer"
         columns={columns}
@@ -9973,7 +9988,7 @@ const Tagihan = () => {
               <CurrencyInput
                 label="Nominal"
                 name="nominal"
-                value={formData.nominal}
+                value={formData.nominal as number}
                 onValueChange={handleCurrencyChange}
                 error={errors.nominal}
                 placeholder="0"
@@ -10023,11 +10038,11 @@ const Tagihan = () => {
         </form>
       </Modal>
 
+      {/* MODAL PRINT DOKUMEN */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="bg-white" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}>
             <div className="p-6">
-              {/* --- 1. HEADER (JUDUL DOKUMEN & LOGO) --- */}
               <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
                 <div>
                   <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
@@ -10056,7 +10071,6 @@ const Tagihan = () => {
                 </div>
               </div>
 
-              {/* --- 2. INFORMASI CUSTOMER --- */}
               <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
                   {printType === 'kwitansi' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:'}
@@ -10066,7 +10080,6 @@ const Tagihan = () => {
                 <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{(customers.find(c => c.id === printData?.customerId))?.alamatKoresponden || printData.alamat || '-'}</p>
               </div>
 
-              {/* --- 3. TABEL DESKRIPSI PEMBAYARAN --- */}
               <div className="rounded-xl border border-slate-200 overflow-hidden mb-6">
                 <table className="w-full border-collapse bg-white">
                   <thead>
@@ -10092,7 +10105,6 @@ const Tagihan = () => {
               </div>
 
               <div className="flex flex-row justify-between items-start gap-6 mb-6">
-                {/* --- 4. INFORMASI REKENING TRANSFER --- */}
                 <div className="flex-1">
                   {(() => {
                     let rekening: any = printData.rekeningTujuan;
@@ -10114,7 +10126,6 @@ const Tagihan = () => {
                   })()}
                 </div>
 
-                {/* --- 5. TOTAL TAGIHAN --- */}
                 <div className="w-[280px] space-y-3">
                   {(printData.hargaJual > 0) && (
                     <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -10138,7 +10149,6 @@ const Tagihan = () => {
                 </div>
               </div>
 
-              {/* --- 6. CATATAN / NOTES --- */}
               <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl text-[9px] text-slate-600 leading-relaxed">
                 <p className="font-bold text-slate-800 mb-1 uppercase tracking-widest">Catatan:</p>
                 <ul className="list-disc pl-4 space-y-0.5">
@@ -10148,7 +10158,6 @@ const Tagihan = () => {
                 </ul>
               </div>
 
-              {/* --- 7. QR CODE & TTD --- */}
               <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
                 <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
                   <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
@@ -10159,7 +10168,7 @@ const Tagihan = () => {
                     />
                   </div>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
-                  <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
+                  <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">[www.purisafana.com](https://www.purisafana.com)</span>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Hormat Kami,</span>
                   <span className="text-[10px] text-slate-900 font-black mt-0.5 tracking-wide uppercase">
                     {printData.pembuat}
@@ -10187,18 +10196,6 @@ const Tagihan = () => {
                       return <div className="h-16 w-full"></div>;
                     })()}
 
-                    <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
-                      MARKETING
-                    </p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">{selectedPerumahan?.nama}</p>
-                  </div>
-                )}
-
-                {printType === 'invoice' && (
-                  <div className="text-center w-[200px] relative">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-12">
-                      Tangerang, {formatDate(printData.tanggal || new Date().toISOString())}
-                    </p>
                     <p className="text-xs font-black text-slate-900 uppercase tracking-widest border-b-[2px] border-slate-900 pb-1.5 inline-block z-10 relative">
                       MARKETING
                     </p>
@@ -10391,6 +10388,8 @@ interface PenjualanData {
   noIdentitas: string;
   alasanBatal?: string | null;
   perusahaan: string;
+  plafonKredit?: number;
+  dpTidakDibayar?: number;
   alamatKoresponden: string;
   perumahan: string;
   blok: string;
@@ -10424,6 +10423,7 @@ interface PenjualanData {
   isPendingBatal?: boolean;
   ttdData?: any;
   createdBy?: string;
+  riwayatSpr?: any[];
 }
 
 const initialFormState: PenjualanData = {
@@ -10445,6 +10445,8 @@ const initialFormState: PenjualanData = {
   hargaDasar: 0,
   plafonAwal: 0,
   biayaKpr: 0,
+  plafonKredit: 0,
+  dpTidakDibayar: 0,
   nilaiPengajuanKpr: 0,
   hargaJual: 0,
   dp: 0,
@@ -10477,6 +10479,7 @@ const Penjualan = () => {
 
 
   const [biayaTambahanList, setBiayaTambahanList] = useState<BiayaTambahan[]>([]);
+  const [historyBiayaTambahan, setHistoryBiayaTambahan] = useState<{ id: string, nama: string, nominal: number, tanggal: string }[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
@@ -10515,6 +10518,8 @@ const Penjualan = () => {
   const [detailData, setDetailData] = useState<PenjualanData | null>(null);
 
   const [isSkemaModalOpen, setIsSkemaModalOpen] = useState(false);
+  const [isRevisiSpr, setIsRevisiSpr] = useState(false);
+  const [keteranganRevisi, setKeteranganRevisi] = useState('');
   const [selectedPenjualan, setSelectedPenjualan] = useState<PenjualanData | null>(null);
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
@@ -10590,48 +10595,37 @@ const Penjualan = () => {
     const base = Number(merged.hargaDasar) || 0;
     const diskon = Number(merged.diskonPenjualan) || 0;
     const bf = Number(merged.bookingFee) || 5000000;
-    const totalTambahan = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
-
-    const baseHargaJual = Math.max(0, base - diskon);
-    if (merged.caraPembayaran !== 'KPR') {
-      updates.hargaJual = baseHargaJual;
-    }
-
-    let plafon = 0;
-    if (['diskonPenjualan', 'hargaDasar', 'bookingFee', 'caraPembayaran'].includes(name)) {
-      plafon = Math.max(0, base - diskon - bf);
-      updates.plafonAwal = plafon;
-    } else {
-      plafon = Number(merged.plafonAwal) || 0;
-    }
+    const totalTambahanBaru = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+    const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
+    const totalTambahan = totalTambahanBaru + totalTambahanLama;
 
     if (merged.caraPembayaran === 'KPR') {
-      if (['diskonPenjualan', 'hargaDasar', 'caraPembayaran', 'plafonAwal', 'bookingFee'].includes(name)) {
-        updates.biayaKpr = plafon * 0.06;
+      const plafonAwal = Math.max(0, base - diskon - bf);
+      const biayaKpr = plafonAwal * 0.06;
+      const plafonKredit = plafonAwal + biayaKpr;
 
-        // Kalkulasi Nilai Pengajuan KPR Baru
-        updates.nilaiPengajuanKpr = plafon + updates.biayaKpr + totalTambahan;
+      // PERBAIKAN: Plafon Kredit dikurang Total Biaya Tambahan
+      const nilaiPengajuanKpr = plafonKredit - totalTambahan;
 
-        const hargaJualSetelahDiskon = updates.nilaiPengajuanKpr / 0.9;
-        updates.hargaJual = hargaJualSetelahDiskon + diskon;
-        updates.dp = hargaJualSetelahDiskon * 0.1;
-      }
-      else if (name === 'biayaKpr') {
-        updates.nilaiPengajuanKpr = plafon + Number(value) + totalTambahan;
+      // REVISI FORMULA HARGA JUAL
+      const baseHargaJual = plafonKredit / 0.9;
+      const hargaJual = baseHargaJual + diskon;
 
-        const hargaJualSetelahDiskon = updates.nilaiPengajuanKpr / 0.9;
-        updates.hargaJual = hargaJualSetelahDiskon + diskon;
-        updates.dp = hargaJualSetelahDiskon * 0.1;
-      }
-      else if (name === 'nilaiPengajuanKpr') {
-        const val = Number(value);
-        const hargaJualSetelahDiskon = val / 0.9;
+      const dpKotor = baseHargaJual * 0.1;
+      const dpBersih = dpKotor - bf;
 
-        updates.hargaJual = hargaJualSetelahDiskon + diskon;
-        updates.dp = hargaJualSetelahDiskon * 0.1;
-      }
+      updates.plafonAwal = plafonAwal;
+      updates.biayaKpr = biayaKpr;
+      updates.plafonKredit = plafonKredit;
+      updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
+      updates.dp = dpBersih;
+      updates.dpTidakDibayar = dpBersih;
+      updates.hargaJual = hargaJual;
     } else {
+      updates.hargaJual = Math.max(0, base - diskon);
       updates.biayaKpr = 0;
+      updates.plafonKredit = 0;
+      updates.dpTidakDibayar = 0;
       updates.nilaiPengajuanKpr = 0;
       updates.dp = 0;
       if (name === 'caraPembayaran') updates.bank = '';
@@ -10750,41 +10744,42 @@ const Penjualan = () => {
     setIsModalOpen(true);
   };
 
-  const openSkemaModal = (item: any) => {
+  const openSkemaModal = (item: any, isRevisi = false) => {
     const tipeKavling = item.tipe?.toLowerCase() || '';
     const autoDiskon = tipeKavling === 'aruna' ? 10000000 : 6000000;
     const diskonTerpakai = (Number(item.diskonPenjualan) > 0) ? Number(item.diskonPenjualan) : autoDiskon;
 
     const base = Number(item.hargaDasar || item.hargaJual) || 0;
-    const bf = 5000000;
-    const caraBayar = item.caraPembayaran ? item.caraPembayaran.replace(/_/g, " ") : 'CASH KERAS';
+    const bf = Number(item.bookingFee) || 5000000;
+    const caraBayar = item.caraPembayaran ? item.caraPembayaran : 'CASH KERAS';
 
-    const plafon = Math.max(0, base - diskonTerpakai - bf);
+    const plafonAwal = Math.max(0, base - diskonTerpakai - bf);
+
 
     let initialBiayaKpr = Number(item.biayaKpr) || 0;
+    let initialPlafonKredit = Number(item.plafonKredit) || 0;
+
+    let initialDpTidakDibayar = Number(item.dpTidakDibayar) || 0;
     let initialNilaiKpr = Number(item.nilaiPengajuanKpr) || 0;
     let initialDp = Number(item.dp) || 0;
-    const initialPlafon = (Number(item.diskonPenjualan) === 0 && diskonTerpakai > 0)
-      ? plafon
-      : (Number(item.plafonAwal) || plafon);
-
-    let initialHargaJual = Math.max(0, base - diskonTerpakai);
+    let initialHargaJual = Number(item.hargaJual) || 0;
 
     if (caraBayar === 'KPR') {
-      if (initialBiayaKpr === 0 && initialDp === 0) {
-        initialBiayaKpr = initialPlafon * 0.06;
-        initialNilaiKpr = initialPlafon + initialBiayaKpr;
+      if (initialBiayaKpr === 0 || initialPlafonKredit === 0) {
+        initialBiayaKpr = plafonAwal * 0.06;
+        initialPlafonKredit = plafonAwal + initialBiayaKpr;
 
-        const hjsd = initialNilaiKpr / 0.9;
-        initialHargaJual = hjsd + diskonTerpakai;
-        initialDp = hjsd * 0.1;
-      } else {
-        initialHargaJual = Number(item.hargaJual) || initialHargaJual;
+        const hargaJualSetelahDiskon = initialPlafonKredit / 0.9;
+        initialHargaJual = hargaJualSetelahDiskon + diskonTerpakai;
+
+        const dpKotorAwal = hargaJualSetelahDiskon * 0.1;
+        initialDpTidakDibayar = dpKotorAwal - bf;
+
+        initialNilaiKpr = initialPlafonKredit;
+        initialDp = initialDpTidakDibayar;
       }
     } else {
-      initialBiayaKpr = 0;
-      initialNilaiKpr = 0;
-      initialDp = 0;
+      initialHargaJual = Math.max(0, base - diskonTerpakai);
     }
 
     setSelectedPenjualan(item);
@@ -10795,15 +10790,29 @@ const Penjualan = () => {
       bookingFee: bf,
       caraPembayaran: caraBayar,
       biayaKpr: initialBiayaKpr,
+      plafonKredit: initialPlafonKredit,
+      dpTidakDibayar: initialDpTidakDibayar,
       nilaiPengajuanKpr: initialNilaiKpr,
       dp: initialDp,
       diskonPenjualan: diskonTerpakai,
-      plafonAwal: initialPlafon,
+      plafonAwal: plafonAwal,
       hargaJual: initialHargaJual,
     });
 
     setErrors({});
-    setBiayaTambahanList([]);
+
+    const existingTambahan = (item.tagihan || [])
+      .filter((t: any) => t.noTagihan && t.noTagihan.includes('INV-ADD-'))
+      .map((t: any) => ({
+        id: t.id.toString(),
+        nama: t.pembayaran,
+        nominal: Number(t.nominal),
+        tanggal: t.createdAt || t.updatedAt || item.tanggal
+      }));
+
+    setHistoryBiayaTambahan(existingTambahan);
+    setIsRevisiSpr(isRevisi);
+    setKeteranganRevisi('');
     setIsSkemaModalOpen(true);
   };
 
@@ -10817,23 +10826,34 @@ const Penjualan = () => {
   const updateKprWithBiayaTambahan = (newList: BiayaTambahan[]) => {
     if (formData.caraPembayaran === 'KPR') {
       setFormData(prev => {
-        const totalTambahan = newList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+        const totalTambahanBaru = newList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+        const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
+        const totalTambahan = totalTambahanBaru + totalTambahanLama;
         const base = Number(prev.hargaDasar) || 0;
         const diskon = Number(prev.diskonPenjualan) || 0;
         const bf = Number(prev.bookingFee) || 5000000;
 
-        const plafon = Math.max(0, base - diskon - bf);
-        const biayaKpr = plafon * 0.06;
+        const plafonAwal = Math.max(0, base - diskon - bf);
+        const biayaKpr = plafonAwal * 0.06;
+        const plafonKredit = plafonAwal + biayaKpr;
 
-        const nilaiPengajuanKpr = plafon + biayaKpr + totalTambahan;
-        const hargaJualSetelahDiskon = nilaiPengajuanKpr / 0.9;
+        const nilaiPengajuanKpr = plafonKredit - totalTambahan;
+
+        const baseHargaJual = plafonKredit / 0.9;
+        const hargaJual = baseHargaJual + diskon;
+
+        const dpKotor = baseHargaJual * 0.1;
+        const dpBersih = dpKotor - bf;
 
         return {
           ...prev,
+          plafonAwal,
           biayaKpr,
+          plafonKredit,
           nilaiPengajuanKpr,
-          dp: hargaJualSetelahDiskon * 0.1,
-          hargaJual: hargaJualSetelahDiskon + diskon
+          dp: dpBersih,
+          dpTidakDibayar: dpBersih,
+          hargaJual,
         };
       });
     }
@@ -10989,9 +11009,12 @@ const Penjualan = () => {
         hargaJual: formData.hargaJual,
         plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
         biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
+        plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
+        dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: formData.caraPembayaran === 'KPR' ? formData.dp : undefined,
         diskonPenjualan: formData.diskonPenjualan,
+        keteranganUpdateSpr: isRevisiSpr ? keteranganRevisi : undefined,
 
         biayaTambahan: biayaTambahanList
           .map((b) => ({
@@ -11196,16 +11219,26 @@ const Penjualan = () => {
                       >
                         <FileText size={14} /> Lihat SPR
                       </a>
+
                       {row.caraPembayaran === 'KPR' && (
-                        <button
-                          onClick={() => {
-                            setBankData({ id: row.id!, bank: row.bank || '' });
-                            setIsBankModalOpen(true);
-                          }}
-                          className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer shadow-sm"
-                        >
-                          <Building2 size={14} /> {row.bank ? 'Edit Bank' : 'Isi Bank KPR'}
-                        </button>
+                        <>
+
+                          <button
+                            onClick={() => {
+                              setBankData({ id: row.id!, bank: row.bank || '' });
+                              setIsBankModalOpen(true);
+                            }}
+                            className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer shadow-sm"
+                          >
+                            <Building2 size={14} /> {row.bank ? 'Edit Bank' : 'Isi Bank KPR'}
+                          </button>
+                          <button
+                            onClick={() => openSkemaModal(row, true)}
+                            className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold rounded-lg hover:bg-orange-500 hover:text-white transition-colors cursor-pointer shadow-sm"
+                          >
+                            <PenTool size={14} /> Tambah Biaya
+                          </button>
+                        </>
                       )}
                     </>
                   ) : (
@@ -11746,6 +11779,23 @@ const Penjualan = () => {
                 </div>
               </div>
 
+              {historyBiayaTambahan.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-slate-200 border-dashed">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Riwayat Biaya Tambahan (Tersimpan)</p>
+                  {historyBiayaTambahan.map((biaya) => (
+                    <div key={biaya.id} className="flex justify-between items-center py-2 px-3 bg-slate-100/50 rounded-lg mb-1">
+                      <div>
+                        <p className="text-sm font-bold text-slate-700">{biaya.nama}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                          <Clock size={10} /> {formatDate(biaya.tanggal)}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold text-slate-600">{formatRupiah(biaya.nominal)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {biayaTambahanList.map((biaya) => (
                 <div key={biaya.id} className="flex items-center justify-between mt-1">
                   <div className="flex items-center gap-3 w-full pr-4">
@@ -11777,43 +11827,75 @@ const Penjualan = () => {
               ))}
 
 
-              {formData.caraPembayaran === 'KPR' && (
+              {(formData.caraPembayaran === 'KPR') && (
                 <>
-                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-4">
-                    <span className="text-sm font-semibold text-indigo-700">Plafon Awal <span className="hidden sm:inline font-normal text-slate-500">(Dasar - Diskon - BF)</span></span>
-                    <span className="text-base font-bold text-indigo-700">{formatRupiah(formData.plafonAwal || 0)}</span>
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-4 mb-2">
+                    <span className="text-sm font-semibold text-slate-600">Plafon <span className="hidden sm:inline font-normal text-slate-400">(Dasar - Diskon - BF)</span></span>
+                    <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.plafonAwal || 0)}</span>
                   </div>
 
-                  <div className="flex justify-between items-center mt-2">
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-slate-600">+ Biaya KPR <span className="hidden sm:inline text-slate-400">(6% dari Plafon)</span></span>
                     <span className="text-sm font-bold text-slate-900">{formatRupiah(formData.biayaKpr || 0)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-3">
+
+                  <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-bold text-indigo-400">Plafon Kredit</span>
+                      <span className="text-sm font-bold text-indigo-400">{formatRupiah(formData.plafonKredit || 0)}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      <strong className="text-slate-400">Kalkulasi:</strong> Plafon + Biaya KPR
+                    </p>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200 mt-3 mb-2">
                     <span className="text-sm font-semibold text-blue-700">Nilai Pengajuan KPR</span>
                     <span className="text-base font-bold text-blue-700">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-sm font-medium text-slate-600 w-full">+ DP KPR</span>
-                    <div className="w-48 sm:w-64">
-                      <CurrencyInput
-                        label=""
-                        name="dp"
-                        value={formData.dp || 0}
-                        onValueChange={handleCurrencyChange}
-                        placeholder="0"
-                      />
+                  <p className="text-[10px] text-slate-500 font-mono text-right mb-4">
+                    Plafon Kredit - Total Biaya Tambahan
+                  </p>
+
+                  <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50 mb-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-bold text-amber-400">DP Tidak Dibayar 10%</span>
+                      <span className="text-sm font-bold text-amber-400">{formatRupiah(formData.dpTidakDibayar || 0)}</span>
                     </div>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      <strong className="text-slate-400">Kalkulasi:</strong> ((Harga Jual - Diskon) × 10%) - Booking Fee
+                    </p>
                   </div>
                 </>
               )}
 
               <div className="flex justify-between items-center p-4 bg-emerald-50 border border-emerald-200 rounded-xl mt-6">
-                <span className="text-sm font-bold text-emerald-800 uppercase tracking-widest">
-                  Harga Jual
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-emerald-800 uppercase tracking-widest">
+                    Harga Jual
+                  </span>
+                  {formData.caraPembayaran === 'KPR' && (
+                    <span className="text-[10px] text-emerald-600/80 font-mono mt-1">
+                      (Plafon Kredit / 0.9) + Diskon
+                    </span>
+                  )}
+                </div>
                 <span className="text-xl font-black text-emerald-700">{formatRupiah(formData.hargaJual || 0)}</span>
               </div>
             </div>
+            {isRevisiSpr && (
+              <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                <h4 className="text-xs font-bold text-orange-800 uppercase tracking-wider mb-2">Keterangan Revisi SPR</h4>
+                <Input
+                  name="keteranganRevisi"
+                  value={keteranganRevisi}
+                  onChange={(e) => setKeteranganRevisi(e.target.value)}
+                  placeholder="Contoh: Penambahan biaya strategis / Pindah bank KPR..."
+                  required
+                />
+                <p className="text-[10px] text-orange-600 mt-1">Dokumen SPR lama akan otomatis diarsipkan ke dalam sistem.</p>
+              </div>
+            )}
 
             <div className="flex justify-end gap-4 pt-4 border-t border-slate-200">
               <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
@@ -12039,7 +12121,7 @@ const Penjualan = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Metode</p>
-                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.caraPembayaran.replace(/_/g, ' ')}</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedCancelRow.caraPembayaran}</p>
                 </div>
               </div>
             </div>
@@ -12155,7 +12237,7 @@ const Penjualan = () => {
 
             <div className="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-md">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2">
-                3. Kalkulasi Transaksi ({detailData.caraPembayaran ? detailData.caraPembayaran.replace(/_/g, ' ') : 'CASH KERAS'})
+                3. Kalkulasi Transaksi ({detailData.caraPembayaran ? detailData.caraPembayaran : 'CASH KERAS'})
               </h4>
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
@@ -12222,7 +12304,7 @@ const Penjualan = () => {
                   <p className="text-[10px] text-emerald-600/70 font-mono">
                     <strong className="text-emerald-500/80">Kalkulasi:</strong> {
                       detailData.caraPembayaran === 'KPR'
-                        ? '(Nilai Pengajuan KPR / 0.9) + Diskon Penjualan'
+                        ? '(Plafon Kredit / 0.9) + Diskon Penjualan'
                         : 'Harga Dasar - Diskon Penjualan'
                     }
                   </p>
@@ -12230,6 +12312,33 @@ const Penjualan = () => {
               </div>
             </div>
 
+            {detailData.riwayatSpr && detailData.riwayatSpr.length > 0 && (
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm mt-4">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">
+                  Riwayat Perubahan Dokumen SPR
+                </h4>
+                <div className="divide-y divide-slate-100">
+                  {detailData.riwayatSpr.map((riwayat: any, idx: number) => (
+                    <div key={idx} className="py-3 flex justify-between items-center group">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{riwayat.keterangan || 'Update Dokumen'}</p>
+                        <p className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                          <Clock size={10} /> {formatDate(riwayat.createdAt)}
+                        </p>
+                      </div>
+                      <a
+                        href={riwayat.fileSpr}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[10px] font-bold rounded-md hover:bg-black hover:text-white transition-all border border-slate-200"
+                      >
+                        Lihat PDF Lama
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end pt-4 border-t border-slate-200">
               <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-colors cursor-pointer">
                 Tutup Detail
