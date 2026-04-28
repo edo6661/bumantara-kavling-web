@@ -230,7 +230,6 @@ const Penjualan = () => {
     setDetailData(item);
     setIsDetailModalOpen(true);
   };
-
   const handleRecalculateDependencies = (
     name: string,
     value: any,
@@ -247,15 +246,35 @@ const Penjualan = () => {
     const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
     const totalTambahan = totalTambahanBaru + totalTambahanLama;
 
+    // Trigger yang memaksa sistem mereset Biaya KPR & Harga Jual ke kalkulasi default
+    const isAutoCalcTrigger = ['caraPembayaran', 'hargaDasar', 'diskonPenjualan', 'bookingFee'].includes(name);
+
     if (merged.caraPembayaran === 'KPR') {
       const plafonAwal = Math.max(0, base - diskon - bf);
-      const biayaKpr = plafonAwal * 0.06;
+
+      // Biaya KPR: gunakan nilai manual jika sedang diedit, atau hitung default 6%
+      let biayaKpr = merged.biayaKpr;
+      if (name === 'biayaKpr') {
+        biayaKpr = value;
+      } else if (isAutoCalcTrigger || biayaKpr === undefined || biayaKpr === null) {
+        biayaKpr = plafonAwal * 0.06;
+      }
+
+      if (!biayaKpr) {
+        biayaKpr = 0;
+      }
+
       const plafonKredit = plafonAwal + biayaKpr;
-
       const nilaiPengajuanKpr = plafonKredit - totalTambahan;
-
       const baseHargaJual = plafonKredit / 0.9;
-      const hargaJual = baseHargaJual + diskon;
+
+      // Harga Jual: gunakan nilai manual jika sedang diedit, atau hitung default
+      let hargaJual = merged.hargaJual;
+      if (name === 'hargaJual') {
+        hargaJual = value;
+      } else if (isAutoCalcTrigger || name === 'biayaKpr' || hargaJual === undefined || hargaJual === null) {
+        hargaJual = baseHargaJual + diskon;
+      }
 
       const dpKotor = baseHargaJual * 0.1;
       const dpBersih = dpKotor - bf;
@@ -268,12 +287,31 @@ const Penjualan = () => {
       updates.dpTidakDibayar = dpBersih;
       updates.hargaJual = hargaJual;
     } else {
-      updates.hargaJual = Math.max(0, base - diskon);
+      let hargaJual = merged.hargaJual;
+      if (name === 'hargaJual') {
+        hargaJual = value;
+      } else if (isAutoCalcTrigger || !hargaJual) {
+        hargaJual = Math.max(0, base - diskon);
+      }
+
+      updates.hargaJual = hargaJual;
       updates.biayaKpr = 0;
       updates.plafonKredit = 0;
       updates.dpTidakDibayar = 0;
       updates.nilaiPengajuanKpr = 0;
-      updates.dp = 0;
+
+      if (merged.caraPembayaran === 'CASH BERTAHAP') {
+        let dp = merged.dp;
+        if (name === 'dp') {
+          dp = value;
+        } else if (isAutoCalcTrigger || dp === undefined || dp === null || dp === 0) {
+          dp = Math.max(0, ((base - diskon) * 0.4) - bf);
+        }
+        updates.dp = dp;
+      } else {
+        updates.dp = 0;
+      }
+
       if (name === 'caraPembayaran') updates.bank = '';
     }
 
@@ -425,8 +463,14 @@ const Penjualan = () => {
         initialNilaiKpr = initialPlafonKredit;
         initialDp = initialDpTidakDibayar;
       }
+    } else if (caraBayar === 'CASH BERTAHAP') {
+      initialHargaJual = Math.max(0, base - diskonTerpakai);
+      if (initialDp === 0) {
+        initialDp = Math.max(0, ((base - diskonTerpakai) * 0.4) - bf);
+      }
     } else {
       initialHargaJual = Math.max(0, base - diskonTerpakai);
+      initialDp = 0;
     }
 
     setSelectedPenjualan(item);
@@ -492,9 +536,11 @@ const Penjualan = () => {
 
         const dpKotor = baseHargaJual * 0.1;
         const dpBersih = dpKotor - bf;
+        const updates = handleRecalculateDependencies('biayaTambahan', null, prev, newList);
 
         return {
           ...prev,
+          ...updates,
           plafonAwal,
           biayaKpr,
           plafonKredit,
@@ -660,7 +706,9 @@ const Penjualan = () => {
         plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
         dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
-        dp: formData.caraPembayaran === 'KPR' ? formData.dp : undefined,
+        dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP')
+          ? formData.dp
+          : undefined,
         diskonPenjualan: formData.diskonPenjualan,
         keteranganUpdateSpr: isRevisiSpr ? keteranganRevisi : undefined,
 
@@ -923,7 +971,7 @@ const Penjualan = () => {
             )}
           </div>
 
-          {row.caraPembayaran === 'KPR' && (
+          {(row.caraPembayaran === 'KPR' || row.caraPembayaran === 'CASH BERTAHAP') && (
             <div className="space-y-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
               <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">2. Down Payment</h5>
               <div className="flex flex-wrap gap-2">
@@ -1496,9 +1544,18 @@ const Penjualan = () => {
                       <span className="text-sm font-bold text-slate-900 tabular-nums">{formatRupiah(formData.plafonAwal || 0)}</span>
                     </div>
 
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-slate-600">+ Biaya KPR <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1">6% Plafon</span></span>
-                      <span className="text-sm font-bold text-slate-900 tabular-nums">{formatRupiah(formData.biayaKpr || 0)}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
+                      </div>
+                      <div className="w-48 sm:w-64">
+                        <CurrencyInput
+                          name="biayaKpr"
+                          value={formData.biayaKpr || 0}
+                          onValueChange={handleCurrencyChange}
+                          placeholder="0"
+                        />
+                      </div>
                     </div>
 
                     <div className="pt-3 border-t border-slate-200">
@@ -1524,20 +1581,71 @@ const Penjualan = () => {
                     </div>
                   </div>
                 )}
+                {(formData.caraPembayaran === 'CASH BERTAHAP') && (
+                  <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 mt-6 space-y-4">
+                    <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-sm font-bold text-slate-600">DP (40%)</span>
+                      </div>
+                      <div className="w-48 sm:w-64">
+                        <CurrencyInput
+                          name="dp"
+                          value={formData.dp || 0}
+                          onValueChange={handleCurrencyChange}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-200">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-orange-600">Sisa Pembayaran (60%)</span>
+                        <span className="text-base font-black text-orange-600 tabular-nums">
+                          {formatRupiah(
+                            Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0) - (formData.bookingFee || 0))
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono text-right">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Netto - DP - Booking Fee
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="flex justify-between items-center p-5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl mt-8 shadow-lg shadow-emerald-500/20 text-white">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 p-5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl mt-8 shadow-lg shadow-emerald-500/20 text-white">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-100">
                     Harga Jual
                   </span>
                   {formData.caraPembayaran === 'KPR' && (
                     <span className="text-[10px] text-emerald-100/80 font-medium mt-1">
-                      (Plafon Kredit / 0.9) + Diskon
+                      Default: (Plafon Kredit / 0.9) + Diskon
                     </span>
                   )}
                 </div>
-                <span className="text-2xl sm:text-3xl font-black tabular-nums">{formatRupiah(formData.hargaJual || 0)}</span>
+
+                <div className="w-full md:w-64">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="font-bold text-slate-500">Rp</span>
+                    </div>
+                    <input
+                      type="text"
+                      name="hargaJual"
+                      value={formData.hargaJual ? new Intl.NumberFormat('id-ID').format(formData.hargaJual) : ''}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                        handleCurrencyChange('hargaJual', rawValue ? Number(rawValue) : 0);
+                      }}
+                      autoComplete="off"
+                      className="w-full pl-11 pr-4 py-2.5 text-lg font-black tabular-nums rounded-xl border-0 bg-white text-slate-900 shadow-inner outline-none focus:ring-4 focus:ring-emerald-300/50 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1920,15 +2028,26 @@ const Penjualan = () => {
                   <span className="font-bold text-red-400 tabular-nums">{formatRupiah(detailData.bookingFee || 5000000)}</span>
                 </div>
 
-                <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-2 mb-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-bold text-blue-400">Plafon Awal</span>
-                    <span className="text-sm font-bold text-blue-400 tabular-nums">{formatRupiah(detailData.plafonAwal || 0)}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-mono">
-                    <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - Diskon - Booking Fee
-                  </p>
-                </div>
+                {detailData.caraPembayaran === 'CASH BERTAHAP' && (
+                  <>
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="font-medium text-slate-300">- DP (Down Payment)</span>
+                      <span className="font-bold text-orange-400 tabular-nums">{formatRupiah(detailData.dp || 0)}</span>
+                    </div>
+
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-3 mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-blue-400">Sisa Pembayaran</span>
+                        <span className="text-sm font-bold text-emerald-400 tabular-nums">
+                          {formatRupiah(Math.max(0, (detailData.hargaDasar || 0) - (detailData.diskonPenjualan || 0) - (detailData.bookingFee || 0) - (detailData.dp || 0)))}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Jual - Booking Fee - DP
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 {detailData.caraPembayaran === 'KPR' && (
                   <>
