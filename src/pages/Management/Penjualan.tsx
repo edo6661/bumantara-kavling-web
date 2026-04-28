@@ -1091,7 +1091,6 @@ const Penjualan = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
 
-      {/* SUMMARY CARDS */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
           className="p-5 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
@@ -1146,7 +1145,6 @@ const Penjualan = () => {
         )}
       </div>
 
-      {/* FILTER SECTION */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
           className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
@@ -1200,7 +1198,6 @@ const Penjualan = () => {
         )}
       </div>
 
-      {/* DATA TABLE */}
       <DataTable
         title="Data Penjualan"
         columns={columns}
@@ -1215,7 +1212,6 @@ const Penjualan = () => {
         onPageChange={handlePageChange}
       />
 
-      {/* FORM MODAL CREATE/EDIT */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Penjualan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -1403,7 +1399,6 @@ const Penjualan = () => {
         </form>
       </Modal>
 
-      {/* MODAL SKEMA / SPR */}
       <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} title="Buat Surat Pesanan Rumah (SPR)">
         {selectedPenjualan && (
           <form onSubmit={handleSkemaSubmit} className="space-y-6">
@@ -1449,14 +1444,23 @@ const Penjualan = () => {
               <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-3">Rangkuman Kalkulasi</h4>
 
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-bold text-slate-600">Harga Dasar</span>
-                  <span className="text-base font-black text-slate-900 tabular-nums">{formatRupiah(formData.hargaDasar || 0)}</span>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm font-bold text-slate-600 w-full">Harga Dasar</span>
+                  <div className="w-40 sm:w-44 relative shrink-0">
+                    <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                      <span className="text-sm font-bold text-slate-900">Rp</span>
+                    </div>
+                    <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                      <span className="text-base font-black text-slate-900 tabular-nums">
+                        {new Intl.NumberFormat('id-ID').format(formData.hargaDasar || 0)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-red-500 w-full">- Diskon Penjualan</p>
-                  <div className="w-48 sm:w-64">
+                  <span className="text-sm font-bold text-red-500 w-full">- Diskon Penjualan</span>
+                  <div className="w-40 sm:w-44 shrink-0">
                     <CurrencyInput
                       name="diskonPenjualan"
                       value={formData.diskonPenjualan}
@@ -1478,7 +1482,7 @@ const Penjualan = () => {
                       <Plus size={16} />
                     </button>
                   </div>
-                  <div className="w-48 sm:w-64">
+                  <div className="w-40 sm:w-44 shrink-0">
                     <CurrencyInput
                       name="bookingFee"
                       value={formData.bookingFee}
@@ -1489,23 +1493,26 @@ const Penjualan = () => {
                 </div>
                 {biayaTambahanList.map((biaya) => (
                   <div key={biaya.id} className="flex items-center justify-between mt-1">
-                    <div className="flex items-center gap-3 w-full pr-4">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveBiayaTambahan(biaya.id)}
-                        className="w-7 h-7 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors rounded-lg font-bold cursor-pointer"
-                      >
-                        -
-                      </button>
+                    <div className="flex items-center gap-2 w-full pr-4">
                       <input
                         type="text"
                         value={biaya.nama}
                         onChange={(e) => handleChangeBiayaTambahanNama(biaya.id, e.target.value)}
-                        className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 w-full max-w-[200px] shadow-sm transition-all"
+                        // max-w-[200px] diubah menjadi max-w-[130px] sm:max-w-[160px]
+                        // py-2.5 diubah menjadi py-2 agar sedikit lebih ramping
+                        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 w-full max-w-[100px] sm:max-w-[110px] shadow-sm transition-all"
                         placeholder="Nama Biaya"
                       />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveBiayaTambahan(biaya.id)}
+                        className="w-7 h-7 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors rounded-lg font-bold cursor-pointer shrink-0"
+                      >
+                        -
+                      </button>
                     </div>
-                    <div className="w-48 sm:w-64">
+
+                    <div className="w-40 sm:w-44 shrink-0">
                       <CurrencyInput
                         name={`biaya_${biaya.id}`}
                         value={biaya.nominal}
@@ -1539,16 +1546,27 @@ const Penjualan = () => {
                   <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 mt-6 space-y-4">
                     <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi KPR</h5>
 
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-slate-600">Plafon <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded ml-1">Dasar - Diskon - BF</span></span>
-                      <span className="text-sm font-bold text-slate-900 tabular-nums">{formatRupiah(formData.plafonAwal || 0)}</span>
+                    {/* 1. Baris Plafon */}
+                    <div className="flex items-center justify-between">
+                      <div className="w-full">
+                        <span className="text-sm font-medium text-slate-600">Plafon <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded ml-1">Dasar - Diskon - BF</span></span>
+                      </div>
+                      <div className="w-40 sm:w-44 relative shrink-0">
+                        <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                          <span className="text-sm font-bold text-slate-900">Rp</span>
+                        </div>
+                        <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                          <span className="text-base font-black text-slate-900 tabular-nums">
+                            {new Intl.NumberFormat('id-ID').format(formData.plafonAwal || 0)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
+                    {/* 2. Baris Biaya KPR (Input) */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 w-full">
-                        <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
-                      </div>
-                      <div className="w-48 sm:w-64">
+                      <span className="text-sm font-bold text-slate-600 w-full">+ Biaya KPR</span>
+                      <div className="w-40 sm:w-44 shrink-0">
                         <CurrencyInput
                           name="biayaKpr"
                           value={formData.biayaKpr || 0}
@@ -1558,38 +1576,67 @@ const Penjualan = () => {
                       </div>
                     </div>
 
+                    {/* 3. Baris Plafon Kredit */}
                     <div className="pt-3 border-t border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-indigo-700">Plafon Kredit</span>
-                        <span className="text-base font-black text-indigo-700 tabular-nums">{formatRupiah(formData.plafonKredit || 0)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-indigo-700 w-full">Plafon Kredit</span>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-indigo-700">Rp</span>
+                          </div>
+                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                            <span className="text-base font-black text-indigo-700 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(formData.plafonKredit || 0)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
+                    {/* 4. Baris Nilai Pengajuan KPR */}
                     <div className="pt-3 border-t border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-blue-700">Nilai Pengajuan KPR</span>
-                        <span className="text-lg font-black text-blue-700 tabular-nums">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-blue-700 w-full">Nilai Pengajuan KPR</span>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-blue-700">Rp</span>
+                          </div>
+                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                            <span className="text-lg font-black text-blue-700 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(formData.nilaiPengajuanKpr || 0)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                       <p className="text-[10px] text-slate-400 font-medium text-right mt-1">Plafon Kredit - Total Biaya Tambahan</p>
                     </div>
 
+                    {/* 5. Baris DP Tidak Dibayar 10% */}
                     <div className="pt-3 border-t border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-amber-600">DP Tidak Dibayar 10%</span>
-                        <span className="text-base font-black text-amber-600 tabular-nums">{formatRupiah(formData.dpTidakDibayar || 0)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-amber-600">Rp</span>
+                          </div>
+                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                            <span className="text-base font-black text-amber-600 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(formData.dpTidakDibayar || 0)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
+
                 {(formData.caraPembayaran === 'CASH BERTAHAP') && (
                   <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 mt-6 space-y-4">
                     <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 w-full">
-                        <span className="text-sm font-bold text-slate-600">DP (40%)</span>
-                      </div>
-                      <div className="w-48 sm:w-64">
+                      <span className="text-sm font-bold text-slate-600 w-full">DP (40%)</span>
+                      <div className="w-40 sm:w-44 shrink-0">
                         <CurrencyInput
                           name="dp"
                           value={formData.dp || 0}
@@ -1600,16 +1647,23 @@ const Penjualan = () => {
                     </div>
 
                     <div className="pt-3 border-t border-slate-200">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-bold text-orange-600">Sisa Pembayaran (60%)</span>
-                        <span className="text-base font-black text-orange-600 tabular-nums">
-                          {formatRupiah(
-                            Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0) - (formData.bookingFee || 0))
-                          )}
-                        </span>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-bold text-orange-600 w-full">Sisa Pembayaran (60%)</span>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-orange-600">Rp</span>
+                          </div>
+                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                            <span className="text-base font-black text-orange-600 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(
+                                Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0) - (formData.bookingFee || 0))
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono text-right">
-                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Netto - DP - Booking Fee
+                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - DP - Booking Fee
                       </p>
                     </div>
                   </div>
@@ -1681,7 +1735,6 @@ const Penjualan = () => {
         )}
       </Modal>
 
-      {/* MODAL PRINT PREVIEW */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="bg-white" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #4f46e5' }}>
@@ -1866,7 +1919,6 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      {/* MODAL CANCEL */}
       <Modal isOpen={isCancelModalOpen} onClose={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} title="Ajukan Pembatalan Penjualan">
         {selectedCancelRow && (
           <form onSubmit={handleCancelSubmit} className="space-y-5">
@@ -1915,7 +1967,6 @@ const Penjualan = () => {
         )}
       </Modal>
 
-      {/* MODAL PREVIEW BUKTI */}
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen / Bukti">
         <div className="flex flex-col items-center">
           {previewImage && (
@@ -1931,7 +1982,6 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      {/* MODAL TANDA TANGAN */}
       <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital Kwitansi">
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1958,7 +2008,6 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      {/* MODAL DETAIL (Styling selaras dengan Skema Modal) */}
       <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Detail Informasi Transaksi">
         {detailData && (
           <div className="space-y-6">
@@ -2176,7 +2225,6 @@ const Penjualan = () => {
         )}
       </Modal>
 
-      {/* MODAL BANK KPR */}
       <Modal isOpen={isBankModalOpen} onClose={() => setIsBankModalOpen(false)} title="Informasi Bank KPR">
         <form onSubmit={handleBankSubmit} className="space-y-5">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
