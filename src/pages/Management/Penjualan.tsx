@@ -51,11 +51,14 @@ interface PenjualanData {
   nilaiPengajuanKpr?: number;
   hargaJual: number;
   dp: number;
+  persentaseDp?: number;
   diskonPenjualan: number;
   bookingFee: number;
 
   bank: string;
   caraPembayaran: string;
+  termin?: number;
+  cicilanPerBulan?: number;
   fileKtp: string;
   fileKk: string;
   fileNpwp: string;
@@ -66,6 +69,7 @@ interface PenjualanData {
   fileBuktiDp?: string;
   fileSpr?: string | null;
   progressCicilan?: string;
+  keteranganAngsuran?: string;
   rekeningTujuanId?: number | '';
   isPendingBatal?: boolean;
   ttdData?: any;
@@ -98,11 +102,14 @@ const initialFormState: PenjualanData = {
   nilaiPengajuanKpr: 0,
   hargaJual: 0,
   dp: 0,
+  persentaseDp: 40,
   diskonPenjualan: 0,
   bookingFee: 5000000,
 
   bank: '',
   caraPembayaran: '',
+  termin: 3,
+  cicilanPerBulan: 0,
   fileKtp: '',
   fileKk: '',
   fileNpwp: '',
@@ -111,6 +118,7 @@ const initialFormState: PenjualanData = {
   fileBuktiBooking: '',
   fileBuktiDp: '',
   rekeningTujuanId: '',
+  keteranganAngsuran: '',
 };
 
 interface BiayaTambahan {
@@ -232,12 +240,12 @@ const Penjualan = () => {
   };
   const handleRecalculateDependencies = (
     name: string,
-    value: any,
+    value: unknown,
     prev: PenjualanData,
     currentBiayaTambahanList: BiayaTambahan[] = biayaTambahanList
   ) => {
     const merged = { ...prev, [name]: value };
-    const updates: any = { [name]: value };
+    const updates: Partial<PenjualanData> = { [name as keyof PenjualanData]: value as never };
 
     const base = Number(merged.hargaDasar) || 0;
     const diskon = Number(merged.diskonPenjualan) || 0;
@@ -246,32 +254,26 @@ const Penjualan = () => {
     const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
     const totalTambahan = totalTambahanBaru + totalTambahanLama;
 
-    // Trigger yang memaksa sistem mereset Biaya KPR & Harga Jual ke kalkulasi default
-    const isAutoCalcTrigger = ['caraPembayaran', 'hargaDasar', 'diskonPenjualan', 'bookingFee'].includes(name);
+    const isAutoCalcTrigger = ['caraPembayaran', 'hargaDasar', 'diskonPenjualan', 'bookingFee', 'termin'].includes(name);
 
     if (merged.caraPembayaran === 'KPR') {
+      // ... (Biarkan blok KPR persis seperti aslinya)
       const plafonAwal = Math.max(0, base - diskon - bf);
-
-      // Biaya KPR: gunakan nilai manual jika sedang diedit, atau hitung default 6%
       let biayaKpr = merged.biayaKpr;
       if (name === 'biayaKpr') {
-        biayaKpr = value;
+        biayaKpr = Number(value);
       } else if (isAutoCalcTrigger || biayaKpr === undefined || biayaKpr === null) {
         biayaKpr = plafonAwal * 0.06;
       }
-
-      if (!biayaKpr) {
-        biayaKpr = 0;
-      }
+      if (!biayaKpr) biayaKpr = 0;
 
       const plafonKredit = plafonAwal + biayaKpr;
       const nilaiPengajuanKpr = plafonKredit - totalTambahan;
       const baseHargaJual = plafonKredit / 0.9;
 
-      // Harga Jual: gunakan nilai manual jika sedang diedit, atau hitung default
       let hargaJual = merged.hargaJual;
       if (name === 'hargaJual') {
-        hargaJual = value;
+        hargaJual = Number(value);
       } else if (isAutoCalcTrigger || name === 'biayaKpr' || hargaJual === undefined || hargaJual === null) {
         hargaJual = baseHargaJual + diskon;
       }
@@ -286,10 +288,11 @@ const Penjualan = () => {
       updates.dp = dpBersih;
       updates.dpTidakDibayar = dpBersih;
       updates.hargaJual = hargaJual;
+
     } else {
       let hargaJual = merged.hargaJual;
       if (name === 'hargaJual') {
-        hargaJual = value;
+        hargaJual = Number(value);
       } else if (isAutoCalcTrigger || !hargaJual) {
         hargaJual = Math.max(0, base - diskon);
       }
@@ -301,15 +304,30 @@ const Penjualan = () => {
       updates.nilaiPengajuanKpr = 0;
 
       if (merged.caraPembayaran === 'CASH BERTAHAP') {
+        const persentaseDp = name === 'persentaseDp' ? Number(value) : (merged.persentaseDp || 40);
+        updates.persentaseDp = persentaseDp;
+
         let dp = merged.dp;
-        if (name === 'dp') {
-          dp = value;
-        } else if (isAutoCalcTrigger || dp === undefined || dp === null || dp === 0) {
-          dp = Math.max(0, ((base - diskon) * 0.4) - bf);
+
+        const triggerRecalcNominal = ['hargaDasar', 'diskonPenjualan', 'bookingFee', 'persentaseDp', 'caraPembayaran'].includes(name);
+
+        if (triggerRecalcNominal) {
+          dp = Math.max(0, ((base - diskon) * (persentaseDp / 100)) - bf);
+        } else if (name === 'dp') {
+          dp = Number(value);
         }
+
         updates.dp = dp;
+
+        const sisaPembayaran = Math.max(0, base - diskon - bf - dp);
+        const termin = merged.termin || 3;
+        updates.termin = termin;
+        updates.cicilanPerBulan = sisaPembayaran / termin;
+
       } else {
         updates.dp = 0;
+        updates.termin = 0;
+        updates.cicilanPerBulan = 0;
       }
 
       if (name === 'caraPembayaran') updates.bank = '';
@@ -488,6 +506,7 @@ const Penjualan = () => {
       diskonPenjualan: diskonTerpakai,
       plafonAwal: plafonAwal,
       hargaJual: initialHargaJual,
+      keteranganAngsuran: item.keteranganAngsuran || '',
     });
 
     setErrors({});
@@ -709,8 +728,10 @@ const Penjualan = () => {
         dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP')
           ? formData.dp
           : undefined,
+        termin: formData.caraPembayaran === 'CASH BERTAHAP' ? Number(formData.termin) : undefined,
         diskonPenjualan: formData.diskonPenjualan,
         keteranganUpdateSpr: isRevisiSpr ? keteranganRevisi : undefined,
+        keteranganAngsuran: formData.caraPembayaran === 'CASH BERTAHAP' ? formData.keteranganAngsuran : undefined,
 
         biayaTambahan: biayaTambahanList
           .map((b) => ({
@@ -1450,7 +1471,7 @@ const Penjualan = () => {
                     <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
                       <span className="text-sm font-bold text-slate-900">Rp</span>
                     </div>
-                    <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                    <div className="w-full pl-[40px] pr-3 py-1 text-left">
                       <span className="text-base font-black text-slate-900 tabular-nums">
                         {new Intl.NumberFormat('id-ID').format(formData.hargaDasar || 0)}
                       </span>
@@ -1555,7 +1576,7 @@ const Penjualan = () => {
                         <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
                           <span className="text-sm font-bold text-slate-900">Rp</span>
                         </div>
-                        <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                        <div className="w-full pl-[40px] pr-3 py-1 text-left">
                           <span className="text-base font-black text-slate-900 tabular-nums">
                             {new Intl.NumberFormat('id-ID').format(formData.plafonAwal || 0)}
                           </span>
@@ -1564,8 +1585,13 @@ const Penjualan = () => {
                     </div>
 
                     {/* 2. Baris Biaya KPR (Input) */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-600 w-full">+ Biaya KPR</span>
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1.5">
+                        <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
+                        <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
+                          Default (6%): Rp {new Intl.NumberFormat('id-ID').format((formData.plafonAwal || 0) * 0.06)}
+                        </span>
+                      </div>
                       <div className="w-40 sm:w-44 shrink-0">
                         <CurrencyInput
                           name="biayaKpr"
@@ -1584,7 +1610,7 @@ const Penjualan = () => {
                           <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
                             <span className="text-sm font-bold text-indigo-700">Rp</span>
                           </div>
-                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-base font-black text-indigo-700 tabular-nums">
                               {new Intl.NumberFormat('id-ID').format(formData.plafonKredit || 0)}
                             </span>
@@ -1601,7 +1627,7 @@ const Penjualan = () => {
                           <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
                             <span className="text-sm font-bold text-blue-700">Rp</span>
                           </div>
-                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-lg font-black text-blue-700 tabular-nums">
                               {new Intl.NumberFormat('id-ID').format(formData.nilaiPengajuanKpr || 0)}
                             </span>
@@ -1619,7 +1645,7 @@ const Penjualan = () => {
                           <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
                             <span className="text-sm font-bold text-amber-600">Rp</span>
                           </div>
-                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-base font-black text-amber-600 tabular-nums">
                               {new Intl.NumberFormat('id-ID').format(formData.dpTidakDibayar || 0)}
                             </span>
@@ -1635,7 +1661,23 @@ const Penjualan = () => {
                     <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-slate-600 w-full">DP (40%)</span>
+                      <div className="w-full flex items-center gap-3">
+                        <span className="text-sm font-bold text-slate-600">DP</span>
+                        <div className="relative w-20 group">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            name="persentaseDp"
+                            value={formData.persentaseDp === 0 ? '' : formData.persentaseDp}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                              handleCurrencyChange('persentaseDp', rawValue ? Number(rawValue) : 0);
+                            }}
+                            className="w-full pl-3 pr-8 py-2 text-sm font-black text-indigo-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">%</span>
+                        </div>
+                      </div>
                       <div className="w-40 sm:w-44 shrink-0">
                         <CurrencyInput
                           name="dp"
@@ -1647,13 +1689,17 @@ const Penjualan = () => {
                     </div>
 
                     <div className="pt-3 border-t border-slate-200">
+                      {/* Input Pemilihan Termin */}
+
+
+                      {/* Info Sisa Pembayaran */}
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-bold text-orange-600 w-full">Sisa Pembayaran (60%)</span>
+                        <span className="text-sm font-bold text-orange-600 w-full">Sisa Pembayaran</span>
                         <div className="w-40 sm:w-44 relative shrink-0">
                           <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
                             <span className="text-sm font-bold text-orange-600">Rp</span>
                           </div>
-                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-base font-black text-orange-600 tabular-nums">
                               {new Intl.NumberFormat('id-ID').format(
                                 Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0) - (formData.bookingFee || 0))
@@ -1662,9 +1708,54 @@ const Penjualan = () => {
                           </div>
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-500 font-mono text-right">
-                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - DP - Booking Fee
+                      <p className="text-[10px] text-slate-500 font-mono text-right mb-4">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - Diskon - DP - Booking Fee
                       </p>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-bold text-slate-600 w-full">Termin Pembayaran</span>
+                        <div className="w-40 sm:w-44 shrink-0">
+                          <Select
+                            name="termin"
+                            value={formData.termin?.toString() || '3'}
+                            onChange={(e) => handleChange(e)}
+                            options={[
+                              { value: '3', label: '3 Bulan' },
+                              { value: '6', label: '6 Bulan' },
+                              { value: '12', label: '12 Bulan' }
+                            ]}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Info Cicilan Per Bulan dan Estimasi Periode */}
+                      <div className="flex items-center justify-between bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                        <div className="w-full">
+                          <span className="text-sm font-bold text-indigo-700 block">Cicilan Per Bulan</span>
+                          <span className="text-[10px] font-medium text-indigo-500 mt-1 block">
+                            Estimasi: {(() => {
+                              const termin = formData.termin || 3;
+                              const start = new Date();
+                              start.setMonth(start.getMonth() + 1); // Cicilan dimulai bulan depan
+                              const end = new Date(start);
+                              end.setMonth(end.getMonth() + termin - 1);
+                              const formatOpt: Intl.DateTimeFormatOptions = { month: 'short', year: 'numeric' };
+                              return `${start.toLocaleDateString('id-ID', formatOpt)} - ${end.toLocaleDateString('id-ID', formatOpt)}`;
+                            })()}
+                          </span>
+                        </div>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-indigo-700">Rp</span>
+                          </div>
+                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
+                            <span className="text-base font-black text-indigo-700 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(formData.cicilanPerBulan || 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 )}
@@ -1719,17 +1810,29 @@ const Penjualan = () => {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
-              <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-6 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-colors shadow-sm cursor-pointer">
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={updateMutation.isPending}
-                className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50 active:scale-95"
-              >
-                {updateMutation.isPending ? 'Memproses...' : 'Simpan & Proses SPR'}
-              </button>
+            <div className="flex justify-between items-center gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+              <div className="w-1/2">
+                {formData.caraPembayaran === 'CASH BERTAHAP' && (
+                  <Input
+                    name="keteranganAngsuran"
+                    value={formData.keteranganAngsuran || ''}
+                    onChange={handleChange}
+                    placeholder="Contoh: Diangsur 3x per tanggal 10..."
+                  />
+                )}
+              </div>
+              <div className="flex justify-end gap-3 w-1/2">
+                <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-6 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-colors shadow-sm cursor-pointer">
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  {updateMutation.isPending ? 'Memproses...' : 'Simpan & Proses SPR'}
+                </button>
+              </div>
             </div>
           </form>
         )}

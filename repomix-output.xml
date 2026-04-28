@@ -1,4 +1,131 @@
-kode frontend:
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json, prisma/schema.prisma, prisma/seeds/, prisma/seed.ts
+- Files matching these patterns are excluded: **/*.test.ts, dist/, **/*.js
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+package.json
+src/App.tsx
+src/components/layouts/RootLayout.tsx
+src/components/Navbar.tsx
+src/components/shared/CurrencyInput.tsx
+src/components/shared/DataTable.tsx
+src/components/shared/FileInput.tsx
+src/components/shared/Input.tsx
+src/components/shared/Modal.tsx
+src/components/shared/Select.tsx
+src/components/Sidebar.tsx
+src/context/AuthContext.tsx
+src/hooks/queries/useAgent.ts
+src/hooks/queries/useAuditLog.ts
+src/hooks/queries/useBankRekening.ts
+src/hooks/queries/useCustomer.ts
+src/hooks/queries/useCustomerKavling.ts
+src/hooks/queries/useDashboard.ts
+src/hooks/queries/useFeeAgent.ts
+src/hooks/queries/useKavling.ts
+src/hooks/queries/useNotaris.ts
+src/hooks/queries/usePenjualan.ts
+src/hooks/queries/usePerumahan.ts
+src/hooks/queries/useTagihan.ts
+src/hooks/queries/useVerify.ts
+src/hooks/useCrud.ts
+src/hooks/useForm.ts
+src/index.css
+src/lib/axios.ts
+src/main.tsx
+src/pages/Customer/DataSosial.tsx
+src/pages/Customer/Kavling.tsx
+src/pages/Customer/KelengkapanAdministrasi.tsx
+src/pages/Customer/OldKavling.tsx
+src/pages/Customer/SPR.tsx
+src/pages/Customer/Tagihan.tsx
+src/pages/Dashboard.tsx
+src/pages/Home.tsx
+src/pages/Login.tsx
+src/pages/Management/AuditLog.tsx
+src/pages/Management/Bank.tsx
+src/pages/Management/BatalTransaksi.tsx
+src/pages/Management/GantiKavling.tsx
+src/pages/Management/Kavling.tsx
+src/pages/Management/Notaris.tsx
+src/pages/Management/Penjualan.tsx
+src/pages/Marketing/Agents.tsx
+src/pages/Marketing/FeeAgent.tsx
+src/pages/Marketing/OldFeeAgent.tsx
+src/pages/PageLoader.tsx
+src/pages/Proyek/Progress.tsx
+src/pages/Proyek/SPK.tsx
+src/pages/Public/VerifyDocument.tsx
+src/pages/TimMarketing/TimMarketing.tsx
+src/providers/AuthProvider.tsx
+src/providers/QueryProvider.tsx
+src/services/agent.service.ts
+src/services/auditLog.service.ts
+src/services/auth.service.ts
+src/services/bankRekening.service.ts
+src/services/customer.service.ts
+src/services/customerKavling.service.ts
+src/services/dashboard.service.ts
+src/services/feeAgent.service.ts
+src/services/kavling.service.ts
+src/services/notaris.service.ts
+src/services/penjualan.service.ts
+src/services/perumahan.service.ts
+src/services/tagihan.service.ts
+src/services/verify.service.ts
+src/types/api_response.ts
+src/types/common.ts
+src/types/models/agent.ts
+src/types/models/perumahan.ts
+src/types/models/user.ts
+src/utils/errorHandler.ts
+src/utils/formatters.ts
+src/utils/storage.ts
+tsconfig.json
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
 
 <file path="src/hooks/queries/useAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10583,7 +10710,6 @@ const Penjualan = () => {
     setDetailData(item);
     setIsDetailModalOpen(true);
   };
-
   const handleRecalculateDependencies = (
     name: string,
     value: any,
@@ -10600,15 +10726,35 @@ const Penjualan = () => {
     const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
     const totalTambahan = totalTambahanBaru + totalTambahanLama;
 
+    // Trigger yang memaksa sistem mereset Biaya KPR & Harga Jual ke kalkulasi default
+    const isAutoCalcTrigger = ['caraPembayaran', 'hargaDasar', 'diskonPenjualan', 'bookingFee'].includes(name);
+
     if (merged.caraPembayaran === 'KPR') {
       const plafonAwal = Math.max(0, base - diskon - bf);
-      const biayaKpr = plafonAwal * 0.06;
+
+      // Biaya KPR: gunakan nilai manual jika sedang diedit, atau hitung default 6%
+      let biayaKpr = merged.biayaKpr;
+      if (name === 'biayaKpr') {
+        biayaKpr = value;
+      } else if (isAutoCalcTrigger || biayaKpr === undefined || biayaKpr === null) {
+        biayaKpr = plafonAwal * 0.06;
+      }
+
+      if (!biayaKpr) {
+        biayaKpr = 0;
+      }
+
       const plafonKredit = plafonAwal + biayaKpr;
-
       const nilaiPengajuanKpr = plafonKredit - totalTambahan;
-
       const baseHargaJual = plafonKredit / 0.9;
-      const hargaJual = baseHargaJual + diskon;
+
+      // Harga Jual: gunakan nilai manual jika sedang diedit, atau hitung default
+      let hargaJual = merged.hargaJual;
+      if (name === 'hargaJual') {
+        hargaJual = value;
+      } else if (isAutoCalcTrigger || name === 'biayaKpr' || hargaJual === undefined || hargaJual === null) {
+        hargaJual = baseHargaJual + diskon;
+      }
 
       const dpKotor = baseHargaJual * 0.1;
       const dpBersih = dpKotor - bf;
@@ -10621,12 +10767,31 @@ const Penjualan = () => {
       updates.dpTidakDibayar = dpBersih;
       updates.hargaJual = hargaJual;
     } else {
-      updates.hargaJual = Math.max(0, base - diskon);
+      let hargaJual = merged.hargaJual;
+      if (name === 'hargaJual') {
+        hargaJual = value;
+      } else if (isAutoCalcTrigger || !hargaJual) {
+        hargaJual = Math.max(0, base - diskon);
+      }
+
+      updates.hargaJual = hargaJual;
       updates.biayaKpr = 0;
       updates.plafonKredit = 0;
       updates.dpTidakDibayar = 0;
       updates.nilaiPengajuanKpr = 0;
-      updates.dp = 0;
+
+      if (merged.caraPembayaran === 'CASH BERTAHAP') {
+        let dp = merged.dp;
+        if (name === 'dp') {
+          dp = value;
+        } else if (isAutoCalcTrigger || dp === undefined || dp === null || dp === 0) {
+          dp = Math.max(0, ((base - diskon) * 0.4) - bf);
+        }
+        updates.dp = dp;
+      } else {
+        updates.dp = 0;
+      }
+
       if (name === 'caraPembayaran') updates.bank = '';
     }
 
@@ -10778,8 +10943,14 @@ const Penjualan = () => {
         initialNilaiKpr = initialPlafonKredit;
         initialDp = initialDpTidakDibayar;
       }
+    } else if (caraBayar === 'CASH BERTAHAP') {
+      initialHargaJual = Math.max(0, base - diskonTerpakai);
+      if (initialDp === 0) {
+        initialDp = Math.max(0, ((base - diskonTerpakai) * 0.4) - bf);
+      }
     } else {
       initialHargaJual = Math.max(0, base - diskonTerpakai);
+      initialDp = 0;
     }
 
     setSelectedPenjualan(item);
@@ -10845,9 +11016,11 @@ const Penjualan = () => {
 
         const dpKotor = baseHargaJual * 0.1;
         const dpBersih = dpKotor - bf;
+        const updates = handleRecalculateDependencies('biayaTambahan', null, prev, newList);
 
         return {
           ...prev,
+          ...updates,
           plafonAwal,
           biayaKpr,
           plafonKredit,
@@ -11013,7 +11186,9 @@ const Penjualan = () => {
         plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
         dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
-        dp: formData.caraPembayaran === 'KPR' ? formData.dp : undefined,
+        dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP')
+          ? formData.dp
+          : undefined,
         diskonPenjualan: formData.diskonPenjualan,
         keteranganUpdateSpr: isRevisiSpr ? keteranganRevisi : undefined,
 
@@ -11276,7 +11451,7 @@ const Penjualan = () => {
             )}
           </div>
 
-          {row.caraPembayaran === 'KPR' && (
+          {(row.caraPembayaran === 'KPR' || row.caraPembayaran === 'CASH BERTAHAP') && (
             <div className="space-y-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
               <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">2. Down Payment</h5>
               <div className="flex flex-wrap gap-2">
@@ -11396,7 +11571,6 @@ const Penjualan = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
 
-      {/* SUMMARY CARDS */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
           className="p-5 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
@@ -11451,7 +11625,6 @@ const Penjualan = () => {
         )}
       </div>
 
-      {/* FILTER SECTION */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
           className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
@@ -11505,7 +11678,6 @@ const Penjualan = () => {
         )}
       </div>
 
-      {/* DATA TABLE */}
       <DataTable
         title="Data Penjualan"
         columns={columns}
@@ -11520,7 +11692,6 @@ const Penjualan = () => {
         onPageChange={handlePageChange}
       />
 
-      {/* FORM MODAL CREATE/EDIT */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Penjualan Baru"}>
         <form onSubmit={handleSubmit} className="space-y-6">
 
@@ -11708,7 +11879,6 @@ const Penjualan = () => {
         </form>
       </Modal>
 
-      {/* MODAL SKEMA / SPR */}
       <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} title="Buat Surat Pesanan Rumah (SPR)">
         {selectedPenjualan && (
           <form onSubmit={handleSkemaSubmit} className="space-y-6">
@@ -11754,14 +11924,23 @@ const Penjualan = () => {
               <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-3">Rangkuman Kalkulasi</h4>
 
               <div className="space-y-4">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm font-bold text-slate-600">Harga Dasar</span>
-                  <span className="text-base font-black text-slate-900 tabular-nums">{formatRupiah(formData.hargaDasar || 0)}</span>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm font-bold text-slate-600 w-full">Harga Dasar</span>
+                  <div className="w-40 sm:w-44 relative shrink-0">
+                    <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                      <span className="text-sm font-bold text-slate-900">Rp</span>
+                    </div>
+                    <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                      <span className="text-base font-black text-slate-900 tabular-nums">
+                        {new Intl.NumberFormat('id-ID').format(formData.hargaDasar || 0)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-red-500 w-full">- Diskon Penjualan</p>
-                  <div className="w-48 sm:w-64">
+                  <span className="text-sm font-bold text-red-500 w-full">- Diskon Penjualan</span>
+                  <div className="w-40 sm:w-44 shrink-0">
                     <CurrencyInput
                       name="diskonPenjualan"
                       value={formData.diskonPenjualan}
@@ -11783,7 +11962,7 @@ const Penjualan = () => {
                       <Plus size={16} />
                     </button>
                   </div>
-                  <div className="w-48 sm:w-64">
+                  <div className="w-40 sm:w-44 shrink-0">
                     <CurrencyInput
                       name="bookingFee"
                       value={formData.bookingFee}
@@ -11794,23 +11973,26 @@ const Penjualan = () => {
                 </div>
                 {biayaTambahanList.map((biaya) => (
                   <div key={biaya.id} className="flex items-center justify-between mt-1">
-                    <div className="flex items-center gap-3 w-full pr-4">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveBiayaTambahan(biaya.id)}
-                        className="w-7 h-7 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors rounded-lg font-bold cursor-pointer"
-                      >
-                        -
-                      </button>
+                    <div className="flex items-center gap-2 w-full pr-4">
                       <input
                         type="text"
                         value={biaya.nama}
                         onChange={(e) => handleChangeBiayaTambahanNama(biaya.id, e.target.value)}
-                        className="bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 w-full max-w-[200px] shadow-sm transition-all"
+                        // max-w-[200px] diubah menjadi max-w-[130px] sm:max-w-[160px]
+                        // py-2.5 diubah menjadi py-2 agar sedikit lebih ramping
+                        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 w-full max-w-[100px] sm:max-w-[110px] shadow-sm transition-all"
                         placeholder="Nama Biaya"
                       />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveBiayaTambahan(biaya.id)}
+                        className="w-7 h-7 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors rounded-lg font-bold cursor-pointer shrink-0"
+                      >
+                        -
+                      </button>
                     </div>
-                    <div className="w-48 sm:w-64">
+
+                    <div className="w-40 sm:w-44 shrink-0">
                       <CurrencyInput
                         name={`biaya_${biaya.id}`}
                         value={biaya.nominal}
@@ -11844,53 +12026,160 @@ const Penjualan = () => {
                   <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 mt-6 space-y-4">
                     <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi KPR</h5>
 
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-slate-600">Plafon <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded ml-1">Dasar - Diskon - BF</span></span>
-                      <span className="text-sm font-bold text-slate-900 tabular-nums">{formatRupiah(formData.plafonAwal || 0)}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-slate-600">+ Biaya KPR <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1">6% Plafon</span></span>
-                      <span className="text-sm font-bold text-slate-900 tabular-nums">{formatRupiah(formData.biayaKpr || 0)}</span>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-indigo-700">Plafon Kredit</span>
-                        <span className="text-base font-black text-indigo-700 tabular-nums">{formatRupiah(formData.plafonKredit || 0)}</span>
+                    {/* 1. Baris Plafon */}
+                    <div className="flex items-center justify-between">
+                      <div className="w-full">
+                        <span className="text-sm font-medium text-slate-600">Plafon <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded ml-1">Dasar - Diskon - BF</span></span>
+                      </div>
+                      <div className="w-40 sm:w-44 relative shrink-0">
+                        <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                          <span className="text-sm font-bold text-slate-900">Rp</span>
+                        </div>
+                        <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                          <span className="text-base font-black text-slate-900 tabular-nums">
+                            {new Intl.NumberFormat('id-ID').format(formData.plafonAwal || 0)}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
+                    {/* 2. Baris Biaya KPR (Input) */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-600 w-full">+ Biaya KPR</span>
+                      <div className="w-40 sm:w-44 shrink-0">
+                        <CurrencyInput
+                          name="biayaKpr"
+                          value={formData.biayaKpr || 0}
+                          onValueChange={handleCurrencyChange}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 3. Baris Plafon Kredit */}
                     <div className="pt-3 border-t border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-blue-700">Nilai Pengajuan KPR</span>
-                        <span className="text-lg font-black text-blue-700 tabular-nums">{formatRupiah(formData.nilaiPengajuanKpr || 0)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-indigo-700 w-full">Plafon Kredit</span>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-indigo-700">Rp</span>
+                          </div>
+                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                            <span className="text-base font-black text-indigo-700 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(formData.plafonKredit || 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4. Baris Nilai Pengajuan KPR */}
+                    <div className="pt-3 border-t border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-blue-700 w-full">Nilai Pengajuan KPR</span>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-blue-700">Rp</span>
+                          </div>
+                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                            <span className="text-lg font-black text-blue-700 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(formData.nilaiPengajuanKpr || 0)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                       <p className="text-[10px] text-slate-400 font-medium text-right mt-1">Plafon Kredit - Total Biaya Tambahan</p>
                     </div>
 
+                    {/* 5. Baris DP Tidak Dibayar 10% */}
                     <div className="pt-3 border-t border-slate-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-amber-600">DP Tidak Dibayar 10%</span>
-                        <span className="text-base font-black text-amber-600 tabular-nums">{formatRupiah(formData.dpTidakDibayar || 0)}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-amber-600">Rp</span>
+                          </div>
+                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                            <span className="text-base font-black text-amber-600 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(formData.dpTidakDibayar || 0)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {(formData.caraPembayaran === 'CASH BERTAHAP') && (
+                  <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 mt-6 space-y-4">
+                    <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-600 w-full">DP (40%)</span>
+                      <div className="w-40 sm:w-44 shrink-0">
+                        <CurrencyInput
+                          name="dp"
+                          value={formData.dp || 0}
+                          onValueChange={handleCurrencyChange}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-bold text-orange-600 w-full">Sisa Pembayaran (60%)</span>
+                        <div className="w-40 sm:w-44 relative shrink-0">
+                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
+                            <span className="text-sm font-bold text-orange-600">Rp</span>
+                          </div>
+                          <div className="w-full pl-[42px] pr-3 py-1 text-left">
+                            <span className="text-base font-black text-orange-600 tabular-nums">
+                              {new Intl.NumberFormat('id-ID').format(
+                                Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0) - (formData.bookingFee || 0))
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono text-right">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - DP - Booking Fee
+                      </p>
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-between items-center p-5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl mt-8 shadow-lg shadow-emerald-500/20 text-white">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 p-5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl mt-8 shadow-lg shadow-emerald-500/20 text-white">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-100">
                     Harga Jual
                   </span>
                   {formData.caraPembayaran === 'KPR' && (
                     <span className="text-[10px] text-emerald-100/80 font-medium mt-1">
-                      (Plafon Kredit / 0.9) + Diskon
+                      Default: (Plafon Kredit / 0.9) + Diskon
                     </span>
                   )}
                 </div>
-                <span className="text-2xl sm:text-3xl font-black tabular-nums">{formatRupiah(formData.hargaJual || 0)}</span>
+
+                <div className="w-full md:w-64">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="font-bold text-slate-500">Rp</span>
+                    </div>
+                    <input
+                      type="text"
+                      name="hargaJual"
+                      value={formData.hargaJual ? new Intl.NumberFormat('id-ID').format(formData.hargaJual) : ''}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                        handleCurrencyChange('hargaJual', rawValue ? Number(rawValue) : 0);
+                      }}
+                      autoComplete="off"
+                      className="w-full pl-11 pr-4 py-2.5 text-lg font-black tabular-nums rounded-xl border-0 bg-white text-slate-900 shadow-inner outline-none focus:ring-4 focus:ring-emerald-300/50 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -11926,7 +12215,6 @@ const Penjualan = () => {
         )}
       </Modal>
 
-      {/* MODAL PRINT PREVIEW */}
       <Modal isOpen={!!printData} onClose={() => setPrintData(null)} title={`Pratinjau Dokumen`}>
         {printData && (
           <div className="bg-white" id="print-area" style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #4f46e5' }}>
@@ -12111,7 +12399,6 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      {/* MODAL CANCEL */}
       <Modal isOpen={isCancelModalOpen} onClose={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} title="Ajukan Pembatalan Penjualan">
         {selectedCancelRow && (
           <form onSubmit={handleCancelSubmit} className="space-y-5">
@@ -12160,7 +12447,6 @@ const Penjualan = () => {
         )}
       </Modal>
 
-      {/* MODAL PREVIEW BUKTI */}
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen / Bukti">
         <div className="flex flex-col items-center">
           {previewImage && (
@@ -12176,7 +12462,6 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      {/* MODAL TANDA TANGAN */}
       <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital Kwitansi">
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -12203,7 +12488,6 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      {/* MODAL DETAIL (Styling selaras dengan Skema Modal) */}
       <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Detail Informasi Transaksi">
         {detailData && (
           <div className="space-y-6">
@@ -12273,15 +12557,26 @@ const Penjualan = () => {
                   <span className="font-bold text-red-400 tabular-nums">{formatRupiah(detailData.bookingFee || 5000000)}</span>
                 </div>
 
-                <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-2 mb-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-bold text-blue-400">Plafon Awal</span>
-                    <span className="text-sm font-bold text-blue-400 tabular-nums">{formatRupiah(detailData.plafonAwal || 0)}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-mono">
-                    <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - Diskon - Booking Fee
-                  </p>
-                </div>
+                {detailData.caraPembayaran === 'CASH BERTAHAP' && (
+                  <>
+                    <div className="flex justify-between items-center text-sm mt-1">
+                      <span className="font-medium text-slate-300">- DP (Down Payment)</span>
+                      <span className="font-bold text-orange-400 tabular-nums">{formatRupiah(detailData.dp || 0)}</span>
+                    </div>
+
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mt-3 mb-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm font-bold text-blue-400">Sisa Pembayaran</span>
+                        <span className="text-sm font-bold text-emerald-400 tabular-nums">
+                          {formatRupiah(Math.max(0, (detailData.hargaDasar || 0) - (detailData.diskonPenjualan || 0) - (detailData.bookingFee || 0) - (detailData.dp || 0)))}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Jual - Booking Fee - DP
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 {detailData.caraPembayaran === 'KPR' && (
                   <>
@@ -12410,7 +12705,6 @@ const Penjualan = () => {
         )}
       </Modal>
 
-      {/* MODAL BANK KPR */}
       <Modal isOpen={isBankModalOpen} onClose={() => setIsBankModalOpen(false)} title="Informasi Bank KPR">
         <form onSubmit={handleBankSubmit} className="space-y-5">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
