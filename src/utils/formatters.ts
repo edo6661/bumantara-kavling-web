@@ -4,12 +4,14 @@ export const formatRupiah = (angka: string | number): string => {
   const numberValue = typeof angka === "string" ? parseFloat(angka) : angka;
   if (isNaN(numberValue)) return "Rp 0";
 
+  const roundedValue = Math.round(numberValue);
+
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(numberValue);
+  }).format(roundedValue);
 };
 
 export const formatDate = (dateString: string): string => {

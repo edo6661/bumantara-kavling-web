@@ -47,7 +47,7 @@ const menuItems = [
       { title: 'SPR', path: '/customer/spr' },
       { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
       { title: 'Kavling', path: '/customer/kavling' },
-      { title: 'Tagihan', path: '/customer/tagihan' },
+      { title: 'Pembayaran', path: '/customer/tagihan' },
     ],
   },
   {

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft, Eye } from 'lucide-react';
 
 interface Column {
   header: string;
@@ -13,6 +13,7 @@ interface DataTableProps {
   columns: Column[];
   data: any[];
   onAdd?: () => void;
+  onDetail?: (item: any) => void;
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
   expandedRowRender?: (row: any) => React.ReactNode;
@@ -25,7 +26,7 @@ interface DataTableProps {
 }
 
 const DataTable = ({
-  title, columns, data, onAdd, onEdit, onDelete, expandedRowRender,
+  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
   serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
 }: DataTableProps) => {
 
@@ -60,7 +61,8 @@ const DataTable = ({
     });
   }, [data, localSearchTerm, columns, serverSide]);
 
-  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (onEdit || onDelete ? 1 : 0);
+  const hasActions = !!(onDetail || onEdit || onDelete);
+  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (hasActions ? 1 : 0);
 
   const getPageNumbers = () => {
     const delta = 1;
@@ -123,7 +125,7 @@ const DataTable = ({
                   {col.header}
                 </th>
               ))}
-              {(onEdit || onDelete) && (
+              {hasActions && (
                 <th className="px-6 py-3.5 text-center whitespace-nowrap w-24">Aksi</th>
               )}
             </tr>
@@ -150,9 +152,18 @@ const DataTable = ({
                           {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                         </td>
                       ))}
-                      {(onEdit || onDelete) && (
+                      {hasActions && (
                         <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            {onDetail && (
+                              <button
+                                onClick={() => onDetail(row)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
+                                title="Detail"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            )}
                             {onEdit && (
                               <button
                                 onClick={() => onEdit(row)}

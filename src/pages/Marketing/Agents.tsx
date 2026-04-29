@@ -34,7 +34,7 @@ const initialFormState: AgentFormState = {
 
 const Agents = () => {
   const { data: agentData = [], isLoading } = useGetAgents();
-  // Ambil data penjualan untuk detail
+  // Ambil data penjualan untuk detail (riwayat di dalam row expand)
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
   const penjualanList = penjualanResponse?.items || [];
   const createMutation = useCreateAgent();
@@ -46,7 +46,11 @@ const Agents = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  // State untuk Detail Penjualan
+  // === State untuk Modal View Detail Agent ===
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentData | null>(null);
+
+  // State untuk Lightbox Detail Penjualan (saat melihat data di dalam tabel expand)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
 
@@ -65,6 +69,11 @@ const Agents = () => {
     },
     { header: 'Alamat', accessor: 'alamat', render: (val: string | null) => val || '-' },
   ];
+
+  const openDetailModal = (item: AgentData) => {
+    setSelectedAgentDetail(item);
+    setIsDetailModalOpen(true);
+  };
 
   const openModal = (item?: AgentData) => {
     if (item) {
@@ -251,6 +260,7 @@ const Agents = () => {
         columns={columns}
         data={agentData}
         onAdd={() => openModal()}
+        onDetail={(item) => openDetailModal(item as AgentData)}
         onEdit={(item) => openModal(item as AgentData)}
         onDelete={(item) => handleDelete(item as AgentData)}
         expandedRowRender={expandedRowRender}
@@ -313,7 +323,64 @@ const Agents = () => {
         </form>
       </Modal>
 
-      {/* MODAL DETAIL PENJUALAN */}
+      {/* MODAL DETAIL AGENT (BARU) */}
+      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Agent">
+        {selectedAgentDetail && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+              <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Biodata Agent</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Agent</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">NIK</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.nik}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">No. WhatsApp / Telepon</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.noHp}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Email</p>
+                  <p className="text-sm font-medium text-slate-800">{selectedAgentDetail.email || '-'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Lengkap</p>
+                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedAgentDetail.alamat || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {selectedAgentDetail.pics && selectedAgentDetail.pics.length > 0 && (
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Kontak Tim / PIC Pendukung</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {selectedAgentDetail.pics.map((pic, idx) => (
+                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                      <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
+                      <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
+                      <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors cursor-pointer shadow-md"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL DETAIL PENJUALAN KETIKA ROW DI KLIK */}
       <Modal isOpen={!!selectedDetailPenjualan} onClose={() => setSelectedDetailPenjualan(null)} title="Informasi Transaksi Penjualan">
         {selectedDetailPenjualan && (
           <div className="space-y-5 animate-in fade-in duration-300">

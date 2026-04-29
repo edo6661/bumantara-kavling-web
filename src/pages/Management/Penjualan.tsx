@@ -2334,7 +2334,7 @@ const Penjualan = () => {
                         <span className="text-sm font-bold text-purple-400 tabular-nums">{formatRupiah(detailData.nilaiPengajuanKpr || 0)}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono">
-                        <strong className="text-slate-400">Kalkulasi:</strong> Plafon Kredit - Total Biaya Tambahan
+                        <strong className="text-slate-400">Kalkulasi:</strong> Plafon Kredit - Total Biaya Tambahan + Tambahan Nilai KPR
                       </p>
                     </div>
 
@@ -2358,7 +2358,7 @@ const Penjualan = () => {
                   <p className="text-[10px] text-emerald-600/70 font-mono">
                     <strong className="text-emerald-500/80">Kalkulasi:</strong> {
                       detailData.caraPembayaran === 'KPR'
-                        ? '(Plafon Kredit / 0.9) + Diskon Penjualan'
+                        ? '(Plafon Kredit / 0.9) + Diskon Penjualan + Tambahan Nilai KPR'
                         : 'Harga Dasar - Diskon Penjualan'
                     }
                   </p>
