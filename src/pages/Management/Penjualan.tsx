@@ -886,7 +886,7 @@ const Penjualan = () => {
   const expandedRowRender = (row: PenjualanData) => {
     if (row.status === 'BATAL') {
       return (
-        <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <div className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
           <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
             <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
             <span className="px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 shadow-sm">
@@ -905,7 +905,7 @@ const Penjualan = () => {
     }
 
     return (
-      <div className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+      <div className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
           <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
           {row.isPendingBatal ? (
@@ -933,7 +933,7 @@ const Penjualan = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2">
           <div className="space-y-3">
             <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">1. Booking Fee & SPR</h5>
             <div className="flex flex-wrap gap-2">
@@ -1143,11 +1143,11 @@ const Penjualan = () => {
   if (isLoading && penjualanData.length === 0) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
+    <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
-          className="p-5 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
+          className="p-3 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
           onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
         >
           <div className="flex items-center gap-3">
@@ -1162,8 +1162,8 @@ const Penjualan = () => {
         </div>
 
         {isSummaryExpanded && (
-          <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-5 bg-slate-50/50">
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50/50">
+            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-slate-400 group-hover:bg-slate-600 transition-colors"></div>
               <div className="flex items-center gap-3 mb-3 pl-2">
                 <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center"><Wallet size={16} className="text-slate-600" /></div>
@@ -1171,7 +1171,7 @@ const Penjualan = () => {
               </div>
               <p className="text-3xl font-black text-slate-900 pl-2 tabular-nums">{meta?.totalItems || 0}</p>
             </div>
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 group-hover:bg-blue-600 transition-colors"></div>
               <div className="flex items-center gap-3 mb-3 pl-2">
                 <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
@@ -1179,7 +1179,7 @@ const Penjualan = () => {
               </div>
               <p className="text-3xl font-black text-blue-700 pl-2 tabular-nums">{(summary['BOOKED'] || 0) + (summary['PROSES'] || 0)}</p>
             </div>
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400 group-hover:bg-emerald-600 transition-colors"></div>
               <div className="flex items-center gap-3 mb-3 pl-2">
                 <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center"><CheckCircle2 size={16} className="text-emerald-600" /></div>
@@ -1187,7 +1187,7 @@ const Penjualan = () => {
               </div>
               <p className="text-3xl font-black text-emerald-700 pl-2 tabular-nums">{summary['LUNAS'] || 0}</p>
             </div>
-            <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-red-400 group-hover:bg-red-600 transition-colors"></div>
               <div className="flex items-center gap-3 mb-3 pl-2">
                 <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center"><Ban size={16} className="text-red-600" /></div>
@@ -1216,7 +1216,7 @@ const Penjualan = () => {
         </div>
 
         {isFilterExpanded && (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50">
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 bg-slate-50/50">
             <div className="relative group">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block group-focus-within:text-indigo-600 transition-colors">Status Transaksi</label>
               <select
@@ -1267,16 +1267,16 @@ const Penjualan = () => {
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Penjualan" : "Tambah Penjualan Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-2">
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
               <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm ring-1 ring-indigo-100">1</div>
               <h4 className="text-base font-bold text-slate-900">Data Pembeli & Marketing</h4>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              <div className="md:col-span-2 p-5 bg-indigo-50/40 rounded-xl border border-indigo-100/60 mb-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-1">
+              <div className="md:col-span-2 p-3 bg-indigo-50/40 rounded-xl border border-indigo-100/60 mb-2">
                 {!isNewAgent ? (
                   <Select
                     label="Agent Marketing"
@@ -1335,14 +1335,14 @@ const Penjualan = () => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
               <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm ring-1 ring-indigo-100">2</div>
               <h4 className="text-base font-bold text-slate-900">Data Kavling</h4>
             </div>
 
             <div className="space-y-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-1">
                 <Select
                   label="Perumahan"
                   name="perumahan"
@@ -1363,7 +1363,7 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-1">
                 <Select
                   label="Blok"
                   name="blok"
@@ -1390,7 +1390,7 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-1">
                 <Input
                   label="Luas Tanah (m²)"
                   name="luasTanah"
@@ -1407,8 +1407,8 @@ const Penjualan = () => {
                 />
               </div>
 
-              <div className="mt-4 p-5 bg-slate-50 rounded-xl border border-slate-100">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-1">
                   <CurrencyInput
                     label="Harga Dasar Kavling"
                     name="hargaDasar"
@@ -1438,7 +1438,7 @@ const Penjualan = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+          <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
             <button type="button" onClick={closeModal} className="px-6 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-colors shadow-sm cursor-pointer">
               Batal
             </button>
@@ -1455,13 +1455,13 @@ const Penjualan = () => {
 
       <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} title="Buat Surat Pesanan Rumah (SPR)">
         {selectedPenjualan && (
-          <form onSubmit={handleSkemaSubmit} className="space-y-6">
+          <form onSubmit={handleSkemaSubmit} className="space-y-2">
 
-            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-5 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-3 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10"><Building2 size={80} /></div>
               <h4 className="text-[11px] font-bold text-indigo-800 uppercase tracking-widest mb-4 border-b border-indigo-200/50 pb-3">Informasi Pembeli & Kavling</h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-2 relative z-10">
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Customer</p>
                   <p className="text-base font-black text-slate-900">{selectedPenjualan.nama}</p>
@@ -1478,7 +1478,7 @@ const Penjualan = () => {
               </div>
             </div>
 
-            <div className="p-1">
+            <div className="pt-2">
               <Select
                 label="Metode Pembayaran Utama"
                 name="caraPembayaran"
@@ -1494,11 +1494,11 @@ const Penjualan = () => {
               />
             </div>
 
-            <div className="mt-2 p-6 bg-white rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 space-y-5">
+            <div className="mt-2 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 space-y-5">
               <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-3">Rangkuman Kalkulasi</h4>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-2">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-slate-600 w-full">Harga Dasar</span>
                   <div className="w-40 sm:w-44 relative shrink-0">
                     <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
@@ -1597,7 +1597,7 @@ const Penjualan = () => {
 
 
                 {(formData.caraPembayaran === 'KPR') && (
-                  <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 mt-6 space-y-4">
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mt-4 space-y-2">
                     <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi KPR</h5>
 
                     <div className="flex items-center justify-between">
@@ -1742,7 +1742,7 @@ const Penjualan = () => {
                 )}
 
                 {(formData.caraPembayaran === 'CASH BERTAHAP') && (
-                  <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 mt-6 space-y-4">
+                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mt-4 space-y-2">
                     <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
 
                     <div className="flex items-center justify-between">
@@ -1854,7 +1854,7 @@ const Penjualan = () => {
                 )}
               </div>
 
-              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 p-5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl mt-8 shadow-lg shadow-emerald-500/20 text-white">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 p-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl mt-8 shadow-lg shadow-emerald-500/20 text-white">
                 <div className="flex flex-col">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-100">
                     Harga Jual
@@ -1888,7 +1888,7 @@ const Penjualan = () => {
             </div>
 
             {isRevisiSpr && (
-              <div className="mt-6 p-5 bg-orange-50 border border-orange-200 rounded-xl">
+              <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-xl">
                 <h4 className="text-[11px] font-bold text-orange-800 uppercase tracking-widest mb-3">Keterangan Revisi SPR</h4>
                 <Input
                   name="keteranganRevisi"
@@ -1903,7 +1903,7 @@ const Penjualan = () => {
               </div>
             )}
 
-            <div className="flex justify-between items-center gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+            <div className="flex justify-between items-start gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
               <div className="w-1/2">
                 {formData.caraPembayaran === 'CASH BERTAHAP' && (
                   <Input
@@ -1940,7 +1940,7 @@ const Penjualan = () => {
                   <h2 className="text-3xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
                     {printType === 'invoice' ? 'TAGIHAN' : 'BUKTI PEMBAYARAN'}
                   </h2>
-                  <div className="mt-3 space-y-1">
+                  <div className="mt-3 space-y-2">
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest tabular-nums">
                       <span className="w-24 inline-block text-slate-400">NO DOC</span>: {printData.id.toString().replace('INV-BF-', '').replace('INV-DP-', '')} / {new Date(printData.tanggal || new Date()).getFullYear()}
                     </p>
@@ -1961,7 +1961,7 @@ const Penjualan = () => {
                 </div>
               </div>
 
-              <div className="mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="mb-8 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <p className="text-[10px] text-slate-400 font-black mb-2 uppercase tracking-[0.2em]">
                   {printType === 'kwitansi' ? 'Telah Diterima Dari:' : 'Ditagihkan Kepada:'}
                 </p>
@@ -2006,7 +2006,7 @@ const Penjualan = () => {
                     }
                     if (!rekening) return null;
                     return (
-                      <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200">
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3">
                           {printType === 'kwitansi' ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
                         </span>
@@ -2019,16 +2019,16 @@ const Penjualan = () => {
                 </div>
 
                 <div className="w-[320px] space-y-3">
-                  <div className={`flex justify-between items-center p-5 rounded-2xl border-2 ${printType === 'kwitansi' ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
+                  <div className={`flex justify-between items-center p-3 rounded-2xl border-2 ${printType === 'kwitansi' ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
                     <span className="text-sm font-black uppercase tracking-[0.2em]">Total</span>
                     <span className="text-2xl font-black tabular-nums">{formatRupiah(printData.nominalCetak || 0)}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="mb-8 p-5 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] text-slate-600 leading-relaxed">
+              <div className="mb-8 p-3 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] text-slate-600 leading-relaxed">
                 <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest">Catatan:</p>
-                <ul className="list-disc pl-5 space-y-1">
+                <ul className="list-disc pl-5 space-y-2">
                   <li>Harga jual pembelian unit rumah sudah termasuk biaya AJB, Sertipikat, IMB, Listrik, BPHTB, Biaya Proses KPR dan Notaris.</li>
                   <li>Harga jual khusus pembelian kavling belum termasuk biaya BPHTB, PPJB, AJB, Sertipikat dan Biaya Mutasi PBB.</li>
                   <li>Apabila terjadi pembatalan, uang tanda jadi (Booking Fee) tidak dapat dikembalikan / hangus.</li>
@@ -2089,7 +2089,7 @@ const Penjualan = () => {
           </div>
         )}
 
-        <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+        <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
           <button onClick={() => setPrintData(null)} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-100 transition-colors shadow-sm">Tutup</button>
 
           {printType === 'kwitansi' && (
@@ -2118,11 +2118,11 @@ const Penjualan = () => {
       <Modal isOpen={isCancelModalOpen} onClose={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} title="Ajukan Pembatalan Penjualan">
         {selectedCancelRow && (
           <form onSubmit={handleCancelSubmit} className="space-y-5">
-            <div className="p-5 bg-red-50 text-red-800 border border-red-200 rounded-2xl text-sm font-medium leading-relaxed">
+            <div className="p-3 bg-red-50 text-red-800 border border-red-200 rounded-2xl text-sm font-medium leading-relaxed">
               <strong>Peringatan Tindakan!</strong> Tindakan ini akan mengirimkan <strong>Pengajuan Pembatalan</strong> ke Admin. Transaksi tidak akan langsung dibatalkan sampai Admin menyetujuinya. <br /><br />Jika disetujui, status transaksi menjadi "Batal", Kavling kembali "Available", dan tagihan belum terbayar akan dihapus.
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Detail Transaksi</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -2153,7 +2153,7 @@ const Penjualan = () => {
               required
             />
 
-            <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+            <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
               <button type="button" onClick={() => { setIsCancelModalOpen(false); setSelectedCancelRow(null); }} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-100 transition-colors shadow-sm">Batal</button>
               <button type="submit" disabled={cancelMutation.isPending} className="px-6 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-red-700 shadow-md shadow-red-600/20 disabled:opacity-50 transition-all active:scale-95">
                 {cancelMutation.isPending ? "Memproses..." : "Ajukan Pembatalan"}
@@ -2171,7 +2171,7 @@ const Penjualan = () => {
             </div>
           )}
 
-          <div className="flex justify-end gap-3 w-full pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+          <div className="flex justify-end gap-3 w-full pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
             <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all cursor-pointer shadow-sm">Buka Tab Baru</a>
             <button onClick={() => setPreviewImage(null)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all cursor-pointer shadow-md">Tutup</button>
           </div>
@@ -2179,8 +2179,8 @@ const Penjualan = () => {
       </Modal>
 
       <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital Kwitansi">
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 grid grid-cols-1 md:grid-cols-2">
             <Input label="Nama Penandatangan" value={ttdData.nama} onChange={(e) => setTtdData({ ...ttdData, nama: e.target.value })} placeholder="Nama Marketing..." />
             <Input label="Tanggal Tanda Tangan" type="date" value={ttdData.tanggal} onChange={(e) => setTtdData({ ...ttdData, tanggal: e.target.value })} />
           </div>
@@ -2195,7 +2195,7 @@ const Penjualan = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+          <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
             <button onClick={() => setIsTtdModalOpen(false)} disabled={uploadSignatureMutation.isPending} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-bold cursor-pointer hover:bg-slate-100 transition-colors shadow-sm disabled:opacity-50">Batal</button>
             <button onClick={saveSignature} disabled={uploadSignatureMutation.isPending} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all active:scale-95 disabled:opacity-50">
               {uploadSignatureMutation.isPending ? "Menyimpan..." : "Simpan Tanda Tangan"}
@@ -2205,10 +2205,10 @@ const Penjualan = () => {
       </Modal>
       <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Detail Informasi Transaksi">
         {detailData && (
-          <div className="space-y-6">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+          <div className="space-y-2">
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
               <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">1. Data Pembeli & Marketing</h4>
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+              <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Customer</p>
                   <p className="text-sm font-bold text-slate-900">{detailData.nama}</p>
@@ -2232,9 +2232,9 @@ const Penjualan = () => {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+            <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
               <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">2. Data Kavling</h4>
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+              <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Perumahan</p>
                   <p className="text-sm font-bold text-slate-900">{detailData.perumahan}</p>
@@ -2254,11 +2254,11 @@ const Penjualan = () => {
               </div>
             </div>
 
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-lg">
+            <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-lg">
               <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-700 pb-3">
                 3. Kalkulasi Transaksi ({detailData.caraPembayaran ? detailData.caraPembayaran : 'CASH KERAS'})
               </h4>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm">
                   <span className="font-medium text-slate-300">Harga Dasar Kavling</span>
                   <span className="font-bold text-white tabular-nums">{formatRupiah(detailData.hargaDasar || 0)}</span>
@@ -2350,7 +2350,7 @@ const Penjualan = () => {
                   </>
                 )}
 
-                <div className="bg-emerald-900/40 p-5 rounded-xl border border-emerald-800 mt-6">
+                <div className="bg-emerald-900/40 p-3 rounded-xl border border-emerald-800 mt-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-black text-emerald-400 uppercase tracking-wider">Harga Jual</span>
                     <span className="text-xl font-black text-emerald-400 tabular-nums">{formatRupiah(detailData.hargaJual || 0)}</span>
@@ -2373,7 +2373,7 @@ const Penjualan = () => {
               const totalBiayaTambahan = biayaTambahanList.reduce((acc: number, curr: any) => acc + Number(curr.nominal || 0), 0);
 
               return (
-                <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-md">
+                <div className="bg-slate-800 p-3 rounded-2xl border border-slate-700 shadow-md">
                   <p className="text-[11px] font-bold text-amber-400 uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">Biaya Lainnya / Tambahan</p>
                   <div className="space-y-3">
                     {biayaTambahanList.map((biaya: any, idx: number) => (
@@ -2397,7 +2397,7 @@ const Penjualan = () => {
             })()}
 
             {detailData.riwayatSpr && detailData.riwayatSpr.length > 0 && (
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 mt-4">
+              <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 mt-4">
                 <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">
                   Riwayat Perubahan Dokumen SPR
                 </h4>
@@ -2424,7 +2424,7 @@ const Penjualan = () => {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+            <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
               <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-md cursor-pointer">
                 Tutup Detail
               </button>
@@ -2435,7 +2435,7 @@ const Penjualan = () => {
 
       <Modal isOpen={isBankModalOpen} onClose={() => setIsBankModalOpen(false)} title="Informasi Bank KPR">
         <form onSubmit={handleBankSubmit} className="space-y-5">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
             <p className="text-xs font-medium text-slate-600 mb-4">
               Masukkan nama Bank yang menyetujui pengajuan KPR customer.
             </p>
@@ -2449,7 +2449,7 @@ const Penjualan = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-6 -mb-6 mt-6 z-20">
+          <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
             <button
               type="button"
               onClick={() => setIsBankModalOpen(false)}

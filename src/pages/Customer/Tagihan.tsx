@@ -472,24 +472,22 @@ const Tagihan = () => {
 
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
             <FileText size={16} className="text-blue-600" /> Detail Cicilan & Tagihan
           </h4>
 
-          <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
+          <div className="flex flex-wrap items-center gap-4 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
             <div className="px-3 border-r border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Tagihan Cicilan</p>
+              <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Total Tagihan Cicilan</p>
               <p className="text-sm font-bold text-slate-700">{formatRupiah(piutangCicilan)}</p>
             </div>
             <div className="px-3 border-r border-slate-100">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Total Terbayar (Cicilan)</p>
+              <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Total Terbayar (Cicilan)</p>
               <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayarCicilan)}</p>
             </div>
             <div className="px-3">
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 flex items-center gap-1">
-                Sisa Pembayaran
-              </p>
+              <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Sisa Pembayaran</p>
               <p className="text-sm font-black text-orange-600">{formatRupiah(sisaPembayaran)}</p>
             </div>
           </div>
@@ -502,100 +500,128 @@ const Tagihan = () => {
           </button>
         </div>
 
-        <div className="space-y-3">
-          {row.cicilan
-            .sort((a: TagihanData, b: TagihanData) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime())
-            .map((c: TagihanData) => (
-              <div key={c.id} className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-4 transition hover:border-blue-200">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1.5">
-                    <span className="text-xs font-bold px-2 py-0.5 bg-slate-100 text-slate-600 rounded">{c.noTagihan}</span>
-                    <h5 className="font-bold text-slate-800 text-sm">{c.pembayaran}</h5>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === 'LUNAS' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
-                      {c.status.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600 font-medium mt-2 items-end">
-                    <div>
-                      <p className="text-slate-400 mb-0.5">Jatuh Tempo</p>
-                      <p className="text-slate-900 font-bold">{formatDate(c.jatuhTempo.toString())}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-400 mb-0.5">Nominal Tagihan</p>
-                      <p className="text-slate-900 font-bold text-sm">{formatRupiah(c.nominal)}</p>
-                    </div>
+        <div className="overflow-x-auto custom-scrollbar border border-slate-200 rounded-xl bg-white shadow-sm">
+          <table className="w-full text-left text-sm border-collapse min-w-[700px]">
+            <thead>
+              <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
+                <th className="p-3 font-bold">Keterangan</th>
+                <th className="p-3 font-bold">Jatuh Tempo</th>
+                <th className="p-3 font-bold text-right">Nominal</th>
+                <th className="p-3 font-bold text-center">Status</th>
+                <th className="p-3 font-bold text-center">Bukti</th>
+                <th className="p-3 font-bold text-center w-36">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {row.cicilan
+                .sort((a: TagihanData, b: TagihanData) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime())
+                .map((c: TagihanData) => (
+                  <tr key={c.id} className="hover:bg-blue-50/30 transition-colors group">
 
-                    {c.fileBukti && (
-                      <div>
-                        <p className="text-slate-400 mb-1">Bukti Transfer</p>
+                    <td className="p-3 font-bold text-slate-800 text-xs">{c.pembayaran}</td>
+                    <td className="p-3 text-slate-600 text-xs font-medium">{formatDate(c.jatuhTempo.toString())}</td>
+                    <td className="p-3 text-slate-900 font-bold text-right tabular-nums text-xs">
+                      {formatRupiah(c.nominal)}
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${c.status === 'LUNAS' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                        {c.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center">
+                      {c.fileBukti ? (
                         <div
                           onClick={() => setPreviewImage(c.fileBukti as string)}
-                          className="relative w-14 h-9 rounded-md border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
-                          title="Klik untuk perbesar"
+                          className="relative w-8 h-6 mx-auto rounded border border-slate-200 overflow-hidden cursor-zoom-in group-hover:border-blue-300 transition-colors shadow-sm bg-slate-100"
+                          title="Lihat Bukti Transfer"
                         >
-                          <img src={c.fileBukti as string} alt="Bukti" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                            <ZoomIn size={12} className="text-white" />
-                          </div>
+                          <img src={c.fileBukti as string} alt="Bukti" className="w-full h-full object-cover" />
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 italic">-</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {/* AKSI: INVOICE / KWITANSI & UPLOAD */}
+                        {c.status === 'LUNAS' ? (
+                          <button
+                            onClick={() => {
+                              setPrintType('kwitansi');
+                              setPrintTitle(`${c.pembayaran}`);
+                              setPrintData({
+                                ...c,
+                                nominalCetak: c.nominal,
+                                hargaJual: piutangCicilan,
+                                sisaBelumDibayar: sisaPembayaran,
+                                rekeningTujuanId: rekeningTujuanId,
+                                tipe: targetPenjualan?.tipe,
+                                caraPembayaran: targetPenjualan?.pembiayaan,
+                                bank: targetPenjualan?.bank,
+                                agent: targetPenjualan?.agent || '-',
+                                pembuat: targetPenjualan?.createdBy || 'Admin'
+                              });
+                            }}
+                            className="p-1.5 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition shadow-sm cursor-pointer"
+                            title="Cetak Kwitansi"
+                          >
+                            <Printer size={14} />
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => {
+                                setPrintType('invoice');
+                                setPrintTitle(`${c.pembayaran}`);
+                                setPrintData({
+                                  ...c,
+                                  nominalCetak: c.nominal,
+                                  hargaJual: piutangCicilan,
+                                  sisaBelumDibayar: sisaPembayaran,
+                                  rekeningTujuanId: rekeningTujuanId,
+                                  tipe: targetPenjualan?.tipe,
+                                  caraPembayaran: targetPenjualan?.pembiayaan,
+                                  bank: targetPenjualan?.bank
+                                });
+                              }}
+                              className="p-1.5 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition cursor-pointer shadow-sm"
+                              title="Cetak Invoice"
+                            >
+                              <FileText size={14} />
+                            </button>
+                            <button
+                              onClick={() => openModal(c)}
+                              className="p-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition shadow-sm cursor-pointer"
+                              title="Upload Bukti Pembayaran"
+                            >
+                              <UploadCloud size={14} />
+                            </button>
+                          </>
+                        )}
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <button onClick={() => openModal(c)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer border border-transparent hover:border-blue-100" title="Edit Cicilan">
-                    <Edit2 size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(c)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer border border-transparent hover:border-red-100" title="Hapus Cicilan">
-                    <Trash2 size={16} />
-                  </button>
-                  <div className="w-px h-6 bg-slate-200 mx-1"></div>
-                  {c.status === 'LUNAS' ? (
-                    <button onClick={() => {
-                      setPrintType('kwitansi');
-                      setPrintTitle(`${c.pembayaran}`);
-                      setPrintData({
-                        ...c,
-                        nominalCetak: c.nominal,
-                        hargaJual: piutangCicilan,
-                        sisaBelumDibayar: sisaPembayaran,
-                        rekeningTujuanId: rekeningTujuanId,
-                        tipe: targetPenjualan?.tipe,
-                        caraPembayaran: targetPenjualan?.pembiayaan,
-                        bank: targetPenjualan?.bank,
-                        agent: targetPenjualan?.agent || '-',
-                        pembuat: targetPenjualan?.createdBy || 'Admin'
-                      });
-                    }} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition shadow-md cursor-pointer">
-                      <Printer size={14} /> Kwitansi
-                    </button>
-                  ) : (
-                    <>
-                      <button onClick={() => {
-                        setPrintType('invoice');
-                        setPrintTitle(`${c.pembayaran}`);
-                        setPrintData({
-                          ...c,
-                          nominalCetak: c.nominal,
-                          hargaJual: piutangCicilan,
-                          sisaBelumDibayar: sisaPembayaran,
-                          rekeningTujuanId: rekeningTujuanId,
-                          tipe: targetPenjualan?.tipe,
-                          caraPembayaran: targetPenjualan?.pembiayaan,
-                          bank: targetPenjualan?.bank
-                        });
-                      }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer">
-                        <FileText size={14} /> Invoice
-                      </button>
-                      <button onClick={() => openModal(c)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-md cursor-pointer">
-                        <UploadCloud size={14} /> Upload Bukti
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+                        <div className="w-px h-4 bg-slate-200 mx-0.5"></div>
+
+                        {/* AKSI: EDIT & HAPUS */}
+                        <button
+                          onClick={() => openModal(c)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition cursor-pointer"
+                          title="Edit Tagihan"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition cursor-pointer"
+                          title="Hapus Tagihan"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );
