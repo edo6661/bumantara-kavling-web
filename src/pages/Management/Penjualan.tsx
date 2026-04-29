@@ -76,6 +76,7 @@ interface PenjualanData {
   createdBy?: string;
   riwayatSpr?: any[];
   tagihan?: any[];
+  tambahanKpr?: any[];
 }
 
 const initialFormState: PenjualanData = {
@@ -135,6 +136,9 @@ const Penjualan = () => {
 
   const [biayaTambahanList, setBiayaTambahanList] = useState<BiayaTambahan[]>([]);
   const [historyBiayaTambahan, setHistoryBiayaTambahan] = useState<{ id: string, nama: string, nominal: number, tanggal: string }[]>([]);
+  const [historyBiayaTambahanKpr, setHistoryBiayaTambahanKpr] = useState<{ id: string, nama: string, nominal: number }[]>([]);
+  const [biayaTambahanKprList, setBiayaTambahanKprList] = useState<BiayaTambahan[]>([]);
+
 
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
@@ -238,108 +242,119 @@ const Penjualan = () => {
     setDetailData(item);
     setIsDetailModalOpen(true);
   };
-  const handleRecalculateDependencies = (
-    name: string,
-    value: unknown,
-    prev: PenjualanData,
-    currentBiayaTambahanList: BiayaTambahan[] = biayaTambahanList
-  ) => {
-    const merged = { ...prev, [name]: value };
-    const updates: Partial<PenjualanData> = { [name as keyof PenjualanData]: value as never };
 
-    const base = Number(merged.hargaDasar) || 0;
-    const diskon = Number(merged.diskonPenjualan) || 0;
-    const bf = Number(merged.bookingFee) || 5000000;
-    const totalTambahanBaru = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
-    const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
-    const totalTambahan = totalTambahanBaru + totalTambahanLama;
 
-    const isAutoCalcTrigger = ['caraPembayaran', 'hargaDasar', 'diskonPenjualan', 'bookingFee', 'termin'].includes(name);
+  const
+    handleRecalculateDependencies = (
+      name: string,
+      value: unknown,
+      prev: PenjualanData,
+      currentBiayaTambahanList: BiayaTambahan[] = biayaTambahanList,
+      currentBiayaTambahanKprList: BiayaTambahan[] = biayaTambahanKprList
+    ) => {
+      const merged = { ...prev, [name]: value };
+      const updates: Partial<PenjualanData> = { [name as keyof PenjualanData]: value as never };
 
-    if (merged.caraPembayaran === 'KPR') {
-      // ... (Biarkan blok KPR persis seperti aslinya)
-      const plafonAwal = Math.max(0, base - diskon - bf);
-      let biayaKpr = merged.biayaKpr;
-      if (name === 'biayaKpr') {
-        biayaKpr = Number(value);
-      } else if (isAutoCalcTrigger || biayaKpr === undefined || biayaKpr === null) {
-        biayaKpr = plafonAwal * 0.06;
-      }
-      if (!biayaKpr) biayaKpr = 0;
+      const base = Number(merged.hargaDasar) || 0;
+      const diskon = Number(merged.diskonPenjualan) || 0;
+      const bf = Number(merged.bookingFee) || 5000000;
 
-      const plafonKredit = plafonAwal + biayaKpr;
-      const nilaiPengajuanKpr = plafonKredit - totalTambahan;
-      const baseHargaJual = plafonKredit / 0.9;
 
-      let hargaJual = merged.hargaJual;
-      if (name === 'hargaJual') {
-        hargaJual = Number(value);
-      } else if (isAutoCalcTrigger || name === 'biayaKpr' || hargaJual === undefined || hargaJual === null) {
-        hargaJual = baseHargaJual + diskon;
-      }
+      const totalTambahanBaru = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+      const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
+      const totalTambahan = totalTambahanBaru + totalTambahanLama;
 
-      const dpKotor = baseHargaJual * 0.1;
-      const dpBersih = dpKotor - bf;
+      const totalTambahanKprBaru = currentBiayaTambahanKprList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+      const totalTambahanKprLama = historyBiayaTambahanKpr.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
+      const totalTambahanKpr = totalTambahanKprBaru + totalTambahanKprLama;
 
-      updates.plafonAwal = plafonAwal;
-      updates.biayaKpr = biayaKpr;
-      updates.plafonKredit = plafonKredit;
-      updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
-      updates.dp = dpBersih;
-      updates.dpTidakDibayar = dpBersih;
-      updates.hargaJual = hargaJual;
+      const isAutoCalcTrigger = ['caraPembayaran', 'hargaDasar', 'diskonPenjualan', 'bookingFee', 'termin'].includes(name);
 
-    } else {
-      let hargaJual = merged.hargaJual;
-      if (name === 'hargaJual') {
-        hargaJual = Number(value);
-      } else if (isAutoCalcTrigger || !hargaJual) {
-        hargaJual = Math.max(0, base - diskon);
-      }
+      if (merged.caraPembayaran === 'KPR') {
+        const plafonAwal = Math.max(0, base - diskon - bf);
+        let biayaKpr = merged.biayaKpr;
+        if (name === 'biayaKpr') {
+          biayaKpr = Number(value);
+        } else if (isAutoCalcTrigger || biayaKpr === undefined || biayaKpr === null) {
+          biayaKpr = plafonAwal * 0.06;
+        }
+        if (!biayaKpr) biayaKpr = 0;
 
-      updates.hargaJual = hargaJual;
-      updates.biayaKpr = 0;
-      updates.plafonKredit = 0;
-      updates.dpTidakDibayar = 0;
-      updates.nilaiPengajuanKpr = 0;
+        const plafonKredit = plafonAwal + biayaKpr;
 
-      if (merged.caraPembayaran === 'CASH BERTAHAP') {
-        let persentaseDp = name === 'persentaseDp' ? Number(value) : (merged.persentaseDp || 40);
-        let dp = merged.dp;
 
-        const triggerRecalcNominal = ['hargaDasar', 'diskonPenjualan', 'bookingFee', 'persentaseDp', 'caraPembayaran'].includes(name);
+        const nilaiPengajuanKpr = plafonKredit - totalTambahan + totalTambahanKpr;
 
-        if (triggerRecalcNominal) {
-          dp = Math.max(0, ((base - diskon) * (persentaseDp / 100)) - bf);
-        } else if (name === 'dp') {
-          dp = Number(value);
-          const hargaPokok = Math.max(0, base - diskon);
-          if (hargaPokok > 0) {
-            const newPersentase = ((dp + bf) / hargaPokok) * 100;
-            persentaseDp = Math.round(newPersentase * 100) / 100;
-          }
+        const baseHargaJual = plafonKredit / 0.9;
+
+        let hargaJual = merged.hargaJual;
+        if (name === 'hargaJual') {
+          hargaJual = Number(value);
+        } else if (isAutoCalcTrigger || name === 'biayaKpr' || name === 'biayaTambahan' || hargaJual === undefined || hargaJual === null) {
+          hargaJual = baseHargaJual + diskon + totalTambahanKpr;
         }
 
-        updates.persentaseDp = persentaseDp;
-        updates.dp = dp;
+        const dpKotor = baseHargaJual * 0.1;
+        const dpBersih = dpKotor - bf;
 
-        const sisaPembayaran = Math.max(0, base - diskon - bf - dp);
-        const termin = merged.termin !== undefined ? Number(merged.termin) : 3;
-        updates.termin = termin;
-        updates.termin = termin;
-        updates.cicilanPerBulan = termin > 0 ? sisaPembayaran / termin : 0;
+        updates.plafonAwal = plafonAwal;
+        updates.biayaKpr = biayaKpr;
+        updates.plafonKredit = plafonKredit;
+        updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
+        updates.dp = dpBersih;
+        updates.dpTidakDibayar = dpBersih;
+        updates.hargaJual = hargaJual;
 
       } else {
-        updates.dp = 0;
-        updates.termin = 0;
-        updates.cicilanPerBulan = 0;
+        let hargaJual = merged.hargaJual;
+        if (name === 'hargaJual') {
+          hargaJual = Number(value);
+        } else if (isAutoCalcTrigger || !hargaJual) {
+          hargaJual = Math.max(0, base - diskon);
+        }
+
+        updates.hargaJual = hargaJual;
+        updates.biayaKpr = 0;
+        updates.plafonKredit = 0;
+        updates.dpTidakDibayar = 0;
+        updates.nilaiPengajuanKpr = 0;
+
+        if (merged.caraPembayaran === 'CASH BERTAHAP') {
+          let persentaseDp = name === 'persentaseDp' ? Number(value) : (merged.persentaseDp || 40);
+          let dp = merged.dp;
+
+          const triggerRecalcNominal = ['hargaDasar', 'diskonPenjualan', 'bookingFee', 'persentaseDp', 'caraPembayaran'].includes(name);
+
+          if (triggerRecalcNominal) {
+            dp = Math.max(0, ((base - diskon) * (persentaseDp / 100)) - bf);
+          } else if (name === 'dp') {
+            dp = Number(value);
+            const hargaPokok = Math.max(0, base - diskon);
+            if (hargaPokok > 0) {
+              const newPersentase = ((dp + bf) / hargaPokok) * 100;
+              persentaseDp = Math.round(newPersentase * 100) / 100;
+            }
+          }
+
+          updates.persentaseDp = persentaseDp;
+          updates.dp = dp;
+
+          const sisaPembayaran = Math.max(0, base - diskon - bf - dp);
+          const termin = merged.termin !== undefined ? Number(merged.termin) : 3;
+          updates.termin = termin;
+          updates.cicilanPerBulan = termin > 0 ? sisaPembayaran / termin : 0;
+
+        } else {
+          updates.dp = 0;
+          updates.termin = 0;
+          updates.cicilanPerBulan = 0;
+        }
+
+        if (name === 'caraPembayaran') updates.bank = '';
       }
 
-      if (name === 'caraPembayaran') updates.bank = '';
-    }
-
-    return updates;
-  };
+      return updates;
+    };
 
   const availableKavlings = useMemo(() => {
     return kavlingList.filter(k =>
@@ -526,6 +541,12 @@ const Penjualan = () => {
       }));
 
     setHistoryBiayaTambahan(existingTambahan);
+    const existingTambahanKpr = Array.isArray(item.tambahanKpr) ? item.tambahanKpr : [];
+    setHistoryBiayaTambahanKpr(existingTambahanKpr.map((t: any, i: number) => ({
+      id: `hist-kpr-${i}`,
+      nama: t.nama,
+      nominal: Number(t.nominal)
+    })));
     setIsRevisiSpr(isRevisi);
     setKeteranganRevisi('');
     setIsSkemaModalOpen(true);
@@ -542,41 +563,11 @@ const Penjualan = () => {
   const updateKprWithBiayaTambahan = (newList: BiayaTambahan[]) => {
     if (formData.caraPembayaran === 'KPR') {
       setFormData(prev => {
-        const totalTambahanBaru = newList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
-        const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
-        const totalTambahan = totalTambahanBaru + totalTambahanLama;
-        const base = Number(prev.hargaDasar) || 0;
-        const diskon = Number(prev.diskonPenjualan) || 0;
-        const bf = Number(prev.bookingFee) || 5000000;
-
-        const plafonAwal = Math.max(0, base - diskon - bf);
-        const biayaKpr = plafonAwal * 0.06;
-        const plafonKredit = plafonAwal + biayaKpr;
-
-        const nilaiPengajuanKpr = plafonKredit - totalTambahan;
-
-        const baseHargaJual = plafonKredit / 0.9;
-        const hargaJual = baseHargaJual + diskon;
-
-        const dpKotor = baseHargaJual * 0.1;
-        const dpBersih = dpKotor - bf;
-        const updates = handleRecalculateDependencies('biayaTambahan', null, prev, newList);
-
-        return {
-          ...prev,
-          ...updates,
-          plafonAwal,
-          biayaKpr,
-          plafonKredit,
-          nilaiPengajuanKpr,
-          dp: dpBersih,
-          dpTidakDibayar: dpBersih,
-          hargaJual,
-        };
+        const updates = handleRecalculateDependencies('biayaTambahan', null, prev, newList, biayaTambahanKprList);
+        return { ...prev, ...updates };
       });
     }
   };
-
   const handleAddBiayaTambahan = () => {
     const newList = [
       ...biayaTambahanList,
@@ -600,6 +591,33 @@ const Penjualan = () => {
     const newList = biayaTambahanList.map(b => b.id === id ? { ...b, nominal } : b);
     setBiayaTambahanList(newList);
     updateKprWithBiayaTambahan(newList);
+  };
+  const updateKprCalculations = (newListMinus: BiayaTambahan[], newListPlus: BiayaTambahan[]) => {
+    if (formData.caraPembayaran === 'KPR') {
+      setFormData(prev => {
+        const updates = handleRecalculateDependencies('biayaTambahan', null, prev, newListMinus, newListPlus);
+        return { ...prev, ...updates };
+      });
+    }
+  };
+
+  const handleAddBiayaTambahanKpr = () => {
+    const newList = [...biayaTambahanKprList, { id: Date.now().toString(), nama: 'Kanopi / Furnish', nominal: 0 }];
+    setBiayaTambahanKprList(newList);
+    updateKprCalculations(biayaTambahanList, newList);
+  };
+  const handleRemoveBiayaTambahanKpr = (id: string) => {
+    const newList = biayaTambahanKprList.filter(b => b.id !== id);
+    setBiayaTambahanKprList(newList);
+    updateKprCalculations(biayaTambahanList, newList);
+  };
+  const handleChangeBiayaTambahanKprNama = (id: string, nama: string) => {
+    setBiayaTambahanKprList(biayaTambahanKprList.map(b => b.id === id ? { ...b, nama } : b));
+  };
+  const handleChangeBiayaTambahanKprNominal = (id: string, nominal: number) => {
+    const newList = biayaTambahanKprList.map(b => b.id === id ? { ...b, nominal } : b);
+    setBiayaTambahanKprList(newList);
+    updateKprCalculations(biayaTambahanList, newList);
   };
 
   const saveSignature = async () => {
@@ -720,6 +738,11 @@ const Penjualan = () => {
     if (Object.keys(newErrors).length > 0) return;
 
     try {
+      let finalKeterangan = isRevisiSpr ? keteranganRevisi : '';
+      if (biayaTambahanKprList.length > 0) {
+        const textKpr = biayaTambahanKprList.map(b => `${b.nama}: ${formatRupiah(b.nominal)}`).join(', ');
+        finalKeterangan += ` [Penambahan Nilai KPR: ${textKpr}]`;
+      }
       const updatePayload: any = {
         caraPembayaran: formData.caraPembayaran,
         bank: formData.bank || undefined,
@@ -735,7 +758,7 @@ const Penjualan = () => {
           : undefined,
         termin: formData.caraPembayaran === 'CASH BERTAHAP' ? Number(formData.termin) : undefined,
         diskonPenjualan: formData.diskonPenjualan,
-        keteranganUpdateSpr: isRevisiSpr ? keteranganRevisi : undefined,
+        keteranganUpdateSpr: finalKeterangan.trim() || undefined,
         keteranganAngsuran: formData.caraPembayaran === 'CASH BERTAHAP' ? formData.keteranganAngsuran : undefined,
 
         biayaTambahan: biayaTambahanList
@@ -744,6 +767,10 @@ const Penjualan = () => {
             nominal: Number(b.nominal)
           }))
           .filter((b) => b.nama.trim() !== '' && b.nominal > 0),
+        biayaTambahanKpr: [
+          ...historyBiayaTambahanKpr.map(h => ({ nama: h.nama, nominal: Number(h.nominal) })),
+          ...biayaTambahanKprList.map((b) => ({ nama: b.nama, nominal: Number(b.nominal) }))
+        ].filter((b) => b.nama.trim() !== '' && b.nominal > 0),
       };
 
       await updateMutation.mutateAsync({ id: selectedPenjualan!.id!, data: updatePayload });
@@ -751,6 +778,7 @@ const Penjualan = () => {
       setFormData(initialFormState);
       setSelectedPenjualan(null);
       setBiayaTambahanList([]);
+      setBiayaTambahanKprList([]);
       alert("Skema pembayaran berhasil disimpan dan dokumen SPR siap dicetak!");
     } catch (error: any) {
       alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan skema pembayaran');
@@ -1524,8 +1552,8 @@ const Penjualan = () => {
                         type="text"
                         value={biaya.nama}
                         onChange={(e) => handleChangeBiayaTambahanNama(biaya.id, e.target.value)}
-                        // max-w-[200px] diubah menjadi max-w-[130px] sm:max-w-[160px]
-                        // py-2.5 diubah menjadi py-2 agar sedikit lebih ramping
+
+
                         className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 w-full max-w-[100px] sm:max-w-[110px] shadow-sm transition-all"
                         placeholder="Nama Biaya"
                       />
@@ -1572,7 +1600,6 @@ const Penjualan = () => {
                   <div className="bg-slate-50 rounded-xl p-5 border border-slate-200 mt-6 space-y-4">
                     <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi KPR</h5>
 
-                    {/* 1. Baris Plafon */}
                     <div className="flex items-center justify-between">
                       <div className="w-full">
                         <span className="text-sm font-medium text-slate-600">Plafon <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded ml-1">Dasar - Diskon - BF</span></span>
@@ -1589,7 +1616,6 @@ const Penjualan = () => {
                       </div>
                     </div>
 
-                    {/* 2. Baris Biaya KPR (Input) */}
                     <div className="flex items-center justify-between mt-3">
                       <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1.5">
                         <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
@@ -1607,7 +1633,6 @@ const Penjualan = () => {
                       </div>
                     </div>
 
-                    {/* 3. Baris Plafon Kredit */}
                     <div className="pt-3 border-t border-slate-200">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-indigo-700 w-full">Plafon Kredit</span>
@@ -1624,10 +1649,64 @@ const Penjualan = () => {
                       </div>
                     </div>
 
-                    {/* 4. Baris Nilai Pengajuan KPR */}
                     <div className="pt-3 border-t border-slate-200">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-blue-700 w-full">Nilai Pengajuan KPR</span>
+
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3 w-full">
+                          <span className="text-sm font-bold text-blue-500">+ Tambah Nilai KPR (Furnish/dll)</span>
+                          <button
+                            type="button"
+                            className="w-7 h-7 flex items-center justify-center bg-blue-50 border border-blue-200 hover:border-blue-400 hover:text-blue-600 text-blue-500 transition-colors rounded-lg font-bold shadow-sm cursor-pointer"
+                            onClick={handleAddBiayaTambahanKpr}
+                            title="Tambah Nilai Pengajuan KPR"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {biayaTambahanKprList.map((biaya) => (
+                        <div key={biaya.id} className="flex items-center justify-between mt-1 mb-2">
+                          <div className="flex items-center gap-2 w-full pr-4">
+                            <input
+                              type="text"
+                              value={biaya.nama}
+                              onChange={(e) => handleChangeBiayaTambahanKprNama(biaya.id, e.target.value)}
+                              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 w-full max-w-[130px] sm:max-w-[160px] shadow-sm transition-all"
+                              placeholder="Kanopi / Furnish"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveBiayaTambahanKpr(biaya.id)}
+                              className="w-7 h-7 flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors rounded-lg font-bold cursor-pointer shrink-0"
+                            >
+                              -
+                            </button>
+                          </div>
+                          <div className="w-40 sm:w-44 shrink-0">
+                            <CurrencyInput
+                              name={`biayakpr_${biaya.id}`}
+                              value={biaya.nominal}
+                              onValueChange={(_, val) => handleChangeBiayaTambahanKprNominal(biaya.id, val)}
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      {historyBiayaTambahanKpr.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-slate-200 border-dashed">
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Riwayat Tambahan KPR (Tersimpan)</p>
+                          {historyBiayaTambahanKpr.map((biaya) => (
+                            <div key={biaya.id} className="flex justify-between items-center py-2 px-3 bg-blue-50/50 rounded-xl mb-1 border border-blue-100">
+                              <p className="text-sm font-bold text-slate-700">{biaya.nama}</p>
+                              <span className="text-sm font-bold text-blue-600 tabular-nums">{formatRupiah(biaya.nominal)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-sm font-bold text-blue-700 w-full">Total Nilai Pengajuan KPR</span>
                         <div className="w-40 sm:w-44 relative shrink-0">
                           <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
                             <span className="text-sm font-bold text-blue-700">Rp</span>
@@ -1639,10 +1718,11 @@ const Penjualan = () => {
                           </div>
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-medium text-right mt-1">Plafon Kredit - Total Biaya Tambahan</p>
+                      <p className="text-[10px] text-slate-400 font-medium text-right mt-1">
+                        Plafon Kredit - Total Minus + Tambahan KPR
+                      </p>
                     </div>
 
-                    {/* 5. Baris DP Tidak Dibayar 10% */}
                     <div className="pt-3 border-t border-slate-200">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
@@ -1694,10 +1774,8 @@ const Penjualan = () => {
                     </div>
 
                     <div className="pt-3 border-t border-slate-200">
-                      {/* Input Pemilihan Termin */}
 
 
-                      {/* Info Sisa Pembayaran */}
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-bold text-orange-600 w-full">Sisa Pembayaran</span>
                         <div className="w-40 sm:w-44 relative shrink-0">
@@ -1727,14 +1805,14 @@ const Penjualan = () => {
                             value={formData.termin || ''}
                             onChange={(e) => {
                               const rawValue = e.target.value.replace(/[^0-9]/g, '');
-                              // Jika user menghapus semua angka, kirim 0 agar input jadi kosong
+
                               if (rawValue === '') {
                                 handleCurrencyChange('termin', 0);
                                 return;
                               }
 
                               let val = Number(rawValue);
-                              if (val > 12) val = 12; // Limitasi maksimal 12 bulan
+                              if (val > 12) val = 12;
                               handleCurrencyChange('termin', val);
                             }}
                             className="w-full pl-3 pr-14 py-2 text-sm font-black text-indigo-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm text-right"
@@ -1744,7 +1822,6 @@ const Penjualan = () => {
                         </div>
                       </div>
 
-                      {/* Info Cicilan Per Bulan dan Estimasi Periode */}
                       <div className="flex items-center justify-between bg-indigo-50 p-3 rounded-xl border border-indigo-100">
                         <div className="w-full">
                           <span className="text-sm font-bold text-indigo-700 block">Cicilan Per Bulan</span>
@@ -1752,7 +1829,7 @@ const Penjualan = () => {
                             Estimasi: {(() => {
                               const termin = formData.termin || 3;
                               const start = new Date();
-                              start.setMonth(start.getMonth() + 1); // Cicilan dimulai bulan depan
+                              start.setMonth(start.getMonth() + 1);
                               const end = new Date(start);
                               end.setMonth(end.getMonth() + termin - 1);
                               const formatOpt: Intl.DateTimeFormatOptions = { month: 'short', year: 'numeric' };
@@ -2126,7 +2203,6 @@ const Penjualan = () => {
           </div>
         </div>
       </Modal>
-
       <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Detail Informasi Transaksi">
         {detailData && (
           <div className="space-y-6">
@@ -2239,6 +2315,19 @@ const Penjualan = () => {
                       </p>
                     </div>
 
+                    {detailData.tambahanKpr && detailData.tambahanKpr.length > 0 && (
+                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-bold text-blue-400">Tambahan Nilai KPR (Furnish, dll)</span>
+                        </div>
+                        {detailData.tambahanKpr.map((kprItem: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center text-sm mb-1">
+                            <span className="font-medium text-slate-300">- {kprItem.nama}</span>
+                            <span className="font-bold text-blue-400 tabular-nums">{formatRupiah(kprItem.nominal)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-bold text-purple-400">Nilai Pengajuan KPR</span>
