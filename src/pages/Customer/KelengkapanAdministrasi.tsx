@@ -8,7 +8,7 @@ import { formatRupiah, formatDate } from "../../utils/formatters";
 import { useGetCustomers, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import type { CustomerData, CustomerDocType } from "../../services/customer.service";
-import { FileUp, ImageIcon, ZoomIn, ShoppingCart } from "lucide-react";
+import { FileUp, ImageIcon, ZoomIn, ShoppingCart, PlusCircle } from "lucide-react";
 
 const KelengkapanAdministrasi = () => {
   const { data: customers = [], isLoading } = useGetCustomers();
@@ -16,14 +16,18 @@ const KelengkapanAdministrasi = () => {
   const penjualanData = penjualanResponse?.items || [];
   const uploadMutation = useUploadCustomerDoc();
 
-
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState<CustomerData | null>(null);
+
+  // State untuk nama dokumen custom
+  const [newDocName, setNewDocName] = useState("");
+
+  // Mengambil data customer terbaru dari list agar modal otomatis terupdate setelah upload
+  const currentCustomer = customers.find(c => c.id === selectedCustomer?.id) || selectedCustomer;
 
   const renderTableThumbnail = (url: string | null) => {
     if (!url) {
@@ -55,20 +59,61 @@ const KelengkapanAdministrasi = () => {
     { header: 'KTP', accessor: 'fileKtp', render: (val: string | null) => renderTableThumbnail(val) },
     { header: 'KK', accessor: 'fileKk', render: (val: string | null) => renderTableThumbnail(val) },
     { header: 'NPWP', accessor: 'fileNpwp', render: (val: string | null) => renderTableThumbnail(val) },
+    {
+      header: 'Dok. Lainnya',
+      accessor: 'dokumenLainnya',
+      render: (val: any[]) => val && val.length > 0 ? (
+        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-200">
+          {val.length} File
+        </span>
+      ) : (
+        <span className="text-[10px] font-bold text-slate-400">-</span>
+      )
+    },
   ];
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: CustomerDocType) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedCustomer) return;
+    if (!file || !currentCustomer) return;
     if (!file.type.startsWith('image/')) {
       alert("Hanya file gambar yang diperbolehkan!");
       e.target.value = "";
       return;
     }
     try {
-      await uploadMutation.mutateAsync({ id: selectedCustomer.id, docType, file });
+      await uploadMutation.mutateAsync({ id: currentCustomer.id, docType, file });
     } catch (error: any) {
       alert(error.response?.data?.message || "Gagal mengunggah gambar");
+    }
+  };
+
+  const handleUploadLainnya = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentCustomer) return;
+
+    if (!newDocName.trim()) {
+      alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file!");
+      e.target.value = "";
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      alert("Hanya file gambar yang diperbolehkan!");
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      await uploadMutation.mutateAsync({
+        id: currentCustomer.id,
+        docType: 'lainnya',
+        file,
+        namaDokumen: newDocName
+      });
+      setNewDocName(""); // Reset form name setelah berhasil
+      alert("Dokumen tambahan berhasil diunggah!");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal mengunggah dokumen tambahan");
     }
   };
 
@@ -88,6 +133,7 @@ const KelengkapanAdministrasi = () => {
         onDetail={(item) => openDetailModal(item as CustomerData)}
         onEdit={(item) => {
           setSelectedCustomer(item as CustomerData);
+          setNewDocName(""); // Reset nama setiap kali modal dibuka
           setIsManageModalOpen(true);
         }}
       />
@@ -96,23 +142,23 @@ const KelengkapanAdministrasi = () => {
       <Modal
         isOpen={isManageModalOpen}
         onClose={() => setIsManageModalOpen(false)}
-        title={`Manajemen Berkas: ${selectedCustomer?.nama}`}
+        title={`Manajemen Berkas: ${currentCustomer?.nama}`}
       >
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(['fileKtp', 'fileKk', 'fileNpwp'] as CustomerDocType[]).map((type) => (
-              <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group">
+            {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => (
+              <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                   {type.replace('file', '')}
                 </span>
                 <div
-                  onClick={() => selectedCustomer?.[type] && setPreviewImage(selectedCustomer[type] as string)}
-                  className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'
+                  onClick={() => currentCustomer?.[type] && setPreviewImage(currentCustomer[type] as string)}
+                  className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${currentCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'
                     }`}
                 >
-                  {selectedCustomer?.[type] ? (
+                  {currentCustomer?.[type] ? (
                     <>
-                      <img src={selectedCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      <img src={currentCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                       <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <ZoomIn size={20} className="text-white" />
                       </div>
@@ -134,16 +180,65 @@ const KelengkapanAdministrasi = () => {
             ))}
           </div>
 
+          {/* SEKSI DOKUMEN LAINNYA */}
+          <div className="mt-8 pt-6 border-t border-slate-200">
+            <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <PlusCircle size={16} className="text-blue-600" /> Dokumen Pendukung Lainnya
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Render Daftar Dokumen Lainnya yang sudah diupload */}
+              {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => (
+                <div key={doc.id} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50 hover:bg-white transition-all group shadow-sm">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate" title={doc.nama}>
+                    {doc.nama}
+                  </span>
+                  <div
+                    onClick={() => setPreviewImage(doc.fileUrl)}
+                    className="aspect-video w-full rounded-xl border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-zoom-in group"
+                  >
+                    <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <ZoomIn size={20} className="text-white" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Form Tambah Dokumen Baru */}
+              <div className="flex flex-col gap-3 p-4 border-2 border-dashed border-blue-200 rounded-2xl bg-blue-50/30">
+                <div className="w-full">
+                  <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1.5 block">
+                    Nama Dokumen Baru
+                  </label>
+                  <input
+                    type="text"
+                    value={newDocName}
+                    onChange={(e) => setNewDocName(e.target.value)}
+                    placeholder="Contoh: Surat Nikah, Slip Gaji"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400"
+                  />
+                </div>
+                <FileInput
+                  label="Pilih File"
+                  accept="image/*"
+                  onChange={handleUploadLainnya}
+                  disabled={uploadMutation.isPending || newDocName.trim() === ""}
+                />
+              </div>
+            </div>
+          </div>
+
           {uploadMutation.isPending && (
-            <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-xs animate-pulse">
-              <FileUp size={16} /> Sedang Menyinkronkan...
+            <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-xs animate-pulse bg-blue-50 p-3 rounded-lg border border-blue-100">
+              <FileUp size={16} /> Sedang Menyinkronkan Data...
             </div>
           )}
 
-          <div className="flex justify-end pt-4 border-t">
+          <div className="flex justify-end pt-4 border-t sticky bottom-0 bg-white">
             <button
               onClick={() => setIsManageModalOpen(false)}
-              className="px-8 py-2 bg-black text-white rounded-xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-800 cursor-pointer"
+              className="px-8 py-2.5 bg-black text-white rounded-xl font-bold text-[11px] uppercase tracking-widest hover:bg-slate-800 cursor-pointer shadow-md transition-all"
             >
               Simpan & Tutup
             </button>
@@ -247,7 +342,7 @@ const KelengkapanAdministrasi = () => {
               href={previewImage || '#'}
               target="_blank"
               rel="noreferrer"
-              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
             >
               Buka Tab Baru
             </a>

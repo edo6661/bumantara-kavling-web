@@ -51,7 +51,6 @@ export const useDeleteCustomer = () => {
     },
   });
 };
-
 export const useUploadCustomerDoc = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -59,11 +58,13 @@ export const useUploadCustomerDoc = () => {
       id,
       docType,
       file,
+      namaDokumen,
     }: {
       id: number;
       docType: CustomerDocType;
       file: File;
-    }) => customerService.uploadDoc(id, docType, file),
+      namaDokumen?: string;
+    }) => customerService.uploadDoc(id, docType, file, namaDokumen),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
     },

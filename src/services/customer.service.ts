@@ -1,5 +1,5 @@
 import api from "../lib/axios";
-export type CustomerDocType = "fileKtp" | "fileKk" | "fileNpwp";
+export type CustomerDocType = "fileKtp" | "fileKk" | "fileNpwp" | "lainnya";
 export interface CustomerData {
   id: number;
   nikKtp: string;
@@ -15,6 +15,8 @@ export interface CustomerData {
   fileKtp: string | null;
   fileKk: string | null;
   fileNpwp: string | null;
+
+  dokumenLainnya?: { id: string; nama: string; fileUrl: string }[];
 }
 
 export interface CreateCustomerDTO {
@@ -53,17 +55,18 @@ export const customerService = {
 
   uploadDoc: async (
     id: number,
-    docType: "fileKtp" | "fileKk" | "fileNpwp",
+    docType: CustomerDocType,
     file: File,
+    namaDokumen?: string,
   ) => {
     const formData = new FormData();
     formData.append("file", file);
+    if (namaDokumen) formData.append("namaDokumen", namaDokumen);
+
     const response = await api.patch(
       `/customers/${id}/upload/${docType}`,
       formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
+      { headers: { "Content-Type": "multipart/form-data" } },
     );
     return response.data.data;
   },

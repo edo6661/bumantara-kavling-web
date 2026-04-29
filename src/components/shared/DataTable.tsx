@@ -83,11 +83,11 @@ const DataTable = ({
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-            {!serverSide && (
+            {/* {!serverSide && (
               <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
                 {filteredData.length} Data
               </span>
-            )}
+            )} */}
           </div>
         </div>
 

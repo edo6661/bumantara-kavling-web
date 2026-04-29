@@ -7,7 +7,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud, Edit2, Trash2, ZoomIn, PenTool } from 'lucide-react';
+import { FileText, Printer, UploadCloud, Edit2, Trash2, PenTool } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import CurrencyInput from "../../components/shared/CurrencyInput";
@@ -110,7 +110,6 @@ const Tagihan = () => {
       }
 
       const lowerPay = item.pembayaran.toLowerCase();
-      // PERBAIKAN: Booking Fee dikecualikan, tidak mengurangi 'totalTerbayarKeseluruhan' atau tampil sebagai cicilan internal
       const isBf = lowerPay.includes('booking');
 
       if (item.status === 'LUNAS') {
