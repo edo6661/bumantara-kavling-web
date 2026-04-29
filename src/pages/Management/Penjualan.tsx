@@ -304,9 +304,7 @@ const Penjualan = () => {
       updates.nilaiPengajuanKpr = 0;
 
       if (merged.caraPembayaran === 'CASH BERTAHAP') {
-        const persentaseDp = name === 'persentaseDp' ? Number(value) : (merged.persentaseDp || 40);
-        updates.persentaseDp = persentaseDp;
-
+        let persentaseDp = name === 'persentaseDp' ? Number(value) : (merged.persentaseDp || 40);
         let dp = merged.dp;
 
         const triggerRecalcNominal = ['hargaDasar', 'diskonPenjualan', 'bookingFee', 'persentaseDp', 'caraPembayaran'].includes(name);
@@ -315,14 +313,21 @@ const Penjualan = () => {
           dp = Math.max(0, ((base - diskon) * (persentaseDp / 100)) - bf);
         } else if (name === 'dp') {
           dp = Number(value);
+          const hargaPokok = Math.max(0, base - diskon);
+          if (hargaPokok > 0) {
+            const newPersentase = ((dp + bf) / hargaPokok) * 100;
+            persentaseDp = Math.round(newPersentase * 100) / 100;
+          }
         }
 
+        updates.persentaseDp = persentaseDp;
         updates.dp = dp;
 
         const sisaPembayaran = Math.max(0, base - diskon - bf - dp);
-        const termin = merged.termin || 3;
+        const termin = merged.termin !== undefined ? Number(merged.termin) : 3;
         updates.termin = termin;
-        updates.cicilanPerBulan = sisaPembayaran / termin;
+        updates.termin = termin;
+        updates.cicilanPerBulan = termin > 0 ? sisaPembayaran / termin : 0;
 
       } else {
         updates.dp = 0;
@@ -1714,17 +1719,28 @@ const Penjualan = () => {
 
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-sm font-bold text-slate-600 w-full">Termin Pembayaran</span>
-                        <div className="w-40 sm:w-44 shrink-0">
-                          <Select
+                        <div className="w-40 sm:w-44 shrink-0 relative group">
+                          <input
+                            type="text"
+                            inputMode="numeric"
                             name="termin"
-                            value={formData.termin?.toString() || '3'}
-                            onChange={(e) => handleChange(e)}
-                            options={[
-                              { value: '3', label: '3 Bulan' },
-                              { value: '6', label: '6 Bulan' },
-                              { value: '12', label: '12 Bulan' }
-                            ]}
+                            value={formData.termin || ''}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                              // Jika user menghapus semua angka, kirim 0 agar input jadi kosong
+                              if (rawValue === '') {
+                                handleCurrencyChange('termin', 0);
+                                return;
+                              }
+
+                              let val = Number(rawValue);
+                              if (val > 12) val = 12; // Limitasi maksimal 12 bulan
+                              handleCurrencyChange('termin', val);
+                            }}
+                            className="w-full pl-3 pr-14 py-2 text-sm font-black text-indigo-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm text-right"
+                            placeholder="1-12"
                           />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">Bulan</span>
                         </div>
                       </div>
 
