@@ -52,7 +52,11 @@ const Notaris = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  // State untuk Modal Detail AJB
+  // === State untuk Modal Detail Notaris ===
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedNotarisDetail, setSelectedNotarisDetail] = useState<ExtendedNotarisData | null>(null);
+
+  // State untuk Modal Detail AJB (saat klik row di dalam detail)
   const [selectedAjb, setSelectedAjb] = useState<AjbDitanganiData | null>(null);
 
   const columns = [
@@ -65,13 +69,14 @@ const Notaris = () => {
     {
       header: 'Total PIC',
       accessor: 'pics',
-      render: (pics: PicNotarisData[]) => (
-        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold">
-          {pics?.length || 0} Orang
-        </span>
-      )
+      render: (pics: PicNotarisData[]) => <>{pics?.length || 0} Orang</>
     },
   ];
+
+  const openDetailModal = (item: ExtendedNotarisData) => {
+    setSelectedNotarisDetail(item);
+    setIsDetailModalOpen(true);
+  };
 
   const openModal = (item?: ExtendedNotarisData) => {
     if (item) {
@@ -144,8 +149,6 @@ const Notaris = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
-    if (formData.nik.trim().length !== 16) newErrors.nik = 'NIK harus 16 digit';
     if (!formData.nama.trim()) newErrors.nama = 'Nama Notaris wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
     setErrors(newErrors);
@@ -196,65 +199,21 @@ const Notaris = () => {
     }
   };
 
-  const expandedRowRender = (row: ExtendedNotarisData) => {
-    const relatedAjb = row.ajbDitangani || [];
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
-          Daftar AJB / Kavling yang Ditangani: <span className="text-blue-600">{row.nama}</span>
-        </h4>
-        {relatedAjb.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
-                  <th className="px-4 py-3 font-bold">Customer</th>
-                  <th className="px-4 py-3 font-bold">Kavling</th>
-                  <th className="px-4 py-3 rounded-r-lg font-bold text-right">Biaya AJB Transaksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {relatedAjb.map((ajb, idx) => (
-                  <tr
-                    key={idx}
-                    onClick={() => setSelectedAjb(ajb)}
-                    className="hover:bg-slate-50 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600">{ajb.id}</td>
-                    <td className="px-4 py-3 text-slate-600 group-hover:text-slate-900">{ajb.customer}</td>
-                    <td className="px-4 py-3 font-medium text-slate-600">{ajb.kavling}</td>
-                    <td className="px-4 py-3 font-bold text-slate-900 text-right">
-                      {ajb.biayaAjbTransaksi ? formatRupiah(ajb.biayaAjbTransaksi) : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Belum ada berkas kavling yang ditangani notaris ini.
-          </p>
-        )}
-      </div>
-    );
-  };
-
   if (isLoading) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div>
       <DataTable
         title="Data Notaris"
         columns={columns}
         data={notarisData as ExtendedNotarisData[]}
         onAdd={() => openModal()}
+        onDetail={(item) => openDetailModal(item as ExtendedNotarisData)}
         onEdit={(item) => openModal(item as ExtendedNotarisData)}
         onDelete={(item) => handleDelete(item as ExtendedNotarisData)}
-        expandedRowRender={expandedRowRender}
       />
 
+      {/* MODAL FORM TAMBAH/EDIT */}
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
@@ -264,14 +223,6 @@ const Notaris = () => {
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Notaris</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="NIK"
-                name="nik"
-                value={formData.nik}
-                onChange={handleChange}
-                error={errors.nik}
-                placeholder="Masukkan 16 digit NIK"
-              />
               <Input
                 label="Nama Notaris / PPAT"
                 name="nama"
@@ -377,7 +328,96 @@ const Notaris = () => {
         </form>
       </Modal>
 
-      {/* MODAL DETAIL AJB */}
+      {/* MODAL DETAIL NOTARIS */}
+      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Notaris">
+        {selectedNotarisDetail && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+              <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Informasi Notaris / PPAT</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                <div className="md:col-span-2">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Notaris</p>
+                  <p className="text-base font-black text-slate-900">{selectedNotarisDetail.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kontak Utama / No. HP</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedNotarisDetail.pics?.[0]?.noHp || '-'}</p>
+                </div>
+                <div className="md:col-span-2 mt-2">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Kantor</p>
+                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedNotarisDetail.pics?.[0]?.alamat || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {selectedNotarisDetail.pics && selectedNotarisDetail.pics.length > 1 && (
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Daftar PIC / Staf Tambahan</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {selectedNotarisDetail.pics.slice(1).map((pic, idx) => (
+                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                      <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
+                      <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
+                      <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
+                Daftar AJB / Kavling yang Ditangani
+              </h4>
+              {selectedNotarisDetail.ajbDitangani && selectedNotarisDetail.ajbDitangani.length > 0 ? (
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
+                        <th className="px-4 py-3 font-bold">Customer</th>
+                        <th className="px-4 py-3 font-bold">Kavling</th>
+                        <th className="px-4 py-3 rounded-r-lg font-bold text-right">Biaya AJB Transaksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {selectedNotarisDetail.ajbDitangani.map((ajb, idx) => (
+                        <tr
+                          key={idx}
+                          onClick={() => setSelectedAjb(ajb)}
+                          className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                        >
+                          <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{ajb.id}</td>
+                          <td className="px-4 py-3 text-slate-600 group-hover:text-slate-900">{ajb.customer}</td>
+                          <td className="px-4 py-3 font-medium text-slate-600">{ajb.kavling}</td>
+                          <td className="px-4 py-3 font-bold text-slate-900 text-right tabular-nums">
+                            {ajb.biayaAjbTransaksi ? formatRupiah(ajb.biayaAjbTransaksi) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                  Belum ada berkas kavling yang ditangani notaris ini.
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors cursor-pointer shadow-md"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL DETAIL AJB (KETIKA ROW AJB DIKLIK) */}
       <Modal isOpen={!!selectedAjb} onClose={() => setSelectedAjb(null)} title="Detail Transaksi AJB">
         {selectedAjb && (
           <div className="space-y-4">
@@ -388,7 +428,7 @@ const Notaris = () => {
               </div>
               <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 shadow-sm">
                 <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Biaya AJB Transaksi</p>
-                <p className="text-xl font-black text-blue-700">
+                <p className="text-xl font-black text-blue-700 tabular-nums">
                   {selectedAjb.biayaAjbTransaksi ? formatRupiah(selectedAjb.biayaAjbTransaksi) : 'Rp 0'}
                 </p>
               </div>
@@ -416,4 +456,5 @@ const Notaris = () => {
     </div>
   );
 };
+
 export default Notaris;
