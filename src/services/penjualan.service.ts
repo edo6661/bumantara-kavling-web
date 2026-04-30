@@ -121,4 +121,8 @@ export const penjualanService = {
     );
     return response.data.data;
   },
+  regenerateSpr: async (noTransaksi: string) => {
+    const response = await api.post(`/penjualan/${noTransaksi}/generate-spr`);
+    return response.data.data;
+  },
 };

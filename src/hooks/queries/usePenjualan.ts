@@ -160,3 +160,13 @@ export const useApproveGantiKavling = () => {
     },
   });
 };
+
+export const useRegenerateSpr = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => penjualanService.regenerateSpr(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
+};
