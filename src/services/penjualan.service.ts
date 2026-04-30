@@ -29,6 +29,7 @@ export interface CreatePenjualanDTO {
   nilaiPengajuanKpr?: number;
   agent: string;
   rekeningTujuanId?: number;
+  keteranganUpdateSpr?: string;
 }
 
 export const penjualanService = {

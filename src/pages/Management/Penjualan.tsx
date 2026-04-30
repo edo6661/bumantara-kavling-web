@@ -24,6 +24,7 @@ import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
 import { useAuth } from "../../context/AuthContext";
 import SignatureCanvas from 'react-signature-canvas';
+import { penjualanService } from "../../services/penjualan.service";
 import type { AgentData } from '../../services/agent.service';
 
 interface PenjualanData {
@@ -77,6 +78,8 @@ interface PenjualanData {
   riwayatSpr?: any[];
   tagihan?: any[];
   tambahanKpr?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const initialFormState: PenjualanData = {
@@ -138,6 +141,7 @@ const Penjualan = () => {
   const [historyBiayaTambahan, setHistoryBiayaTambahan] = useState<{ id: string, nama: string, nominal: number, tanggal: string }[]>([]);
   const [historyBiayaTambahanKpr, setHistoryBiayaTambahanKpr] = useState<{ id: string, nama: string, nominal: number }[]>([]);
   const [biayaTambahanKprList, setBiayaTambahanKprList] = useState<BiayaTambahan[]>([]);
+  const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
 
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -355,6 +359,40 @@ const Penjualan = () => {
 
       return updates;
     };
+  const handleBulkGenerateSPR = async () => {
+    if (!window.confirm("Yakin ingin men-generate SPR untuk SEMUA data penjualan?\n\nProses ini akan berjalan satu per satu dan mungkin memakan waktu beberapa menit jika datanya banyak.")) return;
+
+    setIsGeneratingBulk(true);
+    try {
+
+      const res = await penjualanService.getAll({ limit: 499 });
+      const allData = res.items || [];
+
+      let count = 0;
+      for (const item of allData) {
+
+        if (item.status === 'BATAL') continue;
+
+        try {
+
+          await updateMutation.mutateAsync({
+            id: item.id,
+            data: { keteranganUpdateSpr: 'Generate SPR Massal (Sistem)' }
+          });
+          count++;
+        } catch (err) {
+          console.error(`Gagal generate SPR untuk Transaksi ${item.id}`, err);
+        }
+      }
+
+      alert(`Selesai! Berhasil men-generate ${count} dokumen SPR secara massal.`);
+    } catch (error) {
+      console.error(error);
+      alert("Gagal mengambil data penjualan dari server.");
+    } finally {
+      setIsGeneratingBulk(false);
+    }
+  };
 
   const availableKavlings = useMemo(() => {
     return kavlingList.filter(k =>
@@ -880,6 +918,23 @@ const Penjualan = () => {
       alert(`Bukti ${type === "booking" ? "Booking" : "DP"} berhasil diunggah! SPR akan otomatis di-generate (jika booking).`);
     } catch (error: any) {
       alert(error.response?.data?.message || "Gagal mengunggah bukti");
+    } finally {
+      e.target.value = '';
+    }
+  };
+  const handleQuickGenerateSPR = async (id: string) => {
+    if (!window.confirm("Apakah Anda yakin ingin men-generate SPR otomatis dengan data saat ini?")) return;
+
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        data: {
+          keteranganUpdateSpr: 'Generate SPR Awal (Otomatis)'
+        }
+      });
+      alert("Dokumen SPR berhasil di-generate secara otomatis!");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal men-generate SPR.");
     }
   };
 
@@ -992,12 +1047,23 @@ const Penjualan = () => {
                       )}
                     </>
                   ) : (
-                    <button
-                      onClick={() => openSkemaModal(row)}
-                      className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all cursor-pointer shadow-md shadow-indigo-600/20"
-                    >
-                      <PenTool size={14} /> Buat SPR
-                    </button>
+                    <div className="flex gap-2 flex-1 w-full">
+                      {/* Tombol Lama (Buka Modal Skema) */}
+                      <button
+                        onClick={() => openSkemaModal(row)}
+                        className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all cursor-pointer shadow-md shadow-indigo-600/20"
+                      >
+                        Buat SPR
+                      </button>
+
+                      <button
+                        onClick={() => handleQuickGenerateSPR(row.id!)}
+                        disabled={updateMutation.isPending}
+                        className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-black transition-all cursor-pointer shadow-md disabled:opacity-50"
+                      >
+                        Generate Cepat
+                      </button>
+                    </div>
                   )}
                 </>
               ) : (
@@ -1010,13 +1076,32 @@ const Penjualan = () => {
 
             {row.fileBuktiBooking && (
               <div className="mt-4 border-t border-slate-200 pt-3">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Bukti Transfer Booking Fee</p>
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bukti Transfer Booking Fee</p>
+
+                  {/* Tombol Upload Ulang (Ganti Bukti) */}
+                  <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {uploadBuktiMutation.isPending ? 'Mengunggah...' : 'Ganti Bukti'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleUploadBukti(row.id!, 'booking', e)}
+                      disabled={uploadBuktiMutation.isPending}
+                    />
+                  </label>
+                </div>
+
                 <div
                   onClick={() => setPreviewImage(row.fileBuktiBooking as string)}
                   className="relative w-24 h-16 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 ring-1 ring-slate-900/5"
                   title="Klik untuk perbesar"
                 >
-                  <img src={row.fileBuktiBooking} alt="Bukti Booking" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                  <img
+                    src={`${row.fileBuktiBooking}?t=${new Date(row.updatedAt!).getTime()}`}
+                    alt="Bukti Booking"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
                   <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <ZoomIn size={14} className="text-white" />
                   </div>
@@ -1251,7 +1336,16 @@ const Penjualan = () => {
           </div>
         )}
       </div>
-
+      <div className="flex justify-end mt-4 mb-2">
+        <button
+          onClick={handleBulkGenerateSPR}
+          disabled={isGeneratingBulk}
+          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl shadow-md hover:bg-indigo-700 disabled:opacity-50 transition-all cursor-pointer"
+        >
+          <FileText size={16} />
+          {isGeneratingBulk ? "Memproses Generate Massal... Mohon Tunggu" : "Generate Cepat Semua SPR"}
+        </button>
+      </div>
       <DataTable
         title="Data Penjualan"
         columns={columns}
