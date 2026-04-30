@@ -109,24 +109,14 @@ const Tagihan = () => {
         };
       }
 
-      const lowerPay = item.pembayaran.toLowerCase();
-      const isBf = lowerPay.includes('booking');
 
-      if (item.status === 'LUNAS') {
-        if (!isBf) {
-          groups[groupKey].totalTerbayarKeseluruhan += Number(item.nominal);
-        }
+      if (item.status === 'BELUM_BAYAR') {
+        groups[groupKey].unpaidCount += 1;
       }
-
-      if (!isBf) {
-        if (item.status === 'BELUM_BAYAR') {
-          groups[groupKey].unpaidCount += 1;
-        }
-        if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
-          groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
-        }
-        groups[groupKey].cicilan.push(item);
+      if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
+        groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
       }
+      groups[groupKey].cicilan.push(item);
     });
 
     return Object.values(groups).filter(g => g.cicilan.length > 0);
