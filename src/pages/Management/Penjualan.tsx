@@ -416,20 +416,10 @@ const Penjualan = () => {
   }, [availableKavlings, formData.blok]);
 
   const columns = [
-    { header: 'ID Penjualan', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
     { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Kavling', accessor: 'blok', render: (_: unknown, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
-    {
-      header: 'Progress Cicilan',
-      accessor: 'progressCicilan',
-      render: (val: string) => (
-        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-          {val || '-'}
-        </span>
-      )
-    },
+    { header: 'Blok - No', accessor: 'blok', render: (_: unknown, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+
     { header: 'Cara Pembayaran', accessor: 'caraPembayaran', render: (val: string) => val ? val.replace(/_/g, ' ') : '-' },
     {
       header: 'Status',
@@ -445,6 +435,15 @@ const Penjualan = () => {
           </span>
         )
       }
+    },
+    {
+      header: 'Progress Cicilan',
+      accessor: 'progressCicilan',
+      render: (val: string) => (
+        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+          {val || '-'}
+        </span>
+      )
     },
     {
       header: 'Aksi',

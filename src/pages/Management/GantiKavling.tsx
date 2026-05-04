@@ -65,10 +65,9 @@ const GantiKavling = () => {
   };
 
   const columnsMaster = [
-    { header: 'No. Transaksi', accessor: 'id' },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
     { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
-    { header: 'Kavling Saat Ini', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
+    { header: 'Blok - No', accessor: 'blok', render: (_: any, row: any) => `${row.blok}-${row.nomorUnit}` },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
     {
       header: 'Aksi', accessor: 'id', render: (_: any, row: any) => (
         <button
@@ -87,10 +86,10 @@ const GantiKavling = () => {
   ];
 
   const columnsHistory = [
-    { header: 'Tgl Pengajuan', accessor: 'createdAt', render: (val: string) => formatDate(val) },
     { header: 'Customer', accessor: 'penjualan', render: (val: any) => <span className="font-bold">{val?.customer?.nama}</span> },
     { header: 'Dari Kavling', accessor: 'kavlingLama', render: (val: any) => <span className="text-red-600 font-medium">Blok {val?.blok}-{val?.nomorUnit}</span> },
     { header: 'Ke Kavling', accessor: 'kavlingBaru', render: (val: any) => <span className="text-green-600 font-bold">Blok {val?.blok}-{val?.nomorUnit}</span> },
+    { header: 'Tgl Pengajuan', accessor: 'createdAt', render: (val: string) => formatDate(val) },
     { header: 'Alasan', accessor: 'alasan', render: (val: string) => <span className="text-slate-500 italic text-xs">{val}</span> },
     { header: 'Diajukan Oleh', accessor: 'requestedBy', render: (val: any) => val ? <span className="font-medium text-slate-700">{val.username}</span> : '-' },
     {
@@ -111,7 +110,7 @@ const GantiKavling = () => {
       }
     },
     {
-      header: 'Aksi (Admin)', accessor: 'id', render: (_: any, row: any) => {
+      header: 'Aksi', accessor: 'id', render: (_: any, row: any) => {
         if (row.status === 'PENDING' && isAdmin) {
           return (
             <div className="flex items-center gap-2">

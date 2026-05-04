@@ -67,7 +67,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header Greeting */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
         <div>
           <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
@@ -79,7 +78,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
           <div
@@ -104,7 +102,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Kavling Overview */}
         <div
           className="lg:col-span-1 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm cursor-pointer hover:shadow-md hover:border-slate-300 transition-all"
           onClick={() => navigate('/management/penjualan')}
@@ -137,7 +134,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Penjualan Terbaru */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-slate-900 text-lg tracking-tight">Penjualan Terbaru</h3>
@@ -153,7 +149,7 @@ const Dashboard = () => {
               <thead>
                 <tr className="text-slate-400 font-bold uppercase tracking-wider text-[11px] border-b border-slate-100">
                   <th className="pb-3 pr-4">Customer</th>
-                  <th className="pb-3 px-4">Kavling</th>
+                  <th className="pb-3 px-4">Blok - No</th>
                   <th className="pb-3 px-4">Pembayaran</th>
                   <th className="pb-3 px-4 text-right">Nilai Jual</th>
                   <th className="pb-3 pl-4 text-center">Status</th>
@@ -193,7 +189,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Agent Marketing */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
@@ -227,7 +222,6 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Kelengkapan Dokumen */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-2">
