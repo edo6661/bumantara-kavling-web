@@ -5,11 +5,11 @@ import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
-import { formatDate, formatRupiah } from "../../utils/formatters";
+import { formatDate, formatRupiah, formatTanpaDesimal } from "../../utils/formatters";
 import {
   FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn, Eye,
   ChevronDown, ChevronUp, Filter, ArrowUpDown, PieChart, CheckCircle2, Wallet,
-  Edit2, Building2, Plus
+  Edit2, Building2, Plus, MoreVertical
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
@@ -143,7 +143,6 @@ const Penjualan = () => {
   const [biayaTambahanKprList, setBiayaTambahanKprList] = useState<BiayaTambahan[]>([]);
   const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
 
-
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -205,6 +204,9 @@ const Penjualan = () => {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [bankData, setBankData] = useState({ id: '', bank: '' });
+
+  // State for Dropdown Aksi
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
 
   const handleBankSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -417,9 +419,9 @@ const Penjualan = () => {
 
   const columns = [
     { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-    { header: 'Blok - No', accessor: 'blok', render: (_: unknown, row: PenjualanData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Blok', accessor: 'blok', render: (val: string) => val },
+    { header: 'No', accessor: 'nomorUnit', render: (val: string) => val },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-
     { header: 'Cara Pembayaran', accessor: 'caraPembayaran', render: (val: string) => val ? val.replace(/_/g, ' ') : '-' },
     {
       header: 'Status',
@@ -448,38 +450,76 @@ const Penjualan = () => {
     {
       header: 'Aksi',
       accessor: 'id',
-      render: (_: unknown, row: PenjualanData) => (
-        <div className="flex items-center gap-2">
-          {row.hargaJual && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                openDetailModal(row);
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
-              title="Lihat Detail"
-            >
-              <Eye size={14} /> Detail
-            </button>
-          )}
+      render: (_: unknown, row: PenjualanData) => {
+        const hasActions = row.hargaJual || row.fileBuktiBooking;
 
-          {row.fileBuktiBooking && (
+        if (!hasActions) return <span className="text-slate-300">-</span>;
+
+        const isActive = activeActionId === row.id;
+
+        return (
+          <div className="relative">
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                openModal(row);
+                setActiveActionId(isActive ? null : (row.id as string));
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-sm"
-              title="Edit Penjualan"
+              className={`p-1.5 rounded-lg transition-all cursor-pointer border flex items-center justify-center ${isActive
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm'
+                }`}
+              title="Opsi"
             >
-              <Edit2 size={14} /> Edit
+              <MoreVertical size={16} />
             </button>
-          )}
-        </div>
-      )
+
+            {isActive && (
+              <>
+                <div
+                  className="fixed inset-0 z-[90]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveActionId(null);
+                  }}
+                />
+                <div className="absolute right-0 top-full mt-2 w-36 bg-indigo-600 rounded-xl shadow-xl shadow-indigo-600/40 border border-indigo-500 py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                  {row.hargaJual && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveActionId(null);
+                        openDetailModal(row);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 transition-colors cursor-pointer"
+                    >
+                      <Eye size={14} /> Detail
+                    </button>
+                  )}
+
+                  {row.hargaJual && row.fileBuktiBooking && (
+                    <div className="h-px bg-indigo-500/50 mx-2 my-0.5" />
+                  )}
+
+                  {row.fileBuktiBooking && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveActionId(null);
+                        openModal(row);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 transition-colors cursor-pointer"
+                    >
+                      <Edit2 size={14} /> Edit
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      }
     }
   ];
-
   const openModal = (item?: PenjualanData) => {
     if (item) {
       setFormData({
@@ -1078,7 +1118,6 @@ const Penjualan = () => {
                     </>
                   ) : (
                     <div className="flex gap-2 flex-1 w-full">
-                      {/* Tombol Lama (Buka Modal Skema) */}
                       <button
                         onClick={() => openSkemaModal(row)}
                         className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all cursor-pointer shadow-md shadow-indigo-600/20"
@@ -1109,7 +1148,6 @@ const Penjualan = () => {
                 <div className="flex justify-between items-center mb-2">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bukti Transfer Booking Fee</p>
 
-                  {/* Tombol Upload Ulang (Ganti Bukti) */}
                   <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
                     {uploadBuktiMutation.isPending ? 'Mengunggah...' : 'Ganti Bukti'}
                     <input
@@ -1594,7 +1632,7 @@ const Penjualan = () => {
                         </div>
                         <div className="w-full pl-[40px] pr-3 py-1 text-left">
                           <span className="text-base font-black text-slate-900 tabular-nums">
-                            {new Intl.NumberFormat('id-ID').format(formData.hargaDasar || 0)}
+                            {formatTanpaDesimal(formData.hargaDasar || 0)}
                           </span>
                         </div>
                       </div>
@@ -1697,7 +1735,7 @@ const Penjualan = () => {
                             </div>
                             <div className="w-full pl-[40px] pr-3 py-1 text-left">
                               <span className="text-base font-black text-slate-900 tabular-nums">
-                                {new Intl.NumberFormat('id-ID').format(formData.plafonAwal || 0)}
+                                {formatTanpaDesimal(formData.plafonAwal || 0)}
                               </span>
                             </div>
                           </div>
@@ -1707,7 +1745,7 @@ const Penjualan = () => {
                           <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1.5">
                             <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
                             <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
-                              Default (6%): Rp {new Intl.NumberFormat('id-ID').format((formData.plafonAwal || 0) * 0.06)}
+                              Default (6%): Rp {formatTanpaDesimal((formData.plafonAwal || 0) * 0.06)}
                             </span>
                           </div>
                           <div className="w-40 sm:w-44 shrink-0">
@@ -1729,7 +1767,7 @@ const Penjualan = () => {
                               </div>
                               <div className="w-full pl-[40px] pr-3 py-1 text-left">
                                 <span className="text-base font-black text-indigo-700 tabular-nums">
-                                  {new Intl.NumberFormat('id-ID').format(formData.plafonKredit || 0)}
+                                  {formatTanpaDesimal(formData.plafonKredit || 0)}
                                 </span>
                               </div>
                             </div>
@@ -1800,7 +1838,7 @@ const Penjualan = () => {
                               </div>
                               <div className="w-full pl-[40px] pr-3 py-1 text-left">
                                 <span className="text-lg font-black text-blue-700 tabular-nums">
-                                  {new Intl.NumberFormat('id-ID').format(formData.nilaiPengajuanKpr || 0)}
+                                  {formatTanpaDesimal(formData.nilaiPengajuanKpr || 0)}
                                 </span>
                               </div>
                             </div>
@@ -1819,7 +1857,7 @@ const Penjualan = () => {
                               </div>
                               <div className="w-full pl-[40px] pr-3 py-1 text-left">
                                 <span className="text-base font-black text-amber-600 tabular-nums">
-                                  {new Intl.NumberFormat('id-ID').format(formData.dpTidakDibayar || 0)}
+                                  {formatTanpaDesimal(formData.dpTidakDibayar || 0)}
                                 </span>
                               </div>
                             </div>
@@ -1869,7 +1907,7 @@ const Penjualan = () => {
                               </div>
                               <div className="w-full pl-[40px] pr-3 py-1 text-left">
                                 <span className="text-base font-black text-orange-600 tabular-nums">
-                                  {new Intl.NumberFormat('id-ID').format(
+                                  {formatTanpaDesimal(
                                     Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0) - (formData.bookingFee || 0))
                                   )}
                                 </span>
@@ -1928,7 +1966,7 @@ const Penjualan = () => {
                               </div>
                               <div className="w-full pl-[40px] pr-3 py-1 text-left">
                                 <span className="text-base font-black text-indigo-700 tabular-nums">
-                                  {new Intl.NumberFormat('id-ID').format(formData.cicilanPerBulan || 0)}
+                                  {formatTanpaDesimal(formData.cicilanPerBulan || 0)}
                                 </span>
                               </div>
                             </div>
@@ -1959,7 +1997,7 @@ const Penjualan = () => {
                         <input
                           type="text"
                           name="hargaJual"
-                          value={formData.hargaJual ? new Intl.NumberFormat('id-ID').format(formData.hargaJual) : ''}
+                          value={formData.hargaJual ? formatTanpaDesimal(formData.hargaJual) : ''}
                           onChange={(e) => {
                             const rawValue = e.target.value.replace(/[^0-9]/g, '');
                             handleCurrencyChange('hargaJual', rawValue ? Number(rawValue) : 0);
@@ -2052,7 +2090,7 @@ const Penjualan = () => {
                     </div>
                     <div className="w-full pl-[40px] pr-3 py-1 text-left">
                       <span className="text-base font-black text-slate-900 tabular-nums">
-                        {new Intl.NumberFormat('id-ID').format(formData.hargaDasar || 0)}
+                        {formatTanpaDesimal(formData.hargaDasar || 0)}
                       </span>
                     </div>
                   </div>
@@ -2156,7 +2194,7 @@ const Penjualan = () => {
                         </div>
                         <div className="w-full pl-[40px] pr-3 py-1 text-left">
                           <span className="text-base font-black text-slate-900 tabular-nums">
-                            {new Intl.NumberFormat('id-ID').format(formData.plafonAwal || 0)}
+                            {formatTanpaDesimal(formData.plafonAwal || 0)}
                           </span>
                         </div>
                       </div>
@@ -2166,7 +2204,7 @@ const Penjualan = () => {
                       <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1.5">
                         <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
                         <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
-                          Default (6%): Rp {new Intl.NumberFormat('id-ID').format((formData.plafonAwal || 0) * 0.06)}
+                          Default (6%): Rp {formatTanpaDesimal((formData.plafonAwal || 0) * 0.06)}
                         </span>
                       </div>
                       <div className="w-40 sm:w-44 shrink-0">
@@ -2188,7 +2226,7 @@ const Penjualan = () => {
                           </div>
                           <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-base font-black text-indigo-700 tabular-nums">
-                              {new Intl.NumberFormat('id-ID').format(formData.plafonKredit || 0)}
+                              {formatTanpaDesimal(formData.plafonKredit || 0)}
                             </span>
                           </div>
                         </div>
@@ -2259,7 +2297,7 @@ const Penjualan = () => {
                           </div>
                           <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-lg font-black text-blue-700 tabular-nums">
-                              {new Intl.NumberFormat('id-ID').format(formData.nilaiPengajuanKpr || 0)}
+                              {formatTanpaDesimal(formData.nilaiPengajuanKpr || 0)}
                             </span>
                           </div>
                         </div>
@@ -2278,7 +2316,7 @@ const Penjualan = () => {
                           </div>
                           <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-base font-black text-amber-600 tabular-nums">
-                              {new Intl.NumberFormat('id-ID').format(formData.dpTidakDibayar || 0)}
+                              {formatTanpaDesimal(formData.dpTidakDibayar || 0)}
                             </span>
                           </div>
                         </div>
@@ -2330,7 +2368,7 @@ const Penjualan = () => {
                           </div>
                           <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-base font-black text-orange-600 tabular-nums">
-                              {new Intl.NumberFormat('id-ID').format(
+                              {formatTanpaDesimal(
                                 Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0) - (formData.bookingFee || 0))
                               )}
                             </span>
@@ -2389,7 +2427,7 @@ const Penjualan = () => {
                           </div>
                           <div className="w-full pl-[40px] pr-3 py-1 text-left">
                             <span className="text-base font-black text-indigo-700 tabular-nums">
-                              {new Intl.NumberFormat('id-ID').format(formData.cicilanPerBulan || 0)}
+                              {formatTanpaDesimal(formData.cicilanPerBulan || 0)}
                             </span>
                           </div>
                         </div>
@@ -2420,7 +2458,7 @@ const Penjualan = () => {
                     <input
                       type="text"
                       name="hargaJual"
-                      value={formData.hargaJual ? new Intl.NumberFormat('id-ID').format(formData.hargaJual) : ''}
+                      value={formData.hargaJual ? formatTanpaDesimal(formData.hargaJual) : ''}
                       onChange={(e) => {
                         const rawValue = e.target.value.replace(/[^0-9]/g, '');
                         handleCurrencyChange('hargaJual', rawValue ? Number(rawValue) : 0);

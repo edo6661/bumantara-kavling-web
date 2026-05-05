@@ -148,7 +148,7 @@ const Kavling = () => {
 
   const columns = [
     { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
-    { header: 'Blok/Nomor Unit', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Blok - No', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Tipe Rumah', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) },

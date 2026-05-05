@@ -26,3 +26,10 @@ export const formatDate = (dateString: string): string => {
     year: "numeric",
   }).format(date);
 };
+
+export const formatTanpaDesimal = (angka: number) => {
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.round(angka || 0));
+};

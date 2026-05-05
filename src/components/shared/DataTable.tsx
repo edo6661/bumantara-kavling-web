@@ -140,7 +140,7 @@ const DataTable = ({
                       onClick={() => {
                         if (expandedRowRender) toggleRow(rowIndex);
                       }}
-                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80 hover:shadow-sm relative z-10' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
+                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
                         <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
