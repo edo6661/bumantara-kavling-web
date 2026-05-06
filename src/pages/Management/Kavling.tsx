@@ -11,22 +11,24 @@ import {
   CheckCircle2,
   Clock,
   Ban,
-  Building2
+  Building2,
+  FileText,
+  Map,
+  ScrollText,
+  UploadCloud
 } from "lucide-react";
-
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
 import { formatRupiah } from "../../utils/formatters";
 import { useAuth } from "../../context/AuthContext";
-
 import {
   useGetKavlings,
   useCreateKavling,
   useUpdateKavling,
-  useDeleteKavling
+  useDeleteKavling,
+  useUploadKavlingDocument
 } from "../../hooks/queries/useKavling";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
@@ -43,9 +45,6 @@ interface KavlingFormState {
   hargaDasar: number | '';
   status: string;
   rekeningTujuanId: number | '';
-  filePbg: string;
-  fileSertifikatTanah: string;
-  fileNopPbb: string;
 }
 
 const initialFormState: KavlingFormState = {
@@ -59,9 +58,6 @@ const initialFormState: KavlingFormState = {
   hargaDasar: '',
   status: 'AVAILABLE',
   rekeningTujuanId: '',
-  filePbg: '',
-  fileSertifikatTanah: '',
-  fileNopPbb: '',
 };
 
 const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
@@ -73,22 +69,18 @@ const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
 
 const Kavling = () => {
   const { selectedPerumahan } = useAuth();
-
-  // === Expand / Shrink State ===
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
-  // === LOGIC URL PARAMS ===
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') || '';
-  const orderBy = searchParams.get('orderBy') || ''; // Format backend: field:direction
+  const orderBy = searchParams.get('orderBy') || '';
   const limit = 10;
 
   const { data: perumahanList = [] } = useGetPerumahan();
   const { data: bankList = [] } = useGetBankRekening();
-
   const { data: kavlingResponse, isLoading } = useGetKavlings({
     page,
     limit,
@@ -105,13 +97,19 @@ const Kavling = () => {
   const createMutation = useCreateKavling();
   const updateMutation = useUpdateKavling();
   const deleteMutation = useDeleteKavling();
+  const uploadDocMutation = useUploadKavlingDocument();
 
+  // State Form Kavling
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  // === HANDLER URL PARAMS ===
+  // State Modal Dokumen Kavling (PBG, Sertifikat, NOP)
+  const [selectedDocKavling, setSelectedDocKavling] = useState<KavlingData | null>(null);
+  const [docModalStep, setDocModalStep] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => {
       prev.set('page', String(newPage));
@@ -146,12 +144,47 @@ const Kavling = () => {
     });
   };
 
+  const DokumenIcons = ({ row }: { row: KavlingData }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
+      <button
+        type="button"
+        title={title}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedDocKavling(row);
+          setDocModalStep(step);
+        }}
+        className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 ${active
+          ? 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+          : 'bg-slate-50 border-slate-200 text-slate-400 grayscale hover:grayscale-0 hover:bg-slate-100'
+          }`}
+      >
+        <Icon size={14} strokeWidth={active ? 2.5 : 1.5} />
+      </button>
+    );
+
+    return (
+      <div className="flex items-center gap-1">
+        <IconNode active={!!row.filePbg} icon={FileText} title="Dokumen PBG" step="PBG" />
+        <div className={`w-2 h-0.5 rounded-full ${row.filePbg && row.fileSertifikatTanah ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+        <IconNode active={!!row.fileSertifikatTanah} icon={ScrollText} title="Sertifikat Tanah" step="SERTIFIKAT" />
+        <div className={`w-2 h-0.5 rounded-full ${row.fileSertifikatTanah && row.fileNopPbb ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+        <IconNode active={!!row.fileNopPbb} icon={Map} title="NOP PBB" step="NOP" />
+      </div>
+    );
+  };
+
   const columns = [
-    { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
     { header: 'Blok - No', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Tipe Rumah', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) },
+    {
+      header: 'Dokumen',
+      accessor: 'id',
+      render: (_: unknown, row: KavlingData) => <DokumenIcons row={row} />
+    },
     {
       header: 'Status',
       accessor: 'status',
@@ -162,7 +195,6 @@ const Kavling = () => {
         if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
         if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
         if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-
         return (
           <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>
             {val}
@@ -175,7 +207,6 @@ const Kavling = () => {
   const expandedRowRender = (row: KavlingData) => {
     const activeSale = row.penjualan?.[0];
     const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
-
     return (
       <div className="p-4 bg-slate-50/50 border-t border-slate-100 shadow-inner">
         {isBookedOrSold && activeSale ? (
@@ -211,9 +242,6 @@ const Kavling = () => {
         hargaDasar: item.hargaDasar,
         status: item.status,
         rekeningTujuanId: item.rekeningTujuanId || '',
-        filePbg: item.filePbg || '',
-        fileSertifikatTanah: item.fileSertifikatTanah || '',
-        fileNopPbb: item.fileNopPbb || '',
       });
       setIsEditing(true);
     } else {
@@ -235,7 +263,6 @@ const Kavling = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
-
     setFormData((prev) => {
       const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
       if (name === 'namaTipe') {
@@ -245,20 +272,12 @@ const Kavling = () => {
       }
       return { ...prev, ...updates };
     });
-
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
     }
   };
 
@@ -271,7 +290,6 @@ const Kavling = () => {
     if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
     if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
     if (formData.hargaDasar === '' || formData.hargaDasar <= 0) newErrors.hargaDasar = 'Harga Dasar tidak valid';
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -279,7 +297,6 @@ const Kavling = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     const payload: CreateKavlingDTO = {
       perumahanId: Number(formData.perumahanId),
       blok: formData.blok,
@@ -290,11 +307,7 @@ const Kavling = () => {
       hargaDasar: Number(formData.hargaDasar),
       status: formData.status,
       rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
-      filePbg: formData.filePbg || undefined,
-      fileSertifikatTanah: formData.fileSertifikatTanah || undefined,
-      fileNopPbb: formData.fileNopPbb || undefined,
     };
-
     try {
       if (isEditing && formData.id !== '') {
         await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
@@ -331,13 +344,63 @@ const Kavling = () => {
     }
   };
 
+  const handleUploadDoc = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedDocKavling) return;
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      await uploadDocMutation.mutateAsync({ id: selectedDocKavling.id, docType, file });
+      alert(`Dokumen berhasil diunggah!`);
+      // Update UI state local agar icon langsung hijau tanpa refresh page keras
+      setSelectedDocKavling(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal mengunggah dokumen kavling");
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const renderFileBox = (title: string, docType: string, url: string | null | undefined) => (
+    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div className="flex justify-between items-center mb-3">
+        <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{title}</h5>
+        {url && (
+          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+            <CheckCircle2 size={12} /> Terunggah
+          </span>
+        )}
+      </div>
+
+      {url ? (
+        <div className="flex items-center gap-2 mb-3">
+          <button type="button" onClick={() => setPreviewImage(url)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-100 transition cursor-pointer">
+            <FileText size={14} /> Lihat Dokumen
+          </button>
+        </div>
+      ) : (
+        <p className="text-[10px] text-slate-400 italic mb-3">Belum ada dokumen yang diunggah.</p>
+      )}
+
+      <label className={`flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg transition-all shadow-sm ${uploadDocMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700 cursor-pointer'}`}>
+        <UploadCloud size={14} /> {url ? 'Ganti Dokumen' : 'Upload Dokumen'}
+        <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadDoc(docType, e)} disabled={uploadDocMutation.isPending} />
+      </label>
+    </div>
+  );
+
   const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
 
   if (isLoading && !kavlingData.length) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-
       {/* SUMMARY CARD */}
       <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
         <div
@@ -350,7 +413,6 @@ const Kavling = () => {
           </div>
           {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
-
         {isSummaryExpanded && (
           <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
@@ -397,7 +459,6 @@ const Kavling = () => {
           </div>
           {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
-
         {isFilterExpanded && (
           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
             <div className="relative">
@@ -415,7 +476,6 @@ const Kavling = () => {
               </select>
               <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
-
             <div className="relative">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
               <select
@@ -452,12 +512,12 @@ const Kavling = () => {
         onPageChange={handlePageChange}
       />
 
+      {/* MODAL FORM KAVLING UTAMA */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Utama</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Kavling</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
               <Select
                 label="Perumahan"
                 name="perumahanId"
@@ -470,7 +530,6 @@ const Kavling = () => {
                 error={errors.perumahanId}
                 disabled={isEditing}
               />
-
               <Select
                 label="Status Kavling"
                 name="status"
@@ -485,7 +544,6 @@ const Kavling = () => {
               />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
-
               <div className="md:col-span-2">
                 <Select
                   label="Tipe Rumah"
@@ -499,7 +557,6 @@ const Kavling = () => {
                   error={errors.namaTipe}
                 />
               </div>
-
               <Input
                 label="Luas Bangunan (m²)"
                 type="number"
@@ -509,7 +566,6 @@ const Kavling = () => {
                 error={errors.luasBangunan}
                 readOnly
               />
-
               <Select
                 label="Luas Tanah (m²)"
                 name="luasTanah"
@@ -523,9 +579,7 @@ const Kavling = () => {
                     : [])
                 ]}
               />
-
               <Input label="Harga Dasar (Rp)" type="number" name="hargaDasar" value={formData.hargaDasar} onChange={handleChange} error={errors.hargaDasar} />
-
               <div className="md:col-span-2">
                 <Select
                   label="Transfer ke Rekening"
@@ -544,25 +598,6 @@ const Kavling = () => {
               </div>
             </div>
           </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Upload Dokumen (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload File PBG" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'filePbg')} />
-                {formData.filePbg && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.filePbg}</p>}
-              </div>
-              <div>
-                <FileInput label="Sertifikat Tanah" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileSertifikatTanah')} />
-                {formData.fileSertifikatTanah && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileSertifikatTanah}</p>}
-              </div>
-              <div>
-                <FileInput label="NOP PBB" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNopPbb')} />
-                {formData.fileNopPbb && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileNopPbb}</p>}
-              </div>
-            </div>
-          </div>
-
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button
               type="button"
@@ -582,6 +617,72 @@ const Kavling = () => {
           </div>
         </form>
       </Modal>
+
+      {/* MODAL UPLOAD DOKUMEN KAVLING DARI ICON */}
+      <Modal isOpen={!!docModalStep} onClose={() => { setDocModalStep(null); setSelectedDocKavling(null); }} title="Kelola Dokumen Fisik Kavling">
+        {selectedDocKavling && (
+          <div className="space-y-6">
+            <div className="p-4 bg-slate-900 rounded-xl text-white shadow-md flex justify-between items-center mb-6">
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Blok - Unit</p>
+                <p className="text-xl font-black">{selectedDocKavling.blok}-{selectedDocKavling.nomorUnit}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tipe Rumah</p>
+                <p className="text-sm font-bold text-white">{selectedDocKavling.namaTipe}</p>
+              </div>
+            </div>
+
+            {docModalStep === 'PBG' && (
+              <div className="animate-in fade-in zoom-in-95 duration-300">
+                {renderFileBox("Persetujuan Bangunan Gedung (PBG)", "filePbg", selectedDocKavling.filePbg)}
+              </div>
+            )}
+
+            {docModalStep === 'SERTIFIKAT' && (
+              <div className="animate-in fade-in zoom-in-95 duration-300">
+                {renderFileBox("Sertifikat Tanah / SHM / HGB", "fileSertifikatTanah", selectedDocKavling.fileSertifikatTanah)}
+              </div>
+            )}
+
+            {docModalStep === 'NOP' && (
+              <div className="animate-in fade-in zoom-in-95 duration-300">
+                {renderFileBox("Nomor Objek Pajak (NOP PBB)", "fileNopPbb", selectedDocKavling.fileNopPbb)}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4 sticky bottom-0 bg-white border-t border-slate-100 mt-6 -mx-4 -mb-4 px-4 py-4 z-20">
+              <button onClick={() => { setDocModalStep(null); setSelectedDocKavling(null); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-md cursor-pointer">
+                Tutup Dokumen
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL LIGHTBOX PREVIEW DOKUMEN */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner overflow-hidden">
+              {previewImage.endsWith('.pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
+              Buka Full Screen
+            </a>
+            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };

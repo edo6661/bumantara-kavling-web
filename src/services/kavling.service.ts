@@ -38,6 +38,7 @@ export interface CreateKavlingDTO {
   hargaDasar: number;
   status?: string;
   rekeningTujuanId?: number;
+
   filePbg?: string;
   fileSertifikatTanah?: string;
   fileNopPbb?: string;
@@ -88,5 +89,18 @@ export const kavlingService = {
   delete: async (id: number) => {
     const response = await api.delete(`/kavling/${id}`);
     return response.data;
+  },
+
+  uploadDocument: async (id: number, docType: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.patch(
+      `/kavling/${id}/upload/${docType}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data.data;
   },
 };

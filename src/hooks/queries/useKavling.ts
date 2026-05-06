@@ -9,6 +9,7 @@ export const KAVLING_KEYS = {
   all: ["kavlings"] as const,
   list: (params: GetKavlingParams) => ["kavlings", params] as const,
 };
+
 export const useGetKavlings = (params: GetKavlingParams = {}) => {
   return useQuery({
     queryKey: KAVLING_KEYS.list(params),
@@ -48,6 +49,24 @@ export const useDeleteKavling = () => {
 
   return useMutation({
     mutationFn: (id: number) => kavlingService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useUploadKavlingDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      docType,
+      file,
+    }: {
+      id: number;
+      docType: string;
+      file: File;
+    }) => kavlingService.uploadDocument(id, docType, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
     },
