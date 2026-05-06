@@ -102,6 +102,8 @@ const Tagihan = () => {
           penjualanId: item.penjualanId,
           namaCustomer: item.namaCustomer,
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
+          blok: item.blok,
+          nomorUnit: item.nomorUnit,
           reminderSelanjutnya: '',
           unpaidCount: 0,
           totalTerbayarKeseluruhan: 0,
@@ -124,13 +126,14 @@ const Tagihan = () => {
 
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer' },
-    { header: 'Kavling', accessor: 'kavling' },
+    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     {
       header: 'Tagihan Belum Dibayar',
       accessor: 'unpaidCount',
       render: (val: number) => (
         <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase ${val > 0 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
-          {val > 0 ? `${val} Tagihan Tertunda` : 'Lunas Semua'}
+          {val > 0 ? `${val} Tertunda` : 'Lunas Semua'}
         </span>
       )
     },

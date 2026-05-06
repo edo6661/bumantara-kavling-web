@@ -176,11 +176,11 @@ const Kavling = () => {
   };
 
   const columns = [
-    { header: 'Blok - No', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
+    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'Tipe Rumah', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
-    { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) },
-    {
+    { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) }, {
       header: 'Dokumen',
       accessor: 'id',
       render: (_: unknown, row: KavlingData) => <DokumenIcons row={row} />

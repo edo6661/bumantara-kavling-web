@@ -103,11 +103,10 @@ const CustomerKavling = () => {
 
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => val },
-    { header: 'Perumahan', accessor: 'perumahan' },
-    { header: 'Blok/Unit', accessor: 'blok', render: (_: any, row: KavlingData) => `${row.blok}-${row.unit}` },
+    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'No', accessor: 'unit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'Tipe', accessor: 'tipe' },
-    { header: 'Total Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
-    {
+    { header: 'Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) }, {
       header: 'Status Penjualan',
       accessor: 'status',
       render: (val: string) => {

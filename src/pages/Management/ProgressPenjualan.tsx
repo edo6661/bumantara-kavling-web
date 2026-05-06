@@ -115,8 +115,17 @@ const ProgressPenjualan = () => {
   const columns = [
     { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
     { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'No. Unit', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'Pembayaran', accessor: 'caraPembayaran', render: (val: string) => val ? val.replace(/_/g, ' ') : '-' },
+    { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    {
+      header: 'Pembayaran',
+      accessor: 'caraPembayaran',
+      render: (val: string) => {
+        if (!val) return '-';
+        if (val === 'CASH_KERAS' || val === 'CASH KERAS') return 'KERAS';
+        if (val === 'CASH_BERTAHAP' || val === 'CASH BERTAHAP') return 'BERTAHAP';
+        return val;
+      }
+    },
     {
       header: 'Progress',
       accessor: 'id',

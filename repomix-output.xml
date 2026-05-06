@@ -1,63 +1,30 @@
-tolong ingat kode frontend nya:
 
-<file path="src/hooks/queries/useProgressPenjualan.ts">
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  progressPenjualanService,
-  type UpdateProgressPenjualanDTO,
-} from "../../services/progressPenjualan.service";
-import { PENJUALAN_KEYS } from "./usePenjualan";
-export const PROGRESS_PENJUALAN_KEYS = {
-  all: ["progress-penjualan"] as const,
-  detail: (penjualanId: number) =>
-    [...PROGRESS_PENJUALAN_KEYS.all, penjualanId] as const,
-};
-export const useGetProgressPenjualan = (penjualanId: number | null) => {
-  return useQuery({
-    queryKey: PROGRESS_PENJUALAN_KEYS.detail(penjualanId!),
-    queryFn: () => progressPenjualanService.getById(penjualanId!),
-    enabled: !!penjualanId,
-  });
-};
-export const useUpdateProgressPenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: UpdateProgressPenjualanDTO;
-    }) => progressPenjualanService.update(id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: PROGRESS_PENJUALAN_KEYS.detail(variables.id),
-      });
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-    },
-  });
-};
-export const useUploadProgressDocument = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      docType,
-      file,
-    }: {
-      id: number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      docType: any;
-      file: File;
-    }) => progressPenjualanService.uploadDocument(id, docType, file),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: PROGRESS_PENJUALAN_KEYS.detail(variables.id),
-      });
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-    },
-  });
-};
+tolong buatkan sesuai dengan yang saya mau.
+tolong lakukan perlahan, bertahap, best practice.
+TOLONG BERIKAN SAYA KODE YANG PERLU DI MODIFIKASI SAJA / DITAMBAH, dan beritahu dimana lokasi kode nya.
+
+
+saya ingin jika menjelaskan kavling / blok / nomor unit di kolom kolom data table tuh seperti di progress penjualan aja begini nih:
+
+    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+
+terus juga jangan ada data perumahan nya di kolom data table.
+terus juga value skema pembayaran nya tuh jika:
+CASH_KERAS / CASH KERAS, itu jadinya KERAS aja.
+CASH_BERTAHAP / CASH BERTAHAP, itu jadinya BERTAHAP SAJA.
+jika KPR ya tetap KPR.
+
+kode frontend:
+
+<file path="src/main.tsx">
+import ReactDOM from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <App />
+);
 </file>
 
 <file path="src/pages/Home.tsx">
@@ -72,665 +39,6 @@ const Home = () => {
 };
 
 export default Home;
-</file>
-
-<file path="src/pages/Management/ProgressPenjualan.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo, useEffect } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import CurrencyInput from "../../components/shared/CurrencyInput";
-import FileInput from "../../components/shared/FileInput";
-import PageLoader from "../PageLoader";
-import { formatRupiah } from "../../utils/formatters";
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { useGetCustomers, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
-import type { CustomerDocType } from "../../services/customer.service";
-import {
-  useGetProgressPenjualan,
-  useUpdateProgressPenjualan,
-  useUploadProgressDocument
-} from "../../hooks/queries/useProgressPenjualan";
-import {
-  FileText, Settings2, Trash2, Plus, UploadCloud, CheckCircle2,
-  UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle
-} from 'lucide-react';
-
-const ProgressPenjualan = () => {
-  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
-  const penjualanData = penjualanResponse?.items || [];
-
-  // Ambil data customer untuk keperluan upload berkas KPR
-  const { data: customers = [], isLoading: loadingCustomers } = useGetCustomers();
-
-  const updateMutation = useUpdateProgressPenjualan();
-  const uploadMutation = useUploadProgressDocument();
-  const uploadCustomerDocMutation = useUploadCustomerDoc();
-
-  const [selectedPenjualan, setSelectedPenjualan] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [newDocName, setNewDocName] = useState("");
-
-  const activePenjualan = useMemo(() => {
-    return penjualanData.filter((p: any) => p.status !== 'BATAL');
-  }, [penjualanData]);
-
-  // Mengambil data customer spesifik berdasarkan NIK dari transaksi terpilih
-  const currentCustomer = useMemo(() => {
-    if (!selectedPenjualan) return null;
-    return customers.find((c: any) => c.nikKtp === selectedPenjualan.noIdentitas);
-  }, [selectedPenjualan, customers]);
-
-  const { data: progressData, isLoading: loadingProgress } = useGetProgressPenjualan(
-    selectedPenjualan ? selectedPenjualan.dbId : null
-  );
-
-  const [checklist, setChecklist] = useState<{ key: string; value: string }[]>([]);
-  const [nilaiAjbInput, setNilaiAjbInput] = useState<number>(0);
-
-  const calculatedPph = nilaiAjbInput ? nilaiAjbInput * 0.025 : 0;
-  const calculatedBphtb = nilaiAjbInput ? Math.max(0, nilaiAjbInput - 80000000) * 0.05 : 0;
-
-  useEffect(() => {
-    if (progressData) {
-      setNilaiAjbInput(progressData.nilaiAjb || 0);
-      if (progressData.checklistBast) {
-        const arr = Object.entries(progressData.checklistBast).map(([k, v]) => ({ key: k, value: String(v || '') }));
-        setChecklist(arr);
-      } else {
-        setChecklist([]);
-      }
-    }
-  }, [progressData]);
-
-  const ProgressIcons = ({ caraPembayaran, progress }: { caraPembayaran: string, progress: any }) => {
-    const safeProgress = progress || {};
-    const skema = caraPembayaran?.toUpperCase() || '';
-
-    const IconNode = ({ active, icon: Icon, title }: any) => (
-      <div title={title} className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center ${active ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-300 grayscale'}`}>
-        <Icon size={14} strokeWidth={active ? 2.5 : 1.5} />
-      </div>
-    );
-
-    const LineNode = ({ active }: { active: boolean }) => (
-      <div className={`w-3 h-0.5 rounded-full transition-all duration-300 ${active ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
-    );
-
-    if (skema === 'KPR') {
-      return (
-        <div className="flex items-center gap-1">
-          <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" />
-          <LineNode active={!!safeProgress.fileSp3k} />
-          <IconNode active={!!safeProgress.fileSp3k} icon={Landmark} title="2. SP3K" />
-          <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" />
-          <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" />
-        </div>
-      );
-    }
-
-    if (skema === 'CASH BERTAHAP') {
-      return (
-        <div className="flex items-center gap-1">
-          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="1. PPJB" />
-          <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="2. AJB" />
-          <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="3. BAST" />
-        </div>
-      );
-    }
-
-    if (skema === 'CASH KERAS') {
-      return (
-        <div className="flex items-center gap-1">
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="1. AJB" />
-          <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="2. BAST" />
-        </div>
-      );
-    }
-
-    return <span className="text-xs text-slate-400 italic">-</span>;
-  };
-
-  const columns = [
-    { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'No. Unit', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'Pembayaran', accessor: 'caraPembayaran', render: (val: string) => val ? val.replace(/_/g, ' ') : '-' },
-    {
-      header: 'Progress',
-      accessor: 'id',
-      render: (_: any, row: any) => <ProgressIcons caraPembayaran={row.caraPembayaran} progress={row.progressPenjualan} />
-    },
-    {
-      header: 'Aksi', accessor: 'id', render: (_: any, row: any) => (
-        <button
-          onClick={() => {
-            setSelectedPenjualan(row);
-            setIsModalOpen(true);
-            setNewDocName("");
-          }}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors cursor-pointer shadow-sm active:scale-95"
-        >
-          <Settings2 size={14} />
-        </button>
-      )
-    }
-  ];
-
-  // Handler Upload Dokumen Progress (SP3K, AJB, BAST, dll)
-  const handleUploadProgress = async (docType: any, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !progressData) return;
-
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      alert("Hanya format gambar dan PDF yang diperbolehkan!");
-      e.target.value = '';
-      return;
-    }
-
-    try {
-      await uploadMutation.mutateAsync({ id: progressData.penjualanId, docType, file });
-      alert(`Dokumen berhasil diunggah!`);
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal mengunggah dokumen");
-    } finally {
-      e.target.value = '';
-    }
-  };
-
-  // Handler Upload Dokumen Customer (KTP, KK, NPWP)
-  const handleUploadCustDoc = async (docType: CustomerDocType, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentCustomer) return;
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
-      e.target.value = "";
-      return;
-    }
-    try {
-      await uploadCustomerDocMutation.mutateAsync({ id: currentCustomer.id, docType, file });
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah dokumen");
-    } finally {
-      e.target.value = "";
-    }
-  };
-
-  // Handler Upload Dokumen Lainnya (Slip Gaji, Mutasi, dll)
-  const handleUploadLainnya = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentCustomer) return;
-
-    if (!newDocName.trim()) {
-      alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file!");
-      e.target.value = "";
-      return;
-    }
-
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
-      e.target.value = "";
-      return;
-    }
-
-    try {
-      await uploadCustomerDocMutation.mutateAsync({
-        id: currentCustomer.id,
-        docType: 'lainnya',
-        file,
-        namaDokumen: newDocName
-      });
-      setNewDocName("");
-      alert("Dokumen pendukung berhasil diunggah!");
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah dokumen tambahan");
-    } finally {
-      e.target.value = "";
-    }
-  };
-
-  const handleSaveNilaiAjb = async () => {
-    if (!progressData) return;
-    try {
-      await updateMutation.mutateAsync({
-        id: progressData.penjualanId,
-        data: { nilaiAjb: nilaiAjbInput }
-      });
-      alert("Nilai AJB & Pajak otomatis berhasil dihitung dan disimpan!");
-    } catch (err) {
-      console.error(err)
-      alert("Gagal menyimpan nilai AJB");
-    }
-  };
-
-  const handleSaveChecklist = async () => {
-    if (!progressData) return;
-    try {
-      const obj: Record<string, string> = {};
-      checklist.forEach(c => {
-        if (c.key.trim()) obj[c.key.trim()] = c.value.trim();
-      });
-
-      await updateMutation.mutateAsync({
-        id: progressData.penjualanId,
-        data: { checklistBast: Object.keys(obj).length > 0 ? obj : null }
-      });
-      alert("Checklist BAST berhasil disimpan!");
-    } catch (err) {
-      console.error(err)
-      alert("Gagal menyimpan Checklist BAST");
-    }
-  };
-
-  const renderFileBox = (title: string, docType: string, url: string | null) => (
-    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-      <div className="flex justify-between items-center mb-3">
-        <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{title}</h5>
-        {url && (
-          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-            <CheckCircle2 size={12} /> Terunggah
-          </span>
-        )}
-      </div>
-
-      {url ? (
-        <div className="flex items-center gap-2 mb-3">
-          <button onClick={() => setPreviewImage(url)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-100 transition cursor-pointer">
-            <FileText size={14} /> Lihat Dokumen
-          </button>
-        </div>
-      ) : (
-        <p className="text-[10px] text-slate-400 italic mb-3">Belum ada dokumen yang diunggah.</p>
-      )}
-
-      <label className={`flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg transition-all shadow-sm ${uploadMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700 cursor-pointer'}`}>
-        <UploadCloud size={14} /> {url ? 'Ganti Dokumen' : 'Upload Dokumen'}
-        <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadProgress(docType, e)} disabled={uploadMutation.isPending} />
-      </label>
-    </div>
-  );
-
-  const renderChecklistBast = () => (
-    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 mt-6">
-      <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-4">
-        <h5 className="text-sm font-bold text-slate-800">Checklist BAST / Komplain Customer</h5>
-        <button type="button" onClick={() => setChecklist([...checklist, { key: '', value: '' }])} className="flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition cursor-pointer">
-          <Plus size={14} /> Tambah Ceklis
-        </button>
-      </div>
-
-      <div className="space-y-3 mb-4">
-        {checklist.length === 0 ? (
-          <p className="text-xs text-slate-400 italic text-center py-4 bg-white border border-slate-100 rounded-lg">Belum ada data checklist BAST.</p>
-        ) : (
-          checklist.map((c, idx) => (
-            <div key={idx} className="flex items-start gap-2">
-              <input
-                type="text"
-                placeholder="Bagian (Contoh: Cat Dinding)"
-                value={c.key}
-                onChange={(e) => { const newArr = [...checklist]; newArr[idx].key = e.target.value; setChecklist(newArr); }}
-                className="w-1/3 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-black"
-              />
-              <input
-                type="text"
-                placeholder="Catatan / Status (Contoh: Ada retak rambut sedikit)"
-                value={c.value}
-                onChange={(e) => { const newArr = [...checklist]; newArr[idx].value = e.target.value; setChecklist(newArr); }}
-                className="w-2/3 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-black"
-              />
-              <button type="button" onClick={() => setChecklist(checklist.filter((_, i) => i !== idx))} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition cursor-pointer shrink-0">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="flex justify-end">
-        <button onClick={handleSaveChecklist} disabled={updateMutation.isPending} className="px-5 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition cursor-pointer disabled:opacity-50 shadow-md">
-          {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Checklist BAST'}
-        </button>
-      </div>
-    </div>
-  );
-
-  if (loadingPenjualan || loadingCustomers) return <PageLoader />;
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Progress Penjualan"
-        columns={columns}
-        data={activePenjualan}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setSelectedPenjualan(null); }} title="Kelola Progress Dokumen Penjualan">
-        {selectedPenjualan && (
-          <div className="space-y-6">
-            <div className="p-4 bg-slate-900 rounded-xl text-white shadow-md flex justify-between items-center">
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Skema Pembayaran</p>
-                <p className="text-xl font-black">{selectedPenjualan.caraPembayaran?.replace(/_/g, ' ')}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Customer / Kavling</p>
-                <p className="text-sm font-bold text-white">{selectedPenjualan.nama}</p>
-                <p className="text-xs text-slate-400">Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}</p>
-              </div>
-            </div>
-
-            {loadingProgress ? (
-              <div className="py-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
-            ) : progressData ? (
-              <div className="space-y-6">
-
-                {/* === LOGIKA RENDER BERDASARKAN SKEMA PEMBAYARAN === */}
-
-                {/* 1. SKEMA KPR */}
-                {selectedPenjualan.caraPembayaran === 'KPR' && (
-                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-
-                    {/* Langkah 1: Berkas KPR (Terintegrasi Upload Customer) */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-slate-100 pb-3 mb-4 gap-3">
-                        <h4 className="text-sm font-bold text-slate-800">Tahap 1: Validasi Berkas KPR</h4>
-                        <label className="flex items-center gap-2 cursor-pointer bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors w-fit">
-                          <input
-                            type="checkbox"
-                            checked={progressData.berkasCustomerValid}
-                            onChange={(e) => updateMutation.mutate({ id: progressData.penjualanId, data: { berkasCustomerValid: e.target.checked } })}
-                            className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                          />
-                          <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mt-0.5">
-                            Tandai Valid & Siap KPR
-                          </span>
-                        </label>
-                      </div>
-
-                      {/* Grid Dokumen Utama (KTP, KK, NPWP) */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => (
-                          <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                              {type.replace('file', '')}
-                            </span>
-                            <div
-                              onClick={() => currentCustomer?.[type] && setPreviewImage(currentCustomer[type] as string)}
-                              className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${currentCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'}`}
-                            >
-                              {currentCustomer?.[type] ? (
-                                <>
-                                  <img src={currentCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <ZoomIn size={20} className="text-white" />
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="flex flex-col items-center gap-1 text-slate-400">
-                                  <ImageIcon size={24} strokeWidth={1.5} />
-                                  <span className="text-[9px] font-bold">KOSONG</span>
-                                </div>
-                              )}
-                            </div>
-                            <FileInput
-                              label="Upload / Ganti"
-                              accept="image/*"
-                              onChange={(e) => handleUploadCustDoc(type, e)}
-                              disabled={uploadCustomerDocMutation.isPending}
-                            />
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Dokumen Lainnya / Pendukung */}
-                      <div className="pt-4 border-t border-slate-100">
-                        <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <PlusCircle size={14} className="text-blue-600" /> Dokumen Pendukung KPR (Slip Gaji, Mutasi, dll)
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => (
-                            <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 hover:bg-white transition-all group shadow-sm">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate" title={doc.nama}>
-                                {doc.nama}
-                              </span>
-                              <div
-                                onClick={() => setPreviewImage(doc.fileUrl)}
-                                className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-zoom-in group"
-                              >
-                                <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                  <ZoomIn size={20} className="text-white" />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-
-                          <div className="flex flex-col gap-3 p-3 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30">
-                            <div className="w-full">
-                              <input
-                                type="text"
-                                value={newDocName}
-                                onChange={(e) => setNewDocName(e.target.value)}
-                                placeholder="Nama Dok. Baru (Cth: Slip Gaji)"
-                                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400"
-                              />
-                            </div>
-                            <FileInput
-                              label="Pilih File"
-                              accept="image/*"
-                              onChange={handleUploadLainnya}
-                              disabled={uploadCustomerDocMutation.isPending || newDocName.trim() === ""}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Langkah 2: SP3K & Biaya Notaris */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
-                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap 2: Turun SP3K & Biaya Notaris (Pajak)</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {renderFileBox("Dokumen SP3K Bank", "fileSp3k", progressData.fileSp3k)}
-
-                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
-                          <div>
-                            <CurrencyInput
-                              label="Nilai AJB"
-                              name="nilaiAjb"
-                              value={nilaiAjbInput}
-                              onValueChange={(_, val) => setNilaiAjbInput(val)}
-                              placeholder="0"
-                            />
-
-                            <div className="grid grid-cols-2 gap-3 mt-3 border-t border-blue-200/50 pt-3">
-                              <div>
-                                <p className="text-[9px] font-bold text-slate-500 uppercase">BPHTB</p>
-                                <p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedBphtb)}</p>
-                              </div>
-                              <div>
-                                <p className="text-[9px] font-bold text-slate-500 uppercase">PPh (2.5%)</p>
-                                <p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedPph)}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <button onClick={handleSaveNilaiAjb} disabled={updateMutation.isPending} className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50">
-                            {updateMutation.isPending ? 'Menyimpan...' : 'Hitung & Simpan Nilai AJB'}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-6">
-                        {renderFileBox("Salinan AJB dari Notaris", "fileSalinanAjb", progressData.fileSalinanAjb)}
-                      </div>
-                    </div>
-
-                    {/* Langkah 3: Dokumen Akhir */}
-                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
-                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap 3: Dokumen Serah Terima Akhir</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {renderFileBox("Dokumen AJB Resmi", "fileAjb", progressData.fileAjb)}
-                        {renderFileBox("Dokumen BAST", "fileBast", progressData.fileBast)}
-                      </div>
-                      {renderChecklistBast()}
-                    </div>
-
-                  </div>
-                )}
-
-
-                {/* 2. SKEMA CASH BERTAHAP */}
-                {selectedPenjualan.caraPembayaran === 'CASH BERTAHAP' && (
-                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
-                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap 1: Pengikatan Jual Beli (PPJB)</h4>
-                      <p className="text-xs text-slate-500 mb-4 leading-relaxed">Dokumen PPJB diunggah setelah customer melakukan pelunasan Down Payment (DP).</p>
-                      <div className="max-w-md">
-                        {renderFileBox("Dokumen PPJB", "filePpjb", progressData.filePpjb)}
-                      </div>
-                    </div>
-
-                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
-                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap 2: Dokumen Serah Terima Akhir (AJB & BAST)</h4>
-                      <p className="text-xs text-slate-500 mb-4 leading-relaxed">AJB dan BAST diterbitkan setelah semua cicilan lunas.</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {renderFileBox("Dokumen AJB Resmi", "fileAjb", progressData.fileAjb)}
-                        {renderFileBox("Dokumen BAST", "fileBast", progressData.fileBast)}
-                      </div>
-                      {renderChecklistBast()}
-                    </div>
-                  </div>
-                )}
-
-
-                {/* 3. SKEMA CASH KERAS */}
-                {selectedPenjualan.caraPembayaran === 'CASH KERAS' && (
-                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
-                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Final: Akta Jual Beli & BAST</h4>
-                      <p className="text-xs text-slate-500 mb-4 leading-relaxed">Karena menggunakan skema Cash Keras, dokumen langsung melompat ke tahap AJB dan BAST.</p>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {renderFileBox("Dokumen AJB Resmi", "fileAjb", progressData.fileAjb)}
-                        {renderFileBox("Dokumen BAST", "fileBast", progressData.fileBast)}
-                      </div>
-                      {renderChecklistBast()}
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            ) : null}
-
-            <div className="flex justify-end pt-4 sticky bottom-0 bg-white border-t border-slate-100 mt-6 -mx-4 -mb-4 px-4 py-4 z-20">
-              <button onClick={() => { setIsModalOpen(false); setSelectedPenjualan(null); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-md cursor-pointer">
-                Tutup Manajemen Progress
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* MODAL LIGHTBOX PREVIEW DOKUMEN */}
-      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
-        <div className="flex flex-col items-center">
-          {previewImage && (
-            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner overflow-hidden">
-              {previewImage.endsWith('.pdf') ? (
-                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg" title="PDF Preview" />
-              ) : (
-                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
-              )}
-            </div>
-          )}
-          <div className="mt-6 flex gap-3">
-            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
-              Buka Full Screen
-            </a>
-            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">
-              Tutup
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-    </div>
-  );
-};
-
-export default ProgressPenjualan;
-</file>
-
-<file path="src/services/progressPenjualan.service.ts">
-import api from "../lib/axios";
-
-export interface ProgressPenjualanData {
-  id: number;
-  penjualanId: number;
-  berkasCustomerValid: boolean;
-  fileSp3k: string | null;
-  fileSalinanAjb: string | null;
-  filePpjb: string | null;
-  nilaiAjb: number | null;
-  biayaBphtb: number | null;
-  biayaPph: number | null;
-  fileAjb: string | null;
-  fileBast: string | null;
-  checklistBast: Record<string, string | number | boolean | null> | null;
-}
-
-export interface UpdateProgressPenjualanDTO {
-  berkasCustomerValid?: boolean;
-  nilaiAjb?: number;
-  checklistBast?: Record<string, string | number | boolean | null> | null;
-}
-
-export const progressPenjualanService = {
-  getById: async (penjualanId: number): Promise<ProgressPenjualanData> => {
-    const response = await api.get(`/progress-penjualan/${penjualanId}`);
-    return response.data.data;
-  },
-
-  update: async (
-    penjualanId: number,
-    data: UpdateProgressPenjualanDTO,
-  ): Promise<ProgressPenjualanData> => {
-    const response = await api.patch(
-      `/progress-penjualan/${penjualanId}`,
-      data,
-    );
-    return response.data.data;
-  },
-
-  uploadDocument: async (
-    penjualanId: number,
-    docType:
-      | "fileSp3k"
-      | "fileSalinanAjb"
-      | "filePpjb"
-      | "fileAjb"
-      | "fileBast",
-    file: File,
-  ): Promise<ProgressPenjualanData> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    const response = await api.patch(
-      `/progress-penjualan/${penjualanId}/upload/${docType}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
-    );
-    return response.data.data;
-  },
-};
 </file>
 
 <file path="tsconfig.json">
@@ -1050,6 +358,66 @@ export const useGetPerumahan = () => {
 };
 </file>
 
+<file path="src/hooks/queries/useProgressPenjualan.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  progressPenjualanService,
+  type UpdateProgressPenjualanDTO,
+} from "../../services/progressPenjualan.service";
+import { PENJUALAN_KEYS } from "./usePenjualan";
+export const PROGRESS_PENJUALAN_KEYS = {
+  all: ["progress-penjualan"] as const,
+  detail: (penjualanId: number) =>
+    [...PROGRESS_PENJUALAN_KEYS.all, penjualanId] as const,
+};
+export const useGetProgressPenjualan = (penjualanId: number | null) => {
+  return useQuery({
+    queryKey: PROGRESS_PENJUALAN_KEYS.detail(penjualanId!),
+    queryFn: () => progressPenjualanService.getById(penjualanId!),
+    enabled: !!penjualanId,
+  });
+};
+export const useUpdateProgressPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: UpdateProgressPenjualanDTO;
+    }) => progressPenjualanService.update(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: PROGRESS_PENJUALAN_KEYS.detail(variables.id),
+      });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
+};
+export const useUploadProgressDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      docType,
+      file,
+    }: {
+      id: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      docType: any;
+      file: File;
+    }) => progressPenjualanService.uploadDocument(id, docType, file),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: PROGRESS_PENJUALAN_KEYS.detail(variables.id),
+      });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
+};
+</file>
+
 <file path="src/hooks/queries/useVerify.ts">
 import { useQuery } from "@tanstack/react-query";
 import { verifyService } from "../../services/verify.service";
@@ -1180,16 +548,6 @@ export const useForm = <T>(
     resetForm,
   };
 };
-</file>
-
-<file path="src/main.tsx">
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './index.css';
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <App />
-);
 </file>
 
 <file path="src/pages/Customer/OldKavling.tsx">
@@ -2246,6 +1604,71 @@ export const perumahanService = {
 };
 </file>
 
+<file path="src/services/progressPenjualan.service.ts">
+import api from "../lib/axios";
+
+export interface ProgressPenjualanData {
+  id: number;
+  penjualanId: number;
+  berkasCustomerValid: boolean;
+  fileSp3k: string | null;
+  fileSalinanAjb: string | null;
+  filePpjb: string | null;
+  nilaiAjb: number | null;
+  biayaBphtb: number | null;
+  biayaPph: number | null;
+  fileAjb: string | null;
+  fileBast: string | null;
+  checklistBast: Record<string, string | number | boolean | null> | null;
+}
+
+export interface UpdateProgressPenjualanDTO {
+  berkasCustomerValid?: boolean;
+  nilaiAjb?: number;
+  checklistBast?: Record<string, string | number | boolean | null> | null;
+}
+
+export const progressPenjualanService = {
+  getById: async (penjualanId: number): Promise<ProgressPenjualanData> => {
+    const response = await api.get(`/progress-penjualan/${penjualanId}`);
+    return response.data.data;
+  },
+
+  update: async (
+    penjualanId: number,
+    data: UpdateProgressPenjualanDTO,
+  ): Promise<ProgressPenjualanData> => {
+    const response = await api.patch(
+      `/progress-penjualan/${penjualanId}`,
+      data,
+    );
+    return response.data.data;
+  },
+
+  uploadDocument: async (
+    penjualanId: number,
+    docType:
+      | "fileSp3k"
+      | "fileSalinanAjb"
+      | "filePpjb"
+      | "fileAjb"
+      | "fileBast",
+    file: File,
+  ): Promise<ProgressPenjualanData> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.patch(
+      `/progress-penjualan/${penjualanId}/upload/${docType}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data.data;
+  },
+};
+</file>
+
 <file path="src/types/api_response.ts">
 export interface ApiResponse<T> {
   success: boolean;
@@ -2814,6 +2237,515 @@ const AuditLog = () => {
 export default AuditLog;
 </file>
 
+<file path="src/pages/Management/ProgressPenjualan.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo, useEffect } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import CurrencyInput from "../../components/shared/CurrencyInput";
+import FileInput from "../../components/shared/FileInput";
+import PageLoader from "../PageLoader";
+import { formatRupiah } from "../../utils/formatters";
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetCustomers, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
+import type { CustomerDocType } from "../../services/customer.service";
+import {
+  useGetProgressPenjualan,
+  useUpdateProgressPenjualan,
+  useUploadProgressDocument
+} from "../../hooks/queries/useProgressPenjualan";
+import {
+  FileText, Trash2, Plus, UploadCloud, CheckCircle2,
+  UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle
+} from 'lucide-react';
+const ProgressPenjualan = () => {
+  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const penjualanData = useMemo(() => penjualanResponse?.items || [], [penjualanResponse?.items]);
+  const { data: customers = [], isLoading: loadingCustomers } = useGetCustomers();
+  const updateMutation = useUpdateProgressPenjualan();
+  const uploadMutation = useUploadProgressDocument();
+  const uploadCustomerDocMutation = useUploadCustomerDoc();
+  const [selectedPenjualan, setSelectedPenjualan] = useState<Record<string, any> | null>(null);
+  const [modalStep, setModalStep] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [newDocName, setNewDocName] = useState("");
+  const activePenjualan = useMemo(() => {
+    return penjualanData.filter((p: Record<string, any>) => p.status !== 'BATAL');
+  }, [penjualanData]);
+  const currentCustomer = useMemo(() => {
+    if (!selectedPenjualan) return null;
+    return customers.find((c: Record<string, any>) => c.nikKtp === selectedPenjualan.noIdentitas);
+  }, [selectedPenjualan, customers]);
+  const { data: progressData, isLoading: loadingProgress } = useGetProgressPenjualan(
+    selectedPenjualan ? selectedPenjualan.dbId : null
+  );
+  const [checklist, setChecklist] = useState<{ key: string; value: string }[]>([]);
+  const [nilaiAjbInput, setNilaiAjbInput] = useState<number>(0);
+  const calculatedPph = nilaiAjbInput ? nilaiAjbInput * 0.025 : 0;
+  const calculatedBphtb = nilaiAjbInput ? Math.max(0, nilaiAjbInput - 80000000) * 0.05 : 0;
+  useEffect(() => {
+    if (progressData) {
+      setNilaiAjbInput(progressData.nilaiAjb || 0);
+      if (progressData.checklistBast) {
+        const arr = Object.entries(progressData.checklistBast).map(([k, v]) => ({ key: k, value: String(v || '') }));
+        setChecklist(arr);
+      } else {
+        setChecklist([]);
+      }
+    }
+  }, [progressData]);
+  const ProgressIcons = ({ row }: { row: Record<string, any> }) => {
+    const safeProgress = row.progressPenjualan || {};
+    const skema = row.caraPembayaran?.toUpperCase() || '';
+    const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
+      <button
+        type="button"
+        title={title}
+        onClick={() => {
+          setSelectedPenjualan(row);
+          setModalStep(step);
+          setNewDocName("");
+        }}
+        className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 ${active
+          ? 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+          : 'bg-slate-50 border-slate-200 text-slate-400 grayscale hover:grayscale-0 hover:bg-slate-100'
+          }`}
+      >
+        <Icon size={14} strokeWidth={active ? 2.5 : 1.5} />
+      </button>
+    );
+    const LineNode = ({ active }: { active: boolean }) => (
+      <div className={`w-3 h-0.5 rounded-full transition-all duration-300 ${active ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+    );
+    if (skema === 'KPR') {
+      return (
+        <div className="flex items-center gap-1">
+          <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={!!safeProgress.fileSp3k} />
+          <IconNode active={!!safeProgress.fileSp3k} icon={Landmark} title="2. SP3K" step="SP3K" />
+          <LineNode active={!!safeProgress.fileAjb} />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
+          <LineNode active={!!safeProgress.fileBast} />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />
+        </div>
+      );
+    }
+    if (skema === 'CASH BERTAHAP') {
+      return (
+        <div className="flex items-center gap-1">
+          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="1. PPJB" step="PPJB" />
+          <LineNode active={!!safeProgress.fileAjb} />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="2. AJB" step="AJB" />
+          <LineNode active={!!safeProgress.fileBast} />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="3. BAST" step="BAST" />
+        </div>
+      );
+    }
+    if (skema === 'CASH KERAS') {
+      return (
+        <div className="flex items-center gap-1">
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="1. AJB" step="AJB" />
+          <LineNode active={!!safeProgress.fileBast} />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="2. BAST" step="BAST" />
+        </div>
+      );
+    }
+    return <span className="text-xs text-slate-400 italic">-</span>;
+  };
+  const columns = [
+    { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'Pembayaran', accessor: 'caraPembayaran', render: (val: string) => val ? val.replace(/_/g, ' ') : '-' },
+    {
+      header: 'Progress',
+      accessor: 'id',
+      render: (_: unknown, row: Record<string, any>) => <ProgressIcons row={row} />
+    }
+  ];
+  const handleUploadProgress = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !progressData) return;
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      e.target.value = '';
+      return;
+    }
+    try {
+      await uploadMutation.mutateAsync({ id: progressData.penjualanId, docType, file });
+      alert(`Dokumen berhasil diunggah!`);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal mengunggah dokumen");
+    } finally {
+      e.target.value = '';
+    }
+  };
+  const handleUploadCustDoc = async (docType: CustomerDocType, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentCustomer) return;
+    if (!file.type.startsWith('image/')) {
+      alert("Hanya file gambar yang diperbolehkan!");
+      e.target.value = "";
+      return;
+    }
+    try {
+      await uploadCustomerDocMutation.mutateAsync({ id: currentCustomer.id, docType, file });
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal mengunggah dokumen");
+    } finally {
+      e.target.value = "";
+    }
+  };
+  const handleUploadLainnya = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentCustomer) return;
+    if (!newDocName.trim()) {
+      alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file!");
+      e.target.value = "";
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      alert("Hanya file gambar yang diperbolehkan!");
+      e.target.value = "";
+      return;
+    }
+    try {
+      await uploadCustomerDocMutation.mutateAsync({
+        id: currentCustomer.id,
+        docType: 'lainnya',
+        file,
+        namaDokumen: newDocName
+      });
+      setNewDocName("");
+      alert("Dokumen pendukung berhasil diunggah!");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal mengunggah dokumen tambahan");
+    } finally {
+      e.target.value = "";
+    }
+  };
+  const handleSaveNilaiAjb = async () => {
+    if (!progressData) return;
+    try {
+      await updateMutation.mutateAsync({
+        id: progressData.penjualanId,
+        data: { nilaiAjb: nilaiAjbInput }
+      });
+      alert("Nilai AJB & Pajak otomatis berhasil dihitung dan disimpan!");
+    } catch (err) {
+      console.error(err)
+      alert("Gagal menyimpan nilai AJB");
+    }
+  };
+  const handleSaveChecklist = async () => {
+    if (!progressData) return;
+    try {
+      const obj: Record<string, string> = {};
+      checklist.forEach(c => {
+        if (c.key.trim()) obj[c.key.trim()] = c.value.trim();
+      });
+      await updateMutation.mutateAsync({
+        id: progressData.penjualanId,
+        data: { checklistBast: Object.keys(obj).length > 0 ? obj : null }
+      });
+      alert("Checklist BAST berhasil disimpan!");
+    } catch (err) {
+      console.error(err)
+      alert("Gagal menyimpan Checklist BAST");
+    }
+  };
+  const renderFileBox = (title: string, docType: string, url: string | null) => (
+    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div className="flex justify-between items-center mb-3">
+        <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{title}</h5>
+        {url && (
+          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+            <CheckCircle2 size={12} /> Terunggah
+          </span>
+        )}
+      </div>
+      {url ? (
+        <div className="flex items-center gap-2 mb-3">
+          <button onClick={() => setPreviewImage(url)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-100 transition cursor-pointer">
+            <FileText size={14} /> Lihat Dokumen
+          </button>
+        </div>
+      ) : (
+        <p className="text-[10px] text-slate-400 italic mb-3">Belum ada dokumen yang diunggah.</p>
+      )}
+      <label className={`flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg transition-all shadow-sm ${uploadMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700 cursor-pointer'}`}>
+        <UploadCloud size={14} /> {url ? 'Ganti Dokumen' : 'Upload Dokumen'}
+        <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadProgress(docType, e)} disabled={uploadMutation.isPending} />
+      </label>
+    </div>
+  );
+  const renderChecklistBast = () => (
+    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 mt-6">
+      <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-4">
+        <h5 className="text-sm font-bold text-slate-800">Checklist BAST / Komplain Customer</h5>
+        <button type="button" onClick={() => setChecklist([...checklist, { key: '', value: '' }])} className="flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition cursor-pointer">
+          <Plus size={14} /> Tambah Ceklis
+        </button>
+      </div>
+      <div className="space-y-3 mb-4">
+        {checklist.length === 0 ? (
+          <p className="text-xs text-slate-400 italic text-center py-4 bg-white border border-slate-100 rounded-lg">Belum ada data checklist BAST.</p>
+        ) : (
+          checklist.map((c, idx) => (
+            <div key={idx} className="flex items-start gap-2">
+              <input
+                type="text"
+                placeholder="Bagian (Contoh: Cat Dinding)"
+                value={c.key}
+                onChange={(e) => { const newArr = [...checklist]; newArr[idx].key = e.target.value; setChecklist(newArr); }}
+                className="w-1/3 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-black"
+              />
+              <input
+                type="text"
+                placeholder="Catatan / Status (Contoh: Ada retak rambut sedikit)"
+                value={c.value}
+                onChange={(e) => { const newArr = [...checklist]; newArr[idx].value = e.target.value; setChecklist(newArr); }}
+                className="w-2/3 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-black"
+              />
+              <button type="button" onClick={() => setChecklist(checklist.filter((_, i) => i !== idx))} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition cursor-pointer shrink-0">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="flex justify-end">
+        <button onClick={handleSaveChecklist} disabled={updateMutation.isPending} className="px-5 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition cursor-pointer disabled:opacity-50 shadow-md">
+          {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Checklist BAST'}
+        </button>
+      </div>
+    </div>
+  );
+  if (loadingPenjualan || loadingCustomers) return <PageLoader />;
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Progress Penjualan"
+        columns={columns}
+        data={activePenjualan}
+      />
+      <Modal isOpen={!!modalStep} onClose={() => { setModalStep(null); setSelectedPenjualan(null); }} title="Kelola Progress Dokumen Penjualan">
+        {selectedPenjualan && (
+          <div className="space-y-6">
+            <div className="p-4 bg-slate-900 rounded-xl text-white shadow-md flex justify-between items-center">
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Skema Pembayaran</p>
+                <p className="text-xl font-black">{selectedPenjualan.caraPembayaran?.replace(/_/g, ' ')}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Customer / Kavling</p>
+                <p className="text-sm font-bold text-white">{selectedPenjualan.nama}</p>
+                <p className="text-xs text-slate-400">Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}</p>
+              </div>
+            </div>
+            {loadingProgress ? (
+              <div className="py-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
+            ) : progressData ? (
+              <div className="space-y-6">
+                {/* TAHAP 1 KPR: VALIDASI BERKAS */}
+                {modalStep === 'VALIDASI_BERKAS' && (
+                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-slate-100 pb-3 mb-4 gap-3">
+                        <h4 className="text-sm font-bold text-slate-800">Tahap 1: Validasi Berkas KPR</h4>
+                        <label className="flex items-center gap-2 cursor-pointer bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors w-fit">
+                          <input
+                            type="checkbox"
+                            checked={progressData.berkasCustomerValid}
+                            onChange={(e) => updateMutation.mutate({ id: progressData.penjualanId, data: { berkasCustomerValid: e.target.checked } })}
+                            className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                          />
+                          <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mt-0.5">
+                            Tandai Valid & Siap KPR
+                          </span>
+                        </label>
+                      </div>
+                      {/* Grid Dokumen Utama (KTP, KK, NPWP) */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => (
+                          <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                              {type.replace('file', '')}
+                            </span>
+                            <div
+                              onClick={() => currentCustomer?.[type] && setPreviewImage(currentCustomer[type] as string)}
+                              className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${currentCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'}`}
+                            >
+                              {currentCustomer?.[type] ? (
+                                <>
+                                  <img src={currentCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <ZoomIn size={20} className="text-white" />
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex flex-col items-center gap-1 text-slate-400">
+                                  <ImageIcon size={24} strokeWidth={1.5} />
+                                  <span className="text-[9px] font-bold">KOSONG</span>
+                                </div>
+                              )}
+                            </div>
+                            <FileInput
+                              label="Upload / Ganti"
+                              accept="image/*"
+                              onChange={(e) => handleUploadCustDoc(type, e)}
+                              disabled={uploadCustomerDocMutation.isPending}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {/* Dokumen Lainnya / Pendukung */}
+                      <div className="pt-4 border-t border-slate-100">
+                        <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                          <PlusCircle size={14} className="text-blue-600" /> Dokumen Pendukung KPR (Slip Gaji, Mutasi, dll)
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => (
+                            <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 hover:bg-white transition-all group shadow-sm">
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate" title={doc.nama}>
+                                {doc.nama}
+                              </span>
+                              <div
+                                onClick={() => setPreviewImage(doc.fileUrl)}
+                                className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-zoom-in group"
+                              >
+                                <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <ZoomIn size={20} className="text-white" />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="flex flex-col gap-3 p-3 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30">
+                            <div className="w-full">
+                              <input
+                                type="text"
+                                value={newDocName}
+                                onChange={(e) => setNewDocName(e.target.value)}
+                                placeholder="Nama Dok. Baru (Cth: Slip Gaji)"
+                                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400"
+                              />
+                            </div>
+                            <FileInput
+                              label="Pilih File"
+                              accept="image/*"
+                              onChange={handleUploadLainnya}
+                              disabled={uploadCustomerDocMutation.isPending || newDocName.trim() === ""}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* TAHAP 2 KPR: SP3K & BIAYA NOTARIS */}
+                {modalStep === 'SP3K' && (
+                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap SP3K & Biaya Notaris (Pajak)</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {renderFileBox("Dokumen SP3K Bank", "fileSp3k", progressData.fileSp3k)}
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
+                          <div>
+                            <CurrencyInput
+                              label="Nilai AJB"
+                              name="nilaiAjb"
+                              value={nilaiAjbInput}
+                              onValueChange={(_, val) => setNilaiAjbInput(val)}
+                              placeholder="0"
+                            />
+                            <div className="grid grid-cols-2 gap-3 mt-3 border-t border-blue-200/50 pt-3">
+                              <div>
+                                <p className="text-[9px] font-bold text-slate-500 uppercase">BPHTB</p>
+                                <p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedBphtb)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[9px] font-bold text-slate-500 uppercase">PPh (2.5%)</p>
+                                <p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedPph)}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <button onClick={handleSaveNilaiAjb} disabled={updateMutation.isPending} className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50">
+                            {updateMutation.isPending ? 'Menyimpan...' : 'Hitung & Simpan Nilai AJB'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* TAHAP PPJB (CASH BERTAHAP) */}
+                {modalStep === 'PPJB' && (
+                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Pengikatan Jual Beli (PPJB)</h4>
+                      {renderFileBox("Dokumen PPJB", "filePpjb", progressData.filePpjb)}
+                    </div>
+                  </div>
+                )}
+                {/* TAHAP AJB (BERLAKU UNTUK SEMUA SKEMA JIKA DIKLIK ICON AJB) */}
+                {modalStep === 'AJB' && (
+                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Akta Jual Beli (AJB)</h4>
+                      {renderFileBox("Dokumen AJB Resmi", "fileAjb", progressData.fileAjb)}
+                    </div>
+                  </div>
+                )}
+                {/* TAHAP BAST (BERLAKU UNTUK SEMUA SKEMA JIKA DIKLIK ICON BAST) */}
+                {modalStep === 'BAST' && (
+                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Serah Terima (BAST) & Checklist</h4>
+                      <div className="max-w-md mb-6">
+                        {renderFileBox("Dokumen BAST", "fileBast", progressData.fileBast)}
+                      </div>
+                      {renderChecklistBast()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+            <div className="flex justify-end pt-4 sticky bottom-0 bg-white border-t border-slate-100 mt-6 -mx-4 -mb-4 px-4 py-4 z-20">
+              <button onClick={() => { setModalStep(null); setSelectedPenjualan(null); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-md cursor-pointer">
+                Tutup Manajemen Progress
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      {/* MODAL LIGHTBOX PREVIEW DOKUMEN */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner overflow-hidden">
+              {previewImage.endsWith('.pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
+              Buka Full Screen
+            </a>
+            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+export default ProgressPenjualan;
+</file>
+
 <file path="src/services/auth.service.ts">
 import api from "../lib/axios";
 import type { ApiResponse } from "../types/api_response";
@@ -2907,6 +2839,44 @@ export const customerService = {
 };
 </file>
 
+<file path="src/utils/formatters.ts">
+export const formatRupiah = (angka: string | number): string => {
+  if (!angka) return "Rp 0";
+
+  const numberValue = typeof angka === "string" ? parseFloat(angka) : angka;
+  if (isNaN(numberValue)) return "Rp 0";
+
+  const roundedValue = Math.round(numberValue);
+
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(roundedValue);
+};
+
+export const formatDate = (dateString: string): string => {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+};
+
+export const formatTanpaDesimal = (angka: number) => {
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.round(angka || 0));
+};
+</file>
+
 <file path="src/components/layouts/RootLayout.tsx">
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
@@ -2934,6 +2904,55 @@ const RootLayout = () => {
 export default RootLayout;
 </file>
 
+<file path="src/components/shared/FileInput.tsx">
+import type { InputHTMLAttributes } from 'react';
+import { UploadCloud } from 'lucide-react';
+
+interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const FileInput = ({ label, error, ...props }: FileInputProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="file"
+          className={`block w-full text-sm text-slate-500
+            file:mr-4 file:py-2.5 file:px-4
+            file:rounded-l-xl file:border-0
+            file:text-xs file:font-bold file:uppercase file:tracking-widest
+            file:bg-slate-900 file:text-white
+            hover:file:bg-black file:transition-all
+            file:cursor-pointer cursor-pointer
+            border rounded-xl shadow-sm/50 transition-all duration-300
+            ${error
+              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black'
+            }
+          `}
+          {...props}
+        />
+        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-300 group-hover:text-slate-500 transition-colors">
+          <UploadCloud size={18} />
+        </div>
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default FileInput;
+</file>
+
 <file path="src/context/AuthContext.tsx">
 import { createContext, useContext } from 'react';
 import type { Perumahan } from '../types/models/perumahan';
@@ -2956,64 +2975,6 @@ export const useAuth = () => {
     throw new Error('useAuth harus digunakan di dalam AuthProvider');
   }
   return context;
-};
-</file>
-
-<file path="src/hooks/queries/useKavling.ts">
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  kavlingService,
-  type CreateKavlingDTO,
-  type GetKavlingParams,
-} from "../../services/kavling.service";
-
-export const KAVLING_KEYS = {
-  all: ["kavlings"] as const,
-  list: (params: GetKavlingParams) => ["kavlings", params] as const,
-};
-export const useGetKavlings = (params: GetKavlingParams = {}) => {
-  return useQuery({
-    queryKey: KAVLING_KEYS.list(params),
-    queryFn: () => kavlingService.getAll(params),
-  });
-};
-
-export const useCreateKavling = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (newData: CreateKavlingDTO) => kavlingService.create(newData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
-    },
-  });
-};
-
-export const useUpdateKavling = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: Partial<CreateKavlingDTO>;
-    }) => kavlingService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
-    },
-  });
-};
-
-export const useDeleteKavling = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => kavlingService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
-    },
-  });
 };
 </file>
 
@@ -3968,91 +3929,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 </file>
 
-<file path="src/utils/formatters.ts">
-export const formatRupiah = (angka: string | number): string => {
-  if (!angka) return "Rp 0";
+<file path="src/hooks/queries/useKavling.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  kavlingService,
+  type CreateKavlingDTO,
+  type GetKavlingParams,
+} from "../../services/kavling.service";
 
-  const numberValue = typeof angka === "string" ? parseFloat(angka) : angka;
-  if (isNaN(numberValue)) return "Rp 0";
-
-  const roundedValue = Math.round(numberValue);
-
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(roundedValue);
+export const KAVLING_KEYS = {
+  all: ["kavlings"] as const,
+  list: (params: GetKavlingParams) => ["kavlings", params] as const,
 };
 
-export const formatDate = (dateString: string): string => {
-  if (!dateString) return "-";
-
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+export const useGetKavlings = (params: GetKavlingParams = {}) => {
+  return useQuery({
+    queryKey: KAVLING_KEYS.list(params),
+    queryFn: () => kavlingService.getAll(params),
+  });
 };
 
-export const formatTanpaDesimal = (angka: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.round(angka || 0));
-};
-</file>
+export const useCreateKavling = () => {
+  const queryClient = useQueryClient();
 
-<file path="src/components/shared/FileInput.tsx">
-import type { InputHTMLAttributes } from 'react';
-import { UploadCloud } from 'lucide-react';
-
-interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  error?: string;
-}
-
-const FileInput = ({ label, error, ...props }: FileInputProps) => {
-  return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          type="file"
-          className={`block w-full text-sm text-slate-500
-            file:mr-4 file:py-2.5 file:px-4
-            file:rounded-l-xl file:border-0
-            file:text-xs file:font-bold file:uppercase file:tracking-widest
-            file:bg-slate-900 file:text-white
-            hover:file:bg-black file:transition-all
-            file:cursor-pointer cursor-pointer
-            border rounded-xl shadow-sm/50 transition-all duration-300
-            ${error
-              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
-              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black'
-            }
-          `}
-          {...props}
-        />
-        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-300 group-hover:text-slate-500 transition-colors">
-          <UploadCloud size={18} />
-        </div>
-      </div>
-      {error && (
-        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
-    </div>
-  );
+  return useMutation({
+    mutationFn: (newData: CreateKavlingDTO) => kavlingService.create(newData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
 };
 
-export default FileInput;
+export const useUpdateKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<CreateKavlingDTO>;
+    }) => kavlingService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteKavling = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => kavlingService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useUploadKavlingDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      docType,
+      file,
+    }: {
+      id: number;
+      docType: string;
+      file: File;
+    }) => kavlingService.uploadDocument(id, docType, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
 </file>
 
 <file path="src/pages/Login.tsx">
@@ -6827,99 +6778,449 @@ const Notaris = () => {
 export default Notaris;
 </file>
 
-<file path="src/services/kavling.service.ts">
-import api from "../lib/axios";
+<file path="src/pages/Marketing/Agents.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import { formatRupiah } from "../../utils/formatters";
+import {
+  useGetAgents,
+  useCreateAgent,
+  useUpdateAgent,
+  useDeleteAgent
+} from "../../hooks/queries/useAgent";
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 
-export interface KavlingData {
-  id: number;
-  perumahanId: number;
-  perumahan?: { id: number; nama: string };
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaDasar: number;
-  status: string;
-  rekeningTujuanId: number | null;
-  rekeningTujuan?: {
-    namaBank: string;
-    noRekening: string;
-    atasNama: string;
-  } | null;
-  filePbg: string | null;
-  fileSertifikatTanah: string | null;
-  fileNopPbb: string | null;
-  penjualan?: {
-    customer?: {
-      nama: string;
-      noHp: string;
-    };
-  }[];
+interface AgentFormState {
+  id: number | '';
+  nik: string;
+  nama: string;
+  alamat: string;
+  noHp: string;
+  email: string;
+  pics: PicAgentData[];
 }
 
-export interface CreateKavlingDTO {
-  perumahanId: number;
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaDasar: number;
-  status?: string;
-  rekeningTujuanId?: number;
-  filePbg?: string;
-  fileSertifikatTanah?: string;
-  fileNopPbb?: string;
-}
-
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  summary?: Record<string, number>;
-}
-
-export interface KavlingResponse {
-  items: KavlingData[];
-  meta: PaginationMeta;
-}
-
-export interface GetKavlingParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  perumahanId?: number;
-  status?: string;
-  orderBy?: string;
-}
-
-export const kavlingService = {
-  getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {
-    const response = await api.get("/kavling", {
-      params: { limit: 10, page: 1, ...params },
-    });
-    return response.data.data;
-  },
-
-  create: async (data: CreateKavlingDTO) => {
-    const response = await api.post("/kavling", data);
-    return response.data.data;
-  },
-
-  update: async (id: number, data: Partial<CreateKavlingDTO>) => {
-    const response = await api.patch(`/kavling/${id}`, data);
-    return response.data.data;
-  },
-
-  delete: async (id: number) => {
-    const response = await api.delete(`/kavling/${id}`);
-    return response.data;
-  },
+const initialFormState: AgentFormState = {
+  id: '',
+  nik: '',
+  nama: '',
+  alamat: '',
+  noHp: '',
+  email: '',
+  pics: [{ nama: '', noHp: '', alamat: '' }]
 };
+
+const Agents = () => {
+  const { data: agentData = [], isLoading } = useGetAgents();
+  // Ambil data penjualan untuk detail (riwayat di dalam row expand)
+  const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
+  const penjualanList = penjualanResponse?.items || [];
+  const createMutation = useCreateAgent();
+  const updateMutation = useUpdateAgent();
+  const deleteMutation = useDeleteAgent();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<AgentFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  // === State untuk Modal View Detail Agent ===
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentData | null>(null);
+
+  // State untuk Lightbox Detail Penjualan (saat melihat data di dalam tabel expand)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
+
+  const columns = [
+    { header: 'NIK', accessor: 'nik' },
+    { header: 'Nama Agent', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    { header: 'No. WhatsApp', accessor: 'noHp' },
+    {
+      header: 'Total PIC',
+      accessor: 'pics',
+      render: (pics: PicAgentData[]) => (
+        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold">
+          {pics?.length || 0} Orang
+        </span>
+      )
+    },
+    { header: 'Alamat', accessor: 'alamat', render: (val: string | null) => val || '-' },
+  ];
+
+  const openDetailModal = (item: AgentData) => {
+    setSelectedAgentDetail(item);
+    setIsDetailModalOpen(true);
+  };
+
+  const openModal = (item?: AgentData) => {
+    if (item) {
+      setFormData({
+        id: item.id,
+        nik: item.nik,
+        nama: item.nama,
+        alamat: item.alamat || '',
+        noHp: item.noHp,
+        email: item.email || '',
+        pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
+      });
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const newPics = [...prev.pics];
+      newPics[index] = { ...newPics[index], [name]: value };
+      return { ...prev, pics: newPics };
+    });
+  };
+
+  const handleAddPIC = () => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
+    }));
+  };
+
+  const handleRemovePIC = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: prev.pics.filter((_, i) => i !== index)
+    }));
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
+    if (formData.nik.trim().length !== 16) newErrors.nik = 'NIK harus 16 digit';
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
+    const payload: CreateAgentDTO = {
+      nik: formData.nik,
+      nama: formData.nama,
+      noHp: formData.noHp,
+      email: formData.email || undefined,
+      alamat: formData.alamat || undefined,
+      pics: validPics.length > 0 ? validPics : undefined,
+    };
+
+    try {
+      if (isEditing && formData.id) {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+    }
+  };
+
+  const handleDelete = async (item: AgentData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+        alert(error.response?.data?.message || 'Gagal menghapus agen');
+      }
+    }
+  };
+
+  const expandedRowRender = (row: AgentData) => {
+    const relatedSales = row.penjualan || [];
+
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
+          Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span>
+        </h4>
+        {relatedSales.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-lg font-bold">No. Transaksi</th>
+                  <th className="px-4 py-3 font-bold">Tanggal</th>
+                  <th className="px-4 py-3 font-bold">Customer</th>
+                  <th className="px-4 py-3 font-bold">Kavling</th>
+                  <th className="px-4 py-3 text-right font-bold">Nilai Penjualan (Rp)</th>
+                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {relatedSales.map((sale: PenjualanAgentData) => (
+                  <tr
+                    key={sale.id}
+                    onClick={() => {
+                      // Cari data lengkap dari list penjualan berdasarkan noTransaksi
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const detail = penjualanList.find((p: any) => p.id === sale.noTransaksi);
+                      setSelectedDetailPenjualan(detail || sale);
+                    }}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    title="Klik untuk melihat detail"
+                  >
+                    <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{sale.noTransaksi}</td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {new Date(sale.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{sale.customer?.nama || '-'}</td>
+                    <td className="px-4 py-3">
+                      {sale.kavling?.perumahan?.nama} ({sale.kavling?.blok}-{sale.kavling?.nomorUnit})
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-700">
+                      {formatRupiah(sale.hargaJual)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${sale.status.toUpperCase() === 'LUNAS' ? 'bg-green-100 text-green-700' :
+                        sale.status.toUpperCase() === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                        {sale.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+            Belum ada riwayat penjualan untuk agent ini.
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading) return <div className="p-4 text-slate-500 font-medium flex justify-center h-40 items-center">Memuat data agen...</div>;
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Data Agent Marketing"
+        columns={columns}
+        data={agentData}
+        onAdd={() => openModal()}
+        onDetail={(item) => openDetailModal(item as AgentData)}
+        onEdit={(item) => openModal(item as AgentData)}
+        onDelete={(item) => handleDelete(item as AgentData)}
+        expandedRowRender={expandedRowRender}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="NIK" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan 16 digit NIK" />
+              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Masukkan nama agent" />
+              <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
+              <Input label="Email (Opsional)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
+              <div className="md:col-span-2">
+                <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent (Opsional)</h4>
+                <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk di bawah agent ini</p>
+              </div>
+              <button type="button" onClick={handleAddPIC} className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer">
+                + Tambah PIC
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {formData.pics.map((pic, index) => (
+                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
+                  {formData.pics.length > 1 && (
+                    <button type="button" onClick={() => handleRemovePIC(index)} className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Hapus</button>
+                  )}
+                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input label="Nama PIC" name="nama" value={pic.nama} onChange={(e) => handlePICChange(index, e)} placeholder="Masukkan nama PIC" />
+                    <Input label="No. Telepon / HP PIC" name="noHp" value={pic.noHp} onChange={(e) => handlePICChange(index, e)} placeholder="08xxxxxxxxxx" />
+                    <div className="md:col-span-2">
+                      <Input label="Alamat PIC (Opsional)" name="alamat" value={pic.alamat || ''} onChange={(e) => handlePICChange(index, e)} placeholder="Masukkan alamat lengkap PIC" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50">
+              Batal
+            </button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50">
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL DETAIL AGENT (BARU) */}
+      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Agent">
+        {selectedAgentDetail && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+              <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Biodata Agent</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Agent</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">NIK</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.nik}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">No. WhatsApp / Telepon</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.noHp}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Email</p>
+                  <p className="text-sm font-medium text-slate-800">{selectedAgentDetail.email || '-'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Lengkap</p>
+                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedAgentDetail.alamat || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {selectedAgentDetail.pics && selectedAgentDetail.pics.length > 0 && (
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Kontak Tim / PIC Pendukung</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {selectedAgentDetail.pics.map((pic, idx) => (
+                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                      <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
+                      <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
+                      <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors cursor-pointer shadow-md"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL DETAIL PENJUALAN KETIKA ROW DI KLIK */}
+      <Modal isOpen={!!selectedDetailPenjualan} onClose={() => setSelectedDetailPenjualan(null)} title="Informasi Transaksi Penjualan">
+        {selectedDetailPenjualan && (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+              <div className="flex justify-between items-start mb-4 border-b border-slate-200 pb-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
+                  <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}</p>
+                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.id || selectedDetailPenjualan.noTransaksi}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :
+                    selectedDetailPenjualan.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                    {selectedDetailPenjualan.status}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-y-5 gap-x-4">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kavling</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.perumahan || selectedDetailPenjualan.kavling?.perumahan?.nama} - Blok {selectedDetailPenjualan.blok || selectedDetailPenjualan.kavling?.blok} No. {selectedDetailPenjualan.nomorUnit || selectedDetailPenjualan.kavling?.nomorUnit}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.caraPembayaran?.replace('_', ' ') || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
+                  <p className="text-sm font-bold text-blue-700">
+                    {selectedDetailPenjualan.hargaJual ? formatRupiah(selectedDetailPenjualan.hargaJual) : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tanggal Transaksi</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.tanggal ? new Date(selectedDetailPenjualan.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setSelectedDetailPenjualan(null)} className="px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer shadow-md">
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+    </div>
+  );
+};
+
+export default Agents;
 </file>
 
 <file path="src/hooks/queries/usePenjualan.ts">
@@ -7462,451 +7763,6 @@ const KelengkapanAdministrasi = () => {
 export default KelengkapanAdministrasi;
 </file>
 
-<file path="src/pages/Marketing/Agents.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import { formatRupiah } from "../../utils/formatters";
-import {
-  useGetAgents,
-  useCreateAgent,
-  useUpdateAgent,
-  useDeleteAgent
-} from "../../hooks/queries/useAgent";
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
-
-interface AgentFormState {
-  id: number | '';
-  nik: string;
-  nama: string;
-  alamat: string;
-  noHp: string;
-  email: string;
-  pics: PicAgentData[];
-}
-
-const initialFormState: AgentFormState = {
-  id: '',
-  nik: '',
-  nama: '',
-  alamat: '',
-  noHp: '',
-  email: '',
-  pics: [{ nama: '', noHp: '', alamat: '' }]
-};
-
-const Agents = () => {
-  const { data: agentData = [], isLoading } = useGetAgents();
-  // Ambil data penjualan untuk detail (riwayat di dalam row expand)
-  const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
-  const penjualanList = penjualanResponse?.items || [];
-  const createMutation = useCreateAgent();
-  const updateMutation = useUpdateAgent();
-  const deleteMutation = useDeleteAgent();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<AgentFormState>(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  // === State untuk Modal View Detail Agent ===
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentData | null>(null);
-
-  // State untuk Lightbox Detail Penjualan (saat melihat data di dalam tabel expand)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
-
-  const columns = [
-    { header: 'NIK', accessor: 'nik' },
-    { header: 'Nama Agent', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-    { header: 'No. WhatsApp', accessor: 'noHp' },
-    {
-      header: 'Total PIC',
-      accessor: 'pics',
-      render: (pics: PicAgentData[]) => (
-        <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold">
-          {pics?.length || 0} Orang
-        </span>
-      )
-    },
-    { header: 'Alamat', accessor: 'alamat', render: (val: string | null) => val || '-' },
-  ];
-
-  const openDetailModal = (item: AgentData) => {
-    setSelectedAgentDetail(item);
-    setIsDetailModalOpen(true);
-  };
-
-  const openModal = (item?: AgentData) => {
-    if (item) {
-      setFormData({
-        id: item.id,
-        nik: item.nik,
-        nama: item.nama,
-        alamat: item.alamat || '',
-        noHp: item.noHp,
-        email: item.email || '',
-        pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
-      });
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => {
-      const newPics = [...prev.pics];
-      newPics[index] = { ...newPics[index], [name]: value };
-      return { ...prev, pics: newPics };
-    });
-  };
-
-  const handleAddPIC = () => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
-    }));
-  };
-
-  const handleRemovePIC = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: prev.pics.filter((_, i) => i !== index)
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
-    if (formData.nik.trim().length !== 16) newErrors.nik = 'NIK harus 16 digit';
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
-    const payload: CreateAgentDTO = {
-      nik: formData.nik,
-      nama: formData.nama,
-      noHp: formData.noHp,
-      email: formData.email || undefined,
-      alamat: formData.alamat || undefined,
-      pics: validPics.length > 0 ? validPics : undefined,
-    };
-
-    try {
-      if (isEditing && formData.id) {
-        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
-      closeModal();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
-    }
-  };
-
-  const handleDelete = async (item: AgentData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
-      try {
-        await deleteMutation.mutateAsync(item.id);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-        alert(error.response?.data?.message || 'Gagal menghapus agen');
-      }
-    }
-  };
-
-  const expandedRowRender = (row: AgentData) => {
-    const relatedSales = row.penjualan || [];
-
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
-          Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span>
-        </h4>
-        {relatedSales.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">No. Transaksi</th>
-                  <th className="px-4 py-3 font-bold">Tanggal</th>
-                  <th className="px-4 py-3 font-bold">Customer</th>
-                  <th className="px-4 py-3 font-bold">Kavling</th>
-                  <th className="px-4 py-3 text-right font-bold">Nilai Penjualan (Rp)</th>
-                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {relatedSales.map((sale: PenjualanAgentData) => (
-                  <tr
-                    key={sale.id}
-                    onClick={() => {
-                      // Cari data lengkap dari list penjualan berdasarkan noTransaksi
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      const detail = penjualanList.find((p: any) => p.id === sale.noTransaksi);
-                      setSelectedDetailPenjualan(detail || sale);
-                    }}
-                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                    title="Klik untuk melihat detail"
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{sale.noTransaksi}</td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {new Date(sale.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td className="px-4 py-3 font-medium">{sale.customer?.nama || '-'}</td>
-                    <td className="px-4 py-3">
-                      {sale.kavling?.perumahan?.nama} ({sale.kavling?.blok}-{sale.kavling?.nomorUnit})
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-700">
-                      {formatRupiah(sale.hargaJual)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${sale.status.toUpperCase() === 'LUNAS' ? 'bg-green-100 text-green-700' :
-                        sale.status.toUpperCase() === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                        {sale.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Belum ada riwayat penjualan untuk agent ini.
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  if (isLoading) return <div className="p-4 text-slate-500 font-medium flex justify-center h-40 items-center">Memuat data agen...</div>;
-
-  return (
-    <div className="space-y-6">
-      <DataTable
-        title="Data Agent Marketing"
-        columns={columns}
-        data={agentData}
-        onAdd={() => openModal()}
-        onDetail={(item) => openDetailModal(item as AgentData)}
-        onEdit={(item) => openModal(item as AgentData)}
-        onDelete={(item) => handleDelete(item as AgentData)}
-        expandedRowRender={expandedRowRender}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="NIK" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan 16 digit NIK" />
-              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Masukkan nama agent" />
-              <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
-              <Input label="Email (Opsional)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
-              <div className="md:col-span-2">
-                <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent (Opsional)</h4>
-                <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk di bawah agent ini</p>
-              </div>
-              <button type="button" onClick={handleAddPIC} className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer">
-                + Tambah PIC
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {formData.pics.map((pic, index) => (
-                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
-                  {formData.pics.length > 1 && (
-                    <button type="button" onClick={() => handleRemovePIC(index)} className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Hapus</button>
-                  )}
-                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="Nama PIC" name="nama" value={pic.nama} onChange={(e) => handlePICChange(index, e)} placeholder="Masukkan nama PIC" />
-                    <Input label="No. Telepon / HP PIC" name="noHp" value={pic.noHp} onChange={(e) => handlePICChange(index, e)} placeholder="08xxxxxxxxxx" />
-                    <div className="md:col-span-2">
-                      <Input label="Alamat PIC (Opsional)" name="alamat" value={pic.alamat || ''} onChange={(e) => handlePICChange(index, e)} placeholder="Masukkan alamat lengkap PIC" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50">
-              Batal
-            </button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50">
-              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* MODAL DETAIL AGENT (BARU) */}
-      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Agent">
-        {selectedAgentDetail && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
-              <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Biodata Agent</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Agent</p>
-                  <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.nama}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">NIK</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.nik}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">No. WhatsApp / Telepon</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.noHp}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Email</p>
-                  <p className="text-sm font-medium text-slate-800">{selectedAgentDetail.email || '-'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Lengkap</p>
-                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedAgentDetail.alamat || '-'}</p>
-                </div>
-              </div>
-            </div>
-
-            {selectedAgentDetail.pics && selectedAgentDetail.pics.length > 0 && (
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Kontak Tim / PIC Pendukung</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {selectedAgentDetail.pics.map((pic, idx) => (
-                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
-                      <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
-                      <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
-                      <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors cursor-pointer shadow-md"
-              >
-                Tutup Detail
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* MODAL DETAIL PENJUALAN KETIKA ROW DI KLIK */}
-      <Modal isOpen={!!selectedDetailPenjualan} onClose={() => setSelectedDetailPenjualan(null)} title="Informasi Transaksi Penjualan">
-        {selectedDetailPenjualan && (
-          <div className="space-y-5 animate-in fade-in duration-300">
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-              <div className="flex justify-between items-start mb-4 border-b border-slate-200 pb-4">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
-                  <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}</p>
-                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.id || selectedDetailPenjualan.noTransaksi}</p>
-                </div>
-                <div className="text-right">
-                  <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :
-                    selectedDetailPenjualan.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                    {selectedDetailPenjualan.status}
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-y-5 gap-x-4">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kavling</p>
-                  <p className="text-sm font-semibold text-slate-800">
-                    {selectedDetailPenjualan.perumahan || selectedDetailPenjualan.kavling?.perumahan?.nama} - Blok {selectedDetailPenjualan.blok || selectedDetailPenjualan.kavling?.blok} No. {selectedDetailPenjualan.nomorUnit || selectedDetailPenjualan.kavling?.nomorUnit}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
-                  <p className="text-sm font-semibold text-slate-800">
-                    {selectedDetailPenjualan.caraPembayaran?.replace('_', ' ') || '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
-                  <p className="text-sm font-bold text-blue-700">
-                    {selectedDetailPenjualan.hargaJual ? formatRupiah(selectedDetailPenjualan.hargaJual) : '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tanggal Transaksi</p>
-                  <p className="text-sm font-semibold text-slate-800">
-                    {selectedDetailPenjualan.tanggal ? new Date(selectedDetailPenjualan.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end pt-2">
-              <button onClick={() => setSelectedDetailPenjualan(null)} className="px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer shadow-md">
-                Tutup Detail
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-    </div>
-  );
-};
-
-export default Agents;
-</file>
-
 <file path="src/pages/Public/VerifyDocument.tsx">
 import { useParams } from 'react-router-dom';
 import { AlertCircle, ShieldCheck, Printer } from 'lucide-react';
@@ -8182,6 +8038,115 @@ const VerifyDocument = () => {
 };
 
 export default VerifyDocument;
+</file>
+
+<file path="src/services/kavling.service.ts">
+import api from "../lib/axios";
+
+export interface KavlingData {
+  id: number;
+  perumahanId: number;
+  perumahan?: { id: number; nama: string };
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  hargaDasar: number;
+  status: string;
+  rekeningTujuanId: number | null;
+  rekeningTujuan?: {
+    namaBank: string;
+    noRekening: string;
+    atasNama: string;
+  } | null;
+  filePbg: string | null;
+  fileSertifikatTanah: string | null;
+  fileNopPbb: string | null;
+  penjualan?: {
+    customer?: {
+      nama: string;
+      noHp: string;
+    };
+  }[];
+}
+
+export interface CreateKavlingDTO {
+  perumahanId: number;
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  hargaDasar: number;
+  status?: string;
+  rekeningTujuanId?: number;
+
+  filePbg?: string;
+  fileSertifikatTanah?: string;
+  fileNopPbb?: string;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  summary?: Record<string, number>;
+}
+
+export interface KavlingResponse {
+  items: KavlingData[];
+  meta: PaginationMeta;
+}
+
+export interface GetKavlingParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  perumahanId?: number;
+  status?: string;
+  orderBy?: string;
+}
+
+export const kavlingService = {
+  getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {
+    const response = await api.get("/kavling", {
+      params: { limit: 10, page: 1, ...params },
+    });
+    return response.data.data;
+  },
+
+  create: async (data: CreateKavlingDTO) => {
+    const response = await api.post("/kavling", data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: Partial<CreateKavlingDTO>) => {
+    const response = await api.patch(`/kavling/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/kavling/${id}`);
+    return response.data;
+  },
+
+  uploadDocument: async (id: number, docType: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.patch(
+      `/kavling/${id}/upload/${docType}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data.data;
+  },
+};
 </file>
 
 <file path="src/components/Sidebar.tsx">
@@ -8767,137 +8732,6 @@ const SPR = () => {
 export default SPR;
 </file>
 
-<file path="src/services/penjualan.service.ts">
-import api from "../lib/axios";
-
-export interface CreatePenjualanDTO {
-  noIdentitas: string;
-  nama: string;
-  noTelepon: string;
-  alamat: string;
-  perusahaan?: string;
-  alamatKoresponden?: string;
-  perumahan: string;
-  blok: string;
-  nomorUnit: string;
-  tipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  tanggal: string;
-  hargaDasar: number;
-  plafonAwal?: number;
-  biayaKpr?: number;
-  plafonKredit?: number;
-  dpTidakDibayar?: number;
-  hargaJual: number;
-  hargaPromosi?: number;
-  diskonPenjualan?: number;
-  dp?: number;
-  bookingFee?: number;
-  caraPembayaran: string;
-  bank?: string;
-  nilaiPengajuanKpr?: number;
-  agent: string;
-  rekeningTujuanId?: number;
-  keteranganUpdateSpr?: string;
-}
-
-export const penjualanService = {
-  getAll: async (params?: Record<string, unknown>) => {
-    const response = await api.get("/penjualan", {
-      params: { ...params },
-    });
-
-    return response.data.data;
-  },
-
-  create: async (data: CreatePenjualanDTO) => {
-    const response = await api.post("/penjualan", data);
-    return response.data.data;
-  },
-  cancel: async (noTransaksi: string, alasanBatal: string) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
-      alasanBatal,
-    });
-    return response.data.data;
-  },
-  uploadBukti: async (
-    noTransaksi: string,
-    type: "booking" | "dp",
-    file: File,
-  ) => {
-    const formData = new FormData();
-    formData.append("fileBukti", file);
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/upload/${type}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
-    );
-
-    return response.data.data;
-  },
-  uploadSignature: async (data: {
-    noTransaksi: string;
-    signatureBase64: string;
-    nama: string;
-    peran: string;
-    tanggal: string;
-  }) => {
-    const response = await api.post(
-      `/penjualan/${data.noTransaksi}/signature`,
-      data,
-    );
-    return response.data.data;
-  },
-  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
-    return response.data.data;
-  },
-  gantiKavling: async (
-    noTransaksi: string,
-    data: { kavlingBaruId: number; alasan: string },
-  ) => {
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/ganti-kavling`,
-      data,
-    );
-    return response.data.data;
-  },
-  getPengajuanBatal: async (status?: string) => {
-    const response = await api.get("/penjualan/pengajuan-batal", {
-      params: { status },
-    });
-    return response.data.data;
-  },
-  getPengajuanGantiKavling: async (status?: string) => {
-    const response = await api.get("/penjualan/pengajuan-ganti-kavling", {
-      params: { status },
-    });
-    return response.data.data;
-  },
-  approveBatal: async (id: number, isApproved: boolean) => {
-    const response = await api.post(
-      `/penjualan/pengajuan-batal/${id}/approve`,
-      { isApproved },
-    );
-    return response.data.data;
-  },
-  approveGantiKavling: async (id: number, isApproved: boolean) => {
-    const response = await api.post(
-      `/penjualan/pengajuan-ganti-kavling/${id}/approve`,
-      { isApproved },
-    );
-    return response.data.data;
-  },
-  regenerateSpr: async (noTransaksi: string) => {
-    const response = await api.post(`/penjualan/${noTransaksi}/generate-spr`);
-    return response.data.data;
-  },
-};
-</file>
-
 <file path="src/components/shared/DataTable.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useEffect } from 'react';
@@ -9164,6 +8998,137 @@ const DataTable = ({
 };
 
 export default DataTable;
+</file>
+
+<file path="src/services/penjualan.service.ts">
+import api from "../lib/axios";
+
+export interface CreatePenjualanDTO {
+  noIdentitas: string;
+  nama: string;
+  noTelepon: string;
+  alamat: string;
+  perusahaan?: string;
+  alamatKoresponden?: string;
+  perumahan: string;
+  blok: string;
+  nomorUnit: string;
+  tipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  tanggal: string;
+  hargaDasar: number;
+  plafonAwal?: number;
+  biayaKpr?: number;
+  plafonKredit?: number;
+  dpTidakDibayar?: number;
+  hargaJual: number;
+  hargaPromosi?: number;
+  diskonPenjualan?: number;
+  dp?: number;
+  bookingFee?: number;
+  caraPembayaran: string;
+  bank?: string;
+  nilaiPengajuanKpr?: number;
+  agent: string;
+  rekeningTujuanId?: number;
+  keteranganUpdateSpr?: string;
+}
+
+export const penjualanService = {
+  getAll: async (params?: Record<string, unknown>) => {
+    const response = await api.get("/penjualan", {
+      params: { ...params },
+    });
+
+    return response.data.data;
+  },
+
+  create: async (data: CreatePenjualanDTO) => {
+    const response = await api.post("/penjualan", data);
+    return response.data.data;
+  },
+  cancel: async (noTransaksi: string, alasanBatal: string) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
+      alasanBatal,
+    });
+    return response.data.data;
+  },
+  uploadBukti: async (
+    noTransaksi: string,
+    type: "booking" | "dp",
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("fileBukti", file);
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/upload/${type}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+
+    return response.data.data;
+  },
+  uploadSignature: async (data: {
+    noTransaksi: string;
+    signatureBase64: string;
+    nama: string;
+    peran: string;
+    tanggal: string;
+  }) => {
+    const response = await api.post(
+      `/penjualan/${data.noTransaksi}/signature`,
+      data,
+    );
+    return response.data.data;
+  },
+  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
+    return response.data.data;
+  },
+  gantiKavling: async (
+    noTransaksi: string,
+    data: { kavlingBaruId: number; alasan: string },
+  ) => {
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/ganti-kavling`,
+      data,
+    );
+    return response.data.data;
+  },
+  getPengajuanBatal: async (status?: string) => {
+    const response = await api.get("/penjualan/pengajuan-batal", {
+      params: { status },
+    });
+    return response.data.data;
+  },
+  getPengajuanGantiKavling: async (status?: string) => {
+    const response = await api.get("/penjualan/pengajuan-ganti-kavling", {
+      params: { status },
+    });
+    return response.data.data;
+  },
+  approveBatal: async (id: number, isApproved: boolean) => {
+    const response = await api.post(
+      `/penjualan/pengajuan-batal/${id}/approve`,
+      { isApproved },
+    );
+    return response.data.data;
+  },
+  approveGantiKavling: async (id: number, isApproved: boolean) => {
+    const response = await api.post(
+      `/penjualan/pengajuan-ganti-kavling/${id}/approve`,
+      { isApproved },
+    );
+    return response.data.data;
+  },
+  regenerateSpr: async (noTransaksi: string) => {
+    const response = await api.post(`/penjualan/${noTransaksi}/generate-spr`);
+    return response.data.data;
+  },
+};
 </file>
 
 <file path="src/pages/Customer/Kavling.tsx">
@@ -9765,22 +9730,24 @@ import {
   CheckCircle2,
   Clock,
   Ban,
-  Building2
+  Building2,
+  FileText,
+  Map,
+  ScrollText,
+  UploadCloud
 } from "lucide-react";
-
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
 import { formatRupiah } from "../../utils/formatters";
 import { useAuth } from "../../context/AuthContext";
-
 import {
   useGetKavlings,
   useCreateKavling,
   useUpdateKavling,
-  useDeleteKavling
+  useDeleteKavling,
+  useUploadKavlingDocument
 } from "../../hooks/queries/useKavling";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
@@ -9797,9 +9764,6 @@ interface KavlingFormState {
   hargaDasar: number | '';
   status: string;
   rekeningTujuanId: number | '';
-  filePbg: string;
-  fileSertifikatTanah: string;
-  fileNopPbb: string;
 }
 
 const initialFormState: KavlingFormState = {
@@ -9813,9 +9777,6 @@ const initialFormState: KavlingFormState = {
   hargaDasar: '',
   status: 'AVAILABLE',
   rekeningTujuanId: '',
-  filePbg: '',
-  fileSertifikatTanah: '',
-  fileNopPbb: '',
 };
 
 const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
@@ -9827,22 +9788,18 @@ const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
 
 const Kavling = () => {
   const { selectedPerumahan } = useAuth();
-
-  // === Expand / Shrink State ===
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
-  // === LOGIC URL PARAMS ===
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') || '';
-  const orderBy = searchParams.get('orderBy') || ''; // Format backend: field:direction
+  const orderBy = searchParams.get('orderBy') || '';
   const limit = 10;
 
   const { data: perumahanList = [] } = useGetPerumahan();
   const { data: bankList = [] } = useGetBankRekening();
-
   const { data: kavlingResponse, isLoading } = useGetKavlings({
     page,
     limit,
@@ -9859,13 +9816,19 @@ const Kavling = () => {
   const createMutation = useCreateKavling();
   const updateMutation = useUpdateKavling();
   const deleteMutation = useDeleteKavling();
+  const uploadDocMutation = useUploadKavlingDocument();
 
+  // State Form Kavling
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  // === HANDLER URL PARAMS ===
+  // State Modal Dokumen Kavling (PBG, Sertifikat, NOP)
+  const [selectedDocKavling, setSelectedDocKavling] = useState<KavlingData | null>(null);
+  const [docModalStep, setDocModalStep] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => {
       prev.set('page', String(newPage));
@@ -9900,12 +9863,47 @@ const Kavling = () => {
     });
   };
 
+  const DokumenIcons = ({ row }: { row: KavlingData }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
+      <button
+        type="button"
+        title={title}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedDocKavling(row);
+          setDocModalStep(step);
+        }}
+        className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 ${active
+          ? 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+          : 'bg-slate-50 border-slate-200 text-slate-400 grayscale hover:grayscale-0 hover:bg-slate-100'
+          }`}
+      >
+        <Icon size={14} strokeWidth={active ? 2.5 : 1.5} />
+      </button>
+    );
+
+    return (
+      <div className="flex items-center gap-1">
+        <IconNode active={!!row.filePbg} icon={FileText} title="Dokumen PBG" step="PBG" />
+        <div className={`w-2 h-0.5 rounded-full ${row.filePbg && row.fileSertifikatTanah ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+        <IconNode active={!!row.fileSertifikatTanah} icon={ScrollText} title="Sertifikat Tanah" step="SERTIFIKAT" />
+        <div className={`w-2 h-0.5 rounded-full ${row.fileSertifikatTanah && row.fileNopPbb ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+        <IconNode active={!!row.fileNopPbb} icon={Map} title="NOP PBB" step="NOP" />
+      </div>
+    );
+  };
+
   const columns = [
-    { header: 'Perumahan', accessor: 'perumahan', render: (_: unknown, row: KavlingData) => row.perumahan?.nama || '-' },
     { header: 'Blok - No', accessor: 'blok', render: (_: unknown, row: KavlingData) => `${row.blok} - ${row.nomorUnit}` },
     { header: 'Tipe Rumah', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) },
+    {
+      header: 'Dokumen',
+      accessor: 'id',
+      render: (_: unknown, row: KavlingData) => <DokumenIcons row={row} />
+    },
     {
       header: 'Status',
       accessor: 'status',
@@ -9916,7 +9914,6 @@ const Kavling = () => {
         if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
         if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
         if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-
         return (
           <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>
             {val}
@@ -9929,7 +9926,6 @@ const Kavling = () => {
   const expandedRowRender = (row: KavlingData) => {
     const activeSale = row.penjualan?.[0];
     const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
-
     return (
       <div className="p-4 bg-slate-50/50 border-t border-slate-100 shadow-inner">
         {isBookedOrSold && activeSale ? (
@@ -9965,9 +9961,6 @@ const Kavling = () => {
         hargaDasar: item.hargaDasar,
         status: item.status,
         rekeningTujuanId: item.rekeningTujuanId || '',
-        filePbg: item.filePbg || '',
-        fileSertifikatTanah: item.fileSertifikatTanah || '',
-        fileNopPbb: item.fileNopPbb || '',
       });
       setIsEditing(true);
     } else {
@@ -9989,7 +9982,6 @@ const Kavling = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
-
     setFormData((prev) => {
       const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
       if (name === 'namaTipe') {
@@ -9999,20 +9991,12 @@ const Kavling = () => {
       }
       return { ...prev, ...updates };
     });
-
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
     }
   };
 
@@ -10025,7 +10009,6 @@ const Kavling = () => {
     if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
     if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
     if (formData.hargaDasar === '' || formData.hargaDasar <= 0) newErrors.hargaDasar = 'Harga Dasar tidak valid';
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -10033,7 +10016,6 @@ const Kavling = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     const payload: CreateKavlingDTO = {
       perumahanId: Number(formData.perumahanId),
       blok: formData.blok,
@@ -10044,11 +10026,7 @@ const Kavling = () => {
       hargaDasar: Number(formData.hargaDasar),
       status: formData.status,
       rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
-      filePbg: formData.filePbg || undefined,
-      fileSertifikatTanah: formData.fileSertifikatTanah || undefined,
-      fileNopPbb: formData.fileNopPbb || undefined,
     };
-
     try {
       if (isEditing && formData.id !== '') {
         await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
@@ -10085,13 +10063,63 @@ const Kavling = () => {
     }
   };
 
+  const handleUploadDoc = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedDocKavling) return;
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      await uploadDocMutation.mutateAsync({ id: selectedDocKavling.id, docType, file });
+      alert(`Dokumen berhasil diunggah!`);
+      // Update UI state local agar icon langsung hijau tanpa refresh page keras
+      setSelectedDocKavling(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal mengunggah dokumen kavling");
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const renderFileBox = (title: string, docType: string, url: string | null | undefined) => (
+    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <div className="flex justify-between items-center mb-3">
+        <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{title}</h5>
+        {url && (
+          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+            <CheckCircle2 size={12} /> Terunggah
+          </span>
+        )}
+      </div>
+
+      {url ? (
+        <div className="flex items-center gap-2 mb-3">
+          <button type="button" onClick={() => setPreviewImage(url)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-100 transition cursor-pointer">
+            <FileText size={14} /> Lihat Dokumen
+          </button>
+        </div>
+      ) : (
+        <p className="text-[10px] text-slate-400 italic mb-3">Belum ada dokumen yang diunggah.</p>
+      )}
+
+      <label className={`flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg transition-all shadow-sm ${uploadDocMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700 cursor-pointer'}`}>
+        <UploadCloud size={14} /> {url ? 'Ganti Dokumen' : 'Upload Dokumen'}
+        <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadDoc(docType, e)} disabled={uploadDocMutation.isPending} />
+      </label>
+    </div>
+  );
+
   const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
 
   if (isLoading && !kavlingData.length) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-
       {/* SUMMARY CARD */}
       <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
         <div
@@ -10104,7 +10132,6 @@ const Kavling = () => {
           </div>
           {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
-
         {isSummaryExpanded && (
           <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
@@ -10151,7 +10178,6 @@ const Kavling = () => {
           </div>
           {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
-
         {isFilterExpanded && (
           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
             <div className="relative">
@@ -10169,7 +10195,6 @@ const Kavling = () => {
               </select>
               <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
-
             <div className="relative">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
               <select
@@ -10206,12 +10231,12 @@ const Kavling = () => {
         onPageChange={handlePageChange}
       />
 
+      {/* MODAL FORM KAVLING UTAMA */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Data Utama</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Kavling</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
               <Select
                 label="Perumahan"
                 name="perumahanId"
@@ -10224,7 +10249,6 @@ const Kavling = () => {
                 error={errors.perumahanId}
                 disabled={isEditing}
               />
-
               <Select
                 label="Status Kavling"
                 name="status"
@@ -10239,7 +10263,6 @@ const Kavling = () => {
               />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
-
               <div className="md:col-span-2">
                 <Select
                   label="Tipe Rumah"
@@ -10253,7 +10276,6 @@ const Kavling = () => {
                   error={errors.namaTipe}
                 />
               </div>
-
               <Input
                 label="Luas Bangunan (m²)"
                 type="number"
@@ -10263,7 +10285,6 @@ const Kavling = () => {
                 error={errors.luasBangunan}
                 readOnly
               />
-
               <Select
                 label="Luas Tanah (m²)"
                 name="luasTanah"
@@ -10277,9 +10298,7 @@ const Kavling = () => {
                     : [])
                 ]}
               />
-
               <Input label="Harga Dasar (Rp)" type="number" name="hargaDasar" value={formData.hargaDasar} onChange={handleChange} error={errors.hargaDasar} />
-
               <div className="md:col-span-2">
                 <Select
                   label="Transfer ke Rekening"
@@ -10298,25 +10317,6 @@ const Kavling = () => {
               </div>
             </div>
           </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Upload Dokumen (Opsional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <FileInput label="Upload File PBG" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'filePbg')} />
-                {formData.filePbg && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.filePbg}</p>}
-              </div>
-              <div>
-                <FileInput label="Sertifikat Tanah" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileSertifikatTanah')} />
-                {formData.fileSertifikatTanah && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileSertifikatTanah}</p>}
-              </div>
-              <div>
-                <FileInput label="NOP PBB" accept="image/*,.pdf" onChange={(e) => handleFileChange(e, 'fileNopPbb')} />
-                {formData.fileNopPbb && <p className="text-xs text-green-600 mt-1 truncate">File: {formData.fileNopPbb}</p>}
-              </div>
-            </div>
-          </div>
-
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
             <button
               type="button"
@@ -10336,6 +10336,72 @@ const Kavling = () => {
           </div>
         </form>
       </Modal>
+
+      {/* MODAL UPLOAD DOKUMEN KAVLING DARI ICON */}
+      <Modal isOpen={!!docModalStep} onClose={() => { setDocModalStep(null); setSelectedDocKavling(null); }} title="Kelola Dokumen Fisik Kavling">
+        {selectedDocKavling && (
+          <div className="space-y-6">
+            <div className="p-4 bg-slate-900 rounded-xl text-white shadow-md flex justify-between items-center mb-6">
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Blok - Unit</p>
+                <p className="text-xl font-black">{selectedDocKavling.blok}-{selectedDocKavling.nomorUnit}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tipe Rumah</p>
+                <p className="text-sm font-bold text-white">{selectedDocKavling.namaTipe}</p>
+              </div>
+            </div>
+
+            {docModalStep === 'PBG' && (
+              <div className="animate-in fade-in zoom-in-95 duration-300">
+                {renderFileBox("Persetujuan Bangunan Gedung (PBG)", "filePbg", selectedDocKavling.filePbg)}
+              </div>
+            )}
+
+            {docModalStep === 'SERTIFIKAT' && (
+              <div className="animate-in fade-in zoom-in-95 duration-300">
+                {renderFileBox("Sertifikat Tanah / SHM / HGB", "fileSertifikatTanah", selectedDocKavling.fileSertifikatTanah)}
+              </div>
+            )}
+
+            {docModalStep === 'NOP' && (
+              <div className="animate-in fade-in zoom-in-95 duration-300">
+                {renderFileBox("Nomor Objek Pajak (NOP PBB)", "fileNopPbb", selectedDocKavling.fileNopPbb)}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4 sticky bottom-0 bg-white border-t border-slate-100 mt-6 -mx-4 -mb-4 px-4 py-4 z-20">
+              <button onClick={() => { setDocModalStep(null); setSelectedDocKavling(null); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-md cursor-pointer">
+                Tutup Dokumen
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL LIGHTBOX PREVIEW DOKUMEN */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner overflow-hidden">
+              {previewImage.endsWith('.pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
+              Buka Full Screen
+            </a>
+            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };
