@@ -23,6 +23,7 @@ const menuItems = [
     icon: <ShoppingCart size={20} strokeWidth={1.5} />,
     submenus: [
       { title: 'Data Penjualan', path: '/management/penjualan' },
+      { title: 'Progress Penjualan', path: '/management/progress-penjualan' },
       { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
       { title: 'Batal Transaksi', path: '/management/batal-transaksi' },
     ],
