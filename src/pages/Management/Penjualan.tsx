@@ -207,6 +207,7 @@ const Penjualan = () => {
 
   // State for Dropdown Aksi
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0, dropUp: false });
 
   const handleBankSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -471,7 +472,22 @@ const Penjualan = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setActiveActionId(isActive ? null : (row.id as string));
+                if (isActive) {
+                  setActiveActionId(null);
+                } else {
+                  // MODIFIKASI: Hitung posisi tombol relatif terhadap jendela browser
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  // Jika sisa ruang di bawah kurang dari 120px, tampilkan menu ke arah atas
+                  const dropUp = spaceBelow < 120;
+
+                  setDropdownPos({
+                    top: dropUp ? rect.top : rect.bottom,
+                    right: window.innerWidth - rect.right,
+                    dropUp
+                  });
+                  setActiveActionId(row.id as string);
+                }
               }}
               className={`p-1.5 rounded-lg transition-all cursor-pointer border flex items-center justify-center ${isActive
                 ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
@@ -491,7 +507,15 @@ const Penjualan = () => {
                     setActiveActionId(null);
                   }}
                 />
-                <div className="absolute right-0 top-full mt-2 w-36 bg-indigo-600 rounded-xl shadow-xl shadow-indigo-600/40 border border-indigo-500 py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                {/* MODIFIKASI: Ubah class absolute menjadi fixed, hapus top-full dan right-0, lalu tambahkan inline style */}
+                <div
+                  className="fixed w-36 bg-indigo-600 rounded-xl shadow-xl shadow-indigo-600/40 border border-indigo-500 py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+                  style={{
+                    top: dropdownPos.dropUp ? 'auto' : `${dropdownPos.top + 8}px`,
+                    bottom: dropdownPos.dropUp ? `${window.innerHeight - dropdownPos.top + 8}px` : 'auto',
+                    right: `${dropdownPos.right}px`
+                  }}
+                >
                   {row.hargaJual && (
                     <button
                       onClick={(e) => {
