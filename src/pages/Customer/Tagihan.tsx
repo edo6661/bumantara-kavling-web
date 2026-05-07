@@ -551,7 +551,9 @@ const Tagihan = () => {
                                 caraPembayaran: targetPenjualan?.pembiayaan,
                                 bank: targetPenjualan?.bank,
                                 agent: targetPenjualan?.agent || '-',
-                                pembuat: targetPenjualan?.createdBy || 'Admin'
+                                pembuat: targetPenjualan?.createdBy || 'Admin',
+                                luasTanah: targetPenjualan?.luasTanah,
+                                luasBangunan: targetPenjualan?.luasBangunan
                               });
                             }}
                             className="p-1.5 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition shadow-sm cursor-pointer"
@@ -839,7 +841,7 @@ const Tagihan = () => {
                       <td className="py-4 px-4 border-b border-slate-100 align-top">
                         <p className="text-base font-black text-slate-900 m-0 mb-2">{printTitle}</p>
                         <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{printData.perumahan}</strong></p>
-                        <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
+                        <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''} LT: {printData.luasTanah || '-'} / LB: {printData.luasBangunan || '-'}</p>
                         <p className="text-xs text-slate-600 font-medium m-0">Skema Pembayaran: <strong>{printData.caraPembayaran?.replace('_', ' ')}</strong></p>
                       </td>
                       <td className="py-4 px-4 border-b border-slate-100 text-right align-top text-lg font-black text-slate-900">

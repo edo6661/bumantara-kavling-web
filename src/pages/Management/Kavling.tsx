@@ -2,20 +2,9 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import {
-  UserCircle,
-  ChevronDown,
-  ChevronUp,
-  Filter,
-  ArrowUpDown,
-  PieChart,
-  CheckCircle2,
-  Clock,
-  Ban,
-  Building2,
-  FileText,
-  Map,
-  ScrollText,
-  UploadCloud
+  UserCircle, ChevronDown, ChevronUp, Filter, ArrowUpDown,
+  PieChart, CheckCircle2, Clock, Ban, Building2, FileText,
+  Map, ScrollText, UploadCloud
 } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -24,11 +13,8 @@ import Select from "../../components/shared/Select";
 import { formatRupiah } from "../../utils/formatters";
 import { useAuth } from "../../context/AuthContext";
 import {
-  useGetKavlings,
-  useCreateKavling,
-  useUpdateKavling,
-  useDeleteKavling,
-  useUploadKavlingDocument
+  useGetKavlings, useCreateKavling, useUpdateKavling,
+  useDeleteKavling, useUploadKavlingDocument
 } from "../../hooks/queries/useKavling";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
@@ -48,16 +34,8 @@ interface KavlingFormState {
 }
 
 const initialFormState: KavlingFormState = {
-  id: '',
-  perumahanId: '',
-  blok: '',
-  nomorUnit: '',
-  namaTipe: '',
-  luasBangunan: '',
-  luasTanah: '',
-  hargaDasar: '',
-  status: 'AVAILABLE',
-  rekeningTujuanId: '',
+  id: '', perumahanId: '', blok: '', nomorUnit: '', namaTipe: '',
+  luasBangunan: '', luasTanah: '', hargaDasar: '', status: 'AVAILABLE', rekeningTujuanId: '',
 };
 
 const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
@@ -82,9 +60,7 @@ const Kavling = () => {
   const { data: perumahanList = [] } = useGetPerumahan();
   const { data: bankList = [] } = useGetBankRekening();
   const { data: kavlingResponse, isLoading } = useGetKavlings({
-    page,
-    limit,
-    search,
+    page, limit, search,
     perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
     status: statusFilter !== '' ? statusFilter : undefined,
     orderBy: orderBy !== '' ? orderBy : undefined
@@ -99,48 +75,36 @@ const Kavling = () => {
   const deleteMutation = useDeleteKavling();
   const uploadDocMutation = useUploadKavlingDocument();
 
-  // State Form Kavling
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  // State Modal Dokumen Kavling (PBG, Sertifikat, NOP)
   const [selectedDocKavling, setSelectedDocKavling] = useState<KavlingData | null>(null);
   const [docModalStep, setDocModalStep] = useState<string | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handlePageChange = (newPage: number) => {
-    setSearchParams(prev => {
-      prev.set('page', String(newPage));
-      return prev;
-    });
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
   };
 
   const handleSearchChange = (newSearch: string) => {
     setSearchParams(prev => {
-      if (newSearch) prev.set('search', newSearch);
-      else prev.delete('search');
-      prev.set('page', '1');
-      return prev;
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
     });
   };
 
   const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSearchParams(prev => {
-      if (e.target.value) prev.set('status', e.target.value);
-      else prev.delete('status');
-      prev.set('page', '1');
-      return prev;
+      if (e.target.value) prev.set('status', e.target.value); else prev.delete('status');
+      prev.set('page', '1'); return prev;
     });
   };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSearchParams(prev => {
-      if (e.target.value) prev.set('orderBy', e.target.value);
-      else prev.delete('orderBy');
-      prev.set('page', '1');
-      return prev;
+      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
+      prev.set('page', '1'); return prev;
     });
   };
 
@@ -181,9 +145,7 @@ const Kavling = () => {
     { header: 'Tipe Rumah', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) }, {
-      header: 'Dokumen',
-      accessor: 'id',
-      render: (_: unknown, row: KavlingData) => <DokumenIcons row={row} />
+      header: 'Dokumen', accessor: 'id', render: (_: unknown, row: KavlingData) => <DokumenIcons row={row} />
     },
     {
       header: 'Status',
@@ -195,11 +157,7 @@ const Kavling = () => {
         if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
         if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
         if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        return (
-          <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>
-            {val}
-          </span>
-        );
+        return <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>{val}</span>;
       }
     },
   ];
@@ -232,23 +190,13 @@ const Kavling = () => {
   const openModal = (item?: KavlingData) => {
     if (item) {
       setFormData({
-        id: item.id,
-        perumahanId: item.perumahanId,
-        blok: item.blok,
-        nomorUnit: item.nomorUnit,
-        namaTipe: item.namaTipe,
-        luasBangunan: item.luasBangunan,
-        luasTanah: item.luasTanah,
-        hargaDasar: item.hargaDasar,
-        status: item.status,
-        rekeningTujuanId: item.rekeningTujuanId || '',
+        id: item.id, perumahanId: item.perumahanId, blok: item.blok, nomorUnit: item.nomorUnit,
+        namaTipe: item.namaTipe, luasBangunan: item.luasBangunan, luasTanah: item.luasTanah,
+        hargaDasar: item.hargaDasar, status: item.status, rekeningTujuanId: item.rekeningTujuanId || '',
       });
       setIsEditing(true);
     } else {
-      setFormData({
-        ...initialFormState,
-        perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '',
-      });
+      setFormData({ ...initialFormState, perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '' });
       setIsEditing(false);
     }
     setErrors({});
@@ -298,14 +246,9 @@ const Kavling = () => {
     e.preventDefault();
     if (!validateForm()) return;
     const payload: CreateKavlingDTO = {
-      perumahanId: Number(formData.perumahanId),
-      blok: formData.blok,
-      nomorUnit: formData.nomorUnit,
-      namaTipe: formData.namaTipe,
-      luasBangunan: Number(formData.luasBangunan),
-      luasTanah: Number(formData.luasTanah),
-      hargaDasar: Number(formData.hargaDasar),
-      status: formData.status,
+      perumahanId: Number(formData.perumahanId), blok: formData.blok, nomorUnit: formData.nomorUnit,
+      namaTipe: formData.namaTipe, luasBangunan: Number(formData.luasBangunan), luasTanah: Number(formData.luasTanah),
+      hargaDasar: Number(formData.hargaDasar), status: formData.status,
       rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
     };
     try {
@@ -320,9 +263,7 @@ const Kavling = () => {
         const responseData = error.response.data;
         if (responseData?.error && Array.isArray(responseData.error)) {
           const backendErrors: Record<string, string> = {};
-          responseData.error.forEach((err: { field: string; message: string }) => {
-            backendErrors[err.field] = err.message;
-          });
+          responseData.error.forEach((err: { field: string; message: string }) => { backendErrors[err.field] = err.message; });
           setErrors(backendErrors);
         } else {
           alert(responseData?.message || 'Gagal menyimpan kavling.');
@@ -357,7 +298,6 @@ const Kavling = () => {
     try {
       await uploadDocMutation.mutateAsync({ id: selectedDocKavling.id, docType, file });
       alert(`Dokumen berhasil diunggah!`);
-      // Update UI state local agar icon langsung hijau tanpa refresh page keras
       setSelectedDocKavling(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -367,33 +307,42 @@ const Kavling = () => {
     }
   };
 
-  const renderFileBox = (title: string, docType: string, url: string | null | undefined) => (
-    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-      <div className="flex justify-between items-center mb-3">
-        <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{title}</h5>
-        {url && (
-          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-            <CheckCircle2 size={12} /> Terunggah
-          </span>
+  // UI/UX Baru: Bersih, tanpa tombol modal tambahan
+  const renderFileBox = (title: string, docType: string, url: string | null | undefined) => {
+    const isPdf = url?.toLowerCase().endsWith('.pdf') || url?.includes('application/pdf');
+
+    return (
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200">
+        <div className="flex justify-between items-center">
+          <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${uploadDocMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+            <UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadDoc(docType, e)} disabled={uploadDocMutation.isPending} />
+          </label>
+        </div>
+
+        {url ? (
+          <div className="w-full h-64 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden relative group">
+            {isPdf ? (
+              <iframe src={url} className="w-full h-full border-none" title={title} />
+            ) : (
+              <img src={url} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            )}
+            {/* Tombol hover untuk buka full screen di tab baru */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+              <a href={url} target="_blank" rel="noopener noreferrer" className="pointer-events-auto px-4 py-2 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md hover:bg-slate-50 transition-colors">
+                Buka di Tab Baru
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full h-24 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
+            <span className="text-[10px] font-medium italic">Belum ada dokumen yang diunggah</span>
+          </div>
         )}
       </div>
-
-      {url ? (
-        <div className="flex items-center gap-2 mb-3">
-          <button type="button" onClick={() => setPreviewImage(url)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-100 transition cursor-pointer">
-            <FileText size={14} /> Lihat Dokumen
-          </button>
-        </div>
-      ) : (
-        <p className="text-[10px] text-slate-400 italic mb-3">Belum ada dokumen yang diunggah.</p>
-      )}
-
-      <label className={`flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg transition-all shadow-sm ${uploadDocMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-700 cursor-pointer'}`}>
-        <UploadCloud size={14} /> {url ? 'Ganti Dokumen' : 'Upload Dokumen'}
-        <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadDoc(docType, e)} disabled={uploadDocMutation.isPending} />
-      </label>
-    </div>
-  );
+    );
+  };
 
   const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
 
@@ -401,93 +350,39 @@ const Kavling = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* SUMMARY CARD */}
       <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-        <div
-          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
-          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-        >
-          <div className="flex items-center gap-2">
-            <PieChart size={18} className="text-slate-600" />
-            <h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Unit Kavling</h3>
-          </div>
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors" onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}>
+          <div className="flex items-center gap-2"><PieChart size={18} className="text-slate-600" /><h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Unit Kavling</h3></div>
           {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
         {isSummaryExpanded && (
           <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
-            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Building2 size={16} className="text-slate-600" /></div>
-                <p className="text-xs font-bold text-slate-500 uppercase">Total Unit</p>
-              </div>
-              <p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p>
-            </div>
-            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div>
-                <p className="text-xs font-bold text-green-700 uppercase">Available</p>
-              </div>
-              <p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p>
-            </div>
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
-                <p className="text-xs font-bold text-blue-700 uppercase">Booking</p>
-              </div>
-              <p className="text-2xl font-black text-blue-800">{summary['BOOKING'] || 0}</p>
-            </div>
-            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center"><Ban size={16} className="text-yellow-600" /></div>
-                <p className="text-xs font-bold text-yellow-700 uppercase">Hold / Terjual</p>
-              </div>
-              <p className="text-2xl font-black text-yellow-800">{(summary['HOLD'] || 0) + (summary['TERJUAL'] || 0)}</p>
-            </div>
+            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Building2 size={16} className="text-slate-600" /></div><p className="text-xs font-bold text-slate-500 uppercase">Total Unit</p></div><p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p></div>
+            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div><p className="text-xs font-bold text-green-700 uppercase">Available</p></div><p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p></div>
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div><p className="text-xs font-bold text-blue-700 uppercase">Booking</p></div><p className="text-2xl font-black text-blue-800">{summary['BOOKING'] || 0}</p></div>
+            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center"><Ban size={16} className="text-yellow-600" /></div><p className="text-xs font-bold text-yellow-700 uppercase">Hold / Terjual</p></div><p className="text-2xl font-black text-yellow-800">{(summary['HOLD'] || 0) + (summary['TERJUAL'] || 0)}</p></div>
           </div>
         )}
       </div>
 
-      {/* FILTER & SORT CARD */}
       <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-        <div
-          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
-          onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-        >
-          <div className="flex items-center gap-2">
-            <Filter size={18} className="text-slate-600" />
-            <h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3>
-          </div>
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors" onClick={() => setIsFilterExpanded(!isFilterExpanded)}>
+          <div className="flex items-center gap-2"><Filter size={18} className="text-slate-600" /><h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3></div>
           {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
         {isFilterExpanded && (
           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
             <div className="relative">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Status</label>
-              <select
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
-                value={statusFilter}
-                onChange={handleStatusFilterChange}
-              >
-                <option value="">Semua Status</option>
-                <option value="AVAILABLE">Tersedia (Available)</option>
-                <option value="BOOKING">Booking</option>
-                <option value="TERJUAL">Terjual</option>
-                <option value="HOLD">Ditahan (Hold)</option>
+              <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={statusFilter} onChange={handleStatusFilterChange}>
+                <option value="">Semua Status</option><option value="AVAILABLE">Tersedia (Available)</option><option value="BOOKING">Booking</option><option value="TERJUAL">Terjual</option><option value="HOLD">Ditahan (Hold)</option>
               </select>
               <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
             <div className="relative">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
-              <select
-                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none"
-                value={orderBy}
-                onChange={handleSortChange}
-              >
-                <option value="">Terbaru (Default)</option>
-                <option value="hargaDasar:asc">Harga: Rendah ke Tinggi</option>
-                <option value="hargaDasar:desc">Harga: Tinggi ke Rendah</option>
-                <option value="luasBangunan:desc">Luas Bangunan: Terbesar</option>
-                <option value="blok:asc">Blok: A - Z</option>
+              <select className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={orderBy} onChange={handleSortChange}>
+                <option value="">Terbaru (Default)</option><option value="hargaDasar:asc">Harga: Rendah ke Tinggi</option><option value="hargaDasar:desc">Harga: Tinggi ke Rendah</option><option value="luasBangunan:desc">Luas Bangunan: Terbesar</option><option value="blok:asc">Blok: A - Z</option>
               </select>
               <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
               <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
@@ -496,129 +391,35 @@ const Kavling = () => {
         )}
       </div>
 
-      <DataTable
-        title={`Manajemen Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`}
-        columns={columns}
-        data={kavlingData}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item as KavlingData)}
-        onDelete={(item) => handleDelete(item as KavlingData)}
-        expandedRowRender={expandedRowRender}
-        serverSide={true}
-        searchTerm={search}
-        onSearchChange={handleSearchChange}
-        page={page}
-        totalPages={meta?.totalPages || 1}
-        onPageChange={handlePageChange}
-      />
+      <DataTable title={`Manajemen Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`} columns={columns} data={kavlingData} onAdd={() => openModal()} onEdit={(item) => openModal(item as KavlingData)} onDelete={(item) => handleDelete(item as KavlingData)} expandedRowRender={expandedRowRender} serverSide={true} searchTerm={search} onSearchChange={handleSearchChange} page={page} totalPages={meta?.totalPages || 1} onPageChange={handlePageChange} />
 
-      {/* MODAL FORM KAVLING UTAMA */}
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Kavling</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Perumahan"
-                name="perumahanId"
-                value={formData.perumahanId}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih Perumahan --' },
-                  ...perumahanList.map(p => ({ value: p.id, label: p.nama }))
-                ]}
-                error={errors.perumahanId}
-                disabled={isEditing}
-              />
-              <Select
-                label="Status Kavling"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                options={[
-                  { value: 'AVAILABLE', label: 'Available' },
-                  { value: 'HOLD', label: 'Hold' },
-                  { value: 'BOOKING', label: 'Booking' },
-                  { value: 'TERJUAL', label: 'Terjual' }
-                ]}
-              />
+              <Select label="Perumahan" name="perumahanId" value={formData.perumahanId} onChange={handleChange} options={[{ value: '', label: '-- Pilih Perumahan --' }, ...perumahanList.map(p => ({ value: p.id, label: p.nama }))]} error={errors.perumahanId} disabled={isEditing} />
+              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'HOLD', label: 'Hold' }, { value: 'BOOKING', label: 'Booking' }, { value: 'TERJUAL', label: 'Terjual' }]} />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
               <div className="md:col-span-2">
-                <Select
-                  label="Tipe Rumah"
-                  name="namaTipe"
-                  value={formData.namaTipe}
-                  onChange={handleChange}
-                  options={[
-                    { value: '', label: '-- Pilih Tipe --' },
-                    ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))
-                  ]}
-                  error={errors.namaTipe}
-                />
+                <Select label="Tipe Rumah" name="namaTipe" value={formData.namaTipe} onChange={handleChange} options={[{ value: '', label: '-- Pilih Tipe --' }, ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))]} error={errors.namaTipe} />
               </div>
-              <Input
-                label="Luas Bangunan (m²)"
-                type="number"
-                name="luasBangunan"
-                value={formData.luasBangunan}
-                onChange={handleChange}
-                error={errors.luasBangunan}
-                readOnly
-              />
-              <Select
-                label="Luas Tanah (m²)"
-                name="luasTanah"
-                value={formData.luasTanah}
-                onChange={handleChange}
-                error={errors.luasTanah}
-                options={[
-                  { value: '', label: '-- Pilih LT --' },
-                  ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe]
-                    ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }))
-                    : [])
-                ]}
-              />
+              <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
+              <Select label="Luas Tanah (m²)" name="luasTanah" value={formData.luasTanah} onChange={handleChange} error={errors.luasTanah} options={[{ value: '', label: '-- Pilih LT --' }, ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe] ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) })) : [])]} />
               <Input label="Harga Dasar (Rp)" type="number" name="hargaDasar" value={formData.hargaDasar} onChange={handleChange} error={errors.hargaDasar} />
               <div className="md:col-span-2">
-                <Select
-                  label="Transfer ke Rekening"
-                  name="rekeningTujuanId"
-                  value={formData.rekeningTujuanId}
-                  onChange={handleChange}
-                  options={[
-                    { value: '', label: 'Pilih Rekening Pembayaran (Opsional)...' },
-                    ...filteredBanks.map(b => ({
-                      value: b.id,
-                      label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}`
-                    }))
-                  ]}
-                  error={errors.rekeningTujuanId}
-                />
+                <Select label="Transfer ke Rekening" name="rekeningTujuanId" value={formData.rekeningTujuanId} onChange={handleChange} options={[{ value: '', label: 'Pilih Rekening Pembayaran (Opsional)...' }, ...filteredBanks.map(b => ({ value: b.id, label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}` }))]} error={errors.rekeningTujuanId} />
               </div>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Kavling'}
-            </button>
+            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50">Batal</button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50">{createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Kavling'}</button>
           </div>
         </form>
       </Modal>
 
-      {/* MODAL UPLOAD DOKUMEN KAVLING DARI ICON */}
       <Modal isOpen={!!docModalStep} onClose={() => { setDocModalStep(null); setSelectedDocKavling(null); }} title="Kelola Dokumen Fisik Kavling">
         {selectedDocKavling && (
           <div className="space-y-6">
@@ -633,23 +434,9 @@ const Kavling = () => {
               </div>
             </div>
 
-            {docModalStep === 'PBG' && (
-              <div className="animate-in fade-in zoom-in-95 duration-300">
-                {renderFileBox("Persetujuan Bangunan Gedung (PBG)", "filePbg", selectedDocKavling.filePbg)}
-              </div>
-            )}
-
-            {docModalStep === 'SERTIFIKAT' && (
-              <div className="animate-in fade-in zoom-in-95 duration-300">
-                {renderFileBox("Sertifikat Tanah / SHM / HGB", "fileSertifikatTanah", selectedDocKavling.fileSertifikatTanah)}
-              </div>
-            )}
-
-            {docModalStep === 'NOP' && (
-              <div className="animate-in fade-in zoom-in-95 duration-300">
-                {renderFileBox("Nomor Objek Pajak (NOP PBB)", "fileNopPbb", selectedDocKavling.fileNopPbb)}
-              </div>
-            )}
+            {docModalStep === 'PBG' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Persetujuan Bangunan Gedung (PBG)", "filePbg", selectedDocKavling.filePbg)}</div>}
+            {docModalStep === 'SERTIFIKAT' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Sertifikat Tanah / SHM / HGB", "fileSertifikatTanah", selectedDocKavling.fileSertifikatTanah)}</div>}
+            {docModalStep === 'NOP' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Nomor Objek Pajak (NOP PBB)", "fileNopPbb", selectedDocKavling.fileNopPbb)}</div>}
 
             <div className="flex justify-end pt-4 sticky bottom-0 bg-white border-t border-slate-100 mt-6 -mx-4 -mb-4 px-4 py-4 z-20">
               <button onClick={() => { setDocModalStep(null); setSelectedDocKavling(null); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-md cursor-pointer">
@@ -659,30 +446,6 @@ const Kavling = () => {
           </div>
         )}
       </Modal>
-
-      {/* MODAL LIGHTBOX PREVIEW DOKUMEN */}
-      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
-        <div className="flex flex-col items-center">
-          {previewImage && (
-            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner overflow-hidden">
-              {previewImage.endsWith('.pdf') ? (
-                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg" title="PDF Preview" />
-              ) : (
-                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
-              )}
-            </div>
-          )}
-          <div className="mt-6 flex gap-3">
-            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
-              Buka Full Screen
-            </a>
-            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">
-              Tutup
-            </button>
-          </div>
-        </div>
-      </Modal>
-
     </div>
   );
 };

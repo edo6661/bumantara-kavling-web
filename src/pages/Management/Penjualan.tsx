@@ -284,7 +284,7 @@ const Penjualan = () => {
         if (name === 'biayaKpr') {
           biayaKpr = Number(value);
         } else if (isAutoCalcTrigger || biayaKpr === undefined || biayaKpr === null) {
-          biayaKpr = plafonAwal * 0.06;
+          biayaKpr = Math.round(plafonAwal * 0.06);
         }
         if (!biayaKpr) biayaKpr = 0;
 
@@ -334,7 +334,7 @@ const Penjualan = () => {
           const triggerRecalcNominal = ['hargaDasar', 'diskonPenjualan', 'bookingFee', 'persentaseDp', 'caraPembayaran'].includes(name);
 
           if (triggerRecalcNominal) {
-            dp = Math.max(0, ((base - diskon) * (persentaseDp / 100)) - bf);
+            dp = Math.round(Math.max(0, ((base - diskon) * (persentaseDp / 100)) - bf));
           } else if (name === 'dp') {
             dp = Number(value);
             const hargaPokok = Math.max(0, base - diskon);
@@ -531,9 +531,32 @@ const Penjualan = () => {
   ];
   const openModal = (item?: PenjualanData) => {
     if (item) {
+      let calculatedPersentaseDp = item.persentaseDp || 40;
+      let calculatedCicilan = item.cicilanPerBulan || 0;
+      const termin = Number(item.termin) || 3;
+
+      if (item.caraPembayaran === 'CASH BERTAHAP') {
+        const base = Number(item.hargaDasar || 0);
+        const diskon = Number(item.diskonPenjualan || 0);
+        const bf = Number(item.bookingFee || 5000000);
+        const hargaPokok = Math.max(0, base - diskon);
+
+        if (hargaPokok > 0 && item.dp !== undefined) {
+          calculatedPersentaseDp = Math.round(((Number(item.dp) + bf) / hargaPokok) * 100 * 100) / 100;
+        }
+
+        const sisa = Math.max(0, hargaPokok - bf - Number(item.dp || 0));
+        calculatedCicilan = sisa / termin;
+      }
+
       setFormData({
         ...item,
-        rekeningTujuanId: item.rekeningTujuanId ?? ''
+        rekeningTujuanId: item.rekeningTujuanId ?? '',
+        termin: termin,
+        persentaseDp: calculatedPersentaseDp,
+        cicilanPerBulan: calculatedCicilan,
+        bank: item.bank || '',
+        keteranganAngsuran: item.keteranganAngsuran || '',
       });
       setOriginalKavling({ blok: item.blok, unit: item.nomorUnit });
       setIsEditing(true);
@@ -593,7 +616,7 @@ const Penjualan = () => {
 
     if (caraBayar === 'KPR') {
       if (initialBiayaKpr === 0 || initialPlafonKredit === 0) {
-        initialBiayaKpr = plafonAwal * 0.06;
+        initialBiayaKpr = Math.round(plafonAwal * 0.06);
         initialPlafonKredit = plafonAwal + initialBiayaKpr;
 
         const hargaJualSetelahDiskon = initialPlafonKredit / 0.9;
@@ -608,7 +631,7 @@ const Penjualan = () => {
     } else if (caraBayar === 'CASH BERTAHAP') {
       initialHargaJual = Math.max(0, base - diskonTerpakai);
       if (initialDp === 0) {
-        initialDp = Math.max(0, ((base - diskonTerpakai) * 0.4) - bf);
+        initialDp = Math.round(Math.max(0, ((base - diskonTerpakai) * 0.4) - bf));
       }
     } else {
       initialHargaJual = Math.max(0, base - diskonTerpakai);
@@ -862,6 +885,7 @@ const Penjualan = () => {
           : undefined,
         termin: formData.caraPembayaran === 'CASH BERTAHAP' ? Number(formData.termin) : undefined,
         diskonPenjualan: formData.diskonPenjualan,
+        bookingFee: formData.bookingFee,
         keteranganUpdateSpr: finalKeterangan.trim() || undefined,
         keteranganAngsuran: formData.caraPembayaran === 'CASH BERTAHAP' ? formData.keteranganAngsuran : undefined,
 
@@ -922,6 +946,7 @@ const Penjualan = () => {
           dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP') ? formData.dp : undefined,
           termin: formData.caraPembayaran === 'CASH BERTAHAP' ? Number(formData.termin) : undefined,
           diskonPenjualan: formData.diskonPenjualan,
+          bookingFee: formData.bookingFee,
           keteranganAngsuran: formData.caraPembayaran === 'CASH BERTAHAP' ? formData.keteranganAngsuran : undefined,
           biayaTambahan: biayaTambahanList.map((b) => ({ nama: b.nama, nominal: Number(b.nominal) })).filter((b) => b.nama.trim() !== '' && b.nominal > 0),
           biayaTambahanKpr: [
@@ -2576,7 +2601,7 @@ const Penjualan = () => {
                       <td className="py-5 px-5 border-b border-slate-100 align-top">
                         <p className="text-lg font-black text-slate-900 m-0 mb-3">{printTitle}</p>
                         <p className="text-sm text-slate-600 font-medium m-0 mb-1">Perumahan: <strong>{printData.perumahan}</strong></p>
-                        <p className="text-sm text-slate-600 font-medium m-0 mb-1">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''}</p>
+                        <p className="text-sm text-slate-600 font-medium m-0 mb-1">Kavling: <strong>Blok {printData.blok} - No. {printData.nomorUnit}</strong> {printData.tipe ? `(Tipe ${printData.tipe})` : ''} LT: {printData.luasTanah || '-'} / LB: {printData.luasBangunan || '-'}</p>
                         <p className="text-sm text-slate-600 font-medium m-0">
                           Agent Marketing: <strong>{printData.agent || '-'}</strong>
                         </p>
