@@ -91,8 +91,8 @@ const initialFormState: KavlingData = {
 
 const CustomerKavling = () => {
 
-  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 100 });
-  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
+  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 300 });
+  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 300 });
   const { data: notarisList = [] } = useGetNotaris();
   const updateMutation = useUpdateCustomerKavling();
 
