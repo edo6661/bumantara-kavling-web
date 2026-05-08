@@ -280,38 +280,58 @@ const Penjualan = () => {
       const isAutoCalcTrigger = ['caraPembayaran', 'hargaDasar', 'diskonPenjualan', 'bookingFee', 'termin'].includes(name);
 
       if (merged.caraPembayaran === 'KPR') {
-        const plafonAwal = Math.max(0, base - diskon - bf);
+        let plafonAwal = merged.plafonAwal;
+        if (name === 'plafonAwal') {
+          plafonAwal = Number(value);
+        } else if (isAutoCalcTrigger || !plafonAwal) {
+          plafonAwal = Math.max(0, base - diskon - bf);
+        }
+
         let biayaKpr = merged.biayaKpr;
         if (name === 'biayaKpr') {
           biayaKpr = Number(value);
-        } else if (isAutoCalcTrigger || biayaKpr === undefined || biayaKpr === null) {
-          biayaKpr = Math.round(plafonAwal * 0.06);
+        } else if (isAutoCalcTrigger || name === 'plafonAwal' || !biayaKpr) {
+          biayaKpr = Math.round((plafonAwal || 0) * 0.06);
         }
-        if (!biayaKpr) biayaKpr = 0;
 
-        const plafonKredit = plafonAwal + biayaKpr;
+        let plafonKredit = merged.plafonKredit;
+        if (name === 'plafonKredit') {
+          plafonKredit = Number(value);
+        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr'].includes(name) || !plafonKredit) {
+          plafonKredit = Math.round((plafonAwal || 0) + (biayaKpr || 0));
+        }
 
+        // BLOK NILAI PENGAJUAN KPR YANG DIPERBAIKI
+        let nilaiPengajuanKpr = merged.nilaiPengajuanKpr;
+        if (name === 'nilaiPengajuanKpr') {
+          nilaiPengajuanKpr = Number(value);
+        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'biayaTambahan'].includes(name) || !nilaiPengajuanKpr) {
+          nilaiPengajuanKpr = Math.round((plafonKredit || 0) - totalTambahan + totalTambahanKpr);
+        }
 
-        const nilaiPengajuanKpr = plafonKredit - totalTambahan + totalTambahanKpr;
-
-        const baseHargaJual = plafonKredit / 0.9;
+        const baseHargaJual = (plafonKredit || 0) / 0.9;
 
         let hargaJual = merged.hargaJual;
         if (name === 'hargaJual') {
           hargaJual = Number(value);
-        } else if (isAutoCalcTrigger || name === 'biayaKpr' || name === 'biayaTambahan' || hargaJual === undefined || hargaJual === null) {
-          hargaJual = baseHargaJual + diskon + totalTambahanKpr;
+        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'biayaTambahan'].includes(name) || !hargaJual) {
+          hargaJual = Math.round(baseHargaJual + diskon + totalTambahanKpr);
         }
 
-        const dpKotor = baseHargaJual * 0.1;
-        const dpBersih = dpKotor - bf;
+        let dpTidakDibayar = merged.dpTidakDibayar;
+        if (name === 'dpTidakDibayar') {
+          dpTidakDibayar = Number(value);
+        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'hargaJual'].includes(name) || !dpTidakDibayar) {
+          const dpKotor = baseHargaJual * 0.1;
+          dpTidakDibayar = Math.round(dpKotor - bf);
+        }
 
         updates.plafonAwal = plafonAwal;
         updates.biayaKpr = biayaKpr;
         updates.plafonKredit = plafonKredit;
         updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
-        updates.dp = dpBersih;
-        updates.dpTidakDibayar = dpBersih;
+        updates.dp = dpTidakDibayar;
+        updates.dpTidakDibayar = dpTidakDibayar;
         updates.hargaJual = hargaJual;
 
       } else {
@@ -1684,15 +1704,13 @@ const Penjualan = () => {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-slate-600 w-full">Harga Dasar</span>
-                      <div className="w-40 sm:w-44 relative shrink-0">
-                        <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                          <span className="text-sm font-bold text-slate-900">Rp</span>
-                        </div>
-                        <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                          <span className="text-base font-black text-slate-900 tabular-nums">
-                            {formatTanpaDesimal(formData.hargaDasar || 0)}
-                          </span>
-                        </div>
+                      <div className="w-40 sm:w-44 shrink-0">
+                        <CurrencyInput
+                          name="hargaDasar"
+                          value={formData.hargaDasar || 0}
+                          onValueChange={handleCurrencyChange}
+                          placeholder="0"
+                        />
                       </div>
                     </div>
 
@@ -1787,15 +1805,13 @@ const Penjualan = () => {
                           <div className="w-full">
                             <span className="text-sm font-medium text-slate-600">Plafon <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded ml-1">Dasar - Diskon - BF</span></span>
                           </div>
-                          <div className="w-40 sm:w-44 relative shrink-0">
-                            <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                              <span className="text-sm font-bold text-slate-900">Rp</span>
-                            </div>
-                            <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                              <span className="text-base font-black text-slate-900 tabular-nums">
-                                {formatTanpaDesimal(formData.plafonAwal || 0)}
-                              </span>
-                            </div>
+                          <div className="w-40 sm:w-44 shrink-0">
+                            <CurrencyInput
+                              name="plafonAwal"
+                              value={formData.plafonAwal || 0}
+                              onValueChange={handleCurrencyChange}
+                              placeholder="0"
+                            />
                           </div>
                         </div>
 
@@ -1819,15 +1835,13 @@ const Penjualan = () => {
                         <div className="pt-3 border-t border-slate-200">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-bold text-indigo-700 w-full">Plafon Kredit</span>
-                            <div className="w-40 sm:w-44 relative shrink-0">
-                              <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                                <span className="text-sm font-bold text-indigo-700">Rp</span>
-                              </div>
-                              <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                                <span className="text-base font-black text-indigo-700 tabular-nums">
-                                  {formatTanpaDesimal(formData.plafonKredit || 0)}
-                                </span>
-                              </div>
+                            <div className="w-40 sm:w-44 shrink-0">
+                              <CurrencyInput
+                                name="plafonKredit"
+                                value={formData.plafonKredit || 0}
+                                onValueChange={handleCurrencyChange}
+                                placeholder="0"
+                              />
                             </div>
                           </div>
                         </div>
@@ -1890,34 +1904,28 @@ const Penjualan = () => {
 
                           <div className="flex items-center justify-between mt-3">
                             <span className="text-sm font-bold text-blue-700 w-full">Total Nilai Pengajuan KPR</span>
-                            <div className="w-40 sm:w-44 relative shrink-0">
-                              <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                                <span className="text-sm font-bold text-blue-700">Rp</span>
-                              </div>
-                              <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                                <span className="text-lg font-black text-blue-700 tabular-nums">
-                                  {formatTanpaDesimal(formData.nilaiPengajuanKpr || 0)}
-                                </span>
-                              </div>
+                            <div className="w-40 sm:w-44 shrink-0">
+                              <CurrencyInput
+                                name="nilaiPengajuanKpr"
+                                value={formData.nilaiPengajuanKpr || 0}
+                                onValueChange={handleCurrencyChange}
+                                placeholder="0"
+                              />
                             </div>
                           </div>
-                          <p className="text-[10px] text-slate-400 font-medium text-right mt-1">
-                            Plafon Kredit - Total Minus + Tambahan KPR
-                          </p>
+
                         </div>
 
                         <div className="pt-3 border-t border-slate-200">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
-                            <div className="w-40 sm:w-44 relative shrink-0">
-                              <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                                <span className="text-sm font-bold text-amber-600">Rp</span>
-                              </div>
-                              <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                                <span className="text-base font-black text-amber-600 tabular-nums">
-                                  {formatTanpaDesimal(formData.dpTidakDibayar || 0)}
-                                </span>
-                              </div>
+                            <div className="w-40 sm:w-44 shrink-0">
+                              <CurrencyInput
+                                name="dpTidakDibayar"
+                                value={formData.dpTidakDibayar || 0}
+                                onValueChange={handleCurrencyChange}
+                                placeholder="0"
+                              />
                             </div>
                           </div>
                         </div>
@@ -2018,15 +2026,13 @@ const Penjualan = () => {
                                 })()}
                               </span>
                             </div>
-                            <div className="w-40 sm:w-44 relative shrink-0">
-                              <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                                <span className="text-sm font-bold text-indigo-700">Rp</span>
-                              </div>
-                              <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                                <span className="text-base font-black text-indigo-700 tabular-nums">
-                                  {formatTanpaDesimal(formData.cicilanPerBulan || 0)}
-                                </span>
-                              </div>
+                            <div className="w-40 sm:w-44 shrink-0">
+                              <CurrencyInput
+                                name="cicilanPerBulan"
+                                value={formData.cicilanPerBulan || 0}
+                                onValueChange={handleCurrencyChange}
+                                placeholder="0"
+                              />
                             </div>
                           </div>
 
@@ -2142,15 +2148,13 @@ const Penjualan = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-slate-600 w-full">Harga Dasar</span>
-                  <div className="w-40 sm:w-44 relative shrink-0">
-                    <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                      <span className="text-sm font-bold text-slate-900">Rp</span>
-                    </div>
-                    <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                      <span className="text-base font-black text-slate-900 tabular-nums">
-                        {formatTanpaDesimal(formData.hargaDasar || 0)}
-                      </span>
-                    </div>
+                  <div className="w-40 sm:w-44 shrink-0">
+                    <CurrencyInput
+                      name="hargaDasar"
+                      value={formData.hargaDasar || 0}
+                      onValueChange={handleCurrencyChange}
+                      placeholder="0"
+                    />
                   </div>
                 </div>
 
@@ -2246,15 +2250,13 @@ const Penjualan = () => {
                       <div className="w-full">
                         <span className="text-sm font-medium text-slate-600">Plafon <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded ml-1">Dasar - Diskon - BF</span></span>
                       </div>
-                      <div className="w-40 sm:w-44 relative shrink-0">
-                        <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                          <span className="text-sm font-bold text-slate-900">Rp</span>
-                        </div>
-                        <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                          <span className="text-base font-black text-slate-900 tabular-nums">
-                            {formatTanpaDesimal(formData.plafonAwal || 0)}
-                          </span>
-                        </div>
+                      <div className="w-40 sm:w-44 shrink-0">
+                        <CurrencyInput
+                          name="plafonAwal"
+                          value={formData.plafonAwal || 0}
+                          onValueChange={handleCurrencyChange}
+                          placeholder="0"
+                        />
                       </div>
                     </div>
 
@@ -2278,15 +2280,13 @@ const Penjualan = () => {
                     <div className="pt-3 border-t border-slate-200">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-indigo-700 w-full">Plafon Kredit</span>
-                        <div className="w-40 sm:w-44 relative shrink-0">
-                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                            <span className="text-sm font-bold text-indigo-700">Rp</span>
-                          </div>
-                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                            <span className="text-base font-black text-indigo-700 tabular-nums">
-                              {formatTanpaDesimal(formData.plafonKredit || 0)}
-                            </span>
-                          </div>
+                        <div className="w-40 sm:w-44 shrink-0">
+                          <CurrencyInput
+                            name="plafonKredit"
+                            value={formData.plafonKredit || 0}
+                            onValueChange={handleCurrencyChange}
+                            placeholder="0"
+                          />
                         </div>
                       </div>
                     </div>
@@ -2349,34 +2349,28 @@ const Penjualan = () => {
 
                       <div className="flex items-center justify-between mt-3">
                         <span className="text-sm font-bold text-blue-700 w-full">Total Nilai Pengajuan KPR</span>
-                        <div className="w-40 sm:w-44 relative shrink-0">
-                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                            <span className="text-sm font-bold text-blue-700">Rp</span>
-                          </div>
-                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                            <span className="text-lg font-black text-blue-700 tabular-nums">
-                              {formatTanpaDesimal(formData.nilaiPengajuanKpr || 0)}
-                            </span>
-                          </div>
+                        <div className="w-40 sm:w-44 shrink-0">
+                          <CurrencyInput
+                            name="nilaiPengajuanKpr"
+                            value={formData.nilaiPengajuanKpr || 0}
+                            onValueChange={handleCurrencyChange}
+                            placeholder="0"
+                          />
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-medium text-right mt-1">
-                        Plafon Kredit - Total Minus + Tambahan KPR
-                      </p>
+
                     </div>
 
                     <div className="pt-3 border-t border-slate-200">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
-                        <div className="w-40 sm:w-44 relative shrink-0">
-                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                            <span className="text-sm font-bold text-amber-600">Rp</span>
-                          </div>
-                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                            <span className="text-base font-black text-amber-600 tabular-nums">
-                              {formatTanpaDesimal(formData.dpTidakDibayar || 0)}
-                            </span>
-                          </div>
+                        <div className="w-40 sm:w-44 shrink-0">
+                          <CurrencyInput
+                            name="dpTidakDibayar"
+                            value={formData.dpTidakDibayar || 0}
+                            onValueChange={handleCurrencyChange}
+                            placeholder="0"
+                          />
                         </div>
                       </div>
                     </div>
@@ -2479,15 +2473,13 @@ const Penjualan = () => {
                             })()}
                           </span>
                         </div>
-                        <div className="w-40 sm:w-44 relative shrink-0">
-                          <div className="absolute inset-y-0 left-0 pl-[14px] flex items-center pointer-events-none">
-                            <span className="text-sm font-bold text-indigo-700">Rp</span>
-                          </div>
-                          <div className="w-full pl-[40px] pr-3 py-1 text-left">
-                            <span className="text-base font-black text-indigo-700 tabular-nums">
-                              {formatTanpaDesimal(formData.cicilanPerBulan || 0)}
-                            </span>
-                          </div>
+                        <div className="w-40 sm:w-44 shrink-0">
+                          <CurrencyInput
+                            name="cicilanPerBulan"
+                            value={formData.cicilanPerBulan || 0}
+                            onValueChange={handleCurrencyChange}
+                            placeholder="0"
+                          />
                         </div>
                       </div>
 

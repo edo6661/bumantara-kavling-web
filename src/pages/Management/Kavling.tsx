@@ -19,6 +19,7 @@ import {
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
 import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
+import CurrencyInput from '../../components/shared/CurrencyInput';
 
 interface KavlingFormState {
   id: number | '';
@@ -85,6 +86,16 @@ const Kavling = () => {
 
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleSearchChange = (newSearch: string) => {
@@ -407,7 +418,14 @@ const Kavling = () => {
               </div>
               <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
               <Select label="Luas Tanah (m²)" name="luasTanah" value={formData.luasTanah} onChange={handleChange} error={errors.luasTanah} options={[{ value: '', label: '-- Pilih LT --' }, ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe] ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) })) : [])]} />
-              <Input label="Harga Dasar (Rp)" type="number" name="hargaDasar" value={formData.hargaDasar} onChange={handleChange} error={errors.hargaDasar} />
+              <CurrencyInput
+                label="Harga Dasar (Rp)"
+                name="hargaDasar"
+                value={Number(formData.hargaDasar) || 0}
+                onValueChange={handleCurrencyChange}
+                error={errors.hargaDasar}
+                placeholder="0"
+              />
               <div className="md:col-span-2">
                 <Select label="Transfer ke Rekening" name="rekeningTujuanId" value={formData.rekeningTujuanId} onChange={handleChange} options={[{ value: '', label: 'Pilih Rekening Pembayaran (Opsional)...' }, ...filteredBanks.map(b => ({ value: b.id, label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}` }))]} error={errors.rekeningTujuanId} />
               </div>
