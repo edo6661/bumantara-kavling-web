@@ -48,6 +48,7 @@ interface PenjualanData {
 
   hargaDasar: number;
   plafonAwal?: number;
+  plafonAcc?: number;
   biayaKpr?: number;
   nilaiPengajuanKpr?: number;
   hargaJual: number;
@@ -100,6 +101,7 @@ const initialFormState: PenjualanData = {
 
   hargaDasar: 0,
   plafonAwal: 0,
+  plafonAcc: 0,
   biayaKpr: 0,
   plafonKredit: 0,
   dpTidakDibayar: 0,
@@ -247,7 +249,6 @@ const Penjualan = () => {
   };
 
   const openDetailModal = (item: PenjualanData) => {
-    console.log(item)
     setDetailData(item);
     setIsDetailModalOpen(true);
   };
@@ -593,6 +594,7 @@ const Penjualan = () => {
         calculatedCicilan = sisa / termin;
       }
 
+
       setFormData({
         ...item,
         rekeningTujuanId: item.rekeningTujuanId ?? '',
@@ -601,6 +603,7 @@ const Penjualan = () => {
         cicilanPerBulan: calculatedCicilan,
         bank: item.bank || '',
         keteranganAngsuran: item.keteranganAngsuran || '',
+        plafonAcc: Number(item.plafonAcc) || 0,
       });
       setOriginalKavling({ blok: item.blok, unit: item.nomorUnit });
       setIsEditing(true);
@@ -691,6 +694,7 @@ const Penjualan = () => {
       caraPembayaran: caraBayar,
       biayaKpr: initialBiayaKpr,
       plafonKredit: initialPlafonKredit,
+      plafonAcc: Number(item.plafonAcc) || 0,
       dpTidakDibayar: initialDpTidakDibayar,
       nilaiPengajuanKpr: initialNilaiKpr,
       dp: initialDp,
@@ -920,6 +924,7 @@ const Penjualan = () => {
         hargaDasar: formData.hargaDasar,
         hargaJual: formData.hargaJual,
         plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
+        plafonAcc: formData.caraPembayaran === 'KPR' ? formData.plafonAcc : undefined,
         biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
         plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
         dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
@@ -983,6 +988,7 @@ const Penjualan = () => {
           hargaDasar: formData.hargaDasar,
           hargaJual: formData.hargaJual,
           plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
+          plafonAcc: formData.caraPembayaran === 'KPR' ? formData.plafonAcc : undefined, // Tambahkan ini
           biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
           plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
           dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
@@ -1901,6 +1907,20 @@ const Penjualan = () => {
                               ))}
                             </div>
                           )}
+
+                          <div className="pt-3 border-t border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold text-indigo-700 w-full">Plafon ACC Bank</span>
+                              <div className="w-40 sm:w-44 shrink-0">
+                                <CurrencyInput
+                                  name="plafonAcc"
+                                  value={formData.plafonAcc || 0}
+                                  onValueChange={handleCurrencyChange}
+                                  placeholder="0"
+                                />
+                              </div>
+                            </div>
+                          </div>
 
                           <div className="flex items-center justify-between mt-3">
                             <span className="text-sm font-bold text-blue-700 w-full">Total Nilai Pengajuan KPR</span>
@@ -2949,6 +2969,15 @@ const Penjualan = () => {
                           <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal + Biaya KPR
                         </p>
                       </div>
+                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-bold text-indigo-400">Plafon ACC Bank</span>
+                          <span className="text-sm font-bold text-indigo-400 tabular-nums">{formatRupiah(detailData.plafonAcc || 0)}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-mono">
+                          <strong className="text-slate-400">Info:</strong> Nilai ACC yang disetujui pihak Bank KPR
+                        </p>
+                      </div>
 
                       {detailData.tambahanKpr && detailData.tambahanKpr.length > 0 && (
                         <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
@@ -2976,7 +3005,7 @@ const Penjualan = () => {
                       <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-4">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-sm font-bold text-orange-400">DP Tidak Dibayar 10%</span>
-                          <span className="text-sm font-bold text-orange-400 tabular-nums">{formatRupiah(detailData.dpTidakDibayar || 0)}</span>
+                          <span className="text-sm font-bold text-orange-400 tabular-nums">{formatTanpaDesimal(detailData.dpTidakDibayar || 0)}</span>
                         </div>
                         <p className="text-[10px] text-slate-500 font-mono">
                           <strong className="text-slate-400">Kalkulasi:</strong> ((Harga Jual - Diskon) × 10%) - Booking Fee

@@ -39,6 +39,7 @@ interface KavlingData {
   nrDiskonCash: number;
   nrBiayaBbn: number;
   nrBiayaNotarisAjb: number;
+  nrBiayaNotarisPpjb: number;
   nrBiayaAppraisal: number;
   nrBiayaBphtb: number;
   nrLainLain: number;
@@ -82,7 +83,7 @@ const initialFormState: KavlingData = {
   perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
   tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
   hargaDasarKavling: 0, diskonPenjualan: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
-  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
+  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaNotarisPpjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
   pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
   ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
   notarisId: '',
@@ -130,6 +131,7 @@ const CustomerKavling = () => {
   const openModal = (item: any) => {
     setFormData({
       ...item,
+      nrBiayaNotarisPpjb: item.nrBiayaNotarisPpjb || 0,
       hargaDasarKavling: item.hargaDasarKavling || 0,
       diskonPenjualan: item.diskonPenjualan || 0,
       totalHargaJual: item.totalHargaJual || 0,
@@ -154,7 +156,7 @@ const CustomerKavling = () => {
     // Total Harga Akhir yang dinamis (Harga Jual dari Penjualan + Lebih Tanah + Biaya Strategis)
     const hargaBase = (Number(d.totalHargaJual) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
 
-    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
+    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaNotarisPpjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
     d.nrNilaiPenyerahan = hargaBase - d.nrTotalSubsidi;
     d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
     d.pjNilaiPenyerahan = hargaBase - d.pjTotalSubsidi;
@@ -233,6 +235,7 @@ const CustomerKavling = () => {
       nrDiskonCash: getNum(formData.nrDiskonCash),
       nrBiayaBbn: getNum(formData.nrBiayaBbn),
       nrBiayaNotarisAjb: getNum(formData.nrBiayaNotarisAjb),
+      nrBiayaNotarisPpjb: getNum(formData.nrBiayaNotarisPpjb),
       nrBiayaAppraisal: getNum(formData.nrBiayaAppraisal),
       nrBiayaBphtb: getNum(formData.nrBiayaBphtb),
       nrLainLain: getNum(formData.nrLainLain),
@@ -460,6 +463,7 @@ const CustomerKavling = () => {
               <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
