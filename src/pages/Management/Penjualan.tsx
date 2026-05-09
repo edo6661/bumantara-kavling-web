@@ -389,7 +389,7 @@ const Penjualan = () => {
 
     setIsGeneratingBulk(true);
     try {
-      const res = await penjualanService.getAll({ limit: 1000 });
+      const res = await penjualanService.getAll({ limit: 300 });
       const allData = res.items || [];
 
       let count = 0;
