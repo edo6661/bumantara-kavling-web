@@ -323,8 +323,7 @@ const Penjualan = () => {
         if (name === 'dpTidakDibayar') {
           dpTidakDibayar = Number(value);
         } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'hargaJual'].includes(name) || !dpTidakDibayar) {
-          const dpKotor = baseHargaJual * 0.1;
-          dpTidakDibayar = Math.round(dpKotor - bf);
+          dpTidakDibayar = Math.round(((hargaJual || 0) - diskon) * 0.1 - bf);
         }
 
         updates.plafonAwal = plafonAwal;
@@ -470,7 +469,7 @@ const Penjualan = () => {
       }
     },
     {
-      header: 'Progress Cicilan',
+      header: 'Cicilan',
       accessor: 'progressCicilan',
       render: (val: string) => (
         <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
