@@ -15,7 +15,7 @@ import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
-import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature, useRegenerateSpr } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature, useRegenerateSpr, PENJUALAN_KEYS } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
@@ -26,6 +26,7 @@ import { useAuth } from "../../context/AuthContext";
 import SignatureCanvas from 'react-signature-canvas';
 import { penjualanService } from "../../services/penjualan.service";
 import type { AgentData } from '../../services/agent.service';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PenjualanData {
   id?: string;
@@ -135,6 +136,7 @@ interface BiayaTambahan {
 
 const Penjualan = () => {
   const { selectedPerumahan } = useAuth();
+  const queryClient = useQueryClient();
 
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
@@ -385,7 +387,7 @@ const Penjualan = () => {
       return updates;
     };
   const handleBulkGenerateSPR = async () => {
-    if (!window.confirm("Yakin ingin men-generate SPR untuk SEMUA data penjualan?")) return;
+    if (!window.confirm("Yakin ingin men-generate SPR untuk data penjualan yang BELUM memiliki dokumen SPR?")) return;
 
     setIsGeneratingBulk(true);
     try {
@@ -393,18 +395,26 @@ const Penjualan = () => {
       const allData = res.items || [];
 
       let count = 0;
+      let skipped = 0;
+
       for (const item of allData) {
         if (item.status === 'BATAL') continue;
+        if (item.fileSpr) {
+          skipped++;
+          continue;
+        }
 
         try {
-          await regenerateSprMutation.mutateAsync(item.id);
+          await penjualanService.regenerateSpr(item.id as string);
           count++;
         } catch (err) {
           console.error(`Gagal generate SPR Transaksi ${item.id}`, err);
         }
       }
 
-      alert(`Selesai! Berhasil men-generate ${count} dokumen SPR secara massal.`);
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+
+      alert(`Selesai! Berhasil men-generate ${count} dokumen SPR baru.\n(Dilewati: ${skipped} data karena sudah memiliki SPR)`);
     } catch (error) {
       console.error(error);
       alert("Gagal mengambil data penjualan.");
