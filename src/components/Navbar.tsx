@@ -41,9 +41,17 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return 'Dashboard Utama';
+
+    if (path.startsWith('/customer-detail')) return '';
+
     const paths = path.split('/').filter(Boolean);
-    const lastPath = paths[paths.length - 1];
-    return lastPath.charAt(0).toUpperCase() + lastPath.slice(1).replace('-', ' ');
+
+    let lastPath = paths[paths.length - 1];
+    if (!isNaN(Number(lastPath)) && paths.length > 1) {
+      lastPath = paths[paths.length - 2];
+    }
+
+    return lastPath.charAt(0).toUpperCase() + lastPath.slice(1).replace(/-/g, ' ');
   };
 
   return (

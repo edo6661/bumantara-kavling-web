@@ -10,19 +10,18 @@ import {
   useUpsertRolePermission,
 } from "../../hooks/queries/useRolePermission";
 
-// Daftar statis semua modul yang ada di sistem
 const RESOURCES = [
   "DASHBOARD", "PENJUALAN", "PROGRESS_PENJUALAN", "GANTI_KAVLING", "BATAL_TRANSAKSI",
   "USER", "ROLE_PERMISSION", "KAVLING", "NOTARIS", "BANK", "AUDIT_LOG",
-  "CUSTOMER", "CUSTOMER_KAVLING", "TAGIHAN", "AGENT", "FEE_AGENT", "SPK", "PROGRESS_PROYEK"
+  "CUSTOMER", "CUSTOMER_DETAIL", "CUSTOMER_KAVLING", "TAGIHAN", "AGENT", "FEE_AGENT", "SPK", "PROGRESS_PROYEK"
 ];
 
-// Daftar Role yang bisa dikonfigurasi (SUPERADMIN di-hide karena otomatis kebal)
 const CONFIGURABLE_ROLES = [
   { id: "ADMIN", name: "Administrator" },
   { id: "FINANCE", name: "Finance & Keuangan" },
   { id: "MARKETING", name: "Tim Marketing" },
   { id: "CUSTOMER", name: "Customer Portal" },
+  { id: "BANK", name: "Bank" },
 ];
 
 type PermissionMatrix = Record<string, { canCreate: boolean; canRead: boolean; canUpdate: boolean; canDelete: boolean }>;

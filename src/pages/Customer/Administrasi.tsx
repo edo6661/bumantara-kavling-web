@@ -13,7 +13,8 @@ import {
   ShoppingCart, ZoomIn, ImageIcon, PlusCircle, FileUp,
   Eye, Edit2, UploadCloud, Trash2,
   FileText, Share2, PenTool, AlertCircle,
-  Key
+  Key,
+  LinkIcon
 } from "lucide-react";
 import {
   useGetCustomers,
@@ -59,7 +60,7 @@ const Administrasi = () => {
   const [newDocName, setNewDocName] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // State & Ref untuk Modal TTD (Fitur SPR)
+
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [selectedSpr, setSelectedSpr] = useState<any>(null);
   const [ttdData, setTtdData] = useState({
@@ -67,6 +68,12 @@ const Administrasi = () => {
     tanggal: new Date().toISOString().split('T')[0],
     sebagai: 'Pemesan'
   });
+  const handleCopyBankLink = (row: CustomerData) => {
+    const link = `${window.location.origin}/customer-detail/${row.id}`;
+    const message = link;
+    navigator.clipboard.writeText(message);
+    alert('Tautan akses Bank berhasil disalin! Silakan paste (Ctrl+V) di WhatsApp.');
+  };
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   const currentCustomer = customers.find(c => c.id === selectedCustomer?.id) || selectedCustomer;
@@ -145,6 +152,13 @@ const Administrasi = () => {
             <Key size={16} />
           </button>
           <button
+            onClick={(e) => { e.stopPropagation(); handleCopyBankLink(row); }}
+            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-all cursor-pointer"
+            title="Salin Tautan Akses Bank"
+          >
+            <LinkIcon size={16} />
+          </button>
+          <button
             onClick={(e) => { e.stopPropagation(); handleDelete(row); }}
             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
             title="Hapus"
@@ -156,9 +170,9 @@ const Administrasi = () => {
     }
   ];
 
-  // ============================
-  // LOGIC FUNGSI SPR / TTD
-  // ============================
+
+
+
 
   const clearSignature = () => sigCanvas.current?.clear();
 
@@ -302,9 +316,9 @@ const Administrasi = () => {
     );
   };
 
-  // ============================
-  // LOGIC FUNGSI ADMINISTRASI
-  // ============================
+
+
+
 
   const openDetailModal = (item: CustomerData) => {
     setSelectedCustomer(item);
@@ -408,7 +422,7 @@ const Administrasi = () => {
       return;
     }
 
-    // Gunakan window.prompt sederhana untuk input password
+
     const password = window.prompt(`Masukkan password baru untuk akun portal ${customer.nama} (Min. 6 karakter):`);
     if (!password) return;
     if (password.length < 6) {

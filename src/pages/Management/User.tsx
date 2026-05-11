@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import DataTable from "../../components/shared/DataTable";
@@ -62,6 +63,7 @@ const UserManagement = () => {
         if (val === "ADMIN") bgClass = "bg-blue-100 text-blue-800 border-blue-200";
         if (val === "FINANCE") bgClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
         if (val === "MARKETING") bgClass = "bg-amber-100 text-amber-800 border-amber-200";
+        if (val === "BANK") bgClass = "bg-teal-100 text-teal-800 border-teal-200";
 
         return <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>{val}</span>;
       },
@@ -125,7 +127,6 @@ const UserManagement = () => {
       email: formData.email,
       role: formData.role,
     };
-
     if (formData.password) {
       payload.password = formData.password;
     }
@@ -221,6 +222,7 @@ const UserManagement = () => {
                   { value: "FINANCE", label: "Finance" },
                   { value: "MARKETING", label: "Marketing" },
                   { value: "CUSTOMER", label: "Customer" },
+                  { value: "BANK", label: "Bank" },
                 ]}
               />
             </div>

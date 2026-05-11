@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
@@ -13,7 +13,10 @@ const Login = () => {
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [generalError, setGeneralError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading } = useAuth();
+
+  const from = location.state?.from?.pathname || '/';
   const { data: perumahanList = [], isLoading: isLoadingPerumahan } = useGetPerumahan();
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -37,7 +40,7 @@ const Login = () => {
     }
     const result = await login(formData.email, formData.password, selectedPerumahan);
     if (result.success) {
-      navigate('/', { replace: true });
+      navigate(from, { replace: true });
     } else {
       if (result.errors && Array.isArray(result.errors)) {
         const fieldErrors = result.errors.reduce((acc, err) => {

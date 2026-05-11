@@ -16,7 +16,16 @@ export const useGetCustomers = () => {
     queryFn: customerService.getAll,
   });
 };
-
+export const useGetCustomerById = (id: string) => {
+  return useQuery({
+    queryKey: [...CUSTOMER_KEYS.all, "detail", id],
+    queryFn: async () => {
+      const res = await api.get(`/customers/${id}`);
+      return res.data.data;
+    },
+    enabled: !!id,
+  });
+};
 export const useCreateCustomer = () => {
   const queryClient = useQueryClient();
   return useMutation({

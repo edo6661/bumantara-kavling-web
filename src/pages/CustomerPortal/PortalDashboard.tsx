@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/CustomerPortal/PortalDashboard.tsx
 import React, { useState } from 'react';
 import { useGetCustomerDashboard, useUploadMyBuktiTagihan, useUploadMyDocument } from '../../hooks/queries/useCustomerPortal';
