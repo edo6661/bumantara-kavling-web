@@ -2,6 +2,7 @@ import api from "../lib/axios";
 
 export interface ProgressPenjualanData {
   id: number;
+
   penjualanId: number;
   berkasCustomerValid: boolean;
   fileSp3k: string | null;

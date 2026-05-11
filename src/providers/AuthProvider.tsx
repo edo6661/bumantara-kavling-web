@@ -5,16 +5,21 @@ import type { Perumahan } from '../types/models/perumahan';
 import type { ActionResult } from '../types/common';
 import { storage } from '../utils/storage';
 import { handleApiError } from '../utils/errorHandler';
-
+import type { User } from '../types/models/user';
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!storage.getToken());
   const [selectedPerumahan, setSelectedPerumahanState] = useState<Perumahan | null>(() => storage.getPerumahan());
+
+
+  const [user, setUser] = useState<User | null>(() => storage.getUser());
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const logout = useCallback(() => {
     storage.clearAuth();
     setIsAuthenticated(false);
     setSelectedPerumahanState(null);
+    setUser(null);
   }, []);
 
   useEffect(() => {
@@ -22,7 +27,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener('auth-unauthorized', handleUnauthorized);
     return () => window.removeEventListener('auth-unauthorized', handleUnauthorized);
   }, [logout]);
-
   const login = async (email: string, pass: string, perumahan: Perumahan): Promise<ActionResult> => {
     setIsLoading(true);
     try {
@@ -33,6 +37,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         storage.setPerumahan(perumahan);
         setIsAuthenticated(true);
         setSelectedPerumahanState(perumahan);
+
+        setUser(response.data.user);
+
         return { success: true };
       }
       return { success: false, message: response.message || 'Login gagal.' };
@@ -47,9 +54,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     storage.setPerumahan(perumahan);
     setSelectedPerumahanState(perumahan);
   };
-
   return (
-    <AuthContext.Provider value={{ isAuthenticated, selectedPerumahan, isLoading, login, logout, setSelectedPerumahan }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, selectedPerumahan, isLoading, login, logout, setSelectedPerumahan }}>
       {children}
     </AuthContext.Provider>
   );

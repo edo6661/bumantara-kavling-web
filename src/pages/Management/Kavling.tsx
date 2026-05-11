@@ -120,7 +120,7 @@ const Kavling = () => {
   };
 
   const DokumenIcons = ({ row }: { row: KavlingData }) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
       <button
         type="button"
@@ -289,9 +289,10 @@ const Kavling = () => {
     if (window.confirm(`Hapus data kavling Blok ${item.blok} - ${item.nomorUnit}?`)) {
       try {
         await deleteMutation.mutateAsync(item.id);
-      } catch (error: unknown) {
+      } catch (error: any) {
         console.error(error)
-        alert('Gagal menghapus Kavling, pastikan kavling ini belum pernah terjadi transaksi.');
+
+        alert(error.response?.data?.message || 'Gagal menghapus Kavling, pastikan kavling ini belum pernah terjadi transaksi.');
       }
     }
   };
@@ -310,7 +311,7 @@ const Kavling = () => {
       await uploadDocMutation.mutateAsync({ id: selectedDocKavling.id, docType, file });
       alert(`Dokumen berhasil diunggah!`);
       setSelectedDocKavling(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     } catch (err: any) {
       alert(err.response?.data?.message || "Gagal mengunggah dokumen kavling");
     } finally {
@@ -318,7 +319,7 @@ const Kavling = () => {
     }
   };
 
-  // UI/UX Baru: Bersih, tanpa tombol modal tambahan
+
   const renderFileBox = (title: string, docType: string, url: string | null | undefined) => {
     const isPdf = url?.toLowerCase().endsWith('.pdf') || url?.includes('application/pdf');
 

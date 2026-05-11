@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'; // <-- Tambah useNavigate
 import {
   LayoutDashboard,
   Briefcase,
@@ -9,9 +9,12 @@ import {
   ChevronDown,
   X,
   ChevronRight,
-  ShoppingCart
+  ShoppingCart,
+  LogOut // <-- Tambah icon LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+
 const menuItems = [
   {
     title: 'Dashboard',
@@ -22,52 +25,53 @@ const menuItems = [
     title: 'Penjualan',
     icon: <ShoppingCart size={20} strokeWidth={1.5} />,
     submenus: [
-      { title: 'Data Penjualan', path: '/management/penjualan' },
-      { title: 'Progress Penjualan', path: '/management/progress-penjualan' },
-      { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
-      { title: 'Batal Transaksi', path: '/management/batal-transaksi' },
+      { title: 'Data Penjualan', path: '/management/penjualan', resource: 'PENJUALAN' },
+      { title: 'Progress Penjualan', path: '/management/progress-penjualan', resource: 'PROGRESS_PENJUALAN' },
+      { title: 'Ganti Kavling', path: '/management/ganti-kavling', resource: 'GANTI_KAVLING' },
+      { title: 'Batal Transaksi', path: '/management/batal-transaksi', resource: 'BATAL_TRANSAKSI' },
     ],
   },
-
   {
     title: 'Management',
     icon: <Briefcase size={20} strokeWidth={1.5} />,
     submenus: [
-
-      { title: 'Kavling', path: '/management/kavling' },
-      { title: 'Notaris', path: '/management/notaris' },
-      { title: 'Bank', path: '/management/bank' },
-      { title: 'Audit Log', path: '/management/audit-log' },
+      { title: 'Kavling', path: '/management/kavling', resource: 'KAVLING' },
+      { title: 'Notaris', path: '/management/notaris', resource: 'NOTARIS' },
+      { title: 'Bank', path: '/management/bank', resource: 'BANK' },
+      { title: 'User', path: '/management/users', resource: 'USER' },
+      { title: 'Akses', path: '/management/role-permission', resource: 'ROLE_PERMISSION' },
+      { title: 'Audit Log', path: '/management/audit-log', resource: 'AUDIT_LOG' },
     ],
   },
   {
     title: 'Customer',
     icon: <Users size={20} strokeWidth={1.5} />,
     submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial' },
-      { title: 'SPR', path: '/customer/spr' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
-      { title: 'Kavling', path: '/customer/kavling' },
-      { title: 'Pembayaran', path: '/customer/tagihan' },
+      { title: 'Data Sosial', path: '/customer/data-sosial', resource: 'CUSTOMER' },
+      { title: 'SPR', path: '/customer/spr', resource: 'PENJUALAN' },
+      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi', resource: 'CUSTOMER' },
+      { title: 'Kavling', path: '/customer/kavling', resource: 'CUSTOMER_KAVLING' },
+      { title: 'Pembayaran', path: '/customer/tagihan', resource: 'TAGIHAN' },
     ],
   },
   {
     title: 'Marketing',
     icon: <UserCircle size={20} strokeWidth={1.5} />,
     submenus: [
-      { title: 'Agents', path: '/marketing/agents' },
-      { title: 'Fee Agent', path: '/marketing/fee-agent' },
+      { title: 'Agents', path: '/marketing/agents', resource: 'AGENT' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
     ],
   },
   {
     title: 'Proyek',
     icon: <FolderKanban size={20} strokeWidth={1.5} />,
     submenus: [
-      { title: 'SPK', path: '/proyek/spk' },
-      { title: 'Progress', path: '/proyek/progress' },
+      { title: 'SPK', path: '/proyek/spk', resource: 'SPK' },
+      { title: 'Progress', path: '/proyek/progress', resource: 'PROGRESS_PROYEK' },
     ],
   },
 ];
+
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -75,9 +79,23 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
-
+  const navigate = useNavigate(); // <-- Inisialisasi useNavigate
+  const { user, logout } = useAuth(); // <-- Ambil fungsi logout dari context
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
 
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const filteredMenuItems = menuItems.map(item => {
+    if (!item.submenus) return item;
+
+    const filteredSubmenus = item.submenus.filter(sub => {
+      if (!sub.resource) return true;
+      if (isSuperAdmin) return true;
+      return user?.permissions?.some(p => p.resource === sub.resource && p.canRead);
+    });
+
+    return { ...item, submenus: filteredSubmenus };
+  }).filter(item => item.submenus ? item.submenus.length > 0 : true);
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
     const initialOpenMenus: Record<string, boolean> = {};
@@ -90,7 +108,6 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   });
 
   const handleMenuClick = (title: string) => {
-
     if (!isExpanded) {
       setIsExpanded(true);
       setOpenMenus((prev) => ({ ...prev, [title]: true }));
@@ -103,6 +120,12 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     if (path && location.pathname === path) return true;
     if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
     return false;
+  };
+
+  // <-- Tambah fungsi handleLogout
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -120,11 +143,6 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       </AnimatePresence>
 
       <aside
-        /* PERBAIKAN: 
-          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
-          - Base class selalu merender state "Expanded" (untuk Mobile).
-          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
-        */
         className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
           ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
           ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
@@ -160,7 +178,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
           </p>
 
           <nav className="space-y-1">
-            {menuItems.map((item) => {
+            {filteredMenuItems.map((item) => {
               const hasSubmenus = !!item.submenus;
               const isActive = checkActive(item.path, item.submenus);
               const isOpenMenu = openMenus[item.title];
@@ -192,7 +210,6 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                         />
                       </button>
 
-                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
                       <div className={`overflow-hidden transition-all duration-300 ease-in-out 
                         ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
                         ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
@@ -246,6 +263,26 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
               );
             })}
           </nav>
+        </div>
+
+        {/* <-- TAMBAH BAGIAN INI: Tombol Logout di bagian paling bawah Sidebar --> */}
+        <div className="shrink-0 p-4 border-t border-slate-200/60 bg-white">
+          <button
+            onClick={handleLogout}
+            title={!isExpanded ? "Keluar Sistem" : undefined}
+            className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between text-red-500 hover:bg-red-50 hover:text-red-700
+              ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+            `}
+          >
+            <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+              <span className="shrink-0 transition-colors">
+                <LogOut size={20} strokeWidth={1.5} />
+              </span>
+              <span className={`text-sm tracking-tight font-bold whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                Keluar
+              </span>
+            </div>
+          </button>
         </div>
       </aside>
     </>

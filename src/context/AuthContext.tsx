@@ -1,8 +1,10 @@
 import { createContext, useContext } from 'react';
 import type { Perumahan } from '../types/models/perumahan';
 import type { ActionResult } from '../types/common';
+import type { User } from '../types/models/user';
 
 export interface AuthContextType {
+  user: User | null;
   isAuthenticated: boolean;
   selectedPerumahan: Perumahan | null;
   isLoading: boolean;
@@ -10,7 +12,6 @@ export interface AuthContextType {
   logout: () => void;
   setSelectedPerumahan: (perumahan: Perumahan) => void;
 }
-
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {

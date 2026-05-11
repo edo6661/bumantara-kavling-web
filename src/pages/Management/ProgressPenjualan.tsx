@@ -205,9 +205,9 @@ const ProgressPenjualan = () => {
     try {
       await updateMutation.mutateAsync({ id: progressData.penjualanId, data: { nilaiAjb: nilaiAjbInput } });
       alert("Nilai AJB & Pajak otomatis berhasil dihitung dan disimpan!");
-    } catch (err) {
-      console.error(err)
-      alert("Gagal menyimpan nilai AJB");
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal menyimpan nilai AJB");
     }
   };
 
@@ -218,9 +218,9 @@ const ProgressPenjualan = () => {
       checklist.forEach(c => { if (c.key.trim()) obj[c.key.trim()] = c.value.trim(); });
       await updateMutation.mutateAsync({ id: progressData.penjualanId, data: { checklistBast: Object.keys(obj).length > 0 ? obj : null } });
       alert("Checklist BAST berhasil disimpan!");
-    } catch (err) {
-      console.error(err)
-      alert("Gagal menyimpan Checklist BAST");
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.message || "Gagal menyimpan Checklist BAST");
     }
   };
 

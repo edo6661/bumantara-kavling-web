@@ -1,134 +1,276 @@
-This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+kode frontend:
 
-<file_summary>
-This section contains a summary of this file.
+<file path="README.md">
+# React + TypeScript + Vite
 
-<purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
-It is designed to be easily consumable by AI systems for analysis, code review,
-or other automated processes.
-</purpose>
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-<file_format>
-The content is organized as follows:
-1. This summary section
-2. Repository information
-3. Directory structure
-4. Repository files (if enabled)
-5. Multiple file entries, each consisting of:
-  - File path as an attribute
-  - Full contents of the file
-</file_format>
+Currently, two official plugins are available:
 
-<usage_guidelines>
-- This file should be treated as read-only. Any changes should be made to the
-  original repository files, not this packed version.
-- When processing this file, use the file path to distinguish
-  between different files in the repository.
-- Be aware that this file may contain sensitive information. Handle it with
-  the same level of security as you would the original repository.
-</usage_guidelines>
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-<notes>
-- Some files may have been excluded based on .gitignore rules and Repomix's configuration
-- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json, prisma/schema.prisma, prisma/seeds/, prisma/seed.ts
-- Files matching these patterns are excluded: **/*.test.ts, dist/, **/*.js
-- Files matching patterns in .gitignore are excluded
-- Files matching default ignore patterns are excluded
-- Files are sorted by Git change count (files with more changes are at the bottom)
-</notes>
+## React Compiler
 
-</file_summary>
+The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
 
-<directory_structure>
-package.json
-src/App.tsx
-src/components/layouts/RootLayout.tsx
-src/components/Navbar.tsx
-src/components/shared/CurrencyInput.tsx
-src/components/shared/DataTable.tsx
-src/components/shared/FileInput.tsx
-src/components/shared/Input.tsx
-src/components/shared/Modal.tsx
-src/components/shared/Select.tsx
-src/components/Sidebar.tsx
-src/context/AuthContext.tsx
-src/hooks/queries/useAgent.ts
-src/hooks/queries/useAuditLog.ts
-src/hooks/queries/useBankRekening.ts
-src/hooks/queries/useCustomer.ts
-src/hooks/queries/useCustomerKavling.ts
-src/hooks/queries/useDashboard.ts
-src/hooks/queries/useFeeAgent.ts
-src/hooks/queries/useKavling.ts
-src/hooks/queries/useNotaris.ts
-src/hooks/queries/usePenjualan.ts
-src/hooks/queries/usePerumahan.ts
-src/hooks/queries/useProgressPenjualan.ts
-src/hooks/queries/useTagihan.ts
-src/hooks/queries/useVerify.ts
-src/hooks/useCrud.ts
-src/hooks/useForm.ts
-src/index.css
-src/lib/axios.ts
-src/main.tsx
-src/pages/Customer/DataSosial.tsx
-src/pages/Customer/Kavling.tsx
-src/pages/Customer/KelengkapanAdministrasi.tsx
-src/pages/Customer/OldKavling.tsx
-src/pages/Customer/SPR.tsx
-src/pages/Customer/Tagihan.tsx
-src/pages/Dashboard.tsx
-src/pages/Home.tsx
-src/pages/Login.tsx
-src/pages/Management/AuditLog.tsx
-src/pages/Management/Bank.tsx
-src/pages/Management/BatalTransaksi.tsx
-src/pages/Management/GantiKavling.tsx
-src/pages/Management/Kavling.tsx
-src/pages/Management/Notaris.tsx
-src/pages/Management/Penjualan.tsx
-src/pages/Management/ProgressPenjualan.tsx
-src/pages/Marketing/Agents.tsx
-src/pages/Marketing/FeeAgent.tsx
-src/pages/Marketing/OldFeeAgent.tsx
-src/pages/PageLoader.tsx
-src/pages/Proyek/Progress.tsx
-src/pages/Proyek/SPK.tsx
-src/pages/Public/VerifyDocument.tsx
-src/pages/TimMarketing/TimMarketing.tsx
-src/providers/AuthProvider.tsx
-src/providers/QueryProvider.tsx
-src/services/agent.service.ts
-src/services/auditLog.service.ts
-src/services/auth.service.ts
-src/services/bankRekening.service.ts
-src/services/customer.service.ts
-src/services/customerKavling.service.ts
-src/services/dashboard.service.ts
-src/services/feeAgent.service.ts
-src/services/kavling.service.ts
-src/services/notaris.service.ts
-src/services/penjualan.service.ts
-src/services/perumahan.service.ts
-src/services/progressPenjualan.service.ts
-src/services/tagihan.service.ts
-src/services/verify.service.ts
-src/types/api_response.ts
-src/types/common.ts
-src/types/models/agent.ts
-src/types/models/perumahan.ts
-src/types/models/user.ts
-src/utils/errorHandler.ts
-src/utils/formatters.ts
-src/utils/storage.ts
-tsconfig.json
-vite.config.ts
-</directory_structure>
+## Expanding the ESLint configuration
 
-<files>
-This section contains the contents of the repository's files.
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
+
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
+</file>
+
+<file path="src/components/layouts/RootLayout.tsx">
+import { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from '../Sidebar';
+import Navbar from '../Navbar';
+
+const RootLayout = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900 selection:bg-black selection:text-white">
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+          <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default RootLayout;
+</file>
+
+<file path="src/components/shared/FileInput.tsx">
+import type { InputHTMLAttributes } from 'react';
+import { UploadCloud } from 'lucide-react';
+
+interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const FileInput = ({ label, error, ...props }: FileInputProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="file"
+          className={`block w-full text-sm text-slate-500
+            file:mr-4 file:py-2.5 file:px-4
+            file:rounded-l-xl file:border-0
+            file:text-xs file:font-bold file:uppercase file:tracking-widest
+            file:bg-slate-900 file:text-white
+            hover:file:bg-black file:transition-all
+            file:cursor-pointer cursor-pointer
+            border rounded-xl shadow-sm/50 transition-all duration-300
+            ${error
+              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black'
+            }
+          `}
+          {...props}
+        />
+        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-300 group-hover:text-slate-500 transition-colors">
+          <UploadCloud size={18} />
+        </div>
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default FileInput;
+</file>
+
+<file path="src/hooks/queries/useRolePermission.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  rolePermissionService,
+  type UpsertRolePermissionDTO,
+} from "../../services/rolePermission.service";
+
+export const ROLE_PERMISSION_KEYS = {
+  all: ["role-permissions"] as const,
+};
+
+export const useGetRolePermissions = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: [...ROLE_PERMISSION_KEYS.all, params],
+    queryFn: () => rolePermissionService.getAll(params),
+  });
+};
+
+export const useUpsertRolePermission = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpsertRolePermissionDTO) =>
+      rolePermissionService.upsert(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ROLE_PERMISSION_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteRolePermission = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => rolePermissionService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ROLE_PERMISSION_KEYS.all });
+    },
+  });
+};
+</file>
+
+<file path="src/hooks/queries/useUser.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  userService,
+  type CreateUserDTO,
+  type UpdateUserDTO,
+} from "../../services/user.service";
+
+export const USER_KEYS = {
+  all: ["users"] as const,
+  list: (params: Record<string, unknown>) =>
+    [...USER_KEYS.all, params] as const,
+};
+
+export const useGetUsers = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: USER_KEYS.list(params || {}),
+    queryFn: () => userService.getAll(params),
+  });
+};
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateUserDTO) => userService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
+    },
+  });
+};
+
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateUserDTO }) =>
+      userService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => userService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: USER_KEYS.all });
+    },
+  });
+};
+</file>
+
+<file path="src/hooks/usePermission.ts">
+import { useAuth } from "../context/AuthContext";
+
+export const usePermission = (resource: string) => {
+  const { user } = useAuth();
+
+  if (!resource) {
+    return { canCreate: true, canRead: true, canUpdate: true, canDelete: true };
+  }
+
+  if (user?.role === "SUPERADMIN") {
+    return { canCreate: true, canRead: true, canUpdate: true, canDelete: true };
+  }
+
+  const permission = user?.permissions?.find(
+    (p) => p.resource.toUpperCase() === resource.toUpperCase(),
+  );
+
+  return {
+    canCreate: !!permission?.canCreate,
+    canRead: !!permission?.canRead,
+    canUpdate: !!permission?.canUpdate,
+    canDelete: !!permission?.canDelete,
+  };
+};
+</file>
 
 <file path="src/main.tsx">
 import ReactDOM from 'react-dom/client';
@@ -154,6 +296,857 @@ const Home = () => {
 export default Home;
 </file>
 
+<file path="src/pages/Management/RolePermission.tsx">
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import PageLoader from "../PageLoader";
+import { ShieldAlert, Settings2, Save } from "lucide-react";
+import {
+  useGetRolePermissions,
+  useUpsertRolePermission,
+} from "../../hooks/queries/useRolePermission";
+
+// Daftar statis semua modul yang ada di sistem
+const RESOURCES = [
+  "DASHBOARD", "PENJUALAN", "PROGRESS_PENJUALAN", "GANTI_KAVLING", "BATAL_TRANSAKSI",
+  "USER", "ROLE_PERMISSION", "KAVLING", "NOTARIS", "BANK", "AUDIT_LOG",
+  "CUSTOMER", "CUSTOMER_KAVLING", "TAGIHAN", "AGENT", "FEE_AGENT", "SPK", "PROGRESS_PROYEK"
+];
+
+// Daftar Role yang bisa dikonfigurasi (SUPERADMIN di-hide karena otomatis kebal)
+const CONFIGURABLE_ROLES = [
+  { id: "ADMIN", name: "Administrator" },
+  { id: "FINANCE", name: "Finance & Keuangan" },
+  { id: "MARKETING", name: "Tim Marketing" },
+  { id: "CUSTOMER", name: "Customer Portal" },
+];
+
+type PermissionMatrix = Record<string, { canCreate: boolean; canRead: boolean; canUpdate: boolean; canDelete: boolean }>;
+
+const RolePermission = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const { data: permissions = [], isLoading } = useGetRolePermissions();
+  const upsertMutation = useUpsertRolePermission();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [permissionsMatrix, setPermissionsMatrix] = useState<PermissionMatrix>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  // RBAC CHECK
+  useEffect(() => {
+    if (user && user.role !== "SUPERADMIN") {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
+
+  if (user?.role !== "SUPERADMIN") return null;
+
+  const columns = [
+    {
+      header: "Role Sistem",
+      accessor: "name",
+      render: (val: string, row: any) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700">
+            <ShieldAlert size={16} />
+          </div>
+          <div>
+            <p className="font-bold text-slate-900">{val}</p>
+            <p className="text-[10px] text-slate-500 font-mono">{row.id}</p>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: "Aksi Konfigurasi",
+      accessor: "id",
+      render: (roleId: string) => (
+        <button
+          onClick={() => openModal(roleId)}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-black transition-all shadow-md cursor-pointer"
+        >
+          <Settings2 size={14} /> Atur Akses Modul
+        </button>
+      )
+    }
+  ];
+
+  const openModal = (roleId: string) => {
+    // Siapkan matrix kosong atau isi dengan data yang sudah ada di database
+    const initialMatrix: PermissionMatrix = {};
+
+    RESOURCES.forEach((res) => {
+      const existing = permissions.find((p) => p.role === roleId && p.resource === res);
+      initialMatrix[res] = {
+        canCreate: existing?.canCreate || false,
+        canRead: existing?.canRead || false,
+        canUpdate: existing?.canUpdate || false,
+        canDelete: existing?.canDelete || false,
+      };
+    });
+
+    setSelectedRole(roleId);
+    setPermissionsMatrix(initialMatrix);
+    setIsModalOpen(true);
+  };
+
+  const handleMatrixChange = (resource: string, field: keyof PermissionMatrix[string], value: boolean) => {
+    setPermissionsMatrix((prev) => ({
+      ...prev,
+      [resource]: { ...prev[resource], [field]: value },
+    }));
+  };
+
+  const handleSelectAllRow = (resource: string, value: boolean) => {
+    setPermissionsMatrix((prev) => ({
+      ...prev,
+      [resource]: { canCreate: value, canRead: value, canUpdate: value, canDelete: value },
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+
+    try {
+      // Loop semua resource dan lakukan request upsert secara bersamaan
+      const promises = RESOURCES.map((res) => {
+        const matrixData = permissionsMatrix[res];
+        return upsertMutation.mutateAsync({
+          role: selectedRole,
+          resource: res,
+          canCreate: matrixData.canCreate,
+          canRead: matrixData.canRead,
+          canUpdate: matrixData.canUpdate,
+          canDelete: matrixData.canDelete,
+        });
+      });
+
+      await Promise.all(promises);
+
+      alert(`Hak akses untuk role ${selectedRole} berhasil diperbarui!`);
+      setIsModalOpen(false);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal menyimpan konfigurasi hak akses");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl text-sm text-slate-300 shadow-md">
+        <h3 className="text-white font-bold text-lg mb-1">Role-Based Access Control (RBAC)</h3>
+        <p>Halaman ini eksklusif untuk <strong>Super Admin</strong>. Konfigurasi di bawah ini menentukan modul apa saja yang muncul di sidebar dan tindakan (Tambah/Edit/Hapus) apa saja yang boleh dilakukan oleh setiap Role.</p>
+      </div>
+
+      <DataTable
+        title="Daftar Role Sistem"
+        columns={columns}
+        data={CONFIGURABLE_ROLES}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Konfigurasi Hak Akses - Role: ${selectedRole}`}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+
+          <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-white sticky top-0 z-10 shadow-sm border-b border-slate-200">
+                  <tr className="text-[11px] uppercase tracking-widest text-slate-500">
+                    <th className="px-4 py-3 font-bold">Modul / Resource</th>
+                    <th className="px-4 py-3 font-bold text-center">Read (Lihat)</th>
+                    <th className="px-4 py-3 font-bold text-center">Create (Tambah)</th>
+                    <th className="px-4 py-3 font-bold text-center">Update (Edit)</th>
+                    <th className="px-4 py-3 font-bold text-center">Delete (Hapus)</th>
+                    <th className="px-4 py-3 font-bold text-center border-l border-slate-100">Beri Semua</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {RESOURCES.map((res) => {
+                    const data = permissionsMatrix[res] || { canCreate: false, canRead: false, canUpdate: false, canDelete: false };
+                    const isAllChecked = data.canCreate && data.canRead && data.canUpdate && data.canDelete;
+
+                    return (
+                      <tr key={res} className="hover:bg-indigo-50/30 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs font-bold text-slate-700">{res}</td>
+                        <td className="px-4 py-3 text-center">
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={data.canRead} onChange={(e) => handleMatrixChange(res, "canRead", e.target.checked)} />
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={data.canCreate} onChange={(e) => handleMatrixChange(res, "canCreate", e.target.checked)} />
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={data.canUpdate} onChange={(e) => handleMatrixChange(res, "canUpdate", e.target.checked)} />
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={data.canDelete} onChange={(e) => handleMatrixChange(res, "canDelete", e.target.checked)} />
+                        </td>
+                        <td className="px-4 py-3 text-center border-l border-slate-100 bg-slate-50">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                            checked={isAllChecked}
+                            onChange={(e) => handleSelectAllRow(res, e.target.checked)}
+                            title="Beri semua akses untuk modul ini"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-white border-t border-slate-100 -mx-6 -mb-6 p-4 rounded-b-2xl shadow-[0_-10px_20px_-15px_rgba(0,0,0,0.1)]">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isSaving}
+              className="px-6 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 disabled:opacity-50 cursor-pointer"
+            >
+              <Save size={16} />
+              {isSaving ? "Menyimpan Massal..." : "Simpan Konfigurasi"}
+            </button>
+          </div>
+
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default RolePermission;
+</file>
+
+<file path="src/pages/Management/User.tsx">
+import React, { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import PageLoader from "../PageLoader";
+import { formatDate } from "../../utils/formatters";
+import {
+  useGetUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from "../../hooks/queries/useUser";
+import type { UserData, CreateUserDTO } from "../../services/user.service";
+
+const initialFormState: CreateUserDTO & { id: number | "" } = {
+  id: "",
+  username: "",
+  email: "",
+  password: "",
+  role: "",
+};
+
+const UserManagement = () => {
+  const { user } = useAuth();
+
+  // 1. SEMUA HOOKS HARUS DIPANGGIL DI ATAS (TIDAK BOLEH ADA RETURN SEBELUM INI)
+  const { data: usersData, isLoading } = useGetUsers({ limit: 100 });
+  const usersList = usersData?.items || [];
+
+  const createMutation = useCreateUser();
+  const updateMutation = useUpdateUser();
+  const deleteMutation = useDeleteUser();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  // 2. RBAC Check menggunakan useEffect
+  // useEffect(() => {
+  //   if (user && user.role !== "SUPERADMIN") {
+  //     navigate("/", { replace: true });
+  //   }
+  // }, [user, navigate]);
+
+  // 3. Early return MENCEGAH render UI jika bukan SUPERADMIN
+  if (user?.role !== "SUPERADMIN") {
+    return null;
+  }
+
+  const columns = [
+    { header: "Username", accessor: "username", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    { header: "Email", accessor: "email" },
+    {
+      header: "Role",
+      accessor: "role",
+      render: (val: string) => {
+        let bgClass = "bg-slate-100 text-slate-700 border-slate-200";
+        if (val === "SUPERADMIN") bgClass = "bg-purple-100 text-purple-800 border-purple-200";
+        if (val === "ADMIN") bgClass = "bg-blue-100 text-blue-800 border-blue-200";
+        if (val === "FINANCE") bgClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+        if (val === "MARKETING") bgClass = "bg-amber-100 text-amber-800 border-amber-200";
+
+        return <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>{val}</span>;
+      },
+    },
+    { header: "Tanggal Dibuat", accessor: "createdAt", render: (val: string) => formatDate(val) },
+  ];
+
+  const openModal = (item?: UserData) => {
+    if (item) {
+      setFormData({
+        id: item.id,
+        username: item.username,
+        email: item.email,
+        password: "",
+        role: item.role,
+      });
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.username.trim()) newErrors.username = "Username wajib diisi";
+    if (!formData.email.trim()) newErrors.email = "Email wajib diisi";
+    if (!isEditing && !formData.password?.trim()) newErrors.password = "Password wajib diisi untuk user baru";
+    if (!formData.role.trim()) newErrors.role = "Role wajib dipilih";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const payload: any = {
+      username: formData.username,
+      email: formData.email,
+      role: formData.role,
+    };
+
+    if (formData.password) {
+      payload.password = formData.password;
+    }
+
+    try {
+      if (isEditing && formData.id !== "") {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload as CreateUserDTO);
+      }
+      closeModal();
+    } catch (error: any) {
+      const responseData = error.response?.data;
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+        responseData.error.forEach((err: { field: string; message: string }) => {
+          backendErrors[err.field] = err.message;
+        });
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || "Terjadi kesalahan saat menyimpan data");
+      }
+    }
+  };
+
+  const handleDelete = async (item: UserData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus user ${item.username}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: any) {
+        alert(error.response?.data?.message || "Gagal menghapus user");
+      }
+    }
+  };
+
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div className="space-y-6">
+      <DataTable
+        title="Manajemen Pengguna (User)"
+        columns={columns}
+        data={usersList}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item as UserData)}
+        onDelete={(item) => handleDelete(item as UserData)}
+      />
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Data Pengguna" : "Tambah Pengguna Baru"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="grid grid-cols-1 gap-4">
+              <Input
+                label="Username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                error={errors.username}
+                placeholder="Masukkan username"
+              />
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
+                placeholder="email@example.com"
+              />
+              <Input
+                label={isEditing ? "Password Baru (Opsional)" : "Password"}
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                error={errors.password}
+                placeholder={isEditing ? "Kosongkan jika tidak ingin mengubah password" : "Masukkan password"}
+              />
+              <Select
+                label="Role Akses"
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                error={errors.role}
+                options={[
+                  { value: "", label: "-- Pilih Role --" },
+                  { value: "SUPERADMIN", label: "Super Admin" },
+                  { value: "ADMIN", label: "Admin" },
+                  { value: "FINANCE", label: "Finance" },
+                  { value: "MARKETING", label: "Marketing" },
+                  { value: "CUSTOMER", label: "Customer" },
+                ]}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-colors shadow-md disabled:opacity-50 cursor-pointer"
+            >
+              {createMutation.isPending || updateMutation.isPending ? "Menyimpan..." : "Simpan Data"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default UserManagement;
+</file>
+
+<file path="src/pages/PageLoader.tsx">
+const PageLoader = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50/80 backdrop-blur-sm">
+    <div className="relative flex items-center justify-center w-16 h-16">
+      <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+      <div className="absolute inset-0 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
+    </div>
+    <p className="mt-4 text-sm font-medium text-gray-500 animate-pulse">Memuat data...</p>
+  </div>
+);
+
+export default PageLoader;
+</file>
+
+<file path="src/pages/Proyek/SPK.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import FileInput from "../../components/shared/FileInput";
+import { formatRupiah } from "../../utils/formatters";
+interface SpkData {
+  id: string;
+  noSpk: string;
+  tanggalSpk: string;
+  judulPekerjaan: string;
+  lokasi: string;
+  jangkaWaktu: number;
+  nilaiKontrak: number;
+  namaPihakPertama: string;
+  nikPihakPertama: string;
+  namaPihakKedua: string;
+  nikPihakKedua: string;
+  alamatPihakKedua: string;
+  namaBank: string;
+  noRekening: string;
+  atasNamaRekening: string;
+  fileSpk: string;
+}
+const initialFormState: SpkData = {
+  id: '',
+  noSpk: '',
+  tanggalSpk: '',
+  judulPekerjaan: '',
+  lokasi: '',
+  jangkaWaktu: 0,
+  nilaiKontrak: 0,
+  namaPihakPertama: '',
+  nikPihakPertama: '',
+  namaPihakKedua: '',
+  nikPihakKedua: '',
+  alamatPihakKedua: '',
+  namaBank: '',
+  noRekening: '',
+  atasNamaRekening: '',
+  fileSpk: '',
+};
+const SPK = () => {
+  const [data, setData] = useState<SpkData[]>([
+    {
+      id: 'SPK-001',
+      noSpk: '026/SPK/AA24/FTR/PSC/III/2026',
+      tanggalSpk: '2026-03-30',
+      judulPekerjaan: 'Pembangunan Rumah Tinggal di Perumahan Puri Safana Cikeas (8 Unit)',
+      lokasi: 'Jl. Bojong Nangka Rt.001 Rw.012 Kel. Cikeas Udik, Kec. Gunung Putri Kab. Bogor',
+      jangkaWaktu: 120,
+      nilaiKontrak: 1330626827.04,
+      namaPihakPertama: 'Yusdi Nurfauzi, ST',
+      nikPihakPertama: '3671081002770009',
+      namaPihakKedua: 'Fathor Rosid',
+      nikPihakKedua: '3201021208780028',
+      alamatPihakKedua: 'Lembur Rt 002 Rw 009 Kel. Bojong Kulur Kec. Gunung Putri, Kab Bogor, Jawa Barat',
+      namaBank: 'BCA',
+      noRekening: '5725393927',
+      atasNamaRekening: 'Saiful Hasan',
+      fileSpk: 'SPK_026_Fathor_Rosid.pdf',
+    }
+  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<SpkData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof SpkData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const columns = [
+    { header: 'No. SPK', accessor: 'noSpk' },
+    { header: 'Judul Pekerjaan', accessor: 'judulPekerjaan' },
+    { header: 'Pihak Kedua (Vendor)', accessor: 'namaPihakKedua' },
+    {
+      header: 'Nilai Kontrak',
+      accessor: 'nilaiKontrak',
+      render: (val: number) => formatRupiah(val)
+    },
+    {
+      header: 'Waktu',
+      accessor: 'jangkaWaktu',
+      render: (val: number) => `${val} Hari`
+    },
+    {
+      header: 'Dokumen',
+      accessor: 'fileSpk',
+      render: (val: string) => val ? (
+        <span className="text-blue-600 text-xs font-medium bg-blue-50 px-2 py-1 rounded">{val}</span>
+      ) : (
+        <span className="text-gray-400 text-xs">-</span>
+      )
+    },
+  ];
+  const openModal = (item?: SpkData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({ ...initialFormState, tanggalSpk: new Date().toISOString().split('T')[0] });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    if (errors[name as keyof SpkData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SpkData) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
+    }
+  };
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof SpkData, string>> = {};
+    if (!formData.noSpk.trim()) newErrors.noSpk = 'Nomor SPK wajib diisi';
+    if (!formData.judulPekerjaan.trim()) newErrors.judulPekerjaan = 'Judul pekerjaan wajib diisi';
+    if (formData.nilaiKontrak <= 0) newErrors.nilaiKontrak = 'Nilai kontrak harus lebih dari 0';
+    if (!formData.namaPihakKedua.trim()) newErrors.namaPihakKedua = 'Nama vendor wajib diisi';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `SPK-${Date.now()}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+  const handleDelete = (item: SpkData) => {
+    if (window.confirm(`Hapus data SPK ${item.noSpk}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Surat Perjanjian Kerja (SPK)"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit SPK" : "Buat SPK Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Section 1: Informasi Proyek */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Informasi Pekerjaan</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Nomor SPK" name="noSpk" value={formData.noSpk} onChange={handleChange} error={errors.noSpk} />
+              <Input label="Tanggal SPK" type="date" name="tanggalSpk" value={formData.tanggalSpk} onChange={handleChange} />
+              <div className="md:col-span-2">
+                <Input label="Judul Pekerjaan" name="judulPekerjaan" value={formData.judulPekerjaan} onChange={handleChange} error={errors.judulPekerjaan} />
+              </div>
+              {/* step="any" ditambahkan agar form mengizinkan input koma/desimal pada nilai kontrak */}
+              <Input label="Nilai Kontrak (Rp)" type="number" step="any" name="nilaiKontrak" value={formData.nilaiKontrak === 0 ? '' : formData.nilaiKontrak} onChange={handleChange} error={errors.nilaiKontrak} />
+              <Input label="Jangka Waktu (Hari)" type="number" name="jangkaWaktu" value={formData.jangkaWaktu === 0 ? '' : formData.jangkaWaktu} onChange={handleChange} />
+            </div>
+          </div>
+          {/* Section 2: Pihak Pertama & Kedua */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Para Pihak</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Pihak Pertama (Pemberi Tugas)</p>
+                <Input label="Nama" name="namaPihakPertama" value={formData.namaPihakPertama} onChange={handleChange} />
+                <Input label="NIK" name="nikPihakPertama" value={formData.nikPihakPertama} onChange={handleChange} />
+              </div>
+              <div className="space-y-4">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Pihak Kedua (Pemborong)</p>
+                <Input label="Nama Vendor" name="namaPihakKedua" value={formData.namaPihakKedua} onChange={handleChange} error={errors.namaPihakKedua} />
+                <Input label="NIK Vendor" name="nikPihakKedua" value={formData.nikPihakKedua} onChange={handleChange} />
+                <Input label="Alamat" name="alamatPihakKedua" value={formData.alamatPihakKedua} onChange={handleChange} />
+              </div>
+            </div>
+          </div>
+          {/* Section 3: Pembayaran & File */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Pembayaran & Dokumen</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <Input label="Nama Bank" name="namaBank" value={formData.namaBank} onChange={handleChange} />
+              <Input label="No Rekening" name="noRekening" value={formData.noRekening} onChange={handleChange} />
+              <Input label="Atas Nama" name="atasNamaRekening" value={formData.atasNamaRekening} onChange={handleChange} />
+            </div>
+            <div className="border border-gray-200 p-3 rounded-md bg-white">
+              <FileInput label="Upload SPK (PDF)" accept=".pdf" onChange={(e) => handleFileChange(e, 'fileSpk')} />
+              {formData.fileSpk && (
+                <p className="text-xs text-green-600 mt-1 truncate">File terlampir: {formData.fileSpk}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
+              Simpan SPK
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+export default SPK;
+</file>
+
+<file path="src/services/rolePermission.service.ts">
+import api from "../lib/axios";
+
+export interface RolePermissionData {
+  id: number;
+  role: string;
+  resource: string;
+  canCreate: boolean;
+  canRead: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
+export interface UpsertRolePermissionDTO {
+  role: string;
+  resource: string;
+  canCreate: boolean;
+  canRead: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
+export const rolePermissionService = {
+  getAll: async (
+    params?: Record<string, unknown>,
+  ): Promise<RolePermissionData[]> => {
+    const response = await api.get("/role-permissions", { params });
+    return response.data.data;
+  },
+
+  upsert: async (data: UpsertRolePermissionDTO) => {
+    const response = await api.post("/role-permissions/upsert", data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/role-permissions/${id}`);
+    return response.data;
+  },
+};
+</file>
+
+<file path="src/services/user.service.ts">
+import api from "../lib/axios";
+
+export interface UserData {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface CreateUserDTO {
+  username: string;
+  email: string;
+  password?: string;
+  role: string;
+}
+
+export interface UpdateUserDTO {
+  username?: string;
+  email?: string;
+  password?: string;
+  role?: string;
+}
+
+export const userService = {
+  getAll: async (params?: Record<string, unknown>) => {
+    const response = await api.get("/users", { params });
+    // Backend mengembalikan { items, meta } di dalam data
+    return response.data.data;
+  },
+
+  create: async (data: CreateUserDTO) => {
+    const response = await api.post("/users", data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: UpdateUserDTO) => {
+    const response = await api.patch(`/users/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/users/${id}`);
+    return response.data;
+  },
+};
+</file>
+
+<file path="tsconfig.app.json">
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}
+</file>
+
 <file path="tsconfig.json">
 {
   "files": [],
@@ -161,6 +1154,35 @@ export default Home;
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ]
+}
+</file>
+
+<file path="tsconfig.node.json">
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["vite.config.ts"]
 }
 </file>
 
@@ -173,6 +1195,103 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 });
+</file>
+
+<file path=".gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+*.env
+.env.production
+.env.development
+</file>
+
+<file path="docker-compose.yml">
+services:
+  kavling-app:
+    build: .
+    container_name: kavling-app
+    restart: unless-stopped
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Kavling Bumantara</title>
+    <meta name="title" content="Kavling Bumantara" />
+    <meta name="description" content="Kavling Bumantara" />
+    <meta name="author" content="Kavling Bumantara" />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Kavling Bumantara" />
+    <meta property="og:description" content="Kavling Bumantara" />
+    <meta property="og:site_name" content="Kavling Bumantara" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="Kavling Bumantara" />
+    <meta property="twitter:description" content="Kavling Bumantara" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="nginx.conf">
+server {
+    listen 80;
+    server_name localhost;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
 </file>
 
 <file path="src/hooks/queries/useAgent.ts">
@@ -661,6 +1780,111 @@ export const useForm = <T>(
     resetForm,
   };
 };
+</file>
+
+<file path="src/index.css">
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-heading: "", var(--font-sans);
+
+  --radius-btn: 8px; /* Sedikit lebih membulat untuk kesan modern */
+  --radius-card: 16px;
+
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover-bg: var(--sidebar-hover-bg);
+  --color-sidebar-active-bg: var(--sidebar-active-bg);
+  --color-sidebar-active-text: var(--sidebar-active-text);
+  --color-sidebar-submenu-bg: var(--sidebar-submenu-bg);
+}
+
+:root {
+  --section-padding-y: 6rem;
+  --transition-base: all 0.3s ease-in-out;
+
+  /* Background dibuat sedikit abu-abu sangat muda (slate-50) agar card putih lebih kontras */
+  --theme-background: #f8fafc;
+  --theme-foreground: #0f172a;
+
+  /* Sidebar Black & White Theme */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #000000;
+  --sidebar-border: #e2e8f0;
+  --sidebar-hover-bg: #f1f5f9;
+  --sidebar-active-bg: #0f172a;
+  --sidebar-active-text: #ffffff;
+  --sidebar-submenu-bg: #f8fafc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-background: #020617;
+    --theme-foreground: #f8fafc;
+
+    --sidebar-bg: #020617;
+    --sidebar-text: #f8fafc;
+    --sidebar-border: #1e293b;
+    --sidebar-hover-bg: #0f172a;
+    --sidebar-active-bg: #f8fafc;
+    --sidebar-active-text: #020617;
+    --sidebar-submenu-bg: #020617;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  background-color: var(--theme-background);
+  color: var(--theme-foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+/* Custom Scrollbar Premium */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+  border: 2px solid var(--theme-background); /* Memberikan efek padding */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 </file>
 
 <file path="src/pages/Customer/OldKavling.tsx">
@@ -1325,19 +2549,326 @@ const FeeAgent = () => {
 export default FeeAgent;
 </file>
 
-<file path="src/pages/PageLoader.tsx">
-const PageLoader = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50/80 backdrop-blur-sm">
-    <div className="relative flex items-center justify-center w-16 h-16">
-      <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-      <div className="absolute inset-0 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-      <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
-    </div>
-    <p className="mt-4 text-sm font-medium text-gray-500 animate-pulse">Memuat data...</p>
-  </div>
-);
+<file path="src/pages/Proyek/Progress.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatDate } from "../../utils/formatters";
 
-export default PageLoader;
+interface ProgressData {
+  id: string;
+  kavlingId: string;
+  kavlingLabel: string;
+  pelaksana: string;
+  tanggalLaporan: string;
+  tahapanPekerjaan: string;
+  persentase: number;
+  keterangan: string;
+  kendala: string;
+  fotoLapangan: string[];
+  status: string;
+}
+
+const initialFormState: ProgressData = {
+  id: '',
+  kavlingId: '',
+  kavlingLabel: '',
+  pelaksana: '',
+  tanggalLaporan: '',
+  tahapanPekerjaan: '',
+  persentase: 0,
+  keterangan: '',
+  kendala: '',
+  fotoLapangan: [],
+  status: 'Menunggu Verifikasi',
+};
+
+// Mock data kavling (Nantinya diganti dengan data dari API/Backend)
+const mockKavlings = [
+  { id: 'KAV-001', perumahan: 'Puri Safana', blok: 'A', unit: '01' },
+  { id: 'KAV-002', perumahan: 'Puri Safana', blok: 'B', unit: '12' },
+  { id: 'KAV-003', perumahan: 'Puri Safana', blok: 'C', unit: '05' },
+];
+
+const Progress = () => {
+  const [data, setData] = useState<ProgressData[]>([
+    {
+      id: 'PRG-001',
+      kavlingId: 'KAV-001',
+      kavlingLabel: 'Puri Safana - Blok A No. 01',
+      pelaksana: 'Mandor Supri',
+      tanggalLaporan: '2026-04-10',
+      tahapanPekerjaan: 'Pekerjaan Pondasi & Sloof',
+      persentase: 15,
+      keterangan: 'Pengecoran sloof selesai 100%, persiapan naik bata.',
+      kendala: 'Cuaca hujan di sore hari.',
+      fotoLapangan: ['foto_pondasi_1.jpg', 'foto_sloof.jpg'],
+      status: 'Disetujui',
+    }
+  ]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<ProgressData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof ProgressData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'Tanggal', accessor: 'tanggalLaporan', render: (val: string) => formatDate(val) },
+    { header: 'Kavling', accessor: 'kavlingLabel' },
+    { header: 'Tahapan', accessor: 'tahapanPekerjaan' },
+    {
+      header: 'Progress',
+      accessor: 'persentase',
+      render: (val: number) => (
+        <div className="flex items-center gap-3 min-w-[120px]">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full ${val === 100 ? 'bg-green-500' : 'bg-blue-600'}`}
+              style={{ width: `${val}%` }}
+            ></div>
+          </div>
+          <span className="text-xs font-bold text-gray-700">{val}%</span>
+        </div>
+      )
+    },
+    { header: 'Pelaksana', accessor: 'pelaksana' },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        const bg = val === 'Disetujui' ? 'bg-green-100 text-green-800' :
+          val === 'Revisi' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
+      }
+    },
+  ];
+
+  const openModal = (item?: ProgressData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggalLaporan: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    let parsedValue: string | number = value;
+
+    if (type === 'number') {
+      parsedValue = value === '' ? 0 : Number(value);
+      if (name === 'persentase' && parsedValue > 100) parsedValue = 100;
+      if (name === 'persentase' && parsedValue < 0) parsedValue = 0;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+
+    if (errors[name as keyof ProgressData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleMultipleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      // Mengambil nama semua file yang dipilih dan menyimpannya ke array fotoLapangan
+      const fileNames = Array.from(files).map((file) => file.name);
+      setFormData((prev) => ({ ...prev, fotoLapangan: fileNames }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof ProgressData, string>> = {};
+    if (!formData.kavlingId) newErrors.kavlingId = 'Kavling wajib dipilih';
+    if (!formData.tahapanPekerjaan) newErrors.tahapanPekerjaan = 'Tahapan wajib dipilih';
+    if (formData.persentase < 0 || formData.persentase > 100) newErrors.persentase = 'Progress harus 0 - 100';
+    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan progress wajib diisi';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `PRG-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: ProgressData) => {
+    if (window.confirm(`Hapus laporan progress ${item.kavlingLabel} tanggal ${formatDate(item.tanggalLaporan)}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Laporan Progress Lapangan"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Progress Lapangan" : "Buat Laporan Progress Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Identitas Proyek</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Kavling"
+                  name="kavlingId"
+                  value={formData.kavlingId}
+                  onChange={(e) => {
+                    const selected = mockKavlings.find(k => k.id === e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      kavlingId: selected?.id || '',
+                      kavlingLabel: selected ? `${selected.perumahan} - Blok ${selected.blok} No. ${selected.unit}` : ''
+                    }));
+                    if (errors.kavlingId) setErrors(prev => ({ ...prev, kavlingId: undefined }));
+                  }}
+                  options={mockKavlings.map(k => ({
+                    value: k.id,
+                    label: `${k.perumahan} - Blok ${k.blok} No. ${k.unit}`
+                  }))}
+                  error={errors.kavlingId}
+                />
+              </div>
+              <Input label="Nama Pelaksana/Mandor" name="pelaksana" value={formData.pelaksana} onChange={handleChange} />
+              <Input label="Tanggal Laporan" type="date" name="tanggalLaporan" value={formData.tanggalLaporan} onChange={handleChange} />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Status Pekerjaan</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Tahapan Pekerjaan"
+                name="tahapanPekerjaan"
+                value={formData.tahapanPekerjaan}
+                onChange={handleChange}
+                error={errors.tahapanPekerjaan}
+                options={[
+                  { value: 'Persiapan Lahan', label: 'Persiapan Lahan' },
+                  { value: 'Pekerjaan Pondasi & Sloof', label: 'Pekerjaan Pondasi & Sloof' },
+                  { value: 'Struktur & Dinding', label: 'Struktur & Dinding' },
+                  { value: 'Rangka Atap & Genteng', label: 'Rangka Atap & Genteng' },
+                  { value: 'Pemasangan Keramik & Plafon', label: 'Pemasangan Keramik & Plafon' },
+                  { value: 'Finishing & Pengecatan', label: 'Finishing & Pengecatan' },
+                  { value: 'Siap Serah Terima (100%)', label: 'Siap Serah Terima (100%)' }
+                ]}
+              />
+              <Input
+                label="Total Persentase Progress (%)"
+                type="number"
+                name="persentase"
+                value={formData.persentase}
+                onChange={handleChange}
+                error={errors.persentase}
+                placeholder="0 - 100"
+              />
+              <div className="md:col-span-2">
+                <Input
+                  label="Keterangan Pekerjaan"
+                  name="keterangan"
+                  value={formData.keterangan}
+                  onChange={handleChange}
+                  error={errors.keterangan}
+                  placeholder="Deskripsikan pekerjaan yang selesai dilakukan hari ini..."
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Input
+                  label="Kendala di Lapangan (Opsional)"
+                  name="kendala"
+                  value={formData.kendala}
+                  onChange={handleChange}
+                  placeholder="Contoh: Hujan deras dari siang, pengiriman bata telat..."
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Dokumentasi</h4>
+            <div className="grid grid-cols-1 gap-4">
+              {/* Input Multiple File */}
+              <FileInput
+                label="Foto Lapangan (Bisa pilih lebih dari 1)"
+                accept="image/*"
+                multiple
+                onChange={handleMultipleFileChange}
+              />
+              {/* List Nama File Yang Terpilih */}
+              {formData.fotoLapangan && formData.fotoLapangan.length > 0 && (
+                <div className="mt-2 space-y-1 bg-white p-3 rounded-lg border border-gray-200">
+                  <p className="text-xs font-bold text-gray-500 mb-2">File terpilih ({formData.fotoLapangan.length}):</p>
+                  {formData.fotoLapangan.map((name, i) => (
+                    <p key={i} className="text-xs text-green-600 truncate flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                      {name}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+            <Select
+              label="Status Verifikasi Pusat"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              options={[
+                { value: 'Menunggu Verifikasi', label: 'Menunggu Verifikasi' },
+                { value: 'Disetujui', label: 'Disetujui' },
+                { value: 'Revisi', label: 'Butuh Revisi / Laporan Ditolak' }
+              ]}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
+              Simpan Progress
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Progress;
 </file>
 
 <file path="src/pages/TimMarketing/TimMarketing.tsx">
@@ -1860,11 +3391,20 @@ export interface Perumahan {
 </file>
 
 <file path="src/types/models/user.ts">
+export interface Permission {
+  resource: string;
+  canCreate: boolean;
+  canRead: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
 export interface User {
   id: number;
   username: string;
   email: string;
   role: string;
+  permissions?: Permission[];
 }
 
 export interface LoginData {
@@ -1939,31 +3479,183 @@ export const storage = {
 };
 </file>
 
-<file path="src/components/layouts/RootLayout.tsx">
-import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '../Sidebar';
-import Navbar from '../Navbar';
+<file path="Dockerfile">
+FROM node:20-alpine AS builder
+WORKDIR /app
 
-const RootLayout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+COPY package.json package-lock.json* ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+</file>
+
+<file path="src/components/Navbar.tsx">
+import { Menu, Building } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useGetPerumahan } from '../hooks/queries/usePerumahan';
+
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+const Navbar = ({ onMenuClick }: NavbarProps) => {
+  const location = useLocation();
+  const { selectedPerumahan, setSelectedPerumahan } = useAuth();
+  const { data: perumahanList } = useGetPerumahan();
+
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path === '/') return 'Dashboard Utama';
+    const paths = path.split('/').filter(Boolean);
+    const lastPath = paths[paths.length - 1];
+    return lastPath.charAt(0).toUpperCase() + lastPath.slice(1).replace('-', ' ');
+  };
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900 selection:bg-black selection:text-white">
-      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
-          <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <Outlet />
-          </div>
-        </main>
+    <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-gray-200/60 bg-white/70 backdrop-blur-md sticky top-0 z-30 shrink-0 shadow-sm/50">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-2 -ml-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+        >
+          <Menu size={22} />
+        </button>
+
+        <div className="hidden md:block">
+          <h1 className="text-xl font-bold font-heading text-gray-900 tracking-tight">
+            {getPageTitle()}
+          </h1>
+        </div>
+
+        {/* --- UPDATE: TAMPILKAN LOGO PERUMAHAN DI MOBILE --- */}
+        <div className="flex items-center gap-2 md:hidden">
+          {selectedPerumahan?.logo ? (
+            <img src={selectedPerumahan.logo} alt="Logo" className="h-8 object-contain" />
+          ) : (
+            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
+              B
+            </div>
+          )}
+          <span className="font-heading font-bold text-lg text-gray-900 tracking-tight">
+            {selectedPerumahan?.nama || 'Bumantaraz'}
+          </span>
+        </div>
       </div>
-    </div>
+
+      <div className="flex items-center gap-3 md:gap-5">
+        {selectedPerumahan && perumahanList && (
+          <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-black/5 transition-all">
+            {/* --- UPDATE: TAMPILKAN LOGO KECIL DI SELECT BOX --- */}
+            {selectedPerumahan.logo ? (
+              <img src={selectedPerumahan.logo} alt="Icon" className="w-5 h-5 object-contain" />
+            ) : (
+              <Building size={16} className="text-slate-500" />
+            )}
+            <select
+              className="bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none w-32 md:w-auto"
+              value={selectedPerumahan.id}
+              onChange={(e) => {
+                const selected = perumahanList.find(p => String(p.id) === e.target.value);
+                if (selected) {
+                  setSelectedPerumahan(selected);
+                }
+              }}
+            >
+              {perumahanList.map(p => (
+                <option key={p.id} value={p.id}>{p.nama}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="w-9 h-9 bg-gradient-to-tr from-gray-800 to-black rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md cursor-pointer border-2 border-white ring-1 ring-gray-100">
+          Aq
+        </div>
+      </div>
+    </header>
   );
 };
 
-export default RootLayout;
+export default Navbar;
+</file>
+
+<file path="src/components/shared/Modal.tsx">
+import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-all"
+            onClick={onClose}
+          />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            className="relative bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5 overflow-hidden"
+          >
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white/90 backdrop-blur-md shrink-0 z-10">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-50/50">
+              {children}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+export default Modal;
 </file>
 
 <file path="src/hooks/queries/useCustomer.ts">
@@ -2039,111 +3731,6 @@ export const useUploadCustomerDoc = () => {
     },
   });
 };
-</file>
-
-<file path="src/index.css">
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Montserrat", system-ui, sans-serif;
-  --font-heading: "", var(--font-sans);
-
-  --radius-btn: 8px; /* Sedikit lebih membulat untuk kesan modern */
-  --radius-card: 16px;
-
-  --color-sidebar-bg: var(--sidebar-bg);
-  --color-sidebar-text: var(--sidebar-text);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-hover-bg: var(--sidebar-hover-bg);
-  --color-sidebar-active-bg: var(--sidebar-active-bg);
-  --color-sidebar-active-text: var(--sidebar-active-text);
-  --color-sidebar-submenu-bg: var(--sidebar-submenu-bg);
-}
-
-:root {
-  --section-padding-y: 6rem;
-  --transition-base: all 0.3s ease-in-out;
-
-  /* Background dibuat sedikit abu-abu sangat muda (slate-50) agar card putih lebih kontras */
-  --theme-background: #f8fafc;
-  --theme-foreground: #0f172a;
-
-  /* Sidebar Black & White Theme */
-  --sidebar-bg: #ffffff;
-  --sidebar-text: #000000;
-  --sidebar-border: #e2e8f0;
-  --sidebar-hover-bg: #f1f5f9;
-  --sidebar-active-bg: #0f172a;
-  --sidebar-active-text: #ffffff;
-  --sidebar-submenu-bg: #f8fafc;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --theme-background: #020617;
-    --theme-foreground: #f8fafc;
-
-    --sidebar-bg: #020617;
-    --sidebar-text: #f8fafc;
-    --sidebar-border: #1e293b;
-    --sidebar-hover-bg: #0f172a;
-    --sidebar-active-bg: #f8fafc;
-    --sidebar-active-text: #020617;
-    --sidebar-submenu-bg: #020617;
-  }
-}
-
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
-}
-
-body {
-  background-color: var(--theme-background);
-  color: var(--theme-foreground);
-  font-family: var(--font-sans);
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-heading);
-  letter-spacing: -0.02em;
-}
-
-/* Custom Scrollbar Premium */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 999px;
-  border: 2px solid var(--theme-background); /* Memberikan efek padding */
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
 </file>
 
 <file path="src/lib/axios.ts">
@@ -2377,548 +3964,6 @@ const AuditLog = () => {
 export default AuditLog;
 </file>
 
-<file path="src/pages/Proyek/Progress.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatDate } from "../../utils/formatters";
-
-interface ProgressData {
-  id: string;
-  kavlingId: string;
-  kavlingLabel: string;
-  pelaksana: string;
-  tanggalLaporan: string;
-  tahapanPekerjaan: string;
-  persentase: number;
-  keterangan: string;
-  kendala: string;
-  fotoLapangan: string[];
-  status: string;
-}
-
-const initialFormState: ProgressData = {
-  id: '',
-  kavlingId: '',
-  kavlingLabel: '',
-  pelaksana: '',
-  tanggalLaporan: '',
-  tahapanPekerjaan: '',
-  persentase: 0,
-  keterangan: '',
-  kendala: '',
-  fotoLapangan: [],
-  status: 'Menunggu Verifikasi',
-};
-
-// Mock data kavling (Nantinya diganti dengan data dari API/Backend)
-const mockKavlings = [
-  { id: 'KAV-001', perumahan: 'Puri Safana', blok: 'A', unit: '01' },
-  { id: 'KAV-002', perumahan: 'Puri Safana', blok: 'B', unit: '12' },
-  { id: 'KAV-003', perumahan: 'Puri Safana', blok: 'C', unit: '05' },
-];
-
-const Progress = () => {
-  const [data, setData] = useState<ProgressData[]>([
-    {
-      id: 'PRG-001',
-      kavlingId: 'KAV-001',
-      kavlingLabel: 'Puri Safana - Blok A No. 01',
-      pelaksana: 'Mandor Supri',
-      tanggalLaporan: '2026-04-10',
-      tahapanPekerjaan: 'Pekerjaan Pondasi & Sloof',
-      persentase: 15,
-      keterangan: 'Pengecoran sloof selesai 100%, persiapan naik bata.',
-      kendala: 'Cuaca hujan di sore hari.',
-      fotoLapangan: ['foto_pondasi_1.jpg', 'foto_sloof.jpg'],
-      status: 'Disetujui',
-    }
-  ]);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<ProgressData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof ProgressData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'Tanggal', accessor: 'tanggalLaporan', render: (val: string) => formatDate(val) },
-    { header: 'Kavling', accessor: 'kavlingLabel' },
-    { header: 'Tahapan', accessor: 'tahapanPekerjaan' },
-    {
-      header: 'Progress',
-      accessor: 'persentase',
-      render: (val: number) => (
-        <div className="flex items-center gap-3 min-w-[120px]">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full ${val === 100 ? 'bg-green-500' : 'bg-blue-600'}`}
-              style={{ width: `${val}%` }}
-            ></div>
-          </div>
-          <span className="text-xs font-bold text-gray-700">{val}%</span>
-        </div>
-      )
-    },
-    { header: 'Pelaksana', accessor: 'pelaksana' },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => {
-        const bg = val === 'Disetujui' ? 'bg-green-100 text-green-800' :
-          val === 'Revisi' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
-      }
-    },
-  ];
-
-  const openModal = (item?: ProgressData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData({
-        ...initialFormState,
-        tanggalLaporan: new Date().toISOString().split('T')[0]
-      });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    let parsedValue: string | number = value;
-
-    if (type === 'number') {
-      parsedValue = value === '' ? 0 : Number(value);
-      if (name === 'persentase' && parsedValue > 100) parsedValue = 100;
-      if (name === 'persentase' && parsedValue < 0) parsedValue = 0;
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-
-    if (errors[name as keyof ProgressData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleMultipleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      // Mengambil nama semua file yang dipilih dan menyimpannya ke array fotoLapangan
-      const fileNames = Array.from(files).map((file) => file.name);
-      setFormData((prev) => ({ ...prev, fotoLapangan: fileNames }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof ProgressData, string>> = {};
-    if (!formData.kavlingId) newErrors.kavlingId = 'Kavling wajib dipilih';
-    if (!formData.tahapanPekerjaan) newErrors.tahapanPekerjaan = 'Tahapan wajib dipilih';
-    if (formData.persentase < 0 || formData.persentase > 100) newErrors.persentase = 'Progress harus 0 - 100';
-    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan progress wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newId = `PRG-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: ProgressData) => {
-    if (window.confirm(`Hapus laporan progress ${item.kavlingLabel} tanggal ${formatDate(item.tanggalLaporan)}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Laporan Progress Lapangan"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Progress Lapangan" : "Buat Laporan Progress Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Identitas Proyek</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Select
-                  label="Pilih Kavling"
-                  name="kavlingId"
-                  value={formData.kavlingId}
-                  onChange={(e) => {
-                    const selected = mockKavlings.find(k => k.id === e.target.value);
-                    setFormData(prev => ({
-                      ...prev,
-                      kavlingId: selected?.id || '',
-                      kavlingLabel: selected ? `${selected.perumahan} - Blok ${selected.blok} No. ${selected.unit}` : ''
-                    }));
-                    if (errors.kavlingId) setErrors(prev => ({ ...prev, kavlingId: undefined }));
-                  }}
-                  options={mockKavlings.map(k => ({
-                    value: k.id,
-                    label: `${k.perumahan} - Blok ${k.blok} No. ${k.unit}`
-                  }))}
-                  error={errors.kavlingId}
-                />
-              </div>
-              <Input label="Nama Pelaksana/Mandor" name="pelaksana" value={formData.pelaksana} onChange={handleChange} />
-              <Input label="Tanggal Laporan" type="date" name="tanggalLaporan" value={formData.tanggalLaporan} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Status Pekerjaan</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Tahapan Pekerjaan"
-                name="tahapanPekerjaan"
-                value={formData.tahapanPekerjaan}
-                onChange={handleChange}
-                error={errors.tahapanPekerjaan}
-                options={[
-                  { value: 'Persiapan Lahan', label: 'Persiapan Lahan' },
-                  { value: 'Pekerjaan Pondasi & Sloof', label: 'Pekerjaan Pondasi & Sloof' },
-                  { value: 'Struktur & Dinding', label: 'Struktur & Dinding' },
-                  { value: 'Rangka Atap & Genteng', label: 'Rangka Atap & Genteng' },
-                  { value: 'Pemasangan Keramik & Plafon', label: 'Pemasangan Keramik & Plafon' },
-                  { value: 'Finishing & Pengecatan', label: 'Finishing & Pengecatan' },
-                  { value: 'Siap Serah Terima (100%)', label: 'Siap Serah Terima (100%)' }
-                ]}
-              />
-              <Input
-                label="Total Persentase Progress (%)"
-                type="number"
-                name="persentase"
-                value={formData.persentase}
-                onChange={handleChange}
-                error={errors.persentase}
-                placeholder="0 - 100"
-              />
-              <div className="md:col-span-2">
-                <Input
-                  label="Keterangan Pekerjaan"
-                  name="keterangan"
-                  value={formData.keterangan}
-                  onChange={handleChange}
-                  error={errors.keterangan}
-                  placeholder="Deskripsikan pekerjaan yang selesai dilakukan hari ini..."
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Input
-                  label="Kendala di Lapangan (Opsional)"
-                  name="kendala"
-                  value={formData.kendala}
-                  onChange={handleChange}
-                  placeholder="Contoh: Hujan deras dari siang, pengiriman bata telat..."
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Dokumentasi</h4>
-            <div className="grid grid-cols-1 gap-4">
-              {/* Input Multiple File */}
-              <FileInput
-                label="Foto Lapangan (Bisa pilih lebih dari 1)"
-                accept="image/*"
-                multiple
-                onChange={handleMultipleFileChange}
-              />
-              {/* List Nama File Yang Terpilih */}
-              {formData.fotoLapangan && formData.fotoLapangan.length > 0 && (
-                <div className="mt-2 space-y-1 bg-white p-3 rounded-lg border border-gray-200">
-                  <p className="text-xs font-bold text-gray-500 mb-2">File terpilih ({formData.fotoLapangan.length}):</p>
-                  {formData.fotoLapangan.map((name, i) => (
-                    <p key={i} className="text-xs text-green-600 truncate flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                      {name}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-            <Select
-              label="Status Verifikasi Pusat"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              options={[
-                { value: 'Menunggu Verifikasi', label: 'Menunggu Verifikasi' },
-                { value: 'Disetujui', label: 'Disetujui' },
-                { value: 'Revisi', label: 'Butuh Revisi / Laporan Ditolak' }
-              ]}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
-              Batal
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
-              Simpan Progress
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Progress;
-</file>
-
-<file path="src/pages/Proyek/SPK.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import FileInput from "../../components/shared/FileInput";
-import { formatRupiah } from "../../utils/formatters";
-interface SpkData {
-  id: string;
-  noSpk: string;
-  tanggalSpk: string;
-  judulPekerjaan: string;
-  lokasi: string;
-  jangkaWaktu: number;
-  nilaiKontrak: number;
-  namaPihakPertama: string;
-  nikPihakPertama: string;
-  namaPihakKedua: string;
-  nikPihakKedua: string;
-  alamatPihakKedua: string;
-  namaBank: string;
-  noRekening: string;
-  atasNamaRekening: string;
-  fileSpk: string;
-}
-const initialFormState: SpkData = {
-  id: '',
-  noSpk: '',
-  tanggalSpk: '',
-  judulPekerjaan: '',
-  lokasi: '',
-  jangkaWaktu: 0,
-  nilaiKontrak: 0,
-  namaPihakPertama: '',
-  nikPihakPertama: '',
-  namaPihakKedua: '',
-  nikPihakKedua: '',
-  alamatPihakKedua: '',
-  namaBank: '',
-  noRekening: '',
-  atasNamaRekening: '',
-  fileSpk: '',
-};
-const SPK = () => {
-  const [data, setData] = useState<SpkData[]>([
-    {
-      id: 'SPK-001',
-      noSpk: '026/SPK/AA24/FTR/PSC/III/2026',
-      tanggalSpk: '2026-03-30',
-      judulPekerjaan: 'Pembangunan Rumah Tinggal di Perumahan Puri Safana Cikeas (8 Unit)',
-      lokasi: 'Jl. Bojong Nangka Rt.001 Rw.012 Kel. Cikeas Udik, Kec. Gunung Putri Kab. Bogor',
-      jangkaWaktu: 120,
-      nilaiKontrak: 1330626827.04,
-      namaPihakPertama: 'Yusdi Nurfauzi, ST',
-      nikPihakPertama: '3671081002770009',
-      namaPihakKedua: 'Fathor Rosid',
-      nikPihakKedua: '3201021208780028',
-      alamatPihakKedua: 'Lembur Rt 002 Rw 009 Kel. Bojong Kulur Kec. Gunung Putri, Kab Bogor, Jawa Barat',
-      namaBank: 'BCA',
-      noRekening: '5725393927',
-      atasNamaRekening: 'Saiful Hasan',
-      fileSpk: 'SPK_026_Fathor_Rosid.pdf',
-    }
-  ]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<SpkData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof SpkData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-  const columns = [
-    { header: 'No. SPK', accessor: 'noSpk' },
-    { header: 'Judul Pekerjaan', accessor: 'judulPekerjaan' },
-    { header: 'Pihak Kedua (Vendor)', accessor: 'namaPihakKedua' },
-    {
-      header: 'Nilai Kontrak',
-      accessor: 'nilaiKontrak',
-      render: (val: number) => formatRupiah(val)
-    },
-    {
-      header: 'Waktu',
-      accessor: 'jangkaWaktu',
-      render: (val: number) => `${val} Hari`
-    },
-    {
-      header: 'Dokumen',
-      accessor: 'fileSpk',
-      render: (val: string) => val ? (
-        <span className="text-blue-600 text-xs font-medium bg-blue-50 px-2 py-1 rounded">{val}</span>
-      ) : (
-        <span className="text-gray-400 text-xs">-</span>
-      )
-    },
-  ];
-  const openModal = (item?: SpkData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData({ ...initialFormState, tanggalSpk: new Date().toISOString().split('T')[0] });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-    if (errors[name as keyof SpkData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof SpkData) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, [fieldName]: file.name }));
-    }
-  };
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof SpkData, string>> = {};
-    if (!formData.noSpk.trim()) newErrors.noSpk = 'Nomor SPK wajib diisi';
-    if (!formData.judulPekerjaan.trim()) newErrors.judulPekerjaan = 'Judul pekerjaan wajib diisi';
-    if (formData.nilaiKontrak <= 0) newErrors.nilaiKontrak = 'Nilai kontrak harus lebih dari 0';
-    if (!formData.namaPihakKedua.trim()) newErrors.namaPihakKedua = 'Nama vendor wajib diisi';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newId = `SPK-${Date.now()}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-  const handleDelete = (item: SpkData) => {
-    if (window.confirm(`Hapus data SPK ${item.noSpk}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Surat Perjanjian Kerja (SPK)"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit SPK" : "Buat SPK Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Informasi Proyek */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Informasi Pekerjaan</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Nomor SPK" name="noSpk" value={formData.noSpk} onChange={handleChange} error={errors.noSpk} />
-              <Input label="Tanggal SPK" type="date" name="tanggalSpk" value={formData.tanggalSpk} onChange={handleChange} />
-              <div className="md:col-span-2">
-                <Input label="Judul Pekerjaan" name="judulPekerjaan" value={formData.judulPekerjaan} onChange={handleChange} error={errors.judulPekerjaan} />
-              </div>
-              {/* step="any" ditambahkan agar form mengizinkan input koma/desimal pada nilai kontrak */}
-              <Input label="Nilai Kontrak (Rp)" type="number" step="any" name="nilaiKontrak" value={formData.nilaiKontrak === 0 ? '' : formData.nilaiKontrak} onChange={handleChange} error={errors.nilaiKontrak} />
-              <Input label="Jangka Waktu (Hari)" type="number" name="jangkaWaktu" value={formData.jangkaWaktu === 0 ? '' : formData.jangkaWaktu} onChange={handleChange} />
-            </div>
-          </div>
-          {/* Section 2: Pihak Pertama & Kedua */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Data Para Pihak</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Pihak Pertama (Pemberi Tugas)</p>
-                <Input label="Nama" name="namaPihakPertama" value={formData.namaPihakPertama} onChange={handleChange} />
-                <Input label="NIK" name="nikPihakPertama" value={formData.nikPihakPertama} onChange={handleChange} />
-              </div>
-              <div className="space-y-4">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Pihak Kedua (Pemborong)</p>
-                <Input label="Nama Vendor" name="namaPihakKedua" value={formData.namaPihakKedua} onChange={handleChange} error={errors.namaPihakKedua} />
-                <Input label="NIK Vendor" name="nikPihakKedua" value={formData.nikPihakKedua} onChange={handleChange} />
-                <Input label="Alamat" name="alamatPihakKedua" value={formData.alamatPihakKedua} onChange={handleChange} />
-              </div>
-            </div>
-          </div>
-          {/* Section 3: Pembayaran & File */}
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Pembayaran & Dokumen</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <Input label="Nama Bank" name="namaBank" value={formData.namaBank} onChange={handleChange} />
-              <Input label="No Rekening" name="noRekening" value={formData.noRekening} onChange={handleChange} />
-              <Input label="Atas Nama" name="atasNamaRekening" value={formData.atasNamaRekening} onChange={handleChange} />
-            </div>
-            <div className="border border-gray-200 p-3 rounded-md bg-white">
-              <FileInput label="Upload SPK (PDF)" accept=".pdf" onChange={(e) => handleFileChange(e, 'fileSpk')} />
-              {formData.fileSpk && (
-                <p className="text-xs text-green-600 mt-1 truncate">File terlampir: {formData.fileSpk}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors">
-              Batal
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors">
-              Simpan SPK
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-export default SPK;
-</file>
-
 <file path="src/services/auth.service.ts">
 import api from "../lib/axios";
 import type { ApiResponse } from "../types/api_response";
@@ -3050,41 +4095,93 @@ export const formatTanpaDesimal = (angka: number) => {
 };
 </file>
 
-<file path="src/components/shared/FileInput.tsx">
+<file path="src/components/shared/Input.tsx">
 import type { InputHTMLAttributes } from 'react';
-import { UploadCloud } from 'lucide-react';
 
-interface FileInputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
   error?: string;
 }
 
-const FileInput = ({ label, error, ...props }: FileInputProps) => {
+const Input = ({ label, error, ...props }: InputProps) => {
   return (
     <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider transition-colors group-focus-within:text-black ml-1">
-        {label}
-      </label>
+      {label && (
+        <label
+          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
+        >
+          {label}
+        </label>
+      )}
+      <input
+        className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
+          disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+          ${error
+            ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+            : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
+          }`}
+        {...props}
+      />
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Input;
+</file>
+
+<file path="src/components/shared/Select.tsx">
+import type { SelectHTMLAttributes } from 'react';
+
+interface Option {
+  value: string | number;
+  label: string;
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  options: Option[];
+  error?: string;
+}
+
+const Select = ({ label, options, error, ...props }: SelectProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      {label && (
+        <label
+          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
+        >
+          {label}
+        </label>
+      )}
       <div className="relative">
-        <input
-          type="file"
-          className={`block w-full text-sm text-slate-500
-            file:mr-4 file:py-2.5 file:px-4
-            file:rounded-l-xl file:border-0
-            file:text-xs file:font-bold file:uppercase file:tracking-widest
-            file:bg-slate-900 file:text-white
-            hover:file:bg-black file:transition-all
-            file:cursor-pointer cursor-pointer
-            border rounded-xl shadow-sm/50 transition-all duration-300
+        <select
+          className={`peer w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none appearance-none
+            disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+            ${props.disabled ? '' : 'cursor-pointer'}
             ${error
-              ? 'border-red-400 bg-red-50/30 focus:ring-4 focus:ring-red-500/10 focus:border-red-500'
-              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-black/5 focus:border-black'
-            }
-          `}
+              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
+            }`}
           {...props}
-        />
-        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-300 group-hover:text-slate-500 transition-colors">
-          <UploadCloud size={18} />
+        >
+          <option value="" disabled>Pilih {label || 'Opsi'}...</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} className="py-2">
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400 peer-focus:text-indigo-500 peer-disabled:opacity-40 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </div>
       {error && (
@@ -3096,15 +4193,17 @@ const FileInput = ({ label, error, ...props }: FileInputProps) => {
   );
 };
 
-export default FileInput;
+export default Select;
 </file>
 
 <file path="src/context/AuthContext.tsx">
 import { createContext, useContext } from 'react';
 import type { Perumahan } from '../types/models/perumahan';
 import type { ActionResult } from '../types/common';
+import type { User } from '../types/models/user';
 
 export interface AuthContextType {
+  user: User | null;
   isAuthenticated: boolean;
   selectedPerumahan: Perumahan | null;
   isLoading: boolean;
@@ -3112,7 +4211,6 @@ export interface AuthContextType {
   logout: () => void;
   setSelectedPerumahan: (perumahan: Perumahan) => void;
 }
-
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -3719,16 +4817,21 @@ import type { Perumahan } from '../types/models/perumahan';
 import type { ActionResult } from '../types/common';
 import { storage } from '../utils/storage';
 import { handleApiError } from '../utils/errorHandler';
-
+import type { User } from '../types/models/user';
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!storage.getToken());
   const [selectedPerumahan, setSelectedPerumahanState] = useState<Perumahan | null>(() => storage.getPerumahan());
+
+
+  const [user, setUser] = useState<User | null>(() => storage.getUser());
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const logout = useCallback(() => {
     storage.clearAuth();
     setIsAuthenticated(false);
     setSelectedPerumahanState(null);
+    setUser(null);
   }, []);
 
   useEffect(() => {
@@ -3736,7 +4839,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener('auth-unauthorized', handleUnauthorized);
     return () => window.removeEventListener('auth-unauthorized', handleUnauthorized);
   }, [logout]);
-
   const login = async (email: string, pass: string, perumahan: Perumahan): Promise<ActionResult> => {
     setIsLoading(true);
     try {
@@ -3747,6 +4849,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         storage.setPerumahan(perumahan);
         setIsAuthenticated(true);
         setSelectedPerumahanState(perumahan);
+
+        setUser(response.data.user);
+
         return { success: true };
       }
       return { success: false, message: response.message || 'Login gagal.' };
@@ -3761,104 +4866,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     storage.setPerumahan(perumahan);
     setSelectedPerumahanState(perumahan);
   };
-
   return (
-    <AuthContext.Provider value={{ isAuthenticated, selectedPerumahan, isLoading, login, logout, setSelectedPerumahan }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, selectedPerumahan, isLoading, login, logout, setSelectedPerumahan }}>
       {children}
     </AuthContext.Provider>
   );
 };
-</file>
-
-<file path="src/components/Navbar.tsx">
-import { Menu, Building } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useGetPerumahan } from '../hooks/queries/usePerumahan';
-
-interface NavbarProps {
-  onMenuClick: () => void;
-}
-
-const Navbar = ({ onMenuClick }: NavbarProps) => {
-  const location = useLocation();
-  const { selectedPerumahan, setSelectedPerumahan } = useAuth();
-  const { data: perumahanList } = useGetPerumahan();
-
-  const getPageTitle = () => {
-    const path = location.pathname;
-    if (path === '/') return 'Dashboard Utama';
-    const paths = path.split('/').filter(Boolean);
-    const lastPath = paths[paths.length - 1];
-    return lastPath.charAt(0).toUpperCase() + lastPath.slice(1).replace('-', ' ');
-  };
-
-  return (
-    <header className="h-16 flex items-center justify-between px-4 md:px-8 border-b border-gray-200/60 bg-white/70 backdrop-blur-md sticky top-0 z-30 shrink-0 shadow-sm/50">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onMenuClick}
-          className="md:hidden p-2 -ml-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
-        >
-          <Menu size={22} />
-        </button>
-
-        <div className="hidden md:block">
-          <h1 className="text-xl font-bold font-heading text-gray-900 tracking-tight">
-            {getPageTitle()}
-          </h1>
-        </div>
-
-        {/* --- UPDATE: TAMPILKAN LOGO PERUMAHAN DI MOBILE --- */}
-        <div className="flex items-center gap-2 md:hidden">
-          {selectedPerumahan?.logo ? (
-            <img src={selectedPerumahan.logo} alt="Logo" className="h-8 object-contain" />
-          ) : (
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md">
-              B
-            </div>
-          )}
-          <span className="font-heading font-bold text-lg text-gray-900 tracking-tight">
-            {selectedPerumahan?.nama || 'Bumantaraz'}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 md:gap-5">
-        {selectedPerumahan && perumahanList && (
-          <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-black/5 transition-all">
-            {/* --- UPDATE: TAMPILKAN LOGO KECIL DI SELECT BOX --- */}
-            {selectedPerumahan.logo ? (
-              <img src={selectedPerumahan.logo} alt="Icon" className="w-5 h-5 object-contain" />
-            ) : (
-              <Building size={16} className="text-slate-500" />
-            )}
-            <select
-              className="bg-transparent border-none text-sm font-bold text-slate-700 focus:ring-0 cursor-pointer outline-none w-32 md:w-auto"
-              value={selectedPerumahan.id}
-              onChange={(e) => {
-                const selected = perumahanList.find(p => String(p.id) === e.target.value);
-                if (selected) {
-                  setSelectedPerumahan(selected);
-                }
-              }}
-            >
-              {perumahanList.map(p => (
-                <option key={p.id} value={p.id}>{p.nama}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="w-9 h-9 bg-gradient-to-tr from-gray-800 to-black rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md cursor-pointer border-2 border-white ring-1 ring-gray-100">
-          Aq
-        </div>
-      </div>
-    </header>
-  );
-};
-
-export default Navbar;
 </file>
 
 <file path="src/hooks/queries/useKavling.ts">
@@ -4673,76 +5686,6 @@ export const tagihanService = {
 }
 </file>
 
-<file path="src/components/shared/Modal.tsx">
-import { type ReactNode, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-}
-
-const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-all"
-            onClick={onClose}
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="relative bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5 overflow-hidden"
-          >
-            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white/90 backdrop-blur-md shrink-0 z-10">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all cursor-pointer"
-              >
-                <X size={20} strokeWidth={2.5} />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-50/50">
-              {children}
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>,
-    document.body
-  );
-};
-
-export default Modal;
-</file>
-
 <file path="src/hooks/queries/useTagihan.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -5464,105 +6407,299 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
 export default CurrencyInput;
 </file>
 
-<file path="src/components/shared/Input.tsx">
-import type { InputHTMLAttributes } from 'react';
+<file path="src/components/Sidebar.tsx">
+import { useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'; // <-- Tambah useNavigate
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  UserCircle,
+  FolderKanban,
+  ChevronDown,
+  X,
+  ChevronRight,
+  ShoppingCart,
+  LogOut // <-- Tambah icon LogOut
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
+const menuItems = [
+  {
+    title: 'Dashboard',
+    path: '/',
+    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
+  },
+  {
+    title: 'Penjualan',
+    icon: <ShoppingCart size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Data Penjualan', path: '/management/penjualan', resource: 'PENJUALAN' },
+      { title: 'Progress Penjualan', path: '/management/progress-penjualan', resource: 'PROGRESS_PENJUALAN' },
+      { title: 'Ganti Kavling', path: '/management/ganti-kavling', resource: 'GANTI_KAVLING' },
+      { title: 'Batal Transaksi', path: '/management/batal-transaksi', resource: 'BATAL_TRANSAKSI' },
+    ],
+  },
+  {
+    title: 'Management',
+    icon: <Briefcase size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Kavling', path: '/management/kavling', resource: 'KAVLING' },
+      { title: 'Notaris', path: '/management/notaris', resource: 'NOTARIS' },
+      { title: 'Bank', path: '/management/bank', resource: 'BANK' },
+      { title: 'User', path: '/management/users', resource: 'USER' },
+      { title: 'Akses', path: '/management/role-permission', resource: 'ROLE_PERMISSION' },
+      { title: 'Audit Log', path: '/management/audit-log', resource: 'AUDIT_LOG' },
+    ],
+  },
+  {
+    title: 'Customer',
+    icon: <Users size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Data Sosial', path: '/customer/data-sosial', resource: 'CUSTOMER' },
+      { title: 'SPR', path: '/customer/spr', resource: 'PENJUALAN' },
+      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi', resource: 'CUSTOMER' },
+      { title: 'Kavling', path: '/customer/kavling', resource: 'CUSTOMER_KAVLING' },
+      { title: 'Pembayaran', path: '/customer/tagihan', resource: 'TAGIHAN' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    icon: <UserCircle size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Agents', path: '/marketing/agents', resource: 'AGENT' },
+      { title: 'Fee Agent', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
+    ],
+  },
+  {
+    title: 'Proyek',
+    icon: <FolderKanban size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'SPK', path: '/proyek/spk', resource: 'SPK' },
+      { title: 'Progress', path: '/proyek/progress', resource: 'PROGRESS_PROYEK' },
+    ],
+  },
+];
+
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
-const Input = ({ label, error, ...props }: InputProps) => {
+const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
+  const location = useLocation();
+  const navigate = useNavigate(); // <-- Inisialisasi useNavigate
+  const { user, logout } = useAuth(); // <-- Ambil fungsi logout dari context
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
+
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  const filteredMenuItems = menuItems.map(item => {
+    if (!item.submenus) return item;
+
+    const filteredSubmenus = item.submenus.filter(sub => {
+      if (!sub.resource) return true;
+      if (isSuperAdmin) return true;
+      return user?.permissions?.some(p => p.resource === sub.resource && p.canRead);
+    });
+
+    return { ...item, submenus: filteredSubmenus };
+  }).filter(item => item.submenus ? item.submenus.length > 0 : true);
+
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    const initialOpenMenus: Record<string, boolean> = {};
+    menuItems.forEach(item => {
+      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
+        initialOpenMenus[item.title] = true;
+      }
+    });
+    return initialOpenMenus;
+  });
+
+  const handleMenuClick = (title: string) => {
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setOpenMenus((prev) => ({ ...prev, [title]: true }));
+    } else {
+      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
+    }
+  };
+
+  const checkActive = (path?: string, submenus?: { path: string }[]) => {
+    if (path && location.pathname === path) return true;
+    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
+    return false;
+  };
+
+  // <-- Tambah fungsi handleLogout
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      {label && (
-        <label
-          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
-            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
+          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
+          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
+        `}
+      >
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
         >
-          {label}
-        </label>
-      )}
-      <input
-        className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
-          disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
-          ${error
-            ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-            : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
-          }`}
-        {...props}
-      />
-      {error && (
-        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
-    </div>
-  );
-};
+          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+        </button>
 
-export default Input;
-</file>
-
-<file path="src/components/shared/Select.tsx">
-import type { SelectHTMLAttributes } from 'react';
-
-interface Option {
-  value: string | number;
-  label: string;
-}
-
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
-  options: Option[];
-  error?: string;
-}
-
-const Select = ({ label, options, error, ...props }: SelectProps) => {
-  return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      {label && (
-        <label
-          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
-            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
-        >
-          {label}
-        </label>
-      )}
-      <div className="relative">
-        <select
-          className={`peer w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none appearance-none
-            disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
-            ${props.disabled ? '' : 'cursor-pointer'}
-            ${error
-              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
-            }`}
-          {...props}
-        >
-          <option value="" disabled>Pilih {label || 'Opsi'}...</option>
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="py-2">
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400 peer-focus:text-indigo-500 peer-disabled:opacity-40 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
+        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
+              B
+            </div>
+            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
+              Bumantaraz
+            </span>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
+          >
+            <X size={20} />
+          </button>
         </div>
-      </div>
-      {error && (
-        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
-    </div>
+
+        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
+          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
+            Main Menu
+          </p>
+
+          <nav className="space-y-1">
+            {filteredMenuItems.map((item) => {
+              const hasSubmenus = !!item.submenus;
+              const isActive = checkActive(item.path, item.submenus);
+              const isOpenMenu = openMenus[item.title];
+
+              return (
+                <div key={item.title} className="relative">
+                  {hasSubmenus ? (
+                    <>
+                      <button
+                        onClick={() => handleMenuClick(item.title)}
+                        title={!isExpanded ? item.title : undefined}
+                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
+                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                      >
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
+                            {item.icon}
+                          </span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                        <ChevronDown
+                          size={14}
+                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
+                            ${isOpenMenu ? 'rotate-180' : ''}
+                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
+                        />
+                      </button>
+
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
+                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
+                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
+                      `}>
+                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
+                          {item.submenus!.map((sub) => {
+                            return (
+                              <NavLink
+                                key={sub.title}
+                                to={sub.path}
+                                className={({ isActive: linkActive }) => `
+                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
+                                  ${linkActive
+                                    ? 'bg-black text-white shadow-md shadow-black/10'
+                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
+                                `}
+                              >
+                                {sub.title}
+                              </NavLink>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <NavLink
+                      to={item.path!}
+                      title={!isExpanded ? item.title : undefined}
+                      className={({ isActive: linkActive }) =>
+                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
+                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+                        ${linkActive
+                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
+                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                        }`
+                      }
+                    >
+                      {({ isActive: linkActive }) => (
+                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
+                            {item.icon}
+                          </span>
+                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                            {item.title}
+                          </span>
+                        </div>
+                      )}
+                    </NavLink>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* <-- TAMBAH BAGIAN INI: Tombol Logout di bagian paling bawah Sidebar --> */}
+        <div className="shrink-0 p-4 border-t border-slate-200/60 bg-white">
+          <button
+            onClick={handleLogout}
+            title={!isExpanded ? "Keluar Sistem" : undefined}
+            className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between text-red-500 hover:bg-red-50 hover:text-red-700
+              ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
+            `}
+          >
+            <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+              <span className="shrink-0 transition-colors">
+                <LogOut size={20} strokeWidth={1.5} />
+              </span>
+              <span className={`text-sm tracking-tight font-bold whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                Keluar
+              </span>
+            </div>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 };
 
-export default Select;
+export default Sidebar;
 </file>
 
 <file path="src/pages/Management/Notaris.tsx">
@@ -6778,6 +7915,274 @@ const Agents = () => {
 export default Agents;
 </file>
 
+<file path="src/components/shared/DataTable.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft, Eye } from 'lucide-react';
+
+interface Column {
+  header: string;
+  accessor: string;
+  render?: (value: any, row: any) => React.ReactNode;
+}
+
+interface DataTableProps {
+  title: string;
+  columns: Column[];
+  data: any[];
+  onAdd?: () => void;
+  onDetail?: (item: any) => void;
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+  expandedRowRender?: (row: any) => React.ReactNode;
+  serverSide?: boolean;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+}
+
+const DataTable = ({
+  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
+  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
+}: DataTableProps) => {
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (serverSide && onSearchChange) {
+      const timeoutId = setTimeout(() => {
+        if (localSearchTerm !== searchTerm) {
+          onSearchChange(localSearchTerm);
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
+
+  const toggleRow = (rowIndex: number) => {
+    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+  };
+
+  const filteredData = useMemo(() => {
+    if (serverSide) return data;
+    if (!localSearchTerm) return data;
+    const lowercasedTerm = localSearchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, localSearchTerm, columns, serverSide]);
+
+  const hasActions = !!(onDetail || onEdit || onDelete);
+  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (hasActions ? 1 : 0);
+
+  const getPageNumbers = () => {
+    const delta = 1;
+    const range = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift("...");
+    if (page + delta < totalPages - 1) range.push("...");
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
+      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+            {/* {!serverSide && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
+                {filteredData.length} Data
+              </span>
+            )} */}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-72 group">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={localSearchTerm}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Tambah Data
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
+              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center"></th>}
+              {columns.map((col, index) => (
+                <th key={index} className="px-6 py-3.5 whitespace-nowrap">
+                  {col.header}
+                </th>
+              ))}
+              {hasActions && (
+                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24">Aksi</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => {
+                const isExpanded = !!expandedRows[rowIndex];
+                return (
+                  <React.Fragment key={rowIndex}>
+                    <tr
+                      onClick={() => {
+                        if (expandedRowRender) toggleRow(rowIndex);
+                      }}
+                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
+                    >
+                      {expandedRowRender && (
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </td>
+                      )}
+                      {columns.map((col, colIndex) => (
+                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
+                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
+                        </td>
+                      ))}
+                      {hasActions && (
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            {onDetail && (
+                              <button
+                                onClick={() => onDetail(row)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
+                                title="Detail"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            )}
+                            {onEdit && (
+                              <button
+                                onClick={() => onEdit(row)}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                onClick={() => onDelete(row)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                                title="Hapus"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                    {isExpanded && expandedRowRender && (
+                      <tr className="bg-slate-50/30 border-t-0">
+                        <td colSpan={totalCols} className="px-6 py-5 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            {expandedRowRender(row)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={totalCols} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center max-w-xs mx-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-slate-50/50">
+                      <FileX2 size={24} className="text-slate-300" />
+                    </div>
+                    <h3 className="text-slate-900 font-semibold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-500 text-sm">
+                      Kami tidak dapat menemukan data yang Anda cari.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {serverSide && totalPages > 1 && (
+        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="text-xs font-semibold text-slate-500">
+            Halaman {page} dari {totalPages}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onPageChange?.(page - 1)}
+              disabled={page === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {getPageNumbers().map((num, idx) => (
+              num === "..." ? (
+                <span key={idx} className="px-2 text-slate-400 font-bold">...</span>
+              ) : (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange?.(num as number)}
+                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${page === num
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                >
+                  {num}
+                </button>
+              )
+            ))}
+
+            <button
+              onClick={() => onPageChange?.(page + 1)}
+              disabled={page === totalPages}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DataTable;
+</file>
+
 <file path="src/pages/Customer/KelengkapanAdministrasi.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
@@ -7654,262 +9059,87 @@ const GantiKavling = () => {
 export default GantiKavling;
 </file>
 
-<file path="src/components/Sidebar.tsx">
-import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Briefcase,
-  Users,
-  UserCircle,
-  FolderKanban,
-  ChevronDown,
-  X,
-  ChevronRight,
-  ShoppingCart
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-const menuItems = [
-  {
-    title: 'Dashboard',
-    path: '/',
-    icon: <LayoutDashboard size={20} strokeWidth={1.5} />,
-  },
-  {
-    title: 'Penjualan',
-    icon: <ShoppingCart size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Data Penjualan', path: '/management/penjualan' },
-      { title: 'Progress Penjualan', path: '/management/progress-penjualan' },
-      { title: 'Ganti Kavling', path: '/management/ganti-kavling' },
-      { title: 'Batal Transaksi', path: '/management/batal-transaksi' },
-    ],
-  },
-
-  {
-    title: 'Management',
-    icon: <Briefcase size={20} strokeWidth={1.5} />,
-    submenus: [
-
-      { title: 'Kavling', path: '/management/kavling' },
-      { title: 'Notaris', path: '/management/notaris' },
-      { title: 'Bank', path: '/management/bank' },
-      { title: 'Audit Log', path: '/management/audit-log' },
-    ],
-  },
-  {
-    title: 'Customer',
-    icon: <Users size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial' },
-      { title: 'SPR', path: '/customer/spr' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi' },
-      { title: 'Kavling', path: '/customer/kavling' },
-      { title: 'Pembayaran', path: '/customer/tagihan' },
-    ],
-  },
-  {
-    title: 'Marketing',
-    icon: <UserCircle size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'Agents', path: '/marketing/agents' },
-      { title: 'Fee Agent', path: '/marketing/fee-agent' },
-    ],
-  },
-  {
-    title: 'Proyek',
-    icon: <FolderKanban size={20} strokeWidth={1.5} />,
-    submenus: [
-      { title: 'SPK', path: '/proyek/spk' },
-      { title: 'Progress', path: '/proyek/progress' },
-    ],
-  },
-];
-interface SidebarProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-}
-
-const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
-  const location = useLocation();
+<file path="src/App.tsx">
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PageLoader from './pages/PageLoader';
+import RootLayout from './components/layouts/RootLayout';
+import { useAuth } from './context/AuthContext';
+import { AuthProvider } from './providers/AuthProvider';
+import { QueryProvider } from './providers/QueryProvider';
 
 
-  const [isExpanded, setIsExpanded] = useState(true);
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
+const Kavling = lazy(() => import('./pages/Management/Kavling'));
+const Notaris = lazy(() => import('./pages/Management/Notaris'));
+const Bank = lazy(() => import('./pages/Management/Bank'));
+const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
+const SPR = lazy(() => import('./pages/Customer/SPR'));
+const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
+const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
+const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
+const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
+const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
+const GantiKavling = lazy(() => import('./pages/Management/GantiKavling'));
+const BatalTransaksi = lazy(() => import('./pages/Management/BatalTransaksi'));
+const AuditLog = lazy(() => import('./pages/Management/AuditLog'));
+const ProgressPenjualan = lazy(() => import('./pages/Management/ProgressPenjualan'));
+const UserManagement = lazy(() => import('./pages/Management/User'));
+const RolePermission = lazy(() => import('./pages/Management/RolePermission'));
 
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
-    const initialOpenMenus: Record<string, boolean> = {};
-    menuItems.forEach(item => {
-      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
-        initialOpenMenus[item.title] = true;
-      }
-    });
-    return initialOpenMenus;
-  });
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
 
-  const handleMenuClick = (title: string) => {
-
-    if (!isExpanded) {
-      setIsExpanded(true);
-      setOpenMenus((prev) => ({ ...prev, [title]: true }));
-    } else {
-      setOpenMenus((prev) => ({ ...prev, [title]: !prev[title] }));
-    }
-  };
-
-  const checkActive = (path?: string, submenus?: { path: string }[]) => {
-    if (path && location.pathname === path) return true;
-    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
-    return false;
-  };
-
+const App = () => {
   return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+    <QueryProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/verify/:id" element={<VerifyDocument />} />
 
-      <aside
-        /* PERBAIKAN: 
-          - Hapus 'relative' agar fixed bekerja sempurna saat overlay di mobile.
-          - Base class selalu merender state "Expanded" (untuk Mobile).
-          - Modifikasi layout (w-20) hanya terjadi di prefix md: jika !isExpanded.
-        */
-        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
-          ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
-          ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
-        `}
-      >
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
-        >
-          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
-        </button>
+              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="management/penjualan" element={<Penjualan />} />
+                <Route path="management/progress-penjualan" element={<ProgressPenjualan />} />
+                <Route path="management/ganti-kavling" element={<GantiKavling />} />
+                <Route path="management/batal-transaksi" element={<BatalTransaksi />} />
+                <Route path="management/kavling" element={<Kavling />} />
+                <Route path="management/notaris" element={<Notaris />} />
+                <Route path="management/bank" element={<Bank />} />
+                <Route path="customer/data-sosial" element={<DataSosial />} />
+                <Route path="customer/spr" element={<SPR />} />
+                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
+                <Route path="customer/kavling" element={<CustomerKavling />} />
+                <Route path="customer/tagihan" element={<Tagihan />} />
+                <Route path="marketing/agents" element={<Agents />} />
+                <Route path="marketing/fee-agent" element={<FeeAgent />} />
+                <Route path="proyek/spk" element={<SPK />} />
+                <Route path="proyek/progress" element={<Progress />} />
+                <Route path="management/audit-log" element={<AuditLog />} />
+                <Route path="management/users" element={<UserManagement />} />
+                <Route path="management/role-permission" element={<RolePermission />} />
 
-        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
-              B
-            </div>
-            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
-              Bumantaraz
-            </span>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
-          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
-            Main Menu
-          </p>
-
-          <nav className="space-y-1">
-            {menuItems.map((item) => {
-              const hasSubmenus = !!item.submenus;
-              const isActive = checkActive(item.path, item.submenus);
-              const isOpenMenu = openMenus[item.title];
-
-              return (
-                <div key={item.title} className="relative">
-                  {hasSubmenus ? (
-                    <>
-                      <button
-                        onClick={() => handleMenuClick(item.title)}
-                        title={!isExpanded ? item.title : undefined}
-                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
-                          ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-                      >
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                        <ChevronDown
-                          size={14}
-                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
-                            ${isOpenMenu ? 'rotate-180' : ''}
-                            ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
-                        />
-                      </button>
-
-                      {/* Dropdown menu juga dikunci menggunakan md: ketika mode shrink agar tidak error di mobile */}
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out 
-                        ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
-                        ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
-                      `}>
-                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
-                          {item.submenus!.map((sub) => {
-                            return (
-                              <NavLink
-                                key={sub.title}
-                                to={sub.path}
-                                className={({ isActive: linkActive }) => `
-                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
-                                  ${linkActive
-                                    ? 'bg-black text-white shadow-md shadow-black/10'
-                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
-                                `}
-                              >
-                                {sub.title}
-                              </NavLink>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <NavLink
-                      to={item.path!}
-                      title={!isExpanded ? item.title : undefined}
-                      className={({ isActive: linkActive }) =>
-                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
-                        ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                        ${linkActive
-                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
-                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                        }`
-                      }
-                    >
-                      {({ isActive: linkActive }) => (
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
-                      )}
-                    </NavLink>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-      </aside>
-    </>
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryProvider>
   );
 };
 
-export default Sidebar;
+export default App;
 </file>
 
 <file path="src/hooks/queries/usePenjualan.ts">
@@ -8473,352 +9703,6 @@ export const kavlingService = {
 };
 </file>
 
-<file path="src/App.tsx">
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import PageLoader from './pages/PageLoader';
-import RootLayout from './components/layouts/RootLayout';
-import { useAuth } from './context/AuthContext';
-import { AuthProvider } from './providers/AuthProvider';
-import { QueryProvider } from './providers/QueryProvider';
-
-
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
-const Kavling = lazy(() => import('./pages/Management/Kavling'));
-const Notaris = lazy(() => import('./pages/Management/Notaris'));
-const Bank = lazy(() => import('./pages/Management/Bank'));
-const DataSosial = lazy(() => import('./pages/Customer/DataSosial'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
-const KelengkapanAdministrasi = lazy(() => import('./pages/Customer/KelengkapanAdministrasi'));
-const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
-const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
-const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-const SPK = lazy(() => import('./pages/Proyek/SPK'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
-const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
-const GantiKavling = lazy(() => import('./pages/Management/GantiKavling'));
-const BatalTransaksi = lazy(() => import('./pages/Management/BatalTransaksi'));
-const AuditLog = lazy(() => import('./pages/Management/AuditLog'));
-const ProgressPenjualan = lazy(() => import('./pages/Management/ProgressPenjualan'));
-
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-};
-
-const App = () => {
-  return (
-    <QueryProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/verify/:id" element={<VerifyDocument />} />
-
-              <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="management/penjualan" element={<Penjualan />} />
-                <Route path="management/progress-penjualan" element={<ProgressPenjualan />} />
-                <Route path="management/ganti-kavling" element={<GantiKavling />} />
-                <Route path="management/batal-transaksi" element={<BatalTransaksi />} />
-                <Route path="management/kavling" element={<Kavling />} />
-                <Route path="management/notaris" element={<Notaris />} />
-                <Route path="management/bank" element={<Bank />} />
-                <Route path="customer/data-sosial" element={<DataSosial />} />
-                <Route path="customer/spr" element={<SPR />} />
-                <Route path="customer/kelengkapan-administrasi" element={<KelengkapanAdministrasi />} />
-                <Route path="customer/kavling" element={<CustomerKavling />} />
-                <Route path="customer/tagihan" element={<Tagihan />} />
-                <Route path="marketing/agents" element={<Agents />} />
-                <Route path="marketing/fee-agent" element={<FeeAgent />} />
-                <Route path="proyek/spk" element={<SPK />} />
-                <Route path="proyek/progress" element={<Progress />} />
-                <Route path="management/audit-log" element={<AuditLog />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
-    </QueryProvider>
-  );
-};
-
-export default App;
-</file>
-
-<file path="src/components/shared/DataTable.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft, Eye } from 'lucide-react';
-
-interface Column {
-  header: string;
-  accessor: string;
-  render?: (value: any, row: any) => React.ReactNode;
-}
-
-interface DataTableProps {
-  title: string;
-  columns: Column[];
-  data: any[];
-  onAdd?: () => void;
-  onDetail?: (item: any) => void;
-  onEdit?: (item: any) => void;
-  onDelete?: (item: any) => void;
-  expandedRowRender?: (row: any) => React.ReactNode;
-  serverSide?: boolean;
-  searchTerm?: string;
-  onSearchChange?: (val: string) => void;
-  page?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
-}
-
-const DataTable = ({
-  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
-  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
-}: DataTableProps) => {
-
-  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-
-  useEffect(() => {
-    if (serverSide && onSearchChange) {
-      const timeoutId = setTimeout(() => {
-        if (localSearchTerm !== searchTerm) {
-          onSearchChange(localSearchTerm);
-        }
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
-
-  const toggleRow = (rowIndex: number) => {
-    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
-  };
-
-  const filteredData = useMemo(() => {
-    if (serverSide) return data;
-    if (!localSearchTerm) return data;
-    const lowercasedTerm = localSearchTerm.toLowerCase();
-    return data.filter((row) => {
-      return columns.some((col) => {
-        const value = row[col.accessor];
-        if (value == null) return false;
-        return String(value).toLowerCase().includes(lowercasedTerm);
-      });
-    });
-  }, [data, localSearchTerm, columns, serverSide]);
-
-  const hasActions = !!(onDetail || onEdit || onDelete);
-  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (hasActions ? 1 : 0);
-
-  const getPageNumbers = () => {
-    const delta = 1;
-    const range = [];
-    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
-      range.push(i);
-    }
-    if (page - delta > 2) range.unshift("...");
-    if (page + delta < totalPages - 1) range.push("...");
-    range.unshift(1);
-    if (totalPages > 1) range.push(totalPages);
-    return range;
-  };
-
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
-      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-            {/* {!serverSide && (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
-                {filteredData.length} Data
-              </span>
-            )} */}
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-72 group">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
-            <input
-              type="text"
-              placeholder="Cari data..."
-              value={localSearchTerm}
-              onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
-            />
-          </div>
-
-          {onAdd && (
-            <button
-              onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Tambah Data
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
-              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center"></th>}
-              {columns.map((col, index) => (
-                <th key={index} className="px-6 py-3.5 whitespace-nowrap">
-                  {col.header}
-                </th>
-              ))}
-              {hasActions && (
-                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24">Aksi</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredData.length > 0 ? (
-              filteredData.map((row, rowIndex) => {
-                const isExpanded = !!expandedRows[rowIndex];
-                return (
-                  <React.Fragment key={rowIndex}>
-                    <tr
-                      onClick={() => {
-                        if (expandedRowRender) toggleRow(rowIndex);
-                      }}
-                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
-                    >
-                      {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
-                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                        </td>
-                      )}
-                      {columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
-                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
-                        </td>
-                      ))}
-                      {hasActions && (
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            {onDetail && (
-                              <button
-                                onClick={() => onDetail(row)}
-                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
-                                title="Detail"
-                              >
-                                <Eye size={16} />
-                              </button>
-                            )}
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(row)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
-                                title="Edit"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button
-                                onClick={() => onDelete(row)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
-                                title="Hapus"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                    {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/30 border-t-0">
-                        <td colSpan={totalCols} className="px-6 py-5 border-b border-slate-100">
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                            {expandedRowRender(row)}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={totalCols} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center max-w-xs mx-auto">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-slate-50/50">
-                      <FileX2 size={24} className="text-slate-300" />
-                    </div>
-                    <h3 className="text-slate-900 font-semibold mb-1">Data tidak ditemukan</h3>
-                    <p className="text-slate-500 text-sm">
-                      Kami tidak dapat menemukan data yang Anda cari.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {serverSide && totalPages > 1 && (
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-xs font-semibold text-slate-500">
-            Halaman {page} dari {totalPages}
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => onPageChange?.(page - 1)}
-              disabled={page === 1}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {getPageNumbers().map((num, idx) => (
-              num === "..." ? (
-                <span key={idx} className="px-2 text-slate-400 font-bold">...</span>
-              ) : (
-                <button
-                  key={idx}
-                  onClick={() => onPageChange?.(num as number)}
-                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${page === num
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                >
-                  {num}
-                </button>
-              )
-            ))}
-
-            <button
-              onClick={() => onPageChange?.(page + 1)}
-              disabled={page === totalPages}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default DataTable;
-</file>
-
 <file path="src/pages/Customer/SPR.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState } from 'react';
@@ -9062,6 +9946,137 @@ const SPR = () => {
 export default SPR;
 </file>
 
+<file path="src/services/penjualan.service.ts">
+import api from "../lib/axios";
+
+export interface CreatePenjualanDTO {
+  noIdentitas: string;
+  nama: string;
+  noTelepon: string;
+  alamat: string;
+  perusahaan?: string;
+  alamatKoresponden?: string;
+  perumahan: string;
+  blok: string;
+  nomorUnit: string;
+  tipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  tanggal: string;
+  hargaDasar: number;
+  plafonAwal?: number;
+  biayaKpr?: number;
+  plafonKredit?: number;
+  dpTidakDibayar?: number;
+  hargaJual: number;
+  hargaPromosi?: number;
+  diskonPenjualan?: number;
+  dp?: number;
+  bookingFee?: number;
+  caraPembayaran: string;
+  bank?: string;
+  nilaiPengajuanKpr?: number;
+  agent: string;
+  rekeningTujuanId?: number;
+  keteranganUpdateSpr?: string;
+}
+
+export const penjualanService = {
+  getAll: async (params?: Record<string, unknown>) => {
+    const response = await api.get("/penjualan", {
+      params: { ...params },
+    });
+
+    return response.data.data;
+  },
+
+  create: async (data: CreatePenjualanDTO) => {
+    const response = await api.post("/penjualan", data);
+    return response.data.data;
+  },
+  cancel: async (noTransaksi: string, alasanBatal: string) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
+      alasanBatal,
+    });
+    return response.data.data;
+  },
+  uploadBukti: async (
+    noTransaksi: string,
+    type: "booking" | "dp",
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("fileBukti", file);
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/upload/${type}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+
+    return response.data.data;
+  },
+  uploadSignature: async (data: {
+    noTransaksi: string;
+    signatureBase64: string;
+    nama: string;
+    peran: string;
+    tanggal: string;
+  }) => {
+    const response = await api.post(
+      `/penjualan/${data.noTransaksi}/signature`,
+      data,
+    );
+    return response.data.data;
+  },
+  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
+    return response.data.data;
+  },
+  gantiKavling: async (
+    noTransaksi: string,
+    data: { kavlingBaruId: number; alasan: string },
+  ) => {
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/ganti-kavling`,
+      data,
+    );
+    return response.data.data;
+  },
+  getPengajuanBatal: async (status?: string) => {
+    const response = await api.get("/penjualan/pengajuan-batal", {
+      params: { status },
+    });
+    return response.data.data;
+  },
+  getPengajuanGantiKavling: async (status?: string) => {
+    const response = await api.get("/penjualan/pengajuan-ganti-kavling", {
+      params: { status },
+    });
+    return response.data.data;
+  },
+  approveBatal: async (id: number, isApproved: boolean) => {
+    const response = await api.post(
+      `/penjualan/pengajuan-batal/${id}/approve`,
+      { isApproved },
+    );
+    return response.data.data;
+  },
+  approveGantiKavling: async (id: number, isApproved: boolean) => {
+    const response = await api.post(
+      `/penjualan/pengajuan-ganti-kavling/${id}/approve`,
+      { isApproved },
+    );
+    return response.data.data;
+  },
+  regenerateSpr: async (noTransaksi: string) => {
+    const response = await api.post(`/penjualan/${noTransaksi}/generate-spr`);
+    return response.data.data;
+  },
+};
+</file>
+
 <file path="src/pages/Customer/Kavling.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // <file path="src/pages/Customer/Kavling.tsx">
@@ -9104,6 +10119,7 @@ interface KavlingData {
   nrDiskonCash: number;
   nrBiayaBbn: number;
   nrBiayaNotarisAjb: number;
+  nrBiayaNotarisPpjb: number;
   nrBiayaAppraisal: number;
   nrBiayaBphtb: number;
   nrLainLain: number;
@@ -9147,7 +10163,7 @@ const initialFormState: KavlingData = {
   perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
   tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
   hargaDasarKavling: 0, diskonPenjualan: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
-  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
+  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaNotarisPpjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
   pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
   ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
   notarisId: '',
@@ -9155,8 +10171,8 @@ const initialFormState: KavlingData = {
 
 const CustomerKavling = () => {
 
-  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 100 });
-  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
+  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 300 });
+  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 300 });
   const { data: notarisList = [] } = useGetNotaris();
   const updateMutation = useUpdateCustomerKavling();
 
@@ -9195,6 +10211,7 @@ const CustomerKavling = () => {
   const openModal = (item: any) => {
     setFormData({
       ...item,
+      nrBiayaNotarisPpjb: item.nrBiayaNotarisPpjb || 0,
       hargaDasarKavling: item.hargaDasarKavling || 0,
       diskonPenjualan: item.diskonPenjualan || 0,
       totalHargaJual: item.totalHargaJual || 0,
@@ -9219,7 +10236,7 @@ const CustomerKavling = () => {
     // Total Harga Akhir yang dinamis (Harga Jual dari Penjualan + Lebih Tanah + Biaya Strategis)
     const hargaBase = (Number(d.totalHargaJual) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
 
-    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
+    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaNotarisPpjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
     d.nrNilaiPenyerahan = hargaBase - d.nrTotalSubsidi;
     d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
     d.pjNilaiPenyerahan = hargaBase - d.pjTotalSubsidi;
@@ -9298,6 +10315,7 @@ const CustomerKavling = () => {
       nrDiskonCash: getNum(formData.nrDiskonCash),
       nrBiayaBbn: getNum(formData.nrBiayaBbn),
       nrBiayaNotarisAjb: getNum(formData.nrBiayaNotarisAjb),
+      nrBiayaNotarisPpjb: getNum(formData.nrBiayaNotarisPpjb),
       nrBiayaAppraisal: getNum(formData.nrBiayaAppraisal),
       nrBiayaBphtb: getNum(formData.nrBiayaBphtb),
       nrLainLain: getNum(formData.nrLainLain),
@@ -9525,6 +10543,7 @@ const CustomerKavling = () => {
               <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
@@ -9644,137 +10663,6 @@ const SectionTitle = ({ title }: { title: string }) => (
 );
 
 export default CustomerKavling;
-</file>
-
-<file path="src/services/penjualan.service.ts">
-import api from "../lib/axios";
-
-export interface CreatePenjualanDTO {
-  noIdentitas: string;
-  nama: string;
-  noTelepon: string;
-  alamat: string;
-  perusahaan?: string;
-  alamatKoresponden?: string;
-  perumahan: string;
-  blok: string;
-  nomorUnit: string;
-  tipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  tanggal: string;
-  hargaDasar: number;
-  plafonAwal?: number;
-  biayaKpr?: number;
-  plafonKredit?: number;
-  dpTidakDibayar?: number;
-  hargaJual: number;
-  hargaPromosi?: number;
-  diskonPenjualan?: number;
-  dp?: number;
-  bookingFee?: number;
-  caraPembayaran: string;
-  bank?: string;
-  nilaiPengajuanKpr?: number;
-  agent: string;
-  rekeningTujuanId?: number;
-  keteranganUpdateSpr?: string;
-}
-
-export const penjualanService = {
-  getAll: async (params?: Record<string, unknown>) => {
-    const response = await api.get("/penjualan", {
-      params: { ...params },
-    });
-
-    return response.data.data;
-  },
-
-  create: async (data: CreatePenjualanDTO) => {
-    const response = await api.post("/penjualan", data);
-    return response.data.data;
-  },
-  cancel: async (noTransaksi: string, alasanBatal: string) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
-      alasanBatal,
-    });
-    return response.data.data;
-  },
-  uploadBukti: async (
-    noTransaksi: string,
-    type: "booking" | "dp",
-    file: File,
-  ) => {
-    const formData = new FormData();
-    formData.append("fileBukti", file);
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/upload/${type}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
-    );
-
-    return response.data.data;
-  },
-  uploadSignature: async (data: {
-    noTransaksi: string;
-    signatureBase64: string;
-    nama: string;
-    peran: string;
-    tanggal: string;
-  }) => {
-    const response = await api.post(
-      `/penjualan/${data.noTransaksi}/signature`,
-      data,
-    );
-    return response.data.data;
-  },
-  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
-    return response.data.data;
-  },
-  gantiKavling: async (
-    noTransaksi: string,
-    data: { kavlingBaruId: number; alasan: string },
-  ) => {
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/ganti-kavling`,
-      data,
-    );
-    return response.data.data;
-  },
-  getPengajuanBatal: async (status?: string) => {
-    const response = await api.get("/penjualan/pengajuan-batal", {
-      params: { status },
-    });
-    return response.data.data;
-  },
-  getPengajuanGantiKavling: async (status?: string) => {
-    const response = await api.get("/penjualan/pengajuan-ganti-kavling", {
-      params: { status },
-    });
-    return response.data.data;
-  },
-  approveBatal: async (id: number, isApproved: boolean) => {
-    const response = await api.post(
-      `/penjualan/pengajuan-batal/${id}/approve`,
-      { isApproved },
-    );
-    return response.data.data;
-  },
-  approveGantiKavling: async (id: number, isApproved: boolean) => {
-    const response = await api.post(
-      `/penjualan/pengajuan-ganti-kavling/${id}/approve`,
-      { isApproved },
-    );
-    return response.data.data;
-  },
-  regenerateSpr: async (noTransaksi: string) => {
-    const response = await api.post(`/penjualan/${noTransaksi}/generate-spr`);
-    return response.data.data;
-  },
-};
 </file>
 
 <file path="src/pages/Management/Kavling.tsx">
@@ -11369,7 +12257,7 @@ import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
-import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature, useRegenerateSpr } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature, useRegenerateSpr, PENJUALAN_KEYS } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
@@ -11380,6 +12268,7 @@ import { useAuth } from "../../context/AuthContext";
 import SignatureCanvas from 'react-signature-canvas';
 import { penjualanService } from "../../services/penjualan.service";
 import type { AgentData } from '../../services/agent.service';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PenjualanData {
   id?: string;
@@ -11402,6 +12291,7 @@ interface PenjualanData {
 
   hargaDasar: number;
   plafonAwal?: number;
+  plafonAcc?: number;
   biayaKpr?: number;
   nilaiPengajuanKpr?: number;
   hargaJual: number;
@@ -11454,6 +12344,7 @@ const initialFormState: PenjualanData = {
 
   hargaDasar: 0,
   plafonAwal: 0,
+  plafonAcc: 0,
   biayaKpr: 0,
   plafonKredit: 0,
   dpTidakDibayar: 0,
@@ -11487,6 +12378,7 @@ interface BiayaTambahan {
 
 const Penjualan = () => {
   const { selectedPerumahan } = useAuth();
+  const queryClient = useQueryClient();
 
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
@@ -11601,7 +12493,6 @@ const Penjualan = () => {
   };
 
   const openDetailModal = (item: PenjualanData) => {
-    console.log(item)
     setDetailData(item);
     setIsDetailModalOpen(true);
   };
@@ -11676,8 +12567,7 @@ const Penjualan = () => {
         if (name === 'dpTidakDibayar') {
           dpTidakDibayar = Number(value);
         } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'hargaJual'].includes(name) || !dpTidakDibayar) {
-          const dpKotor = baseHargaJual * 0.1;
-          dpTidakDibayar = Math.round(dpKotor - bf);
+          dpTidakDibayar = Math.round(((hargaJual || 0) - diskon) * 0.1 - bf);
         }
 
         updates.plafonAwal = plafonAwal;
@@ -11739,26 +12629,34 @@ const Penjualan = () => {
       return updates;
     };
   const handleBulkGenerateSPR = async () => {
-    if (!window.confirm("Yakin ingin men-generate SPR untuk SEMUA data penjualan?")) return;
+    if (!window.confirm("Yakin ingin men-generate SPR untuk data penjualan yang BELUM memiliki dokumen SPR?")) return;
 
     setIsGeneratingBulk(true);
     try {
-      const res = await penjualanService.getAll({ limit: 1000 });
+      const res = await penjualanService.getAll({ limit: 300 });
       const allData = res.items || [];
 
       let count = 0;
+      let skipped = 0;
+
       for (const item of allData) {
         if (item.status === 'BATAL') continue;
+        if (item.fileSpr) {
+          skipped++;
+          continue;
+        }
 
         try {
-          await regenerateSprMutation.mutateAsync(item.id);
+          await penjualanService.regenerateSpr(item.id as string);
           count++;
         } catch (err) {
           console.error(`Gagal generate SPR Transaksi ${item.id}`, err);
         }
       }
 
-      alert(`Selesai! Berhasil men-generate ${count} dokumen SPR secara massal.`);
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+
+      alert(`Selesai! Berhasil men-generate ${count} dokumen SPR baru.\n(Dilewati: ${skipped} data karena sudah memiliki SPR)`);
     } catch (error) {
       console.error(error);
       alert("Gagal mengambil data penjualan.");
@@ -11823,7 +12721,7 @@ const Penjualan = () => {
       }
     },
     {
-      header: 'Progress Cicilan',
+      header: 'Cicilan',
       accessor: 'progressCicilan',
       render: (val: string) => (
         <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
@@ -11947,6 +12845,7 @@ const Penjualan = () => {
         calculatedCicilan = sisa / termin;
       }
 
+
       setFormData({
         ...item,
         rekeningTujuanId: item.rekeningTujuanId ?? '',
@@ -11955,6 +12854,7 @@ const Penjualan = () => {
         cicilanPerBulan: calculatedCicilan,
         bank: item.bank || '',
         keteranganAngsuran: item.keteranganAngsuran || '',
+        plafonAcc: Number(item.plafonAcc) || 0,
       });
       setOriginalKavling({ blok: item.blok, unit: item.nomorUnit });
       setIsEditing(true);
@@ -12045,6 +12945,7 @@ const Penjualan = () => {
       caraPembayaran: caraBayar,
       biayaKpr: initialBiayaKpr,
       plafonKredit: initialPlafonKredit,
+      plafonAcc: Number(item.plafonAcc) || 0,
       dpTidakDibayar: initialDpTidakDibayar,
       nilaiPengajuanKpr: initialNilaiKpr,
       dp: initialDp,
@@ -12274,6 +13175,7 @@ const Penjualan = () => {
         hargaDasar: formData.hargaDasar,
         hargaJual: formData.hargaJual,
         plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
+        plafonAcc: formData.caraPembayaran === 'KPR' ? formData.plafonAcc : undefined,
         biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
         plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
         dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
@@ -12337,6 +13239,7 @@ const Penjualan = () => {
           hargaDasar: formData.hargaDasar,
           hargaJual: formData.hargaJual,
           plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
+          plafonAcc: formData.caraPembayaran === 'KPR' ? formData.plafonAcc : undefined, // Tambahkan ini
           biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
           plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
           dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
@@ -13255,6 +14158,20 @@ const Penjualan = () => {
                               ))}
                             </div>
                           )}
+
+                          <div className="pt-3 border-t border-slate-200">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-bold text-indigo-700 w-full">Plafon ACC Bank</span>
+                              <div className="w-40 sm:w-44 shrink-0">
+                                <CurrencyInput
+                                  name="plafonAcc"
+                                  value={formData.plafonAcc || 0}
+                                  onValueChange={handleCurrencyChange}
+                                  placeholder="0"
+                                />
+                              </div>
+                            </div>
+                          </div>
 
                           <div className="flex items-center justify-between mt-3">
                             <span className="text-sm font-bold text-blue-700 w-full">Total Nilai Pengajuan KPR</span>
@@ -14303,6 +15220,15 @@ const Penjualan = () => {
                           <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal + Biaya KPR
                         </p>
                       </div>
+                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-bold text-indigo-400">Plafon ACC Bank</span>
+                          <span className="text-sm font-bold text-indigo-400 tabular-nums">{formatRupiah(detailData.plafonAcc || 0)}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-mono">
+                          <strong className="text-slate-400">Info:</strong> Nilai ACC yang disetujui pihak Bank KPR
+                        </p>
+                      </div>
 
                       {detailData.tambahanKpr && detailData.tambahanKpr.length > 0 && (
                         <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
@@ -14330,7 +15256,7 @@ const Penjualan = () => {
                       <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-4">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-sm font-bold text-orange-400">DP Tidak Dibayar 10%</span>
-                          <span className="text-sm font-bold text-orange-400 tabular-nums">{formatRupiah(detailData.dpTidakDibayar || 0)}</span>
+                          <span className="text-sm font-bold text-orange-400 tabular-nums">{formatTanpaDesimal(detailData.dpTidakDibayar || 0)}</span>
                         </div>
                         <p className="text-[10px] text-slate-500 font-mono">
                           <strong className="text-slate-400">Kalkulasi:</strong> ((Harga Jual - Diskon) × 10%) - Booking Fee
