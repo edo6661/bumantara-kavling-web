@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customerPortalService } from "../../services/customerPortal.service";
+import { authService } from "../../services/auth.service";
 
 export const CUSTOMER_PORTAL_KEYS = {
   dashboard: ["customer-portal-dashboard"] as const,
@@ -37,6 +38,19 @@ export const useUploadMyBuktiTagihan = () => {
   return useMutation({
     mutationFn: ({ id, file }: { id: number; file: File }) =>
       customerPortalService.uploadBuktiTagihan(id, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: CUSTOMER_PORTAL_KEYS.dashboard,
+      });
+    },
+  });
+};
+
+export const useUpdateMyAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { email?: string; password?: string }) =>
+      authService.updateSelf(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: CUSTOMER_PORTAL_KEYS.dashboard,

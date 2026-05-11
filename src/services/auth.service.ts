@@ -21,4 +21,8 @@ export const authService = {
     );
     return response.data;
   },
+  updateSelf: async (data: { email?: string; password?: string }) => {
+    const response = await api.patch("/auth/update-me", data);
+    return response.data.data;
+  },
 };

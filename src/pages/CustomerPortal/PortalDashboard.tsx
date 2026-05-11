@@ -1,11 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/CustomerPortal/PortalDashboard.tsx
 import React, { useState } from 'react';
-import { useGetCustomerDashboard, useUploadMyBuktiTagihan, useUploadMyDocument } from '../../hooks/queries/useCustomerPortal';
+import {
+  useGetCustomerDashboard,
+  useUploadMyBuktiTagihan,
+  useUploadMyDocument,
+  useUpdateMyAccount
+} from '../../hooks/queries/useCustomerPortal';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
+import Input from '../../components/shared/Input';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, User, Home, Clock, ZoomIn, PlusCircle, CheckCircle2, UploadCloud } from 'lucide-react';
+import {
+  LogOut, User, Home, Clock, ZoomIn, PlusCircle,
+  CheckCircle2, UploadCloud, Settings
+} from 'lucide-react';
 import { formatRupiah, formatDate } from '../../utils/formatters';
 
 const PortalDashboard = () => {
@@ -13,9 +22,14 @@ const PortalDashboard = () => {
   const uploadBuktiMutation = useUploadMyBuktiTagihan();
   const { logout } = useAuth();
   const uploadMutation = useUploadMyDocument();
+  const updateAccountMutation = useUpdateMyAccount();
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [newDocName, setNewDocName] = useState("");
+
+  // State untuk Modal Pengaturan Akun
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [accountForm, setAccountForm] = useState({ email: '', password: '', confirmPassword: '' });
 
   if (isLoading) return <PageLoader />;
   if (!data) return <div className="p-8 text-center">Gagal memuat data portal.</div>;
@@ -67,6 +81,49 @@ const PortalDashboard = () => {
     }
   };
 
+  // Handler Buka Modal & Submit Pengaturan Akun
+  const openAccountModal = () => {
+    setAccountForm({ email: profil.email || '', password: '', confirmPassword: '' });
+    setIsAccountModalOpen(true);
+  };
+
+  const handleAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (accountForm.password && accountForm.password.length < 6) {
+      alert("Password minimal 6 karakter!");
+      return;
+    }
+    if (accountForm.password !== accountForm.confirmPassword) {
+      alert("Password dan Konfirmasi Password tidak cocok!");
+      return;
+    }
+
+    try {
+      const payload: { email?: string; password?: string } = {};
+      if (accountForm.email && accountForm.email !== profil.email) {
+        payload.email = accountForm.email;
+      }
+      if (accountForm.password) {
+        payload.password = accountForm.password;
+      }
+
+      if (Object.keys(payload).length === 0) {
+        alert("Tidak ada perubahan data.");
+        setIsAccountModalOpen(false);
+        return;
+      }
+
+      await updateAccountMutation.mutateAsync(payload);
+      alert("Data akun berhasil diperbarui! Jika Anda mengubah email atau password, silakan login kembali.");
+      setIsAccountModalOpen(false);
+
+      // Paksa logout setelah update berhasil agar keamanan terjamin dan state ter-refresh
+      logout();
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal memperbarui akun.");
+    }
+  };
+
   // Kumpulan dokumen utama yang wajib
   const dokumenUtama = [
     { key: 'fileKtp', label: 'KTP' },
@@ -88,9 +145,17 @@ const PortalDashboard = () => {
 
         {/* Section: Profil & Upload */}
         <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><User size={20} /></div>
-            <h2 className="text-lg font-bold text-slate-800">Profil & Dokumen Anda</h2>
+          <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><User size={20} /></div>
+              <h2 className="text-lg font-bold text-slate-800">Profil & Dokumen Anda</h2>
+            </div>
+            <button
+              onClick={openAccountModal}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer shadow-sm"
+            >
+              <Settings size={14} /> Pengaturan Akun
+            </button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -157,7 +222,7 @@ const PortalDashboard = () => {
                             >
                               <img src={profil[key] as string} alt={label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                <ZoomIn size={14} className="text-white" />
+                                <ZoomIn className="text-white" size={14} />
                               </div>
                             </div>
                           ) : (
@@ -187,7 +252,7 @@ const PortalDashboard = () => {
                           >
                             <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                              <ZoomIn size={14} className="text-white" />
+                              <ZoomIn className="text-white" size={14} />
                             </div>
                           </div>
                         </td>
@@ -241,7 +306,7 @@ const PortalDashboard = () => {
         {/* Section: Transaksi & Cicilan */}
         <section className="space-y-6">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 px-2">
-            <Home size={20} className="text-indigo-600" /> Unit & Tagihan Saya
+            <Home className="text-indigo-600" size={20} /> Unit & Tagihan Saya
           </h2>
 
           {transaksi.length === 0 ? (
@@ -280,7 +345,7 @@ const PortalDashboard = () => {
                         <tr key={t.noTagihan} className="hover:bg-slate-50/80 transition-colors">
                           <td className="p-4 font-bold text-slate-800">{t.pembayaran}</td>
                           <td className="p-4 text-slate-600 font-medium">
-                            <span className="flex items-center gap-1.5"><Clock size={14} className="text-slate-400" /> {formatDate(t.jatuhTempo)}</span>
+                            <span className="flex items-center gap-1.5"><Clock className="text-slate-400" size={14} /> {formatDate(t.jatuhTempo)}</span>
                           </td>
                           <td className="p-4 text-right font-black text-slate-900 tabular-nums">{formatRupiah(t.nominal)}</td>
                           <td className="p-4 text-center">
@@ -333,7 +398,7 @@ const PortalDashboard = () => {
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                   />
                                   <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <ZoomIn size={14} className="text-white" />
+                                    <ZoomIn className="text-white" size={14} />
                                   </div>
                                 </div>
                               ) : (
@@ -354,6 +419,60 @@ const PortalDashboard = () => {
           )}
         </section>
       </main>
+
+      {/* MODAL: Pengaturan Akun */}
+      <Modal isOpen={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} title="Pengaturan Akun Portal">
+        <form onSubmit={handleAccountSubmit} className="space-y-4">
+          <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 mb-4">
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              Anda dapat memperbarui email untuk otorisasi akses dan password Anda di sini. Kosongkan kolom password jika tidak ingin mengubahnya.
+            </p>
+          </div>
+          <Input
+            label="Email Login Baru"
+            name="email"
+            type="email"
+            value={accountForm.email}
+            onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+            placeholder="Masukkan email baru..."
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <Input
+              label="Password Baru"
+              name="password"
+              type="password"
+              value={accountForm.password}
+              onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+              placeholder="Minimal 6 karakter"
+            />
+            <Input
+              label="Konfirmasi Password Baru"
+              name="confirmPassword"
+              type="password"
+              value={accountForm.confirmPassword}
+              onChange={(e) => setAccountForm({ ...accountForm, confirmPassword: e.target.value })}
+              placeholder="Ketik ulang password"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
+            <button
+              type="button"
+              onClick={() => setIsAccountModalOpen(false)}
+              className="px-6 py-2.5 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={updateAccountMutation.isPending}
+              className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-md transition cursor-pointer disabled:opacity-50"
+            >
+              {updateAccountMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Komponen Modal untuk Lightbox Pratinjau Gambar */}
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
