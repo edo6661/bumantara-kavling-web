@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-
 const menuItems = [
   {
     title: 'Dashboard',
@@ -47,9 +46,8 @@ const menuItems = [
     title: 'Customer',
     icon: <Users size={20} strokeWidth={1.5} />,
     submenus: [
-      { title: 'Data Sosial', path: '/customer/data-sosial', resource: 'CUSTOMER' },
+      { title: 'Administrasi', path: '/customer/administrasi', resource: 'CUSTOMER' },
       { title: 'SPR', path: '/customer/spr', resource: 'PENJUALAN' },
-      { title: 'Administrasi', path: '/customer/kelengkapan-administrasi', resource: 'CUSTOMER' },
       { title: 'Kavling', path: '/customer/kavling', resource: 'CUSTOMER_KAVLING' },
       { title: 'Pembayaran', path: '/customer/tagihan', resource: 'TAGIHAN' },
     ],

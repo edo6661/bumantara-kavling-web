@@ -79,7 +79,6 @@ const SPR = () => {
   };
 
   const columns = [
-    { header: 'No. Transaksi', accessor: 'id' },
     { header: 'Nama Customer', accessor: 'nama' },
     { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
