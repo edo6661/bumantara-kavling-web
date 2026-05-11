@@ -206,7 +206,7 @@ const PortalDashboard = () => {
                           value={newDocName}
                           onChange={(e) => setNewDocName(e.target.value)}
                           placeholder="Nama Dok (cth: Slip Gaji)"
-                          className="w-full px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 outline-none focus:border-blue-500 bg-white"
+                          className="w-full px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 outline-none focus:border-blue-500 bg-white text-black"
                         />
                       </td>
                       <td colSpan={2} className="py-3 px-4 text-right">
