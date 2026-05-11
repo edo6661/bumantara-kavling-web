@@ -1,13 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
+import SignatureCanvas from 'react-signature-canvas';
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { ShoppingCart, ZoomIn, ImageIcon, PlusCircle, FileUp, Eye, Edit2, UploadCloud, Trash2 } from "lucide-react";
+import { useGetPenjualan, useUploadSignature } from "../../hooks/queries/usePenjualan";
+import {
+  ShoppingCart, ZoomIn, ImageIcon, PlusCircle, FileUp,
+  Eye, Edit2, UploadCloud, Trash2,
+  FileText, Share2, PenTool, AlertCircle
+} from "lucide-react";
 import {
   useGetCustomers,
   useCreateCustomer,
@@ -39,6 +45,7 @@ const Administrasi = () => {
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
   const uploadMutation = useUploadCustomerDoc();
+  const uploadSignatureMutation = useUploadSignature();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -49,6 +56,16 @@ const Administrasi = () => {
   const [errors, setErrors] = useState<Partial<Record<keyof CreateCustomerDTO, string>>>({});
   const [newDocName, setNewDocName] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // State & Ref untuk Modal TTD (Fitur SPR)
+  const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
+  const [selectedSpr, setSelectedSpr] = useState<any>(null);
+  const [ttdData, setTtdData] = useState({
+    nama: '',
+    tanggal: new Date().toISOString().split('T')[0],
+    sebagai: 'Pemesan'
+  });
+  const sigCanvas = useRef<SignatureCanvas>(null);
 
   const currentCustomer = customers.find(c => c.id === selectedCustomer?.id) || selectedCustomer;
 
@@ -125,6 +142,156 @@ const Administrasi = () => {
       )
     }
   ];
+
+  // ============================
+  // LOGIC FUNGSI SPR / TTD
+  // ============================
+
+  const clearSignature = () => sigCanvas.current?.clear();
+
+  const saveSignature = async () => {
+    if (sigCanvas.current?.isEmpty()) {
+      alert("Tanda tangan tidak boleh kosong!");
+      return;
+    }
+    if (!ttdData.nama.trim()) {
+      alert("Nama penandatangan wajib diisi!");
+      return;
+    }
+
+    const canvas = sigCanvas.current?.getCanvas();
+    if (!canvas) return;
+
+    const signatureBase64 = canvas.toDataURL('image/png');
+
+    try {
+      await uploadSignatureMutation.mutateAsync({
+        noTransaksi: selectedSpr.id,
+        signatureBase64,
+        nama: ttdData.nama,
+        peran: ttdData.sebagai,
+        tanggal: ttdData.tanggal,
+      });
+
+      alert(`Tanda tangan ${ttdData.sebagai} berhasil disimpan dan SPR telah diupdate!`);
+      setIsTtdModalOpen(false);
+      setSelectedSpr(null);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal menyimpan tanda tangan");
+    }
+  };
+
+  const handleShareWASpr = (row: any) => {
+    const phone = (row.noTelepon || '').replace(/[^0-9]/g, '');
+    if (!phone) {
+      alert('Nomor telepon customer tidak valid / kosong.');
+      return;
+    }
+    const waPhone = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
+    const documentLink = row.fileSpr ? row.fileSpr : `${window.location.origin}/verify/${row.id}`;
+    const message = `Halo Bapak/Ibu *${row.nama}*,\n\nBerikut kami sampaikan dokumen *Surat Pesanan Rumah (SPR)* untuk unit Kavling *${row.perumahan} Blok ${row.blok}-${row.nomorUnit}*.\n\n🔗 *Unduh Dokumen SPR:*\n${documentLink}\n\nTerima Kasih\n**`;
+
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const expandedRowRender = (row: CustomerData) => {
+    const customerSales = penjualanData.filter((p: any) => p.noIdentitas === row.nikKtp && p.status !== 'BATAL');
+
+    if (customerSales.length === 0) {
+      return (
+        <div className="p-4 bg-slate-50 border-t border-slate-100 shadow-inner">
+          <p className="text-sm text-slate-500 italic text-center">Belum ada transaksi pembelian untuk customer ini.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-4 bg-slate-50 border-t border-slate-100 shadow-inner">
+        <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <ShoppingCart size={16} className="text-blue-600" /> Dokumen Surat Pesanan Rumah (SPR)
+        </h4>
+
+        {/* === MULAI PERUBAHAN LAYOUT TABLE === */}
+        <div className="overflow-x-auto border border-slate-200 rounded-lg custom-scrollbar">
+          <table className="w-full text-sm text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-100 border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
+                <th className="p-3 font-bold whitespace-nowrap">Blok - No Unit</th>
+                <th className="p-3 font-bold text-center whitespace-nowrap">Status</th>
+                <th className="p-3 font-bold whitespace-nowrap">Dokumen SPR</th>
+                <th className="p-3 font-bold text-center whitespace-nowrap">Aksi TTD</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {customerSales.map((sale: any) => (
+                <tr key={sale.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="p-3 font-black text-slate-800">
+                    {sale.blok} - {sale.nomorUnit}
+                  </td>
+                  <td className="p-3 text-center">
+                    <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${sale.status === 'LUNAS' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {sale.status}
+                    </span>
+                  </td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      {sale.fileSpr ? (
+                        <>
+                          <a
+                            href={sale.fileSpr}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors shadow-sm text-[11px] font-bold"
+                            title="Lihat PDF SPR"
+                          >
+                            <FileText size={14} />
+                          </a>
+                          <button
+                            onClick={() => handleShareWASpr(sale)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors shadow-sm cursor-pointer text-[11px] font-bold"
+                            title="Kirim via WhatsApp"
+                          >
+                            <Share2 size={14} />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-md border border-amber-200 flex items-center gap-1 w-fit font-bold">
+                          Menunggu File
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-3 flex justify-center">
+                    <button
+                      onClick={() => {
+                        setSelectedSpr(sale);
+                        setTtdData({
+                          nama: sale.nama,
+                          tanggal: new Date().toISOString().split('T')[0],
+                          sebagai: 'Pemesan'
+                        });
+                        setIsTtdModalOpen(true);
+                        setTimeout(() => clearSignature(), 100);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors shadow-sm cursor-pointer text-[11px] font-bold"
+                      title="Tanda Tangan Digital"
+                    >
+                      <PenTool size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* === AKHIR PERUBAHAN LAYOUT TABLE === */}
+      </div>
+    );
+  };
+
+  // ============================
+  // LOGIC FUNGSI ADMINISTRASI
+  // ============================
 
   const openDetailModal = (item: CustomerData) => {
     setSelectedCustomer(item);
@@ -273,6 +440,7 @@ const Administrasi = () => {
         columns={columns}
         data={customers}
         onAdd={() => openEditModal()}
+        expandedRowRender={expandedRowRender}
       />
 
       <Modal
@@ -409,7 +577,6 @@ const Administrasi = () => {
       <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Customer">
         {currentCustomer && (
           <div className="space-y-6">
-            {/* Bagian Biodata */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
               <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Biodata Customer</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
@@ -423,7 +590,6 @@ const Administrasi = () => {
               </div>
             </div>
 
-            {/* --- TAMBAHAN: BAGIAN DOKUMEN / GAMBAR --- */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <ImageIcon size={16} className="text-indigo-600" /> Lampiran Dokumen Administrasi
@@ -445,7 +611,6 @@ const Administrasi = () => {
                   </div>
                 ))}
 
-                {/* Render Dokumen Lainnya jika ada */}
                 {currentCustomer.dokumenLainnya?.map((doc: any) => (
                   <div key={doc.id} className="flex flex-col gap-2">
                     <span className="text-[9px] font-black uppercase text-slate-400 text-center truncate px-1" title={doc.nama}>{doc.nama}</span>
@@ -459,7 +624,6 @@ const Administrasi = () => {
                 ))}
               </div>
             </div>
-            {/* --- AKHIR TAMBAHAN --- */}
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <div className="flex justify-between items-center mb-4">
@@ -525,6 +689,89 @@ const Administrasi = () => {
           </div>
         </div>
       </Modal>
+
+      <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital Dokumen">
+        <div className="space-y-5">
+          {selectedSpr?.ttdData && selectedSpr.ttdData[ttdData.sebagai] !== undefined && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-amber-800 text-sm animate-in fade-in duration-300">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold">Perhatian: {ttdData.sebagai} sudah menandatangani dokumen ini.</p>
+                <p className="text-xs mt-0.5 text-amber-700">Jika Anda melanjutkan, maka tanda tangan, nama, dan tanggal sebelumnya akan digantikan dengan yang baru.</p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Select
+              label="Sebagai"
+              name="sebagai"
+              value={ttdData.sebagai}
+              onChange={(e) => setTtdData({ ...ttdData, sebagai: e.target.value })}
+              options={[
+                { value: 'Pemesan', label: 'Pemesan' },
+                { value: 'Marketing', label: 'Marketing' },
+                { value: 'Supervisor', label: 'Supervisor' },
+                { value: 'Manager', label: 'Manager' },
+              ]}
+            />
+            <Input
+              label="Nama Penandatangan"
+              value={ttdData.nama}
+              onChange={(e) => setTtdData({ ...ttdData, nama: e.target.value })}
+              placeholder="Masukkan nama..."
+            />
+            <Input
+              label="Tanggal Tanda Tangan"
+              type="date"
+              value={ttdData.tanggal}
+              onChange={(e) => setTtdData({ ...ttdData, tanggal: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider ml-1 mb-2 block">
+              Area Tanda Tangan
+            </label>
+            <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white overflow-hidden shadow-inner">
+              <SignatureCanvas
+                ref={sigCanvas}
+                penColor="black"
+                backgroundColor="white"
+                canvasProps={{ width: 600, height: 200, className: 'sigCanvas w-full cursor-crosshair' }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-2 px-1">
+              <p className="text-xs font-medium text-slate-400">Pastikan tanda tangan berada di dalam kotak.</p>
+              <button
+                type="button"
+                onClick={clearSignature}
+                className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer transition-colors"
+              >
+                Hapus / Ulangi
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              onClick={() => setIsTtdModalOpen(false)}
+              disabled={uploadSignatureMutation.isPending}
+              className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-bold cursor-pointer hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              onClick={saveSignature}
+              disabled={uploadSignatureMutation.isPending}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold cursor-pointer hover:bg-blue-700 shadow-md shadow-blue-500/20 transition-colors disabled:opacity-50"
+            >
+              {uploadSignatureMutation.isPending ? "Menyimpan..." : "Simpan Tanda Tangan"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };

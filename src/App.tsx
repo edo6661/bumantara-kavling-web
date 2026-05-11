@@ -15,7 +15,6 @@ const Kavling = lazy(() => import('./pages/Management/Kavling'));
 const Notaris = lazy(() => import('./pages/Management/Notaris'));
 const Bank = lazy(() => import('./pages/Management/Bank'));
 const Administrasi = lazy(() => import('./pages/Customer/Administrasi'));
-const SPR = lazy(() => import('./pages/Customer/SPR'));
 const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
 const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
 const Agents = lazy(() => import('./pages/Marketing/Agents'));
@@ -65,7 +64,6 @@ const App = () => {
                 <Route path="management/role-permission" element={<PermissionGuard resource="ROLE_PERMISSION"><RolePermission /></PermissionGuard>} />
                 <Route path="management/audit-log" element={<PermissionGuard resource="AUDIT_LOG"><AuditLog /></PermissionGuard>} />
                 <Route path="customer/administrasi" element={<PermissionGuard resource="CUSTOMER"><Administrasi /></PermissionGuard>} />
-                <Route path="customer/spr" element={<PermissionGuard resource="PENJUALAN"><SPR /></PermissionGuard>} />
                 <Route path="customer/kavling" element={<PermissionGuard resource="CUSTOMER_KAVLING"><CustomerKavling /></PermissionGuard>} />
                 <Route path="customer/tagihan" element={<PermissionGuard resource="TAGIHAN"><Tagihan /></PermissionGuard>} />
 

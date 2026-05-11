@@ -47,7 +47,6 @@ const menuItems = [
     icon: <Users size={20} strokeWidth={1.5} />,
     submenus: [
       { title: 'Administrasi', path: '/customer/administrasi', resource: 'CUSTOMER' },
-      { title: 'SPR', path: '/customer/spr', resource: 'PENJUALAN' },
       { title: 'Kavling', path: '/customer/kavling', resource: 'CUSTOMER_KAVLING' },
       { title: 'Pembayaran', path: '/customer/tagihan', resource: 'TAGIHAN' },
     ],
