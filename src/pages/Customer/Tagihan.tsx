@@ -7,8 +7,8 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { FileText, Printer, UploadCloud, Edit2, Trash2, PenTool } from 'lucide-react';
-import { jsPDF } from "jspdf";
+import { useApproveTagihan } from "../../hooks/queries/useTagihan";
+import { Check, Edit2, FileText, PenTool, Printer, Trash2, UploadCloud, X } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
@@ -26,6 +26,7 @@ import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
 import type { TagihanData } from "../../services/tagihan.service";
 import { useAuth } from '../../context/AuthContext';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
+import jsPDF from 'jspdf';
 
 interface TagihanFormState {
   id: number | '';
@@ -67,6 +68,7 @@ const Tagihan = () => {
   const deleteMutation = useDeleteTagihan();
   const uploadBuktiMutation = useUploadBuktiTagihan();
   const uploadSignatureMutation = useUploadTagihanSignature();
+  const approveMutation = useApproveTagihan();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState(initialFormState);
@@ -106,6 +108,7 @@ const Tagihan = () => {
           nomorUnit: item.nomorUnit,
           reminderSelanjutnya: '',
           unpaidCount: 0,
+          pendingCount: 0,
           totalTerbayarKeseluruhan: 0,
           cicilan: []
         };
@@ -114,6 +117,9 @@ const Tagihan = () => {
 
       if (item.status === 'BELUM_BAYAR') {
         groups[groupKey].unpaidCount += 1;
+      }
+      if (item.status === 'MENUNGGU_KONFIRMASI') {
+        groups[groupKey].pendingCount += 1;
       }
       if (item.status !== 'LUNAS' && item.reminderBerikutnya) {
         groups[groupKey].reminderSelanjutnya = item.reminderBerikutnya;
@@ -129,19 +135,38 @@ const Tagihan = () => {
     { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     {
-      header: 'Tagihan Belum Dibayar',
-      accessor: 'unpaidCount',
-      render: (val: number) => (
-        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase ${val > 0 ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
-          {val > 0 ? `${val} Tertunda` : 'Lunas Semua'}
-        </span>
-      )
+      header: 'Status Tagihan',
+      accessor: 'id',
+      render: (_: any, row: any) => {
+        const unpaid = row.unpaidCount;
+        const pending = row.pendingCount;
+
+        // Jika tidak ada yang belum bayar dan tidak ada yang menunggu approve, berarti lunas semua
+        if (unpaid === 0 && pending === 0) {
+          return (
+            <span className="px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase bg-green-100 text-green-700 border border-green-200">
+              Lunas Semua
+            </span>
+          );
+        }
+
+        return (
+          <div className="flex flex-col gap-1.5 items-start">
+            {unpaid > 0 && (
+              <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-red-100 text-red-700 border border-red-200 shadow-sm">
+                {unpaid} Belum Bayar
+              </span>
+            )}
+            {pending > 0 && (
+              <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-yellow-100 text-yellow-700 border border-yellow-200 shadow-sm">
+                {pending} Menunggu Approve
+              </span>
+            )}
+          </div>
+        );
+      }
     },
-    {
-      header: 'Reminder Selanjutnya',
-      accessor: 'reminderSelanjutnya',
-      render: (val: string) => val ? formatDate(val) : '-'
-    },
+    // KOLOM REMINDER SELANJUTNYA SUDAH DIHAPUS
     {
       header: 'Aksi',
       accessor: 'id',
@@ -313,6 +338,18 @@ const Tagihan = () => {
         }
       }
       alert(errorMessage);
+    }
+  };
+  const handleApproveBukti = async (id: number, isApproved: boolean) => {
+    const tindakan = isApproved ? "menyetujui" : "menolak";
+    if (window.confirm(`Apakah Anda yakin ingin ${tindakan} bukti pembayaran ini?`)) {
+      try {
+        await approveMutation.mutateAsync({ id, isApproved });
+        alert(isApproved ? "Bukti disetujui! Status menjadi LUNAS." : "Bukti ditolak! Status dikembalikan ke BELUM BAYAR.");
+      } catch (error) {
+        console.error(error)
+        alert("Gagal memproses persetujuan.");
+      }
     }
   };
 
@@ -535,61 +572,88 @@ const Tagihan = () => {
                     </td>
                     <td className="p-3">
                       <div className="flex items-center justify-center gap-1.5">
-                        {/* AKSI: INVOICE / KWITANSI & UPLOAD */}
-                        {c.status === 'LUNAS' ? (
-                          <button
-                            onClick={() => {
-                              setPrintType('kwitansi');
-                              setPrintTitle(`${c.pembayaran}`);
-                              setPrintData({
-                                ...c,
-                                nominalCetak: c.nominal,
-                                hargaJual: piutangCicilan,
-                                sisaBelumDibayar: sisaPembayaran,
-                                rekeningTujuanId: rekeningTujuanId,
-                                tipe: targetPenjualan?.tipe,
-                                caraPembayaran: targetPenjualan?.pembiayaan,
-                                bank: targetPenjualan?.bank,
-                                agent: targetPenjualan?.agent || '-',
-                                pembuat: targetPenjualan?.createdBy || 'Admin',
-                                luasTanah: targetPenjualan?.luasTanah,
-                                luasBangunan: targetPenjualan?.luasBangunan
-                              });
-                            }}
-                            className="p-1.5 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition shadow-sm cursor-pointer"
-                            title="Cetak Kwitansi"
-                          >
-                            <Printer size={14} />
-                          </button>
-                        ) : (
+
+                        {/* 👇 1. JIKA STATUS MENUNGGU KONFIRMASI (Tampilkan Tombol Approve) 👇 */}
+                        {c.status === 'MENUNGGU_KONFIRMASI' ? (
                           <>
                             <button
-                              onClick={() => {
-                                setPrintType('invoice');
-                                setPrintTitle(`${c.pembayaran}`);
-                                setPrintData({
-                                  ...c,
-                                  nominalCetak: c.nominal,
-                                  hargaJual: piutangCicilan,
-                                  sisaBelumDibayar: sisaPembayaran,
-                                  rekeningTujuanId: rekeningTujuanId,
-                                  tipe: targetPenjualan?.tipe,
-                                  caraPembayaran: targetPenjualan?.pembiayaan,
-                                  bank: targetPenjualan?.bank
-                                });
-                              }}
-                              className="p-1.5 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition cursor-pointer shadow-sm"
-                              title="Cetak Invoice"
+                              onClick={() => handleApproveBukti(c.id, true)}
+                              className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition shadow-sm cursor-pointer"
+                              title="Setujui Bukti"
                             >
-                              <FileText size={14} />
+                              <Check size={12} /> Setujui
                             </button>
                             <button
-                              onClick={() => openModal(c)}
-                              className="p-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition shadow-sm cursor-pointer"
-                              title="Upload Bukti Pembayaran"
+                              onClick={() => handleApproveBukti(c.id, false)}
+                              className="flex items-center gap-1 px-2 py-1.5 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition shadow-sm cursor-pointer"
+                              title="Tolak Bukti"
                             >
-                              <UploadCloud size={14} />
+                              <X size={12} /> Tolak
                             </button>
+                          </>
+                        ) : (
+                          /* 👇 2. JIKA LUNAS ATAU BELUM BAYAR 👇 */
+                          <>
+                            {c.status === 'LUNAS' ? (
+                              <button
+                                onClick={() => {
+                                  setPrintType('kwitansi');
+                                  setPrintTitle(`${c.pembayaran}`);
+                                  setPrintData({
+                                    ...c,
+                                    nominalCetak: c.nominal,
+                                    hargaJual: piutangCicilan,
+                                    sisaBelumDibayar: sisaPembayaran,
+                                    rekeningTujuanId: rekeningTujuanId,
+                                    tipe: targetPenjualan?.tipe,
+                                    caraPembayaran: targetPenjualan?.pembiayaan,
+                                    bank: targetPenjualan?.bank,
+                                    agent: targetPenjualan?.agent || '-',
+                                    pembuat: targetPenjualan?.createdBy || 'Admin',
+                                    luasTanah: targetPenjualan?.luasTanah,
+                                    luasBangunan: targetPenjualan?.luasBangunan
+                                  });
+                                }}
+                                className="p-1.5 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition shadow-sm cursor-pointer"
+                                title="Cetak Kwitansi"
+                              >
+                                <Printer size={14} />
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setPrintType('invoice');
+                                    setPrintTitle(`${c.pembayaran}`);
+                                    setPrintData({
+                                      ...c,
+                                      nominalCetak: c.nominal,
+                                      hargaJual: piutangCicilan,
+                                      sisaBelumDibayar: sisaPembayaran,
+                                      rekeningTujuanId: rekeningTujuanId,
+                                      tipe: targetPenjualan?.tipe,
+                                      caraPembayaran: targetPenjualan?.pembiayaan,
+                                      bank: targetPenjualan?.bank,
+                                      agent: targetPenjualan?.agent || '-',
+                                      pembuat: targetPenjualan?.createdBy || 'Admin',
+                                      luasTanah: targetPenjualan?.luasTanah,
+                                      luasBangunan: targetPenjualan?.luasBangunan
+                                    });
+                                  }}
+                                  className="p-1.5 bg-white border border-slate-300 text-slate-700 rounded-md hover:bg-slate-50 transition cursor-pointer shadow-sm"
+                                  title="Cetak Invoice"
+                                >
+                                  <FileText size={14} />
+                                </button>
+                                <button
+                                  onClick={() => openModal(c)}
+                                  className="p-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition shadow-sm cursor-pointer"
+                                  title="Upload Bukti Pembayaran"
+                                >
+                                  <UploadCloud size={14} />
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
 
@@ -742,9 +806,9 @@ const Tagihan = () => {
                 placeholder="0"
               />
               <Input label="Jatuh Tempo" type="date" name="jatuhTempo" value={formData.jatuhTempo} onChange={handleChange} error={errors.jatuhTempo} />
-              <div className="md:col-span-2 mt-2">
+              {/* <div className="md:col-span-2 mt-2">
                 <Input label="Reminder Tagihan Berikutnya (Opsional)" type="date" name="reminderBerikutnya" value={formData.reminderBerikutnya} onChange={handleChange} />
-              </div>
+              </div> */}
             </div>
           </div>
           {isEditing && (

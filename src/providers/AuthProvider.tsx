@@ -49,13 +49,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     }
   };
+  const loginCustomer = async (email: string, pass: string): Promise<ActionResult> => {
+    setIsLoading(true);
+    try {
+      const response = await authService.loginCustomer(email, pass);
+      if (response.success && response.data) {
+        storage.setToken(response.data.token);
+        storage.setUser(response.data.user);
+        setIsAuthenticated(true);
+        setUser(response.data.user);
+        return { success: true };
+      }
+      return { success: false, message: response.message || 'Login gagal.' };
+    } catch (error) {
+      return handleApiError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const setSelectedPerumahan = (perumahan: Perumahan) => {
     storage.setPerumahan(perumahan);
     setSelectedPerumahanState(perumahan);
   };
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, selectedPerumahan, isLoading, login, logout, setSelectedPerumahan }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, selectedPerumahan, isLoading, login, loginCustomer, logout, setSelectedPerumahan }}>
       {children}
     </AuthContext.Provider>
   );

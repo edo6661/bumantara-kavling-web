@@ -106,3 +106,15 @@ export const useUploadTagihanSignature = () => {
     },
   });
 };
+
+export const useApproveTagihan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isApproved }: { id: number; isApproved: boolean }) =>
+      tagihanService.approveBukti(id, isApproved),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};

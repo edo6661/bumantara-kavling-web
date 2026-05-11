@@ -4,6 +4,7 @@ import {
   type CreateCustomerDTO,
   type CustomerDocType,
 } from "../../services/customer.service";
+import api from "../../lib/axios";
 
 export const CUSTOMER_KEYS = {
   all: ["customers"] as const,
@@ -65,6 +66,21 @@ export const useUploadCustomerDoc = () => {
       file: File;
       namaDokumen?: string;
     }) => customerService.uploadDoc(id, docType, file, namaDokumen),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
+    },
+  });
+};
+
+export const useGenerateCustomerAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, password }: { id: number; password: string }) => {
+      const response = await api.post(`/customers/${id}/generate-account`, {
+        password,
+      });
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
     },

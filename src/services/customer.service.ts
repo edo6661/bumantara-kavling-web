@@ -15,6 +15,7 @@ export interface CustomerData {
   fileKtp: string | null;
   fileKk: string | null;
   fileNpwp: string | null;
+  hasAccount: boolean;
 
   dokumenLainnya?: { id: string; nama: string; fileUrl: string }[];
 }

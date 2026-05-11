@@ -103,4 +103,8 @@ export const tagihanService = {
     });
     return response.data.data;
   },
+  approveBukti: async (id: number, isApproved: boolean) => {
+    const response = await api.post(`/tagihan/${id}/approve`, { isApproved });
+    return response.data.data;
+  },
 };

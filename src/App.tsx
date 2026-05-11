@@ -6,8 +6,6 @@ import { useAuth } from './context/AuthContext';
 import { AuthProvider } from './providers/AuthProvider';
 import { QueryProvider } from './providers/QueryProvider';
 import PermissionGuard from './components/layouts/PermissionGuard';
-
-
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
@@ -28,13 +26,20 @@ const AuditLog = lazy(() => import('./pages/Management/AuditLog'));
 const ProgressPenjualan = lazy(() => import('./pages/Management/ProgressPenjualan'));
 const UserManagement = lazy(() => import('./pages/Management/User'));
 const RolePermission = lazy(() => import('./pages/Management/RolePermission'));
-
+const CustomerLogin = lazy(() => import('./pages/Public/CustomerLogin'));
+const PortalDashboard = lazy(() => import('./pages/CustomerPortal/PortalDashboard'));
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role === 'CUSTOMER') return <Navigate to="/portal" replace />;
   return <>{children}</>;
 };
-
+const CustomerPortalGuard = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/customer-login" replace />;
+  if (user?.role !== 'CUSTOMER') return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
 const App = () => {
   return (
     <QueryProvider>
@@ -43,33 +48,30 @@ const App = () => {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/customer-login" element={<CustomerLogin />} />
               <Route path="/verify/:id" element={<VerifyDocument />} />
-
+              <Route path="/portal" element={
+                <CustomerPortalGuard>
+                  <PortalDashboard />
+                </CustomerPortalGuard>
+              } />
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                {/* Dashboard biasanya dibiarkan terbuka untuk semua yang bisa login */}
                 <Route index element={<Dashboard />} />
-
-                {/* 2. Bungkus Halaman dengan PermissionGuard */}
                 <Route path="management/penjualan" element={<PermissionGuard resource="PENJUALAN"><Penjualan /></PermissionGuard>} />
                 <Route path="management/progress-penjualan" element={<PermissionGuard resource="PROGRESS_PENJUALAN"><ProgressPenjualan /></PermissionGuard>} />
                 <Route path="management/ganti-kavling" element={<PermissionGuard resource="GANTI_KAVLING"><GantiKavling /></PermissionGuard>} />
                 <Route path="management/batal-transaksi" element={<PermissionGuard resource="BATAL_TRANSAKSI"><BatalTransaksi /></PermissionGuard>} />
-
                 <Route path="management/kavling" element={<PermissionGuard resource="KAVLING"><Kavling /></PermissionGuard>} />
                 <Route path="management/notaris" element={<PermissionGuard resource="NOTARIS"><Notaris /></PermissionGuard>} />
                 <Route path="management/bank" element={<PermissionGuard resource="BANK"><Bank /></PermissionGuard>} />
-
-                {/* User & Role biasanya khusus Superadmin, tapi bisa kita passing resource-nya juga */}
                 <Route path="management/users" element={<PermissionGuard resource="USER"><UserManagement /></PermissionGuard>} />
                 <Route path="management/role-permission" element={<PermissionGuard resource="ROLE_PERMISSION"><RolePermission /></PermissionGuard>} />
                 <Route path="management/audit-log" element={<PermissionGuard resource="AUDIT_LOG"><AuditLog /></PermissionGuard>} />
                 <Route path="customer/administrasi" element={<PermissionGuard resource="CUSTOMER"><Administrasi /></PermissionGuard>} />
                 <Route path="customer/kavling" element={<PermissionGuard resource="CUSTOMER_KAVLING"><CustomerKavling /></PermissionGuard>} />
                 <Route path="customer/tagihan" element={<PermissionGuard resource="TAGIHAN"><Tagihan /></PermissionGuard>} />
-
                 <Route path="marketing/agents" element={<PermissionGuard resource="AGENT"><Agents /></PermissionGuard>} />
                 <Route path="marketing/fee-agent" element={<PermissionGuard resource="FEE_AGENT"><FeeAgent /></PermissionGuard>} />
-
                 <Route path="proyek/spk" element={<PermissionGuard resource="SPK"><SPK /></PermissionGuard>} />
                 <Route path="proyek/progress" element={<PermissionGuard resource="PROGRESS_PROYEK"><Progress /></PermissionGuard>} />
               </Route>
@@ -80,6 +82,4 @@ const App = () => {
     </QueryProvider>
   );
 };
-
-
 export default App;

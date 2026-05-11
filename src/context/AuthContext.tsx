@@ -9,6 +9,7 @@ export interface AuthContextType {
   selectedPerumahan: Perumahan | null;
   isLoading: boolean;
   login: (email: string, pass: string, perumahan: Perumahan) => Promise<ActionResult>;
+  loginCustomer: (email: string, pass: string) => Promise<ActionResult>;
   logout: () => void;
   setSelectedPerumahan: (perumahan: Perumahan) => void;
 }

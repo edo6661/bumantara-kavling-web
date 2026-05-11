@@ -1,0 +1,10 @@
+tolong implementasikan ini di frontend, seharusnya di backend sudah terimplementasikan, tapi tolong coba cek lagi, kamu boleh kok ubah kode backend nya juga jika ada yang belum terimplementasikan:
+ada penambahan fitur:
+login sebagai customer, dipisahkan saja halaman nya login customer dengan login internal.
+customer hanya bisa:
+customer bisa liat data social dia.
+customer bisa upload file file dia.
+customer bisa liat cicilan dia.
+tolong buatkan sesuai dengan yang saya mau.
+tolong lakukan perlahan, bertahap, best practice.
+cukup berikan saya kode yang perlu di tambah atau di modifikasi, tapi jagan lupa untuk memberitahu saya lokasi kode nya mana yang diubah dan di tambah.

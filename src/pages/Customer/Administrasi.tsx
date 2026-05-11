@@ -12,14 +12,15 @@ import { useGetPenjualan, useUploadSignature } from "../../hooks/queries/usePenj
 import {
   ShoppingCart, ZoomIn, ImageIcon, PlusCircle, FileUp,
   Eye, Edit2, UploadCloud, Trash2,
-  FileText, Share2, PenTool, AlertCircle
+  FileText, Share2, PenTool, AlertCircle,
+  Key
 } from "lucide-react";
 import {
   useGetCustomers,
   useCreateCustomer,
   useUpdateCustomer,
   useDeleteCustomer,
-  useUploadCustomerDoc
+  useUploadCustomerDoc, useGenerateCustomerAccount
 } from "../../hooks/queries/useCustomer";
 import type { CustomerData, CreateCustomerDTO, CustomerDocType } from "../../services/customer.service";
 
@@ -45,6 +46,7 @@ const Administrasi = () => {
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
   const uploadMutation = useUploadCustomerDoc();
+  const generateAccountMutation = useGenerateCustomerAccount();
   const uploadSignatureMutation = useUploadSignature();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -130,6 +132,17 @@ const Administrasi = () => {
             title="Upload Dokumen"
           >
             <UploadCloud size={16} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleGenerateAccount(row); }}
+            className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount
+              ? 'text-green-600 bg-green-50'
+              : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+              }`}
+            title={row.hasAccount ? "Sudah Memiliki Akun" : "Buat Akun Portal (Generate)"}
+            disabled={row.hasAccount}
+          >
+            <Key size={16} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleDelete(row); }}
@@ -383,6 +396,31 @@ const Administrasi = () => {
       } catch (error: any) {
         alert(error.response?.data?.message || "Gagal menghapus data");
       }
+    }
+  };
+  const handleGenerateAccount = async (customer: CustomerData) => {
+    if (customer.hasAccount) {
+      alert("Customer ini sudah memiliki akun portal!");
+      return;
+    }
+    if (!customer.email) {
+      alert("Gagal: Email customer masih kosong. Silakan Edit data administrasi dan isi email terlebih dahulu!");
+      return;
+    }
+
+    // Gunakan window.prompt sederhana untuk input password
+    const password = window.prompt(`Masukkan password baru untuk akun portal ${customer.nama} (Min. 6 karakter):`);
+    if (!password) return;
+    if (password.length < 6) {
+      alert("Password harus minimal 6 karakter!");
+      return;
+    }
+
+    try {
+      await generateAccountMutation.mutateAsync({ id: customer.id, password });
+      alert(`Berhasil! Akun portal untuk ${customer.nama} telah dibuat. Silakan login menggunakan email: ${customer.email}`);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Gagal membuat akun portal.");
     }
   };
 
