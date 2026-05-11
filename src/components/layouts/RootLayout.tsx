@@ -6,6 +6,9 @@ import Navbar from '../Navbar';
 const RootLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+
+
+
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900 selection:bg-black selection:text-white">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
