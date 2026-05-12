@@ -28,6 +28,16 @@ export interface AgentData {
   noHp: string;
   email: string | null;
   status: string;
+  type: string;
+  feeMarketingPct: number | null;
+  potonganPph: number | null;
+  fileKtp: string | null;
+  fileNpwp: string | null;
+  kwitansiBookingFee: string | null;
+  fileSuratKeterangan: string | null;
+  fileKtpDirektur: string | null;
+  fileNpwpPerusahaan: string | null;
+  hasAccount: boolean;
   pics: PicAgentData[];
   penjualan?: PenjualanAgentData[];
 }
@@ -39,5 +49,8 @@ export interface CreateAgentDTO {
   noHp: string;
   email?: string;
   status?: string;
+  type?: string;
+  feeMarketingPct?: number;
+  potonganPph?: number;
   pics?: PicAgentData[];
 }
