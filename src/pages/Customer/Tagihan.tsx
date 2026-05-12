@@ -27,6 +27,7 @@ import type { TagihanData } from "../../services/tagihan.service";
 import { useAuth } from '../../context/AuthContext';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import jsPDF from 'jspdf';
+import { handleApiError } from '../../utils/errorHandler';
 
 interface TagihanFormState {
   id: number | '';
@@ -330,14 +331,8 @@ const Tagihan = () => {
       }));
       setIsTtdModalOpen(false);
     } catch (error) {
-      let errorMessage = "Gagal menyimpan tanda tangan";
-      if (error && typeof error === 'object' && 'response' in error) {
-        const resData = (error as any).response?.data;
-        if (resData && resData.message) {
-          errorMessage = resData.message;
-        }
-      }
-      alert(errorMessage);
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
   const handleApproveBukti = async (id: number, isApproved: boolean) => {
@@ -347,8 +342,8 @@ const Tagihan = () => {
         await approveMutation.mutateAsync({ id, isApproved });
         alert(isApproved ? "Bukti disetujui! Status menjadi LUNAS." : "Bukti ditolak! Status dikembalikan ke BELUM BAYAR.");
       } catch (error) {
-        console.error(error)
-        alert("Gagal memproses persetujuan.");
+        const { message } = handleApiError(error);
+        alert(message);
       }
     }
   };
@@ -455,22 +450,18 @@ const Tagihan = () => {
         });
       }
       closeModal();
-    } catch (error) {
-      let errorMessage = 'Terjadi kesalahan saat menyimpan data';
-      if (error && typeof error === 'object' && 'response' in error) {
-        const resData = (error as any).response?.data;
-        if (resData?.error && Array.isArray(resData.error)) {
-          const backendErrors: Record<string, string> = {};
-          resData.error.forEach((err: { field: string; message: string }) => {
-            backendErrors[err.field] = err.message;
-          });
-          setErrors(backendErrors);
-          return;
-        } else if (resData?.message) {
-          errorMessage = resData.message;
-        }
+    } catch (error: any) {
+      const { message, errors: backendErrors } = handleApiError(error);
+
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
       }
-      alert(errorMessage);
     }
   };
 
@@ -479,11 +470,8 @@ const Tagihan = () => {
       try {
         await deleteMutation.mutateAsync(item.id);
       } catch (error) {
-        let errorMessage = 'Gagal menghapus tagihan';
-        if (error && typeof error === 'object' && 'response' in error) {
-          errorMessage = (error as any).response?.data?.message || errorMessage;
-        }
-        alert(errorMessage);
+        const { message } = handleApiError(error);
+        alert(message);
       }
     }
   };

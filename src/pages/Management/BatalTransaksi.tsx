@@ -13,6 +13,7 @@ import {
 import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
 import { storage } from "../../utils/storage";
+import { handleApiError } from '../../utils/errorHandler';
 const BatalTransaksi = () => {
   const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('pengajuan');
   const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal();
@@ -33,7 +34,8 @@ const BatalTransaksi = () => {
       await approveMutation.mutateAsync({ id, isApproved });
       alert(`Pengajuan berhasil ${isApproved ? 'disetujui' : 'ditolak'}.`);
     } catch (error: any) {
-      alert(error.response?.data?.message || `Gagal memproses pengajuan.`);
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
   const columnsApproval = [
@@ -150,7 +152,8 @@ const BatalTransaksi = () => {
       setRefundFile(null);
       setSelectedTagihan(null);
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah bukti refund");
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
   const expandedRowRenderRefund = (row: any) => {

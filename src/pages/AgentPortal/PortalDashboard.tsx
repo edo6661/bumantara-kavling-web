@@ -10,7 +10,8 @@ import Input from '../../components/shared/Input';
 import FileInput from '../../components/shared/FileInput';
 import { useAuth } from '../../context/AuthContext';
 import { formatRupiah } from '../../utils/formatters';
-import { LogOut, Briefcase, Settings, ZoomIn, UploadCloud, Users, ShoppingCart } from 'lucide-react';
+import { LogOut, Briefcase, Settings, UploadCloud, Users, ShoppingCart } from 'lucide-react';
+import { handleApiError } from '../../utils/errorHandler';
 
 const AgentPortalDashboard = () => {
   const { data: agentData, isLoading } = useGetMyAgentProfile();
@@ -39,7 +40,8 @@ const AgentPortalDashboard = () => {
       await uploadDocMutation.mutateAsync({ docType, file });
       alert('Dokumen berhasil diunggah!');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Gagal mengunggah dokumen.');
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       e.target.value = '';
     }
@@ -77,7 +79,8 @@ const AgentPortalDashboard = () => {
       setIsAccountModalOpen(false);
       logout();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal memperbarui akun.");
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
 

@@ -14,6 +14,7 @@ import {
   useDeleteUser,
 } from "../../hooks/queries/useUser";
 import type { UserData, CreateUserDTO } from "../../services/user.service";
+import { handleApiError } from "../../utils/errorHandler";
 
 const initialFormState: CreateUserDTO & { id: number | "" } = {
   id: "",
@@ -139,15 +140,16 @@ const UserManagement = () => {
       }
       closeModal();
     } catch (error: any) {
-      const responseData = error.response?.data;
-      if (responseData?.error && Array.isArray(responseData.error)) {
-        const backendErrors: Record<string, string> = {};
-        responseData.error.forEach((err: { field: string; message: string }) => {
-          backendErrors[err.field] = err.message;
+      const { message, errors: backendErrors } = handleApiError(error);
+
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
         });
-        setErrors(backendErrors);
+        setErrors(fieldErrors);
       } else {
-        alert(responseData?.message || "Terjadi kesalahan saat menyimpan data");
+        alert(message);
       }
     }
   };
@@ -157,7 +159,8 @@ const UserManagement = () => {
       try {
         await deleteMutation.mutateAsync(item.id);
       } catch (error: any) {
-        alert(error.response?.data?.message || "Gagal menghapus user");
+        const { message } = handleApiError(error);
+        alert(message);
       }
     }
   };

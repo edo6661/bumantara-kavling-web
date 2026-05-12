@@ -19,6 +19,7 @@ import {
   UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle
 } from 'lucide-react';
 import Input from '../../components/shared/Input';
+import { handleApiError } from '../../utils/errorHandler';
 
 const ProgressPenjualan = () => {
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
@@ -159,7 +160,8 @@ const ProgressPenjualan = () => {
       await uploadMutation.mutateAsync({ id: progressData.penjualanId, docType, file });
       alert(`Dokumen berhasil diunggah!`);
     } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal mengunggah dokumen");
+      const { message } = handleApiError(err);
+      alert(message);
     } finally {
       e.target.value = '';
     }
@@ -176,7 +178,8 @@ const ProgressPenjualan = () => {
     try {
       await uploadCustomerDocMutation.mutateAsync({ id: currentCustomer.id, docType, file });
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah dokumen");
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       e.target.value = "";
     }
@@ -200,7 +203,8 @@ const ProgressPenjualan = () => {
       setNewDocName("");
       alert("Dokumen pendukung berhasil diunggah!");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah dokumen tambahan");
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       e.target.value = "";
     }
@@ -212,8 +216,8 @@ const ProgressPenjualan = () => {
       await updateMutation.mutateAsync({ id: progressData.penjualanId, data: { nilaiAjb: nilaiAjbInput } });
       alert("Nilai AJB & Pajak otomatis berhasil dihitung dan disimpan!");
     } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.message || "Gagal menyimpan nilai AJB");
+      const { message } = handleApiError(err);
+      alert(message);
     }
   };
 
@@ -225,8 +229,8 @@ const ProgressPenjualan = () => {
       await updateMutation.mutateAsync({ id: progressData.penjualanId, data: { checklistBast: Object.keys(obj).length > 0 ? obj : null } });
       alert("Checklist BAST berhasil disimpan!");
     } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.message || "Gagal menyimpan Checklist BAST");
+      const { message } = handleApiError(err);
+      alert(message);
     }
   };
 

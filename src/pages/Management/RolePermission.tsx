@@ -9,6 +9,7 @@ import {
   useGetRolePermissions,
   useUpsertRolePermission,
 } from "../../hooks/queries/useRolePermission";
+import { handleApiError } from "../../utils/errorHandler";
 
 const RESOURCES = [
   "DASHBOARD", "PENJUALAN", "PROGRESS_PENJUALAN", "GANTI_KAVLING", "BATAL_TRANSAKSI",
@@ -133,7 +134,8 @@ const RolePermission = () => {
       alert(`Hak akses untuk role ${selectedRole} berhasil diperbarui!`);
       setIsModalOpen(false);
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal menyimpan konfigurasi hak akses");
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       setIsSaving(false);
     }

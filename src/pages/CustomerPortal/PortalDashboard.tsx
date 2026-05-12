@@ -14,6 +14,7 @@ import {
   CheckCircle2, UploadCloud, Settings
 } from 'lucide-react';
 import { formatRupiah, formatDate } from '../../utils/formatters';
+import { handleApiError } from '../../utils/errorHandler';
 
 const PortalDashboard = () => {
   const { data, isLoading } = useGetCustomerDashboard();
@@ -41,7 +42,8 @@ const PortalDashboard = () => {
       await uploadMutation.mutateAsync({ docType, file });
       alert('Dokumen berhasil diunggah!');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Gagal mengunggah dokumen.');
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       e.target.value = '';
     }
@@ -54,7 +56,8 @@ const PortalDashboard = () => {
       await uploadBuktiMutation.mutateAsync({ id, file });
       alert('Bukti pembayaran berhasil diunggah, menunggu verifikasi Admin!');
     } catch (error) {
-      alert('Gagal mengunggah bukti pembayaran.');
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       e.target.value = '';
     }
@@ -73,7 +76,8 @@ const PortalDashboard = () => {
       setNewDocName("");
       alert('Dokumen tambahan berhasil diunggah!');
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Gagal mengunggah dokumen tambahan.');
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       e.target.value = "";
     }
@@ -121,7 +125,8 @@ const PortalDashboard = () => {
       setIsAccountModalOpen(false);
       logout();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal memperbarui akun.");
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
 

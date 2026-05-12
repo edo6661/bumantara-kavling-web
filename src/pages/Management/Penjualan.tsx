@@ -25,8 +25,9 @@ import QRCode from "react-qr-code";
 import { useAuth } from "../../context/AuthContext";
 import SignatureCanvas from 'react-signature-canvas';
 import { penjualanService } from "../../services/penjualan.service";
-import type { AgentData } from '../../services/agent.service';
 import { useQueryClient } from '@tanstack/react-query';
+import { handleApiError } from '../../utils/errorHandler';
+import type { AgentData } from '../../types/models/agent';
 
 interface PenjualanData {
   id?: string;
@@ -224,7 +225,8 @@ const Penjualan = () => {
       setBankData({ id: '', bank: '' });
       alert("Data Bank KPR berhasil disimpan!");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal menyimpan Bank KPR.");
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
 
@@ -967,7 +969,8 @@ const Penjualan = () => {
       setBiayaTambahanKprList([]);
       alert("Skema pembayaran berhasil disimpan dan dokumen SPR siap dicetak!");
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan skema pembayaran');
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
 
@@ -1075,7 +1078,8 @@ const Penjualan = () => {
       setCancelData({ id: '', alasanBatal: '' });
       alert("Pengajuan pembatalan berhasil dikirim ke Admin.");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal membatalkan penjualan.");
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
 
@@ -1086,7 +1090,8 @@ const Penjualan = () => {
       await uploadBuktiMutation.mutateAsync({ id, type, file });
       alert(`Bukti ${type === "booking" ? "Booking" : "DP"} berhasil diunggah! SPR akan otomatis di-generate (jika booking).`);
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah bukti");
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       e.target.value = '';
     }
@@ -1098,7 +1103,8 @@ const Penjualan = () => {
       await regenerateSprMutation.mutateAsync(id);
       alert("Dokumen SPR berhasil di-generate!");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal men-generate SPR.");
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
   const expandedRowRender = (row: PenjualanData) => {

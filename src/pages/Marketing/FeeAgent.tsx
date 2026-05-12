@@ -15,6 +15,7 @@ import {
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import type { FeeAgentData } from "../../services/feeAgent.service";
 import CurrencyInput from "../../components/shared/CurrencyInput";
+import { handleApiError } from "../../utils/errorHandler";
 
 interface FeeFormState {
   id: number | "";
@@ -54,7 +55,7 @@ const FeeAgent = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<FeeFormState>(initialFormState);
   const [selectedAgent, setSelectedAgent] = useState<string>("");
-  const [selectedKavling, setSelectedKavling] = useState<string>("");
+  const [, setSelectedKavling] = useState<string>("");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -188,16 +189,16 @@ const FeeAgent = () => {
 
       closeModal();
     } catch (error: any) {
-      const responseData = error.response?.data;
+      const { message, errors: backendErrors } = handleApiError(error);
 
-      if (responseData?.error && Array.isArray(responseData.error)) {
-        const backendErrors: Record<string, string> = {};
-        responseData.error.forEach((err: { field: string; message: string }) => {
-          backendErrors[err.field] = err.message;
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
         });
-        setErrors(backendErrors);
+        setErrors(fieldErrors);
       } else {
-        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+        alert(message);
       }
     }
   };

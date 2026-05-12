@@ -25,6 +25,7 @@ import {
   useUploadCustomerDoc, useGenerateCustomerAccount
 } from "../../hooks/queries/useCustomer";
 import type { CustomerData, CreateCustomerDTO, CustomerDocType } from "../../services/customer.service";
+import { handleApiError } from '../../utils/errorHandler';
 
 const initialFormState: CreateCustomerDTO = {
   nikKtp: '',
@@ -391,19 +392,16 @@ const Administrasi = () => {
       }
       setIsEditModalOpen(false);
     } catch (err: any) {
-      const responseData = err.response?.data;
-      if (responseData?.success === false && responseData?.error) {
-        if (Array.isArray(responseData.error)) {
-          const backendErrors: Partial<Record<keyof CreateCustomerDTO, string>> = {};
-          responseData.error.forEach((item: { field: string; message: string }) => {
-            backendErrors[item.field as keyof CreateCustomerDTO] = item.message;
-          });
-          setErrors(backendErrors);
-        } else {
-          alert(responseData.message || "Terjadi kesalahan validasi");
-        }
+      const { message, errors: backendErrors } = handleApiError(err);
+
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Partial<Record<keyof CreateCustomerDTO, string>> = {};
+        backendErrors.forEach((item: { field: string; message: string }) => {
+          fieldErrors[item.field as keyof CreateCustomerDTO] = item.message;
+        });
+        setErrors(fieldErrors);
       } else {
-        alert("Gagal terhubung ke server. Silakan coba lagi.");
+        alert(message);
       }
     }
   };
@@ -468,7 +466,8 @@ const Administrasi = () => {
       });
       if (docType === 'lainnya') setNewDocName("");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah dokumen");
+      const { message } = handleApiError(error);
+      alert(message);
     } finally {
       setUploadingDocType(null);
     }

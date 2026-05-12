@@ -10,6 +10,7 @@ import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/qu
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
 import { useGetTagihans } from '../../hooks/queries/useTagihan';
 import CurrencyInput from '../../components/shared/CurrencyInput';
+import { handleApiError } from '../../utils/errorHandler';
 interface KavlingData {
   id: string;
   perumahan: string;
@@ -275,16 +276,16 @@ const CustomerKavling = () => {
       await updateMutation.mutateAsync({ id: formData.id, data: payload });
       closeModal();
     } catch (error: any) {
-      const responseData = error.response?.data;
+      const { message, errors: backendErrors } = handleApiError(error);
 
-      if (responseData?.error && Array.isArray(responseData.error)) {
-        const backendErrors: Record<string, string> = {};
-        responseData.error.forEach((err: { field: string; message: string }) => {
-          backendErrors[err.field] = err.message;
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
         });
-        setErrors(backendErrors);
+        setErrors(fieldErrors);
       } else {
-        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+        alert(message);
       }
     }
   };

@@ -18,6 +18,7 @@ import {
 } from "../../hooks/queries/useAgent";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
+import { handleApiError } from '../../utils/errorHandler';
 
 interface AgentFormState {
   id: number | '';
@@ -246,33 +247,28 @@ const Agents = () => {
       }
       closeModal();
     } catch (error: any) {
-      const responseData = error.response?.data;
+      const { message, errors: backendErrors } = handleApiError(error);
 
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
 
-      if (responseData?.error && Array.isArray(responseData.error)) {
-        const backendErrors: Record<string, string> = {};
-
-        responseData.error.forEach((err: { field: string; message: string }) => {
-
+        backendErrors.forEach((err: { field: string; message: string }) => {
           const fieldName = err.field.replace(/\[(\d+)\]/g, '.$1');
           const parts = fieldName.split('.');
-
 
           if (parts[0] === 'pics' && parts.length >= 3) {
             const backendIdx = parseInt(parts[1], 10);
             const frontendIdx = picMapping[backendIdx] !== undefined ? picMapping[backendIdx] : backendIdx;
-
             const propName = parts.slice(2).join('.');
-            backendErrors[`pics.${frontendIdx}.${propName}`] = err.message;
+            fieldErrors[`pics.${frontendIdx}.${propName}`] = err.message;
           } else {
-
-            backendErrors[err.field] = err.message;
+            fieldErrors[err.field] = err.message;
           }
         });
 
-        setErrors(backendErrors);
+        setErrors(fieldErrors);
       } else {
-        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+        alert(message);
       }
     }
   };
@@ -282,7 +278,8 @@ const Agents = () => {
       try {
         await deleteMutation.mutateAsync(item.id);
       } catch (error: any) {
-        alert(error.response?.data?.message || 'Gagal menghapus agen');
+        const { message } = handleApiError(error);
+        alert(message);
       }
     }
   };
@@ -306,7 +303,8 @@ const Agents = () => {
       const res = await generateAccountMutation.mutateAsync({ id: agent.id, password });
       alert(res.message || `Berhasil! Kredensial untuk ${agent.nama} telah disimpan. Silakan login menggunakan email: ${agent.email}`);
     } catch (error: any) {
-      alert(error.response?.data?.message || `Gagal ${actionText}.`);
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
 
@@ -327,7 +325,8 @@ const Agents = () => {
         setSelectedAgentDetail(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal mengunggah dokumen");
+      const { message } = handleApiError(err);
+      alert(message);
     } finally {
       e.target.value = '';
     }

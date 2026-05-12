@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { isAxiosError } from 'axios';
 import {
   UserCircle, ChevronDown, ChevronUp, Filter, ArrowUpDown,
   PieChart, CheckCircle2, Clock, Ban, Building2, FileText,
@@ -20,6 +19,7 @@ import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
 import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
 import CurrencyInput from '../../components/shared/CurrencyInput';
+import { handleApiError } from '../../utils/errorHandler';
 
 interface KavlingFormState {
   id: number | '';
@@ -270,17 +270,15 @@ const Kavling = () => {
       }
       closeModal();
     } catch (error: unknown) {
-      if (isAxiosError(error) && error.response) {
-        const responseData = error.response.data;
-        if (responseData?.error && Array.isArray(responseData.error)) {
-          const backendErrors: Record<string, string> = {};
-          responseData.error.forEach((err: { field: string; message: string }) => { backendErrors[err.field] = err.message; });
-          setErrors(backendErrors);
-        } else {
-          alert(responseData?.message || 'Gagal menyimpan kavling.');
-        }
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
       } else {
-        alert('Terjadi kesalahan yang tidak diketahui. Periksa koneksi Anda.');
+        alert(message);
       }
     }
   };
@@ -290,9 +288,8 @@ const Kavling = () => {
       try {
         await deleteMutation.mutateAsync(item.id);
       } catch (error: any) {
-        console.error(error)
-
-        alert(error.response?.data?.message || 'Gagal menghapus Kavling, pastikan kavling ini belum pernah terjadi transaksi.');
+        const { message } = handleApiError(error);
+        alert(message);
       }
     }
   };
