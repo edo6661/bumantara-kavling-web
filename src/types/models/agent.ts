@@ -23,6 +23,7 @@ export interface AgentData {
   id: number;
   nik: string;
   kodeSales: string | null;
+
   nama: string;
   alamat: string | null;
   noHp: string;

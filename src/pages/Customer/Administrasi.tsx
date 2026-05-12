@@ -155,11 +155,10 @@ const Administrasi = () => {
           <button
             onClick={(e) => { e.stopPropagation(); handleGenerateAccount(row); }}
             className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount
-              ? 'text-green-600 bg-green-50'
-              : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+              ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700'
+              : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
               }`}
-            title={row.hasAccount ? "Sudah Memiliki Akun" : "Buat Akun Portal (Generate)"}
-            disabled={row.hasAccount}
+            title={row.hasAccount ? "Reset Kredensial (Password)" : "Buat Akun Portal (Generate)"}
           >
             <Key size={16} />
           </button>
@@ -420,20 +419,28 @@ const Administrasi = () => {
   };
 
   const handleGenerateAccount = async (customer: CustomerData) => {
-    if (customer.hasAccount) {
-      alert("Customer ini sudah memiliki akun portal!");
+    const actionText = customer.hasAccount ? 'me-reset password' : 'membuat akun portal';
+    const defaultPass = customer.nikKtp;
+
+    const input = window.prompt(`Masukkan password baru untuk ${actionText} ${customer.nama} (Min. 6 karakter).\nKosongkan jika ingin menggunakan NIK KTP sebagai password default:`);
+
+    if (input === null) return;
+    const password = input.trim() === '' ? defaultPass : input;
+
+    if (password.length < 6) {
+      alert("Password harus minimal 6 karakter!");
       return;
     }
 
-    if (!window.confirm(`Buat akun portal untuk ${customer.nama}?\n\nUsername: ${customer.noHp}\nPassword: ${customer.nikKtp}`)) {
+    if (!window.confirm(`Yakin ingin ${actionText} untuk ${customer.nama}?\n\nUsername: ${customer.noHp}\nPassword: ${password}`)) {
       return;
     }
 
     try {
-      await generateAccountMutation.mutateAsync({ id: customer.id, password: "" });
-      alert(`Berhasil! Akun portal untuk ${customer.nama} telah dibuat.\nUsername: ${customer.noHp}\nPassword: ${customer.nikKtp}`);
+      const res = await generateAccountMutation.mutateAsync({ id: customer.id, password: password });
+      alert(res.message || `Berhasil! Kredensial portal untuk ${customer.nama} telah diatur.\nUsername: ${customer.noHp}\nPassword: ${password}`);
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal membuat akun portal.");
+      alert(error.response?.data?.message || "Gagal mengatur kredensial portal.");
     }
   };
   const processUpload = async (file: File, docType: CustomerDocType | 'lainnya') => {

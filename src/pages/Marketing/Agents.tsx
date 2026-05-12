@@ -96,9 +96,10 @@ const Agents = () => {
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleGenerateAccount(row); }}
-            className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount ? 'text-green-600 bg-green-50' : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'}`}
-            title={row.hasAccount ? "Sudah Memiliki Akun" : "Buat Akun Portal Agent"}
-            disabled={row.hasAccount}
+            className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount
+              ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700'
+              : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+            title={row.hasAccount ? "Reset Kredensial (Password)" : "Buat Akun Portal Agent"}
           >
             <Key size={16} />
           </button>
@@ -287,25 +288,25 @@ const Agents = () => {
   };
 
   const handleGenerateAccount = async (agent: AgentData) => {
-    if (agent.hasAccount) {
-      alert("Agent ini sudah memiliki akun!");
-      return;
-    }
     if (!agent.email) {
       alert("Gagal: Email agent masih kosong. Silakan edit dan isi email terlebih dahulu!");
       return;
     }
-    const password = window.prompt(`Masukkan password baru untuk akun portal ${agent.nama} (Min. 6 karakter):`);
-    if (!password) return;
+    const actionText = agent.hasAccount ? 'me-reset password' : 'membuat akun portal';
+    const password = window.prompt(`Masukkan password baru untuk ${actionText} ${agent.nama} (Min. 6 karakter):`);
+
+    if (password === null) return; // Jika user menekan Cancel
     if (password.length < 6) {
       alert("Password harus minimal 6 karakter!");
       return;
     }
+
     try {
-      await generateAccountMutation.mutateAsync({ id: agent.id, password });
-      alert(`Berhasil! Akun portal untuk ${agent.nama} telah dibuat. Silakan login menggunakan email: ${agent.email}`);
+      // API merespons dengan struktur success & message
+      const res = await generateAccountMutation.mutateAsync({ id: agent.id, password });
+      alert(res.message || `Berhasil! Kredensial untuk ${agent.nama} telah disimpan. Silakan login menggunakan email: ${agent.email}`);
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal membuat akun portal.");
+      alert(error.response?.data?.message || `Gagal ${actionText}.`);
     }
   };
 
