@@ -269,7 +269,7 @@ const Progress = () => {
               {/* Input Multiple File */}
               <FileInput
                 label="Foto Lapangan (Bisa pilih lebih dari 1)"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 multiple
                 onChange={handleMultipleFileChange}
               />

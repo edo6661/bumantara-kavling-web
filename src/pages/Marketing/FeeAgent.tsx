@@ -141,8 +141,8 @@ const FeeAgent = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith("image/")) {
-        alert("Hanya format gambar yang diperbolehkan!");
+      if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+        alert("Hanya format gambar dan PDF yang diperbolehkan!");
         e.target.value = "";
         return;
       }
@@ -317,8 +317,7 @@ const FeeAgent = () => {
               <CurrencyInput label="Nominal (Rp)" name="closingNominal" value={Number(formData.closingNominal) || 0} onValueChange={(_, val) => setFormData(prev => ({ ...prev, closingNominal: val }))} error={errors.closingNominal} placeholder="0" />
               <Input label="Tanggal Transfer" name="closingTanggal" type="date" value={formData.closingTanggal} onChange={handleChange} error={errors.closingTanggal} />
               <div>
-                <FileInput label={formData.closingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*" onChange={(e) => handleFileChange(e, "closingBukti")} />
-                {renderThumbnail(formData.closingBukti)}
+                <FileInput label={formData.closingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "closingBukti")} />
               </div>
             </div>
           </div>
@@ -329,7 +328,7 @@ const FeeAgent = () => {
               <CurrencyInput label="Nominal (Rp)" name="marketingNominal" value={Number(formData.marketingNominal) || 0} onValueChange={(_, val) => setFormData(prev => ({ ...prev, marketingNominal: val }))} error={errors.marketingNominal} placeholder="0" />
               <Input label="Tanggal Transfer" name="marketingTanggal" type="date" value={formData.marketingTanggal} onChange={handleChange} error={errors.marketingTanggal} />
               <div>
-                <FileInput label={formData.marketingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*" onChange={(e) => handleFileChange(e, "marketingBukti")} />
+                <FileInput label={formData.marketingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "marketingBukti")} />
                 {renderThumbnail(formData.marketingBukti)}
               </div>
             </div>

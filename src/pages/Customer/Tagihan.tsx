@@ -805,7 +805,7 @@ const Tagihan = () => {
               <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
                 Upload bukti transfer dari pihak pelanggan di sini. Sistem otomatis mengubah status menjadi <strong className="text-green-700">LUNAS</strong>.
               </p>
-              <FileInput label="Upload Bukti Transfer" accept="image/*" onChange={handleFileChange} />
+              <FileInput label="Upload Bukti Transfer" accept="image/*,application/pdf" onChange={handleFileChange} />
               {formData.fileBukti && typeof formData.fileBukti === 'string' && (
                 <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
                   <FileText size={14} /> File saat ini sudah diupload

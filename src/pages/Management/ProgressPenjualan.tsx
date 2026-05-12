@@ -170,8 +170,8 @@ const ProgressPenjualan = () => {
   const handleUploadCustDoc = async (docType: CustomerDocType, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentCustomer) return;
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya file gambar dan PDF yang diperbolehkan!");
       e.target.value = "";
       return;
     }
@@ -189,12 +189,13 @@ const ProgressPenjualan = () => {
     const file = e.target.files?.[0];
     if (!file || !currentCustomer) return;
     if (!newDocName.trim()) {
-      alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file!");
+      alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file tambahan!");
       e.target.value = "";
       return;
     }
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
+    // Tambahkan pengecekan application/pdf
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya file gambar dan PDF yang diperbolehkan!");
       e.target.value = "";
       return;
     }
@@ -362,7 +363,12 @@ const ProgressPenjualan = () => {
                                 </div>
                               )}
                             </div>
-                            <FileInput label="Upload / Ganti" accept="image/*" onChange={(e) => handleUploadCustDoc(type, e)} disabled={uploadCustomerDocMutation.isPending} />
+                            <FileInput
+                              label="Upload / Ganti"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => handleUploadCustDoc(type, e)}
+                              disabled={uploadCustomerDocMutation.isPending}
+                            />
                           </div>
                         ))}
                       </div>
@@ -390,7 +396,12 @@ const ProgressPenjualan = () => {
                             <div className="w-full">
                               <input type="text" value={newDocName} onChange={(e) => setNewDocName(e.target.value)} placeholder="Nama Dok. Baru (Cth: Slip Gaji)" className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400" />
                             </div>
-                            <FileInput label="Pilih File" accept="image/*" onChange={handleUploadLainnya} disabled={uploadCustomerDocMutation.isPending || newDocName.trim() === ""} />
+                            <FileInput
+                              label="Pilih File"
+                              accept="image/*,application/pdf"
+                              onChange={handleUploadLainnya}
+                              disabled={uploadCustomerDocMutation.isPending || newDocName.trim() === ""}
+                            />
                           </div>
                         </div>
                       </div>

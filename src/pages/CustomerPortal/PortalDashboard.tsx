@@ -62,12 +62,16 @@ const PortalDashboard = () => {
       e.target.value = '';
     }
   };
-
   const handleUploadLainnya = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!newDocName.trim()) {
       alert("Tuliskan nama dokumen terlebih dahulu (contoh: Slip Gaji)!");
+      e.target.value = "";
+      return;
+    }
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya file gambar dan PDF yang diperbolehkan!");
       e.target.value = "";
       return;
     }
@@ -280,7 +284,7 @@ const PortalDashboard = () => {
                           <input
                             type="file"
                             className="hidden"
-                            accept="image/*"
+                            accept="image/*,application/pdf"
                             onChange={handleUploadLainnya}
                             disabled={uploadMutation.isPending || !newDocName.trim()}
                           />
@@ -363,7 +367,7 @@ const PortalDashboard = () => {
                                   <input
                                     type="file"
                                     className="hidden"
-                                    accept="image/*"
+                                    accept="image/*,application/pdf"
                                     onChange={(e) => handleUploadBuktiTagihan(t.id, e)}
                                     disabled={uploadBuktiMutation.isPending}
                                   />

@@ -128,8 +128,8 @@ const BatalTransaksi = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        alert("Hanya file gambar yang diperbolehkan!");
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        alert("Hanya file gambar dan PDF yang diperbolehkan!");
         e.target.value = '';
         return;
       }
@@ -284,8 +284,8 @@ const BatalTransaksi = () => {
               Jika dana {selectedTagihan?.pembayaran} dikembalikan kepada customer, silakan unggah bukti transfer pengembalian dana di bawah ini. Jika dana hangus (tidak di-refund), Anda tidak perlu melakukan aksi ini.
             </p>
             <FileInput
-              label="Upload Bukti Transfer Refund (Gambar)"
-              accept="image/*"
+              label="Upload Bukti Transfer Refund (Gambar/PDF)"
+              accept="image/*,application/pdf"
               onChange={handleFileChange}
               required
             />
