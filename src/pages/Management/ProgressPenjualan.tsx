@@ -18,6 +18,7 @@ import {
   Trash2, Plus, UploadCloud,
   UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle
 } from 'lucide-react';
+import Input from '../../components/shared/Input';
 
 const ProgressPenjualan = () => {
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
@@ -47,12 +48,17 @@ const ProgressPenjualan = () => {
 
   const [checklist, setChecklist] = useState<{ key: string; value: string }[]>([]);
   const [nilaiAjbInput, setNilaiAjbInput] = useState<number>(0);
+  const [ajbForm, setAjbForm] = useState({ nomor: '', tanggal: '' });
   const calculatedPph = nilaiAjbInput ? nilaiAjbInput * 0.025 : 0;
   const calculatedBphtb = nilaiAjbInput ? Math.max(0, nilaiAjbInput - 80000000) * 0.05 : 0;
 
   useEffect(() => {
     if (progressData) {
       setNilaiAjbInput(progressData.nilaiAjb || 0);
+      setAjbForm({
+        nomor: progressData.nomorAjb || '',
+        tanggal: progressData.tanggalAjb ? new Date(progressData.tanggalAjb).toISOString().split('T')[0] : ''
+      });
       if (progressData.checklistBast) {
         const arr = Object.entries(progressData.checklistBast).map(([k, v]) => ({ key: k, value: String(v || '') }));
         setChecklist(arr);
@@ -424,11 +430,45 @@ const ProgressPenjualan = () => {
                   <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
                     <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
                       <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Akta Jual Beli (AJB)</h4>
-                      {renderFileBox("Dokumen AJB Resmi", "fileAjb", progressData.fileAjb)}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <Input
+                          label="Nomor AJB Resmi"
+                          value={ajbForm.nomor}
+                          onChange={(e) => setAjbForm(prev => ({ ...prev, nomor: e.target.value }))}
+                          placeholder="Masukkan nomor AJB..."
+                        />
+                        <Input
+                          label="Tanggal AJB"
+                          type="date"
+                          value={ajbForm.tanggal}
+                          onChange={(e) => setAjbForm(prev => ({ ...prev, tanggal: e.target.value }))}
+                        />
+                        <div className="md:col-span-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                await updateMutation.mutateAsync({
+                                  id: progressData.penjualanId,
+                                  data: { nomorAjb: ajbForm.nomor, tanggalAjb: ajbForm.tanggal }
+                                });
+                                alert("Detail Nomor & Tanggal AJB berhasil disimpan!");
+                              } catch (e: any) {
+                                alert(e.response?.data?.message || "Gagal menyimpan data AJB.");
+                              }
+                            }}
+                            disabled={updateMutation.isPending}
+                            className="w-full px-4 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-sm disabled:opacity-50 cursor-pointer"
+                          >
+                            {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Detail AJB'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {renderFileBox("Scan Dokumen AJB", "fileAjb", progressData.fileAjb)}
                     </div>
                   </div>
                 )}
-
                 {modalStep === 'BAST' && (
                   <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
                     <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">

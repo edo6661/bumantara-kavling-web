@@ -365,7 +365,7 @@ const CustomerKavling = () => {
         expandedRowRender={expandedRowRender}
       />
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Data Kavling">
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Customer Kavling">
         <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
           {tabs.map((tab) => (
             <button

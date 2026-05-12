@@ -14,12 +14,10 @@ import {
 } from "../../hooks/queries/useFeeAgent";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import type { FeeAgentData } from "../../services/feeAgent.service";
+import CurrencyInput from "../../components/shared/CurrencyInput";
 
 interface FeeFormState {
   id: number | "";
-  bookingNominal: number | "";
-  bookingTanggal: string;
-  bookingBukti: string | File;
   closingNominal: number | "";
   closingTanggal: string;
   closingBukti: string | File;
@@ -27,12 +25,8 @@ interface FeeFormState {
   marketingTanggal: string;
   marketingBukti: string | File;
 }
-
 const initialFormState: FeeFormState = {
   id: "",
-  bookingNominal: "",
-  bookingTanggal: "",
-  bookingBukti: "",
   closingNominal: "",
   closingTanggal: "",
   closingBukti: "",
@@ -45,12 +39,10 @@ interface GroupedAgentFee {
   agentId: number;
   namaAgent: string;
   totalPenjualan: number;
-  totalBookingFee: number;
   totalClosingFee: number;
   totalMarketingFee: number;
   rincianPenjualan: FeeAgentData[];
 }
-
 const FeeAgent = () => {
   const { data: feeData = [], isLoading } = useGetFeeAgents();
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
@@ -66,7 +58,7 @@ const FeeAgent = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // State untuk Detail Penjualan dan Lightbox Gambar
+
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -84,7 +76,6 @@ const FeeAgent = () => {
           agentId: item.agentId,
           namaAgent: item.namaAgent,
           totalPenjualan: 0,
-          totalBookingFee: 0,
           totalClosingFee: 0,
           totalMarketingFee: 0,
           rincianPenjualan: [],
@@ -92,7 +83,6 @@ const FeeAgent = () => {
       }
 
       groups[item.agentId].totalPenjualan += 1;
-      groups[item.agentId].totalBookingFee += item.bookingNominal || 0;
       groups[item.agentId].totalClosingFee += item.closingNominal || 0;
       groups[item.agentId].totalMarketingFee += item.marketingNominal || 0;
       groups[item.agentId].rincianPenjualan.push(item);
@@ -100,41 +90,20 @@ const FeeAgent = () => {
 
     return Object.values(groups);
   }, [feeData]);
-
   const columns = [
     { header: "Nama Agent", accessor: "namaAgent", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
     {
       header: "Total Penjualan",
       accessor: "totalPenjualan",
-      render: (val: number) => (
-        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold">
-          {val} Unit
-        </span>
-      )
+      render: (val: number) => <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold">{val} Unit</span>
     },
-    {
-      header: "Total Booking Fee",
-      accessor: "totalBookingFee",
-      render: (val: number) => formatRupiah(val),
-    },
-    {
-      header: "Total Closing Fee",
-      accessor: "totalClosingFee",
-      render: (val: number) => formatRupiah(val),
-    },
-    {
-      header: "Total Marketing Fee",
-      accessor: "totalMarketingFee",
-      render: (val: number) => formatRupiah(val),
-    },
+    { header: "Total Closing Fee", accessor: "totalClosingFee", render: (val: number) => formatRupiah(val) },
+    { header: "Total Marketing Fee", accessor: "totalMarketingFee", render: (val: number) => formatRupiah(val) },
   ];
 
   const openModal = (item: FeeAgentData) => {
     setFormData({
       id: item.id,
-      bookingNominal: item.bookingNominal || "",
-      bookingTanggal: formatDateForInput(item.bookingTanggal as unknown as string),
-      bookingBukti: item.bookingBukti || "",
       closingNominal: item.closingNominal || "",
       closingTanggal: formatDateForInput(item.closingTanggal as unknown as string),
       closingBukti: item.closingBukti || "",
@@ -194,8 +163,6 @@ const FeeAgent = () => {
       await updateMutation.mutateAsync({
         id: Number(formData.id),
         data: {
-          bookingNominal: Number(formData.bookingNominal) || undefined,
-          bookingTanggal: formData.bookingTanggal || undefined,
           closingNominal: Number(formData.closingNominal) || undefined,
           closingTanggal: formData.closingTanggal || undefined,
           marketingNominal: Number(formData.marketingNominal) || undefined,
@@ -205,9 +172,7 @@ const FeeAgent = () => {
 
       const uploadPromises = [];
 
-      if (formData.bookingBukti instanceof File) {
-        uploadPromises.push(uploadMutation.mutateAsync({ id: Number(formData.id), type: "bookingBukti", file: formData.bookingBukti }));
-      }
+
 
       if (formData.closingBukti instanceof File) {
         uploadPromises.push(uploadMutation.mutateAsync({ id: Number(formData.id), type: "closingBukti", file: formData.closingBukti }));
@@ -237,22 +202,23 @@ const FeeAgent = () => {
     }
   };
 
-  // Helper untuk merender thumbnail di form modal edit
+
   const renderThumbnail = (fileUrl: string | File) => {
-    if (!fileUrl || fileUrl instanceof File) return null;
+    if (!fileUrl) return null;
+
+    const src = fileUrl instanceof File ? URL.createObjectURL(fileUrl) : fileUrl;
     return (
       <div
-        onClick={() => setPreviewImage(fileUrl as string)}
-        className="mt-3 relative w-16 h-12 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
+        onClick={() => setPreviewImage(src)}
+        className="mt-3 relative w-32 h-20 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
       >
-        <img src={fileUrl} alt="Bukti" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-          <ZoomIn size={14} className="text-white" />
+        <img src={src} alt="Bukti" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+          <ZoomIn size={16} className="text-white" />
         </div>
       </div>
     );
   };
-
   const expandedRowRender = (row: GroupedAgentFee) => {
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
@@ -262,62 +228,63 @@ const FeeAgent = () => {
         {row.rincianPenjualan.length > 0 ? (
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+              <thead className="text-[11px] text-slate-500 uppercase bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 rounded-l-lg font-bold">Customer</th>
-                  <th className="px-4 py-3 font-bold">Kavling</th>
-                  <th className="px-4 py-3 font-bold">No. Transaksi</th>
-                  <th className="px-4 py-3 text-right font-bold">Booking Fee</th>
+                  <th className="px-4 py-3 font-bold">Blok</th>
+                  <th className="px-4 py-3 font-bold">No</th>
+                  <th className="px-4 py-3 font-bold text-center">Tgl Booking</th>
+                  <th className="px-4 py-3 font-bold text-center">Lunas DP</th>
+                  <th className="px-4 py-3 font-bold text-center">AJB</th>
                   <th className="px-4 py-3 text-right font-bold">Closing Fee</th>
                   <th className="px-4 py-3 text-right font-bold">Marketing Fee</th>
                   <th className="px-4 py-3 rounded-r-lg font-bold text-center w-28">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {row.rincianPenjualan.map((feeData) => (
-                  <tr key={feeData.id} className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-4 py-3 font-bold text-slate-900">{feeData.namaCustomer}</td>
-                    <td className="px-4 py-3 text-slate-600">{feeData.kavling}</td>
-                    <td className="px-4 py-3 font-medium text-slate-500">{feeData.noTransaksi}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
-                      {feeData.bookingNominal ? formatRupiah(feeData.bookingNominal) : '-'}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
-                      {feeData.closingNominal ? formatRupiah(feeData.closingNominal) : '-'}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-900 text-right">
-                      {feeData.marketingNominal ? formatRupiah(feeData.marketingNominal) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => {
-                            const detail = penjualanList.find((p: any) => p.id === feeData.noTransaksi);
-                            setSelectedDetailPenjualan(detail || feeData);
-                          }}
-                          className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
-                          title="Lihat Detail Penjualan"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => openModal(feeData)}
-                          className="p-2 text-slate-500 hover:text-black hover:bg-slate-200 rounded-lg transition-all cursor-pointer"
-                          title="Edit / Kelola Fee"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {row.rincianPenjualan.map((feeData) => {
+
+                  const detail = penjualanList.find((p: any) => p.id === feeData.noTransaksi);
+
+
+                  const tagihanBf = detail?.tagihan?.find((t: any) => t.pembayaran.toLowerCase().includes('booking') && t.status === 'LUNAS');
+                  const tglBooking = tagihanBf?.updatedAt || detail?.tanggal;
+
+
+                  const tagihanDp = detail?.tagihan?.find((t: any) => (t.pembayaran.toLowerCase().includes('dp') || t.pembayaran.toLowerCase().includes('down')) && t.status === 'LUNAS');
+                  const tglLunasDp = tagihanDp?.updatedAt;
+
+
+                  const tglAjb = detail?.progressPenjualan?.tanggalAjb || detail?.detailKavlingPajak?.tanggalAkadAjbPpat;
+
+                  return (
+                    <tr key={feeData.id} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="px-4 py-3 font-bold text-slate-900">{feeData.namaCustomer}</td>
+                      <td className="px-4 py-3 font-medium text-slate-600">{detail?.blok || '-'}</td>
+                      <td className="px-4 py-3 font-medium text-slate-600">{detail?.nomorUnit || '-'}</td>
+                      <td className="px-4 py-3 text-center text-xs text-slate-500">{tglBooking ? new Date(tglBooking).toLocaleDateString('id-ID') : '-'}</td>
+                      <td className="px-4 py-3 text-center text-xs text-slate-500">{tglLunasDp ? new Date(tglLunasDp).toLocaleDateString('id-ID') : '-'}</td>
+                      <td className="px-4 py-3 text-center text-xs text-slate-500">{tglAjb ? new Date(tglAjb).toLocaleDateString('id-ID') : '-'}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900 text-right">
+                        {feeData.closingNominal ? formatRupiah(feeData.closingNominal) : '-'}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-900 text-right">
+                        {feeData.marketingNominal ? formatRupiah(feeData.marketingNominal) : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => setSelectedDetailPenjualan(detail || feeData)} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Lihat Detail Penjualan"><Eye size={16} /></button>
+                          <button onClick={() => openModal(feeData)} className="p-2 text-slate-500 hover:text-black hover:bg-slate-200 rounded-lg transition-all" title="Edit / Kelola Fee"><Edit2 size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Belum ada penjualan untuk agent ini.
-          </p>
+          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">Belum ada penjualan untuk agent ini.</p>
         )}
       </div>
     );
@@ -336,56 +303,40 @@ const FeeAgent = () => {
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title="Kelola Pencairan Fee Agent">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col md:flex-row justify-between gap-4">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between gap-4 mb-4">
             <div>
               <p className="text-xs font-bold text-blue-800 uppercase tracking-widest">Agent Marketing</p>
               <p className="text-lg font-black text-blue-900">{selectedAgent}</p>
             </div>
-            <div className="md:text-right">
-              <p className="text-xs font-bold text-blue-800 uppercase tracking-widest">Kavling Terjual</p>
-              <p className="text-sm font-bold text-blue-900">{selectedKavling}</p>
-            </div>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">1. Booking Fee</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">1. Closing Fee</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input label="Nominal (Rp)" name="bookingNominal" type="number" value={formData.bookingNominal} onChange={handleChange} error={errors.bookingNominal} placeholder="Contoh: 1000000" />
-              <Input label="Tanggal Transfer" name="bookingTanggal" type="date" value={formData.bookingTanggal} error={errors.bookingTanggal} onChange={handleChange} />
+              <CurrencyInput label="Nominal (Rp)" name="closingNominal" value={Number(formData.closingNominal) || 0} onValueChange={(_, val) => setFormData(prev => ({ ...prev, closingNominal: val }))} error={errors.closingNominal} placeholder="0" />
+              <Input label="Tanggal Transfer" name="closingTanggal" type="date" value={formData.closingTanggal} onChange={handleChange} error={errors.closingTanggal} />
               <div>
-                <FileInput label="Bukti Transfer" accept="image/*" onChange={(e) => handleFileChange(e, "bookingBukti")} error={errors.bookingBukti} />
-                {renderThumbnail(formData.bookingBukti)}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">2. Closing Fee</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input label="Nominal (Rp)" name="closingNominal" type="number" value={formData.closingNominal} error={errors.closingNominal} onChange={handleChange} placeholder="Contoh: 2500000" />
-              <Input label="Tanggal Transfer" name="closingTanggal" type="date" value={formData.closingTanggal} onChange={handleChange} error={errors.closingBukti} />
-              <div>
-                <FileInput label="Bukti Transfer" accept="image/*" onChange={(e) => handleFileChange(e, "closingBukti")} />
+                <FileInput label={formData.closingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*" onChange={(e) => handleFileChange(e, "closingBukti")} />
                 {renderThumbnail(formData.closingBukti)}
               </div>
             </div>
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">3. Marketing Fee</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">2. Marketing Fee</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input label="Nominal (Rp)" name="marketingNominal" type="number" value={formData.marketingNominal} onChange={handleChange} error={errors.marketingNominal} placeholder="Contoh: 5000000" />
+              <CurrencyInput label="Nominal (Rp)" name="marketingNominal" value={Number(formData.marketingNominal) || 0} onValueChange={(_, val) => setFormData(prev => ({ ...prev, marketingNominal: val }))} error={errors.marketingNominal} placeholder="0" />
               <Input label="Tanggal Transfer" name="marketingTanggal" type="date" value={formData.marketingTanggal} onChange={handleChange} error={errors.marketingTanggal} />
               <div>
-                <FileInput label="Bukti Transfer" accept="image/*" onChange={(e) => handleFileChange(e, "marketingBukti")} error={errors.marketingBukti} />
+                <FileInput label={formData.marketingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*" onChange={(e) => handleFileChange(e, "marketingBukti")} />
                 {renderThumbnail(formData.marketingBukti)}
               </div>
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} disabled={updateMutation.isPending || uploadMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors">Batal</button>
-            <button type="submit" disabled={updateMutation.isPending || uploadMutation.isPending} className="px-6 py-2 text-sm font-medium text-white bg-black rounded-xl hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
+            <button type="submit" disabled={updateMutation.isPending || uploadMutation.isPending} className="px-6 py-2 text-sm font-medium text-white bg-black rounded-xl hover:bg-gray-800 disabled:opacity-50">
               {updateMutation.isPending || uploadMutation.isPending ? "Menyimpan..." : "Simpan Data Fee"}
             </button>
           </div>

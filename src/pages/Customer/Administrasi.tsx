@@ -14,7 +14,8 @@ import {
   Eye, Edit2, UploadCloud, Trash2,
   FileText, Share2, PenTool, AlertCircle,
   Key,
-  LinkIcon
+  LinkIcon,
+  Loader2
 } from "lucide-react";
 import {
   useGetCustomers,
@@ -60,6 +61,8 @@ const Administrasi = () => {
   const [newDocName, setNewDocName] = useState("");
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  const [uploadingDocType, setUploadingDocType] = useState<CustomerDocType | 'lainnya' | null>(null);
+  const [dragActive, setDragActive] = useState<string | null>(null);
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [selectedSpr, setSelectedSpr] = useState<any>(null);
@@ -68,6 +71,7 @@ const Administrasi = () => {
     tanggal: new Date().toISOString().split('T')[0],
     sebagai: 'Pemesan'
   });
+
   const handleCopyBankLink = (row: CustomerData) => {
     const link = `${window.location.origin}/customer-detail/${row.id}`;
     const message = link;
@@ -77,6 +81,14 @@ const Administrasi = () => {
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   const currentCustomer = customers.find(c => c.id === selectedCustomer?.id) || selectedCustomer;
+
+  const handleViewDocument = (url: string) => {
+    if (url.toLowerCase().includes('.pdf')) {
+      window.open(url, '_blank');
+    } else {
+      setPreviewImage(url);
+    }
+  };
 
   const columns = [
     { header: 'Nama Lengkap', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
@@ -170,10 +182,6 @@ const Administrasi = () => {
     }
   ];
 
-
-
-
-
   const clearSignature = () => sigCanvas.current?.clear();
 
   const saveSignature = async () => {
@@ -238,7 +246,6 @@ const Administrasi = () => {
           <ShoppingCart size={16} className="text-blue-600" /> Dokumen Surat Pesanan Rumah (SPR)
         </h4>
 
-        {/* === MULAI PERUBAHAN LAYOUT TABLE === */}
         <div className="overflow-x-auto border border-slate-200 rounded-lg custom-scrollbar">
           <table className="w-full text-sm text-left border-collapse">
             <thead>
@@ -315,14 +322,9 @@ const Administrasi = () => {
             </tbody>
           </table>
         </div>
-        {/* === AKHIR PERUBAHAN LAYOUT TABLE === */}
       </div>
     );
   };
-
-
-
-
 
   const openDetailModal = (item: CustomerData) => {
     setSelectedCustomer(item);
@@ -416,6 +418,7 @@ const Administrasi = () => {
       }
     }
   };
+
   const handleGenerateAccount = async (customer: CustomerData) => {
     if (customer.hasAccount) {
       alert("Customer ini sudah memiliki akun portal!");
@@ -425,7 +428,6 @@ const Administrasi = () => {
       alert("Gagal: Email customer masih kosong. Silakan Edit data administrasi dan isi email terlebih dahulu!");
       return;
     }
-
 
     const password = window.prompt(`Masukkan password baru untuk akun portal ${customer.nama} (Min. 6 karakter):`);
     if (!password) return;
@@ -442,48 +444,73 @@ const Administrasi = () => {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: CustomerDocType) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentCustomer) return;
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
-      e.target.value = "";
-      return;
-    }
-    try {
-      await uploadMutation.mutateAsync({ id: currentCustomer.id, docType, file });
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah gambar");
-    }
-  };
+  const processUpload = async (file: File, docType: CustomerDocType | 'lainnya') => {
+    if (!currentCustomer) return;
 
-  const handleUploadLainnya = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentCustomer) return;
-
-    if (!newDocName.trim()) {
-      alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file!");
-      e.target.value = "";
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya file gambar (JPG/JPEG/PNG) dan PDF yang diperbolehkan!");
       return;
     }
 
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
-      e.target.value = "";
-      return;
+    if (docType === 'lainnya') {
+      if (!newDocName.trim()) {
+        alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file tambahan!");
+        return;
+      }
     }
 
+    setUploadingDocType(docType);
     try {
       await uploadMutation.mutateAsync({
         id: currentCustomer.id,
-        docType: 'lainnya',
+        docType: docType === 'lainnya' ? 'lainnya' : docType as CustomerDocType,
         file,
-        namaDokumen: newDocName
+        namaDokumen: docType === 'lainnya' ? newDocName : undefined
       });
-      setNewDocName("");
-      alert("Dokumen tambahan berhasil diunggah!");
+      if (docType === 'lainnya') setNewDocName("");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Gagal mengunggah dokumen tambahan");
+      alert(error.response?.data?.message || "Gagal mengunggah dokumen");
+    } finally {
+      setUploadingDocType(null);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, docType: CustomerDocType | 'lainnya') => {
+    const file = e.target.files?.[0];
+    if (file) processUpload(file, docType);
+    e.target.value = '';
+  };
+
+  const handleDrag = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(id);
+    } else if (e.type === "dragleave") {
+      setDragActive(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, docType: CustomerDocType | 'lainnya') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(null);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processUpload(e.dataTransfer.files[0], docType);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent, docType: CustomerDocType | 'lainnya') => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1 || items[i].type === "application/pdf") {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          processUpload(file, docType);
+          break;
+        }
+      }
     }
   };
 
@@ -533,38 +560,74 @@ const Administrasi = () => {
       >
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => (
-              <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                  {type.replace('file', '')}
-                </span>
+            {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => {
+              const isUploading = uploadingDocType === type;
+              const isDrag = dragActive === type;
+              const fileUrl = currentCustomer?.[type] as string | undefined;
+              const isPdf = fileUrl?.toLowerCase().includes('.pdf');
+
+              return (
                 <div
-                  onClick={() => currentCustomer?.[type] && setPreviewImage(currentCustomer[type] as string)}
-                  className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${currentCustomer?.[type] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'
+                  key={type}
+                  className={`flex flex-col gap-3 p-4 border rounded-2xl transition-all group shadow-sm outline-none cursor-default ${isDrag ? 'border-blue-500 bg-blue-50' : 'bg-slate-50/50 hover:bg-white focus-within:ring-2 focus-within:ring-blue-400'
                     }`}
+                  tabIndex={0}
+                  onDragEnter={(e) => handleDrag(e, type)}
+                  onDragLeave={(e) => handleDrag(e, type)}
+                  onDragOver={(e) => handleDrag(e, type)}
+                  onDrop={(e) => handleDrop(e, type)}
+                  onPaste={(e) => handlePaste(e, type)}
                 >
-                  {currentCustomer?.[type] ? (
-                    <>
-                      <img src={currentCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <ZoomIn size={20} className="text-white" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                      {type.replace('file', '')}
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
+                      Drag / Paste / Klik
+                    </span>
+                  </div>
+
+                  <div
+                    onClick={() => fileUrl && !isUploading && handleViewDocument(fileUrl)}
+                    className={`aspect-video w-full rounded-xl border-2 flex items-center justify-center overflow-hidden relative transition-all ${isDrag ? 'border-blue-400 border-dashed bg-blue-100/50' :
+                      fileUrl ? 'border-slate-200 border-solid cursor-pointer hover:border-blue-400' : 'border-slate-300 border-dashed bg-slate-100'
+                      }`}
+                  >
+                    {isUploading ? (
+                      <div className="flex flex-col items-center gap-2 text-blue-600">
+                        <Loader2 size={24} className="animate-spin" />
+                        <span className="text-[10px] font-bold animate-pulse">Mengunggah...</span>
                       </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 text-slate-400">
-                      <ImageIcon size={24} strokeWidth={1.5} />
-                      <span className="text-[9px] font-bold">KOSONG</span>
-                    </div>
-                  )}
+                    ) : fileUrl ? (
+                      <>
+                        {isPdf ? (
+                          <div className="flex flex-col items-center gap-1 text-red-500 group-hover:scale-105 transition-transform">
+                            <FileText size={32} />
+                            <span className="text-[10px] font-bold text-slate-600">Dokumen PDF</span>
+                          </div>
+                        ) : (
+                          <img src={fileUrl} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        )}
+                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          {isPdf ? <Eye size={20} className="text-white" /> : <ZoomIn size={20} className="text-white" />}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1 text-slate-400 pointer-events-none">
+                        <FileUp size={24} strokeWidth={1.5} />
+                        <span className="text-[9px] font-bold text-center px-2">KOSONG</span>
+                      </div>
+                    )}
+                  </div>
+                  <FileInput
+                    label="Pilih File Manual"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => handleFileInputChange(e, type)}
+                    disabled={uploadMutation.isPending || isUploading}
+                  />
                 </div>
-                <FileInput
-                  label="Upload / Ganti"
-                  accept="image/*"
-                  onChange={(e) => handleUpload(e, type)}
-                  disabled={uploadMutation.isPending}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="mt-8 pt-6 border-t border-slate-200">
@@ -573,51 +636,78 @@ const Administrasi = () => {
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => (
-                <div key={doc.id} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50 hover:bg-white transition-all group shadow-sm">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate" title={doc.nama}>
-                    {doc.nama}
-                  </span>
-                  <div
-                    onClick={() => setPreviewImage(doc.fileUrl)}
-                    className="aspect-video w-full rounded-xl border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-zoom-in group"
-                  >
-                    <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <ZoomIn size={20} className="text-white" />
+              {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => {
+                const isPdf = doc.fileUrl.toLowerCase().includes('.pdf');
+                return (
+                  <div key={doc.id} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50 hover:bg-white transition-all group shadow-sm">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate" title={doc.nama}>
+                      {doc.nama}
+                    </span>
+                    <div
+                      onClick={() => handleViewDocument(doc.fileUrl)}
+                      className="aspect-video w-full rounded-xl border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-pointer hover:border-blue-400 transition-colors group"
+                    >
+                      {isPdf ? (
+                        <div className="flex flex-col items-center gap-1 text-red-500 group-hover:scale-105 transition-transform">
+                          <FileText size={32} />
+                          <span className="text-[10px] font-bold text-slate-600">Dokumen PDF</span>
+                        </div>
+                      ) : (
+                        <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      )}
+                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        {isPdf ? <Eye size={20} className="text-white" /> : <ZoomIn size={20} className="text-white" />}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
-              <div className="flex flex-col gap-3 p-4 border-2 border-dashed border-blue-200 rounded-2xl bg-blue-50/30">
+              <div
+                className={`flex flex-col gap-3 p-4 border-2 border-dashed rounded-2xl outline-none focus-within:ring-2 focus-within:ring-blue-400 transition-all ${dragActive === 'lainnya' ? 'border-blue-500 bg-blue-100/50' : 'border-blue-200 bg-blue-50/30'
+                  }`}
+                tabIndex={0}
+                onDragEnter={(e) => handleDrag(e, 'lainnya')}
+                onDragLeave={(e) => handleDrag(e, 'lainnya')}
+                onDragOver={(e) => handleDrag(e, 'lainnya')}
+                onDrop={(e) => handleDrop(e, 'lainnya')}
+                onPaste={(e) => handlePaste(e, 'lainnya')}
+              >
                 <div className="w-full">
-                  <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1.5 block">
-                    Nama Dokumen Baru
-                  </label>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">
+                      Nama Dokumen Baru
+                    </label>
+                    <span className="text-[9px] text-blue-500/70 font-medium bg-blue-100/50 px-1.5 py-0.5 rounded">
+                      Drag / Paste File
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={newDocName}
                     onChange={(e) => setNewDocName(e.target.value)}
                     placeholder="Contoh: Slip Gaji"
-                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400"
+                    disabled={uploadingDocType === 'lainnya'}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400 disabled:opacity-50"
                   />
                 </div>
-                <FileInput
-                  label="Pilih File"
-                  accept="image/*"
-                  onChange={handleUploadLainnya}
-                  disabled={uploadMutation.isPending || newDocName.trim() === ""}
-                />
+
+                {uploadingDocType === 'lainnya' ? (
+                  <div className="flex flex-col items-center justify-center gap-2 text-blue-600 py-3">
+                    <Loader2 size={24} className="animate-spin" />
+                    <span className="text-[10px] font-bold animate-pulse">Mengunggah...</span>
+                  </div>
+                ) : (
+                  <FileInput
+                    label="Pilih File Manual"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => handleFileInputChange(e, 'lainnya')}
+                    disabled={uploadMutation.isPending || newDocName.trim() === ""}
+                  />
+                )}
               </div>
             </div>
           </div>
-
-          {uploadMutation.isPending && (
-            <div className="flex items-center justify-center gap-2 text-blue-600 font-bold text-xs animate-pulse bg-blue-50 p-3 rounded-lg border border-blue-100">
-              <FileUp size={16} /> Sedang Menyinkronkan Data...
-            </div>
-          )}
 
           <div className="flex justify-end pt-4 border-t sticky bottom-0 bg-white">
             <button
@@ -651,33 +741,55 @@ const Administrasi = () => {
                 <ImageIcon size={16} className="text-indigo-600" /> Lampiran Dokumen Administrasi
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => (
-                  <div key={type} className="flex flex-col gap-2">
-                    <span className="text-[9px] font-black uppercase text-slate-400 text-center">{type.replace('file', '')}</span>
-                    <div
-                      onClick={() => currentCustomer[type] && setPreviewImage(currentCustomer[type] as string)}
-                      className={`aspect-[4/3] rounded-xl border flex items-center justify-center overflow-hidden transition-all ${currentCustomer[type] ? 'border-slate-200 cursor-zoom-in bg-slate-50' : 'border-slate-100 bg-slate-50/50'}`}
-                    >
-                      {currentCustomer[type] ? (
-                        <img src={currentCustomer[type] as string} alt={type} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-[10px] font-bold text-slate-300 italic text-center px-2">Belum Upload</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => {
+                  const fileUrl = currentCustomer[type] as string | undefined;
+                  const isPdf = fileUrl?.toLowerCase().includes('.pdf');
 
-                {currentCustomer.dokumenLainnya?.map((doc: any) => (
-                  <div key={doc.id} className="flex flex-col gap-2">
-                    <span className="text-[9px] font-black uppercase text-slate-400 text-center truncate px-1" title={doc.nama}>{doc.nama}</span>
-                    <div
-                      onClick={() => setPreviewImage(doc.fileUrl)}
-                      className="aspect-[4/3] rounded-xl border border-slate-200 bg-slate-50 cursor-zoom-in overflow-hidden"
-                    >
-                      <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover" />
+                  return (
+                    <div key={type} className="flex flex-col gap-2">
+                      <span className="text-[9px] font-black uppercase text-slate-400 text-center">{type.replace('file', '')}</span>
+                      <div
+                        onClick={() => fileUrl && handleViewDocument(fileUrl)}
+                        className={`aspect-[4/3] rounded-xl border flex items-center justify-center overflow-hidden transition-all ${fileUrl ? 'border-slate-200 cursor-pointer hover:border-blue-400 bg-slate-50' : 'border-slate-100 bg-slate-50/50'}`}
+                      >
+                        {fileUrl ? (
+                          isPdf ? (
+                            <div className="flex flex-col items-center text-red-500">
+                              <FileText size={24} />
+                              <span className="text-[8px] font-bold mt-1">PDF</span>
+                            </div>
+                          ) : (
+                            <img src={fileUrl} alt={type} className="w-full h-full object-cover" />
+                          )
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-300 italic text-center px-2">Belum Upload</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
+
+                {currentCustomer.dokumenLainnya?.map((doc: any) => {
+                  const isPdf = doc.fileUrl.toLowerCase().includes('.pdf');
+                  return (
+                    <div key={doc.id} className="flex flex-col gap-2">
+                      <span className="text-[9px] font-black uppercase text-slate-400 text-center truncate px-1" title={doc.nama}>{doc.nama}</span>
+                      <div
+                        onClick={() => handleViewDocument(doc.fileUrl)}
+                        className="aspect-[4/3] rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:border-blue-400 overflow-hidden flex items-center justify-center"
+                      >
+                        {isPdf ? (
+                          <div className="flex flex-col items-center text-red-500">
+                            <FileText size={24} />
+                            <span className="text-[8px] font-bold mt-1">PDF</span>
+                          </div>
+                        ) : (
+                          <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover" />
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 

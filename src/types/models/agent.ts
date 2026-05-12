@@ -29,6 +29,9 @@ export interface AgentData {
   email: string | null;
   status: string;
   type: string;
+  namaBank: string | null;
+  noRekening: string | null;
+  atasNamaRekening: string | null;
   feeMarketingPct: number | null;
   potonganPph: number | null;
   fileKtp: string | null;
@@ -50,6 +53,9 @@ export interface CreateAgentDTO {
   email?: string;
   status?: string;
   type?: string;
+  namaBank: string | null;
+  noRekening: string | null;
+  atasNamaRekening: string | null;
   feeMarketingPct?: number;
   potonganPph?: number;
   pics?: PicAgentData[];

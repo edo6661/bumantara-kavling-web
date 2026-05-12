@@ -6,6 +6,7 @@ import { useAuth } from './context/AuthContext';
 import { AuthProvider } from './providers/AuthProvider';
 import { QueryProvider } from './providers/QueryProvider';
 import PermissionGuard from './components/layouts/PermissionGuard';
+
 const NotFound = lazy(() => import('./pages/Public/NotFound'));
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -27,23 +28,39 @@ const AuditLog = lazy(() => import('./pages/Management/AuditLog'));
 const ProgressPenjualan = lazy(() => import('./pages/Management/ProgressPenjualan'));
 const UserManagement = lazy(() => import('./pages/Management/User'));
 const RolePermission = lazy(() => import('./pages/Management/RolePermission'));
+
 const CustomerLogin = lazy(() => import('./pages/Public/CustomerLogin'));
 const PortalDashboard = lazy(() => import('./pages/CustomerPortal/PortalDashboard'));
 const CustomerDetail = lazy(() => import('./pages/Bank/CustomerDetail'));
 
+const AgentLogin = lazy(() => import('./pages/Public/AgentLogin'));
+const AgentPortalDashboard = lazy(() => import('./pages/AgentPortal/PortalDashboard'));
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
+
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
   if (user?.role === 'CUSTOMER') return <Navigate to="/portal" replace />;
+  if (user?.role === 'AGENT') return <Navigate to="/agent-portal" replace />;
+
   return <>{children}</>;
 };
+
 const CustomerPortalGuard = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/customer-login" replace />;
   if (user?.role !== 'CUSTOMER') return <Navigate to="/" replace />;
   return <>{children}</>;
 };
+
+const AgentPortalGuard = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/agent-login" replace />;
+  if (user?.role !== 'AGENT') return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 const App = () => {
   return (
     <QueryProvider>
@@ -52,6 +69,8 @@ const App = () => {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/login" element={<Login />} />
+
+              {/* Routing Customer Portal */}
               <Route path="/customer-login" element={<CustomerLogin />} />
               <Route path="/verify/:id" element={<VerifyDocument />} />
               <Route path="/portal" element={
@@ -60,10 +79,17 @@ const App = () => {
                 </CustomerPortalGuard>
               } />
 
+              {/* Routing Agent Portal */}
+              <Route path="/agent-login" element={<AgentLogin />} />
+              <Route path="/agent-portal" element={
+                <AgentPortalGuard>
+                  <AgentPortalDashboard />
+                </AgentPortalGuard>
+              } />
+
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
                 <Route path="management/penjualan" element={<PermissionGuard resource="PENJUALAN"><Penjualan /></PermissionGuard>} />
-
                 <Route path="management/progress-penjualan" element={<PermissionGuard resource="PROGRESS_PENJUALAN"><ProgressPenjualan /></PermissionGuard>} />
                 <Route path="management/ganti-kavling" element={<PermissionGuard resource="GANTI_KAVLING"><GantiKavling /></PermissionGuard>} />
                 <Route path="management/batal-transaksi" element={<PermissionGuard resource="BATAL_TRANSAKSI"><BatalTransaksi /></PermissionGuard>} />
@@ -79,7 +105,6 @@ const App = () => {
                     <CustomerDetail />
                   </PermissionGuard>
                 } />
-
                 <Route path="customer/kavling" element={<PermissionGuard resource="CUSTOMER_KAVLING"><CustomerKavling /></PermissionGuard>} />
                 <Route path="customer/tagihan" element={<PermissionGuard resource="TAGIHAN"><Tagihan /></PermissionGuard>} />
                 <Route path="marketing/agents" element={<PermissionGuard resource="AGENT"><Agents /></PermissionGuard>} />
@@ -95,4 +120,5 @@ const App = () => {
     </QueryProvider>
   );
 };
+
 export default App;

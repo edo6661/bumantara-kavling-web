@@ -2,7 +2,6 @@ import api from "../lib/axios";
 
 export interface ProgressPenjualanData {
   id: number;
-
   penjualanId: number;
   berkasCustomerValid: boolean;
   fileSp3k: string | null;
@@ -12,6 +11,8 @@ export interface ProgressPenjualanData {
   biayaBphtb: number | null;
   biayaPph: number | null;
   fileAjb: string | null;
+  nomorAjb: string | null;
+  tanggalAjb: string | null;
   fileBast: string | null;
   checklistBast: Record<string, string | number | boolean | null> | null;
 }
@@ -19,6 +20,9 @@ export interface ProgressPenjualanData {
 export interface UpdateProgressPenjualanDTO {
   berkasCustomerValid?: boolean;
   nilaiAjb?: number;
+  fileAjb?: string;
+  nomorAjb?: string;
+  tanggalAjb?: string;
   checklistBast?: Record<string, string | number | boolean | null> | null;
 }
 

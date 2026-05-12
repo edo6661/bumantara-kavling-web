@@ -27,6 +27,9 @@ interface AgentFormState {
   noHp: string;
   email: string;
   type: string;
+  namaBank: string;
+  noRekening: string;
+  atasNamaRekening: string;
   feeMarketingPct: number | '';
   potonganPph: number | '';
   pics: PicAgentData[];
@@ -40,6 +43,9 @@ const initialFormState: AgentFormState = {
   noHp: '',
   email: '',
   type: 'PRIBADI',
+  namaBank: '',
+  noRekening: '',
+  atasNamaRekening: '',
   feeMarketingPct: '',
   potonganPph: '',
   pics: [{ nama: '', noHp: '', alamat: '' }]
@@ -124,6 +130,9 @@ const Agents = () => {
         noHp: item.noHp,
         email: item.email || '',
         type: item.type || 'PRIBADI',
+        namaBank: item.namaBank || '',
+        noRekening: item.noRekening || '',
+        atasNamaRekening: item.atasNamaRekening || '',
         feeMarketingPct: item.feeMarketingPct ?? '',
         potonganPph: item.potonganPph ?? '',
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
@@ -220,6 +229,9 @@ const Agents = () => {
       email: formData.email || undefined,
       alamat: formData.alamat || undefined,
       type: formData.type,
+      namaBank: formData.namaBank || null,
+      noRekening: formData.noRekening || null,
+      atasNamaRekening: formData.atasNamaRekening || null,
       feeMarketingPct: formData.feeMarketingPct !== '' ? Number(formData.feeMarketingPct) : undefined,
       potonganPph: formData.potonganPph !== '' ? Number(formData.potonganPph) : undefined,
       pics: validPics.length > 0 ? validPics : undefined,
@@ -416,6 +428,14 @@ const Agents = () => {
               <div className="md:col-span-2">
                 <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
               </div>
+              <div className="md:col-span-2 mt-2 pt-4 border-t border-gray-100">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Rekening Bank (Opsional)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input label="Nama Bank" name="namaBank" value={formData.namaBank} onChange={handleChange} error={errors.namaBank} placeholder="Contoh: BCA / BSI" />
+                  <Input label="Nomor Rekening" name="noRekening" value={formData.noRekening} onChange={handleChange} error={errors.noRekening} placeholder="Masukkan No. Rek" />
+                  <Input label="Atas Nama Rekening" name="atasNamaRekening" value={formData.atasNamaRekening} onChange={handleChange} error={errors.atasNamaRekening} placeholder="A/N Rekening" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -561,6 +581,20 @@ const Agents = () => {
                 <div className="md:col-span-2">
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Lengkap</p>
                   <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedAgentDetail.alamat || '-'}</p>
+                </div>
+                <div className="md:col-span-2 mt-2 p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Bank Agent</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.namaBank || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nomor Rekening</p>
+                    <p className="text-lg font-black text-indigo-600 font-mono tabular-nums">{selectedAgentDetail.noRekening || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Atas Nama (A/N)</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.atasNamaRekening || '-'}</p>
+                  </div>
                 </div>
               </div>
             </div>

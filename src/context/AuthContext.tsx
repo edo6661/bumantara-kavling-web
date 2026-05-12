@@ -10,6 +10,7 @@ export interface AuthContextType {
   isLoading: boolean;
   login: (email: string, pass: string, perumahan: Perumahan) => Promise<ActionResult>;
   loginCustomer: (email: string, pass: string) => Promise<ActionResult>;
+  loginAgent: (email: string, pass: string) => Promise<ActionResult>;
   logout: () => void;
   setSelectedPerumahan: (perumahan: Perumahan) => void;
 }

@@ -24,8 +24,8 @@ const menuItems = [
     title: 'Penjualan',
     icon: <ShoppingCart size={20} strokeWidth={1.5} />,
     submenus: [
-      { title: 'Data Penjualan', path: '/management/penjualan', resource: 'PENJUALAN' },
-      { title: 'Progress Penjualan', path: '/management/progress-penjualan', resource: 'PROGRESS_PENJUALAN' },
+      { title: 'Data', path: '/management/penjualan', resource: 'PENJUALAN' },
+      { title: 'Progress', path: '/management/progress-penjualan', resource: 'PROGRESS_PENJUALAN' },
       { title: 'Ganti Kavling', path: '/management/ganti-kavling', resource: 'GANTI_KAVLING' },
       { title: 'Batal Transaksi', path: '/management/batal-transaksi', resource: 'BATAL_TRANSAKSI' },
     ],
