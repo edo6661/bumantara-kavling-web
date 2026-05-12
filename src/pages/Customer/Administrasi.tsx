@@ -243,7 +243,8 @@ const Administrasi = () => {
           <table className="w-full text-sm text-left border-collapse">
             <thead>
               <tr className="bg-slate-100 border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
-                <th className="p-3 font-bold whitespace-nowrap">Blok - No Unit</th>
+                <th className="p-3 font-bold whitespace-nowrap">Blok</th>
+                <th className="p-3 font-bold whitespace-nowrap">No</th>
                 <th className="p-3 font-bold text-center whitespace-nowrap">Status</th>
                 <th className="p-3 font-bold whitespace-nowrap">Dokumen SPR</th>
                 <th className="p-3 font-bold text-center whitespace-nowrap">Aksi TTD</th>
@@ -253,7 +254,10 @@ const Administrasi = () => {
               {customerSales.map((sale: any) => (
                 <tr key={sale.id} className="hover:bg-slate-50 transition-colors">
                   <td className="p-3 font-black text-slate-800">
-                    {sale.blok} - {sale.nomorUnit}
+                    {sale.blok}
+                  </td>
+                  <td className="p-3 font-black text-slate-800">
+                    {sale.nomorUnit}
                   </td>
                   <td className="p-3 text-center">
                     <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider ${sale.status === 'LUNAS' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>

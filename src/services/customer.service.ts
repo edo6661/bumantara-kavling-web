@@ -35,7 +35,7 @@ export interface CreateCustomerDTO {
 
 export const customerService = {
   getAll: async (): Promise<CustomerData[]> => {
-    const response = await api.get("/customers?limit=100");
+    const response = await api.get("/customers?limit=300");
     return response.data.data.items;
   },
 
