@@ -6,7 +6,7 @@ import Input from '../../components/shared/Input';
 import { Building2 } from 'lucide-react';
 
 const CustomerLogin = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { loginCustomer, isLoading } = useAuth();
@@ -14,12 +14,12 @@ const CustomerLogin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const result = await loginCustomer(formData.email, formData.password);
+    const result = await loginCustomer(formData.username, formData.password);
 
     if (result.success) {
       navigate('/portal', { replace: true });
     } else {
-      setError(result.message || 'Email atau password salah');
+      setError(result.message || 'Username atau password salah');
     }
   };
 
@@ -40,21 +40,21 @@ const CustomerLogin = () => {
             </div>
           )}
           <Input
-            label="Email Terdaftar"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="email@example.com"
+            label="Username (No. Handphone)"
+            name="username"
+            type="text"
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            placeholder="08xxxxxxxxxx"
             required
           />
           <Input
-            label="Password"
+            label="Password (NIK)"
             name="password"
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            placeholder="Masukkan password Anda"
+            placeholder="Masukkan NIK KTP Anda"
             required
           />
           <button

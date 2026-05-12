@@ -29,7 +29,7 @@ const PortalDashboard = () => {
 
   // State untuk Modal Pengaturan Akun
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  const [accountForm, setAccountForm] = useState({ email: '', password: '', confirmPassword: '' });
+  const [accountForm, setAccountForm] = useState({ username: '', password: '', confirmPassword: '' });
 
   if (isLoading) return <PageLoader />;
   if (!data) return <div className="p-8 text-center">Gagal memuat data portal.</div>;
@@ -83,7 +83,9 @@ const PortalDashboard = () => {
 
   // Handler Buka Modal & Submit Pengaturan Akun
   const openAccountModal = () => {
-    setAccountForm({ email: profil.email || '', password: '', confirmPassword: '' });
+    // Karena kita tidak mengembalikan username via response standar getProfile yang terhubung di useAuth,
+    // biarkan user mengisi username barunya jika ingin mengubah
+    setAccountForm({ username: '', password: '', confirmPassword: '' });
     setIsAccountModalOpen(true);
   };
 
@@ -99,13 +101,9 @@ const PortalDashboard = () => {
     }
 
     try {
-      const payload: { email?: string; password?: string } = {};
-      if (accountForm.email && accountForm.email !== profil.email) {
-        payload.email = accountForm.email;
-      }
-      if (accountForm.password) {
-        payload.password = accountForm.password;
-      }
+      const payload: { username?: string; password?: string } = {};
+      if (accountForm.username) payload.username = accountForm.username;
+      if (accountForm.password) payload.password = accountForm.password;
 
       if (Object.keys(payload).length === 0) {
         alert("Tidak ada perubahan data.");
@@ -425,17 +423,18 @@ const PortalDashboard = () => {
         <form onSubmit={handleAccountSubmit} className="space-y-4">
           <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 mb-4">
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Anda dapat memperbarui email untuk otorisasi akses dan password Anda di sini. Kosongkan kolom password jika tidak ingin mengubahnya.
+              Anda dapat memperbarui Username (Login) dan Password Anda di sini. Kosongkan kolom yang tidak ingin diubah.
             </p>
           </div>
           <Input
-            label="Email Login Baru"
-            name="email"
-            type="email"
-            value={accountForm.email}
-            onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
-            placeholder="Masukkan email baru..."
+            label="Username Baru (Opsional)"
+            name="username"
+            type="text"
+            value={accountForm.username}
+            onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
+            placeholder="Masukkan username baru..."
           />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <Input
               label="Password Baru"

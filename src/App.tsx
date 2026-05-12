@@ -34,6 +34,7 @@ const PortalDashboard = lazy(() => import('./pages/CustomerPortal/PortalDashboar
 const CustomerDetail = lazy(() => import('./pages/Bank/CustomerDetail'));
 
 const AgentLogin = lazy(() => import('./pages/Public/AgentLogin'));
+const AgentRegister = lazy(() => import('./pages/Public/AgentRegister'));
 const AgentPortalDashboard = lazy(() => import('./pages/AgentPortal/PortalDashboard'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -81,6 +82,7 @@ const App = () => {
 
               {/* Routing Agent Portal */}
               <Route path="/agent-login" element={<AgentLogin />} />
+              <Route path="/agent-register" element={<AgentRegister />} />
               <Route path="/agent-portal" element={
                 <AgentPortalGuard>
                   <AgentPortalDashboard />
