@@ -79,7 +79,7 @@ const DataTable = ({
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
-      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-30 bg-white">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h2 className="text-lg font-bold text-slate-900">{title}</h2>
@@ -115,18 +115,18 @@ const DataTable = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto custom-scrollbar">
+      <div className="overflow-auto custom-scrollbar max-h-[65vh]">
         <table className="w-full text-sm text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider border-b border-slate-200">
-              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center"></th>}
+          <thead className="sticky top-0 z-20 shadow-sm ring-1 ring-slate-200">
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider">
+              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center bg-slate-50"></th>}
               {columns.map((col, index) => (
-                <th key={index} className="px-6 py-3.5 whitespace-nowrap">
+                <th key={index} className="px-6 py-3.5 whitespace-nowrap bg-slate-50">
                   {col.header}
                 </th>
               ))}
               {hasActions && (
-                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24">Aksi</th>
+                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24 bg-slate-50">Aksi</th>
               )}
             </tr>
           </thead>
@@ -218,7 +218,7 @@ const DataTable = ({
       </div>
 
       {serverSide && totalPages > 1 && (
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-0 bg-white z-20">
           <span className="text-xs font-semibold text-slate-500">
             Halaman {page} dari {totalPages}
           </span>

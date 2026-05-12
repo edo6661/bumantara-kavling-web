@@ -1,80 +1,12 @@
-kode frontend:
+input search nya fixed dimanapun biar dia selalu stay diatas.
+dikasih max height di semua data table biar bisa di geser kanan / kiri di manapun ga harus ke paling Bawah.
 
-<file path="README.md">
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+tolong buatkan sesuai dengan yang saya mau.
+tolong lakukan perlahan, bertahap, best practice.
 
-Currently, two official plugins are available:
+cukup berikan saya kode yang perlu di tambah atau di modifikasi, tapi jagan lupa untuk memberitahu saya lokasi kode nya mana yang diubah dan di tambah.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-</file>
 
 <file path="src/components/shared/FileInput.tsx">
 import type { InputHTMLAttributes } from 'react';
@@ -381,328 +313,6 @@ const PageLoader = () => (
 );
 
 export default PageLoader;
-</file>
-
-<file path="src/pages/Proyek/Progress.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import { formatDate } from "../../utils/formatters";
-
-interface ProgressData {
-  id: string;
-  kavlingId: string;
-  kavlingLabel: string;
-  pelaksana: string;
-  tanggalLaporan: string;
-  tahapanPekerjaan: string;
-  persentase: number;
-  keterangan: string;
-  kendala: string;
-  fotoLapangan: string[];
-  status: string;
-}
-
-const initialFormState: ProgressData = {
-  id: '',
-  kavlingId: '',
-  kavlingLabel: '',
-  pelaksana: '',
-  tanggalLaporan: '',
-  tahapanPekerjaan: '',
-  persentase: 0,
-  keterangan: '',
-  kendala: '',
-  fotoLapangan: [],
-  status: 'Menunggu Verifikasi',
-};
-
-// Mock data kavling (Nantinya diganti dengan data dari API/Backend)
-const mockKavlings = [
-  { id: 'KAV-001', perumahan: 'Puri Safana', blok: 'A', unit: '01' },
-  { id: 'KAV-002', perumahan: 'Puri Safana', blok: 'B', unit: '12' },
-  { id: 'KAV-003', perumahan: 'Puri Safana', blok: 'C', unit: '05' },
-];
-
-const Progress = () => {
-  const [data, setData] = useState<ProgressData[]>([
-    {
-      id: 'PRG-001',
-      kavlingId: 'KAV-001',
-      kavlingLabel: 'Puri Safana - Blok A No. 01',
-      pelaksana: 'Mandor Supri',
-      tanggalLaporan: '2026-04-10',
-      tahapanPekerjaan: 'Pekerjaan Pondasi & Sloof',
-      persentase: 15,
-      keterangan: 'Pengecoran sloof selesai 100%, persiapan naik bata.',
-      kendala: 'Cuaca hujan di sore hari.',
-      fotoLapangan: ['foto_pondasi_1.jpg', 'foto_sloof.jpg'],
-      status: 'Disetujui',
-    }
-  ]);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<ProgressData>(initialFormState);
-  const [errors, setErrors] = useState<Partial<Record<keyof ProgressData, string>>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const columns = [
-    { header: 'Tanggal', accessor: 'tanggalLaporan', render: (val: string) => formatDate(val) },
-    { header: 'Kavling', accessor: 'kavlingLabel' },
-    { header: 'Tahapan', accessor: 'tahapanPekerjaan' },
-    {
-      header: 'Progress',
-      accessor: 'persentase',
-      render: (val: number) => (
-        <div className="flex items-center gap-3 min-w-[120px]">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full ${val === 100 ? 'bg-green-500' : 'bg-blue-600'}`}
-              style={{ width: `${val}%` }}
-            ></div>
-          </div>
-          <span className="text-xs font-bold text-gray-700">{val}%</span>
-        </div>
-      )
-    },
-    { header: 'Pelaksana', accessor: 'pelaksana' },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => {
-        const bg = val === 'Disetujui' ? 'bg-green-100 text-green-800' :
-          val === 'Revisi' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
-        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
-      }
-    },
-  ];
-
-  const openModal = (item?: ProgressData) => {
-    if (item) {
-      setFormData(item);
-      setIsEditing(true);
-    } else {
-      setFormData({
-        ...initialFormState,
-        tanggalLaporan: new Date().toISOString().split('T')[0]
-      });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    let parsedValue: string | number = value;
-
-    if (type === 'number') {
-      parsedValue = value === '' ? 0 : Number(value);
-      if (name === 'persentase' && parsedValue > 100) parsedValue = 100;
-      if (name === 'persentase' && parsedValue < 0) parsedValue = 0;
-    }
-
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
-
-    if (errors[name as keyof ProgressData]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleMultipleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      // Mengambil nama semua file yang dipilih dan menyimpannya ke array fotoLapangan
-      const fileNames = Array.from(files).map((file) => file.name);
-      setFormData((prev) => ({ ...prev, fotoLapangan: fileNames }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<keyof ProgressData, string>> = {};
-    if (!formData.kavlingId) newErrors.kavlingId = 'Kavling wajib dipilih';
-    if (!formData.tahapanPekerjaan) newErrors.tahapanPekerjaan = 'Tahapan wajib dipilih';
-    if (formData.persentase < 0 || formData.persentase > 100) newErrors.persentase = 'Progress harus 0 - 100';
-    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan progress wajib diisi';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    if (isEditing) {
-      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
-    } else {
-      const newId = `PRG-${String(data.length + 1).padStart(3, '0')}`;
-      setData((prev) => [...prev, { ...formData, id: newId }]);
-    }
-    closeModal();
-  };
-
-  const handleDelete = (item: ProgressData) => {
-    if (window.confirm(`Hapus laporan progress ${item.kavlingLabel} tanggal ${formatDate(item.tanggalLaporan)}?`)) {
-      setData((prev) => prev.filter((d) => d.id !== item.id));
-    }
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Laporan Progress Lapangan"
-        columns={columns}
-        data={data}
-        onAdd={() => openModal()}
-        onEdit={(item) => openModal(item)}
-        onDelete={handleDelete}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Progress Lapangan" : "Buat Laporan Progress Baru"}>
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Identitas Proyek</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Select
-                  label="Pilih Kavling"
-                  name="kavlingId"
-                  value={formData.kavlingId}
-                  onChange={(e) => {
-                    const selected = mockKavlings.find(k => k.id === e.target.value);
-                    setFormData(prev => ({
-                      ...prev,
-                      kavlingId: selected?.id || '',
-                      kavlingLabel: selected ? `${selected.perumahan} - Blok ${selected.blok} No. ${selected.unit}` : ''
-                    }));
-                    if (errors.kavlingId) setErrors(prev => ({ ...prev, kavlingId: undefined }));
-                  }}
-                  options={mockKavlings.map(k => ({
-                    value: k.id,
-                    label: `${k.perumahan} - Blok ${k.blok} No. ${k.unit}`
-                  }))}
-                  error={errors.kavlingId}
-                />
-              </div>
-              <Input label="Nama Pelaksana/Mandor" name="pelaksana" value={formData.pelaksana} onChange={handleChange} />
-              <Input label="Tanggal Laporan" type="date" name="tanggalLaporan" value={formData.tanggalLaporan} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Status Pekerjaan</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Tahapan Pekerjaan"
-                name="tahapanPekerjaan"
-                value={formData.tahapanPekerjaan}
-                onChange={handleChange}
-                error={errors.tahapanPekerjaan}
-                options={[
-                  { value: 'Persiapan Lahan', label: 'Persiapan Lahan' },
-                  { value: 'Pekerjaan Pondasi & Sloof', label: 'Pekerjaan Pondasi & Sloof' },
-                  { value: 'Struktur & Dinding', label: 'Struktur & Dinding' },
-                  { value: 'Rangka Atap & Genteng', label: 'Rangka Atap & Genteng' },
-                  { value: 'Pemasangan Keramik & Plafon', label: 'Pemasangan Keramik & Plafon' },
-                  { value: 'Finishing & Pengecatan', label: 'Finishing & Pengecatan' },
-                  { value: 'Siap Serah Terima (100%)', label: 'Siap Serah Terima (100%)' }
-                ]}
-              />
-              <Input
-                label="Total Persentase Progress (%)"
-                type="number"
-                name="persentase"
-                value={formData.persentase}
-                onChange={handleChange}
-                error={errors.persentase}
-                placeholder="0 - 100"
-              />
-              <div className="md:col-span-2">
-                <Input
-                  label="Keterangan Pekerjaan"
-                  name="keterangan"
-                  value={formData.keterangan}
-                  onChange={handleChange}
-                  error={errors.keterangan}
-                  placeholder="Deskripsikan pekerjaan yang selesai dilakukan hari ini..."
-                />
-              </div>
-              <div className="md:col-span-2">
-                <Input
-                  label="Kendala di Lapangan (Opsional)"
-                  name="kendala"
-                  value={formData.kendala}
-                  onChange={handleChange}
-                  placeholder="Contoh: Hujan deras dari siang, pengiriman bata telat..."
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Dokumentasi</h4>
-            <div className="grid grid-cols-1 gap-4">
-              {/* Input Multiple File */}
-              <FileInput
-                label="Foto Lapangan (Bisa pilih lebih dari 1)"
-                accept="image/*"
-                multiple
-                onChange={handleMultipleFileChange}
-              />
-              {/* List Nama File Yang Terpilih */}
-              {formData.fotoLapangan && formData.fotoLapangan.length > 0 && (
-                <div className="mt-2 space-y-1 bg-white p-3 rounded-lg border border-gray-200">
-                  <p className="text-xs font-bold text-gray-500 mb-2">File terpilih ({formData.fotoLapangan.length}):</p>
-                  {formData.fotoLapangan.map((name, i) => (
-                    <p key={i} className="text-xs text-green-600 truncate flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                      {name}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-            <Select
-              label="Status Verifikasi Pusat"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              options={[
-                { value: 'Menunggu Verifikasi', label: 'Menunggu Verifikasi' },
-                { value: 'Disetujui', label: 'Disetujui' },
-                { value: 'Revisi', label: 'Butuh Revisi / Laporan Ditolak' }
-              ]}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
-              Batal
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
-              Simpan Progress
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
-};
-
-export default Progress;
 </file>
 
 <file path="src/pages/Proyek/SPK.tsx">
@@ -3078,6 +2688,328 @@ const FeeAgent = () => {
   );
 };
 export default FeeAgent;
+</file>
+
+<file path="src/pages/Proyek/Progress.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import { formatDate } from "../../utils/formatters";
+
+interface ProgressData {
+  id: string;
+  kavlingId: string;
+  kavlingLabel: string;
+  pelaksana: string;
+  tanggalLaporan: string;
+  tahapanPekerjaan: string;
+  persentase: number;
+  keterangan: string;
+  kendala: string;
+  fotoLapangan: string[];
+  status: string;
+}
+
+const initialFormState: ProgressData = {
+  id: '',
+  kavlingId: '',
+  kavlingLabel: '',
+  pelaksana: '',
+  tanggalLaporan: '',
+  tahapanPekerjaan: '',
+  persentase: 0,
+  keterangan: '',
+  kendala: '',
+  fotoLapangan: [],
+  status: 'Menunggu Verifikasi',
+};
+
+// Mock data kavling (Nantinya diganti dengan data dari API/Backend)
+const mockKavlings = [
+  { id: 'KAV-001', perumahan: 'Puri Safana', blok: 'A', unit: '01' },
+  { id: 'KAV-002', perumahan: 'Puri Safana', blok: 'B', unit: '12' },
+  { id: 'KAV-003', perumahan: 'Puri Safana', blok: 'C', unit: '05' },
+];
+
+const Progress = () => {
+  const [data, setData] = useState<ProgressData[]>([
+    {
+      id: 'PRG-001',
+      kavlingId: 'KAV-001',
+      kavlingLabel: 'Puri Safana - Blok A No. 01',
+      pelaksana: 'Mandor Supri',
+      tanggalLaporan: '2026-04-10',
+      tahapanPekerjaan: 'Pekerjaan Pondasi & Sloof',
+      persentase: 15,
+      keterangan: 'Pengecoran sloof selesai 100%, persiapan naik bata.',
+      kendala: 'Cuaca hujan di sore hari.',
+      fotoLapangan: ['foto_pondasi_1.jpg', 'foto_sloof.jpg'],
+      status: 'Disetujui',
+    }
+  ]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<ProgressData>(initialFormState);
+  const [errors, setErrors] = useState<Partial<Record<keyof ProgressData, string>>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const columns = [
+    { header: 'Tanggal', accessor: 'tanggalLaporan', render: (val: string) => formatDate(val) },
+    { header: 'Kavling', accessor: 'kavlingLabel' },
+    { header: 'Tahapan', accessor: 'tahapanPekerjaan' },
+    {
+      header: 'Progress',
+      accessor: 'persentase',
+      render: (val: number) => (
+        <div className="flex items-center gap-3 min-w-[120px]">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full ${val === 100 ? 'bg-green-500' : 'bg-blue-600'}`}
+              style={{ width: `${val}%` }}
+            ></div>
+          </div>
+          <span className="text-xs font-bold text-gray-700">{val}%</span>
+        </div>
+      )
+    },
+    { header: 'Pelaksana', accessor: 'pelaksana' },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        const bg = val === 'Disetujui' ? 'bg-green-100 text-green-800' :
+          val === 'Revisi' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+        return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg}`}>{val}</span>;
+      }
+    },
+  ];
+
+  const openModal = (item?: ProgressData) => {
+    if (item) {
+      setFormData(item);
+      setIsEditing(true);
+    } else {
+      setFormData({
+        ...initialFormState,
+        tanggalLaporan: new Date().toISOString().split('T')[0]
+      });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    let parsedValue: string | number = value;
+
+    if (type === 'number') {
+      parsedValue = value === '' ? 0 : Number(value);
+      if (name === 'persentase' && parsedValue > 100) parsedValue = 100;
+      if (name === 'persentase' && parsedValue < 0) parsedValue = 0;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+
+    if (errors[name as keyof ProgressData]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleMultipleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      // Mengambil nama semua file yang dipilih dan menyimpannya ke array fotoLapangan
+      const fileNames = Array.from(files).map((file) => file.name);
+      setFormData((prev) => ({ ...prev, fotoLapangan: fileNames }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Partial<Record<keyof ProgressData, string>> = {};
+    if (!formData.kavlingId) newErrors.kavlingId = 'Kavling wajib dipilih';
+    if (!formData.tahapanPekerjaan) newErrors.tahapanPekerjaan = 'Tahapan wajib dipilih';
+    if (formData.persentase < 0 || formData.persentase > 100) newErrors.persentase = 'Progress harus 0 - 100';
+    if (!formData.keterangan.trim()) newErrors.keterangan = 'Keterangan progress wajib diisi';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    if (isEditing) {
+      setData((prev) => prev.map((item) => (item.id === formData.id ? formData : item)));
+    } else {
+      const newId = `PRG-${String(data.length + 1).padStart(3, '0')}`;
+      setData((prev) => [...prev, { ...formData, id: newId }]);
+    }
+    closeModal();
+  };
+
+  const handleDelete = (item: ProgressData) => {
+    if (window.confirm(`Hapus laporan progress ${item.kavlingLabel} tanggal ${formatDate(item.tanggalLaporan)}?`)) {
+      setData((prev) => prev.filter((d) => d.id !== item.id));
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Laporan Progress Lapangan"
+        columns={columns}
+        data={data}
+        onAdd={() => openModal()}
+        onEdit={(item) => openModal(item)}
+        onDelete={handleDelete}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Progress Lapangan" : "Buat Laporan Progress Baru"}>
+        <form onSubmit={handleSubmit} className="space-y-6">
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">1. Identitas Proyek</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Kavling"
+                  name="kavlingId"
+                  value={formData.kavlingId}
+                  onChange={(e) => {
+                    const selected = mockKavlings.find(k => k.id === e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      kavlingId: selected?.id || '',
+                      kavlingLabel: selected ? `${selected.perumahan} - Blok ${selected.blok} No. ${selected.unit}` : ''
+                    }));
+                    if (errors.kavlingId) setErrors(prev => ({ ...prev, kavlingId: undefined }));
+                  }}
+                  options={mockKavlings.map(k => ({
+                    value: k.id,
+                    label: `${k.perumahan} - Blok ${k.blok} No. ${k.unit}`
+                  }))}
+                  error={errors.kavlingId}
+                />
+              </div>
+              <Input label="Nama Pelaksana/Mandor" name="pelaksana" value={formData.pelaksana} onChange={handleChange} />
+              <Input label="Tanggal Laporan" type="date" name="tanggalLaporan" value={formData.tanggalLaporan} onChange={handleChange} />
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">2. Status Pekerjaan</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Tahapan Pekerjaan"
+                name="tahapanPekerjaan"
+                value={formData.tahapanPekerjaan}
+                onChange={handleChange}
+                error={errors.tahapanPekerjaan}
+                options={[
+                  { value: 'Persiapan Lahan', label: 'Persiapan Lahan' },
+                  { value: 'Pekerjaan Pondasi & Sloof', label: 'Pekerjaan Pondasi & Sloof' },
+                  { value: 'Struktur & Dinding', label: 'Struktur & Dinding' },
+                  { value: 'Rangka Atap & Genteng', label: 'Rangka Atap & Genteng' },
+                  { value: 'Pemasangan Keramik & Plafon', label: 'Pemasangan Keramik & Plafon' },
+                  { value: 'Finishing & Pengecatan', label: 'Finishing & Pengecatan' },
+                  { value: 'Siap Serah Terima (100%)', label: 'Siap Serah Terima (100%)' }
+                ]}
+              />
+              <Input
+                label="Total Persentase Progress (%)"
+                type="number"
+                name="persentase"
+                value={formData.persentase}
+                onChange={handleChange}
+                error={errors.persentase}
+                placeholder="0 - 100"
+              />
+              <div className="md:col-span-2">
+                <Input
+                  label="Keterangan Pekerjaan"
+                  name="keterangan"
+                  value={formData.keterangan}
+                  onChange={handleChange}
+                  error={errors.keterangan}
+                  placeholder="Deskripsikan pekerjaan yang selesai dilakukan hari ini..."
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Input
+                  label="Kendala di Lapangan (Opsional)"
+                  name="kendala"
+                  value={formData.kendala}
+                  onChange={handleChange}
+                  placeholder="Contoh: Hujan deras dari siang, pengiriman bata telat..."
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">3. Dokumentasi</h4>
+            <div className="grid grid-cols-1 gap-4">
+              {/* Input Multiple File */}
+              <FileInput
+                label="Foto Lapangan (Bisa pilih lebih dari 1)"
+                accept="image/*,application/pdf"
+                multiple
+                onChange={handleMultipleFileChange}
+              />
+              {/* List Nama File Yang Terpilih */}
+              {formData.fotoLapangan && formData.fotoLapangan.length > 0 && (
+                <div className="mt-2 space-y-1 bg-white p-3 rounded-lg border border-gray-200">
+                  <p className="text-xs font-bold text-gray-500 mb-2">File terpilih ({formData.fotoLapangan.length}):</p>
+                  {formData.fotoLapangan.map((name, i) => (
+                    <p key={i} className="text-xs text-green-600 truncate flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                      {name}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+            <Select
+              label="Status Verifikasi Pusat"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              options={[
+                { value: 'Menunggu Verifikasi', label: 'Menunggu Verifikasi' },
+                { value: 'Disetujui', label: 'Disetujui' },
+                { value: 'Revisi', label: 'Butuh Revisi / Laporan Ditolak' }
+              ]}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer">
+              Simpan Progress
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Progress;
 </file>
 
 <file path="src/pages/Public/AgentLogin.tsx">
@@ -6146,359 +6078,6 @@ const Dashboard = () => {
 export default Dashboard;
 </file>
 
-<file path="src/pages/Management/BatalTransaksi.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import FileInput from "../../components/shared/FileInput";
-import PageLoader from "../PageLoader";
-import { formatRupiah, formatDate } from "../../utils/formatters";
-import {
-  FileUp, Eye, CheckCircle2, AlertCircle, Ban,
-  Check, X, Clock,
-  XCircle
-} from 'lucide-react';
-import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
-import { storage } from "../../utils/storage";
-import { handleApiError } from '../../utils/errorHandler';
-const BatalTransaksi = () => {
-  const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('pengajuan');
-  const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal();
-  const approveMutation = useApproveBatal();
-  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
-  const penjualanData = penjualanResponse?.items || [];
-  const uploadRefundMutation = useUploadRefundTagihan();
-  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
-  const [selectedTagihan, setSelectedTagihan] = useState<any>(null);
-  const [refundFile, setRefundFile] = useState<File | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const user = storage.getUser();
-  const isAdmin = user?.role === 'ADMIN';
-  const handleApproveReject = async (id: number, isApproved: boolean) => {
-    const actionText = isApproved ? 'menyetujui' : 'menolak';
-    if (!window.confirm(`Apakah Anda yakin ingin ${actionText} pengajuan pembatalan ini?`)) return;
-    try {
-      await approveMutation.mutateAsync({ id, isApproved });
-      alert(`Pengajuan berhasil ${isApproved ? 'disetujui' : 'ditolak'}.`);
-    } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
-    }
-  };
-  const columnsApproval = [
-    { header: 'Tgl Pengajuan', accessor: 'createdAt', render: (val: string) => formatDate(val) },
-    {
-      header: 'Customer',
-      accessor: 'penjualan',
-      render: (val: any) => (
-        <div>
-          <p className="font-bold text-slate-900">{val?.customer?.nama}</p>
-          <p className="text-xs text-slate-500">Trx: {val?.noTransaksi}</p>
-        </div>
-      )
-    },
-    {
-      header: 'Kavling',
-      accessor: 'penjualan',
-      render: (val: any) => `${val?.kavling?.perumahan?.nama} Blok ${val?.kavling?.blok}-${val?.kavling?.nomorUnit}`
-    },
-    { header: 'Alasan Batal', accessor: 'alasan', render: (val: string) => <span className="text-sm italic text-slate-600">{val}</span> },
-    {
-      header: 'Diajukan Oleh',
-      accessor: 'requestedBy',
-      render: (val: any) => val ? <span className="font-medium text-slate-700">{val.nama}</span> : '-'
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string, row: any) => {
-        if (val === 'PENDING') return <span className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md w-fit"><Clock size={12} /> Menunggu</span>;
-        if (val === 'APPROVED') return (
-          <div className="flex flex-col">
-            <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md w-fit"><CheckCircle2 size={12} /> Disetujui</span>
-            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.nama || 'Admin'}</span>
-          </div>
-        );
-        return (
-          <div className="flex flex-col">
-            <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md w-fit"><XCircle size={12} /> Ditolak</span>
-            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.nama || 'Admin'}</span>
-          </div>
-        );
-      }
-    },
-    {
-      header: 'Aksi (Admin)',
-      accessor: 'id',
-      render: (_: any, row: any) => {
-        if (row.status === 'PENDING' && isAdmin) {
-          return (
-            <div className="flex items-center gap-2">
-              <button onClick={() => handleApproveReject(row.id, true)} disabled={approveMutation.isPending} className="p-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer shadow-sm" title="Setujui Batal">
-                <Check size={16} />
-              </button>
-              <button onClick={() => handleApproveReject(row.id, false)} disabled={approveMutation.isPending} className="p-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition cursor-pointer shadow-sm" title="Tolak Pengajuan">
-                <X size={16} />
-              </button>
-            </div>
-          );
-        }
-        return <span className="text-slate-300 text-xs">-</span>;
-      }
-    }
-  ];
-  const canceledTransactions = useMemo(() => {
-    return penjualanData.filter((p: any) => p.status === 'BATAL');
-  }, [penjualanData]);
-  const columnsRefund = [
-    { header: 'No. Transaksi', accessor: 'id' },
-    { header: 'Tanggal Batal', accessor: 'updatedAt', render: (val: string) => formatDate(val) },
-    { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
-    { header: 'Kavling', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
-    {
-      header: 'Total Dana Masuk',
-      accessor: 'tagihan',
-      render: (_: any, row: any) => {
-        const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
-        const total = tagihanLunas.reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
-        return <span className="font-bold text-slate-900">{formatRupiah(total)}</span>;
-      }
-    },
-    {
-      header: 'Status', accessor: 'status', render: (val: string) => (
-        <span className="px-2.5 py-1 bg-red-100 text-red-800 text-[10px] font-bold uppercase tracking-wider rounded-md">
-          {val}
-        </span>
-      )
-    },
-  ];
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        alert("Hanya file gambar yang diperbolehkan!");
-        e.target.value = '';
-        return;
-      }
-      setRefundFile(file);
-    }
-  };
-  const handleRefundSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!refundFile || !selectedTagihan) {
-      alert("Silakan pilih file bukti refund terlebih dahulu!");
-      return;
-    }
-    try {
-      await uploadRefundMutation.mutateAsync({
-        id: selectedTagihan.id,
-        file: refundFile
-      });
-      alert("Bukti refund berhasil diunggah!");
-      setIsRefundModalOpen(false);
-      setRefundFile(null);
-      setSelectedTagihan(null);
-    } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
-    }
-  };
-  const expandedRowRenderRefund = (row: any) => {
-    const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-100 pb-3 gap-4">
-          <div>
-            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <Ban size={16} className="text-red-500" /> Alasan Pembatalan
-            </h4>
-            <p className="text-sm text-slate-600 mt-1">{row.alasanBatal || 'Tidak ada alasan yang dicantumkan.'}</p>
-          </div>
-        </div>
-        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 mt-4">Dana yang Masuk (Bisa Di-refund)</h4>
-        {tagihanLunas.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">Keterangan Tagihan</th>
-                  <th className="px-4 py-3 font-bold">Tanggal Pembayaran</th>
-                  <th className="px-4 py-3 text-right font-bold">Nominal (Rp)</th>
-                  <th className="px-4 py-3 text-center font-bold">Status Refund</th>
-                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {tagihanLunas.map((tagihan: any) => (
-                  <tr key={tagihan.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3 font-bold text-slate-800">{tagihan.pembayaran}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDate(tagihan.updatedAt)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-900">{formatRupiah(tagihan.nominal)}</td>
-                    <td className="px-4 py-3 text-center">
-                      {tagihan.isRefunded ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700">
-                          <CheckCircle2 size={12} /> Dikembalikan
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700">
-                          <AlertCircle size={12} /> Belum Refund
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {tagihan.isRefunded ? (
-                        <button
-                          onClick={() => setPreviewImage(tagihan.fileBuktiRefund)}
-                          className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer"
-                        >
-                          <Eye size={14} /> Lihat Bukti
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedTagihan(tagihan);
-                            setRefundFile(null);
-                            setIsRefundModalOpen(true);
-                          }}
-                          className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-black transition shadow-sm cursor-pointer"
-                        >
-                          <FileUp size={14} /> Proses Refund
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <p className="text-sm text-slate-500 italic">Belum ada dana yang dibayarkan oleh customer ini (0 Rupiah).</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-  if (loadingPengajuan || loadingPenjualan) return <PageLoader />;
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* TABS NAVIGATION */}
-      <div className="flex border-b border-slate-200 mb-6 overflow-x-auto hide-scrollbar bg-white p-2 rounded-t-2xl shadow-sm">
-        <button
-          type="button"
-          onClick={() => setActiveTab('pengajuan')}
-          className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'pengajuan' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
-        >
-          Antrean Persetujuan Pembatalan
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('refund')}
-          className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'refund' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
-        >
-          Proses Pengembalian Dana (Refund)
-        </button>
-      </div>
-      {/* TAB 1: PENGAJUAN */}
-      {activeTab === 'pengajuan' && (
-        <DataTable
-          title="Daftar Pengajuan Pembatalan Transaksi"
-          columns={columnsApproval}
-          data={pengajuanList}
-        />
-      )}
-      {/* TAB 2: REFUND */}
-      {activeTab === 'refund' && (
-        <DataTable
-          title="Daftar Transaksi Batal"
-          columns={columnsRefund}
-          data={canceledTransactions}
-          expandedRowRender={expandedRowRenderRefund}
-        />
-      )}
-      {/* MODAL PROSES REFUND */}
-      <Modal isOpen={isRefundModalOpen} onClose={() => setIsRefundModalOpen(false)} title="Proses Pengembalian Dana (Refund)">
-        <form onSubmit={handleRefundSubmit} className="space-y-5">
-          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Item yang di-refund</p>
-            <p className="text-sm font-black text-blue-900 mb-1">{selectedTagihan?.pembayaran}</p>
-            <p className="text-lg font-black text-blue-700">{formatRupiah(selectedTagihan?.nominal || 0)}</p>
-          </div>
-          <div className="space-y-2">
-            <p className="text-xs text-slate-500 leading-relaxed font-medium">
-              Jika dana {selectedTagihan?.pembayaran} dikembalikan kepada customer, silakan unggah bukti transfer pengembalian dana di bawah ini. Jika dana hangus (tidak di-refund), Anda tidak perlu melakukan aksi ini.
-            </p>
-            <FileInput
-              label="Upload Bukti Transfer Refund (Gambar)"
-              accept="image/*"
-              onChange={handleFileChange}
-              required
-            />
-            {refundFile && (
-              <p className="text-xs text-green-600 font-bold bg-green-50 p-2 rounded-lg border border-green-100">
-                File siap diunggah: {refundFile.name}
-              </p>
-            )}
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={() => setIsRefundModalOpen(false)}
-              disabled={uploadRefundMutation.isPending}
-              className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={uploadRefundMutation.isPending || !refundFile}
-              className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
-            >
-              {uploadRefundMutation.isPending ? "Memproses..." : "Konfirmasi Refund"}
-            </button>
-          </div>
-        </form>
-      </Modal>
-      {/* MODAL LIGHTBOX PREVIEW GAMBAR REFUND */}
-      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Bukti Transfer Refund">
-        <div className="flex flex-col items-center">
-          {previewImage && (
-            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img
-                src={previewImage}
-                alt="Preview Bukti Refund"
-                className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain"
-              />
-            </div>
-          )}
-          <div className="mt-6 flex gap-3">
-            <a
-              href={previewImage || '#'}
-              target="_blank"
-              rel="noreferrer"
-              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer"
-            >
-              Buka Tab Baru
-            </a>
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-md"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-};
-export default BatalTransaksi;
-</file>
-
 <file path="src/services/auth.service.ts">
 import api from "../lib/axios";
 import type { ApiResponse } from "../types/api_response";
@@ -6701,6 +6280,825 @@ export interface CreateAgentDTO {
   potonganPph?: number;
   pics?: PicAgentData[];
 }
+</file>
+
+<file path="src/pages/Management/BatalTransaksi.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import FileInput from "../../components/shared/FileInput";
+import PageLoader from "../PageLoader";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import {
+  FileUp, Eye, CheckCircle2, AlertCircle, Ban,
+  Check, X, Clock,
+  XCircle
+} from 'lucide-react';
+import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
+import { storage } from "../../utils/storage";
+import { handleApiError } from '../../utils/errorHandler';
+const BatalTransaksi = () => {
+  const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('pengajuan');
+  const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal();
+  const approveMutation = useApproveBatal();
+  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const penjualanData = penjualanResponse?.items || [];
+  const uploadRefundMutation = useUploadRefundTagihan();
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [selectedTagihan, setSelectedTagihan] = useState<any>(null);
+  const [refundFile, setRefundFile] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const user = storage.getUser();
+  const isAdmin = user?.role === 'ADMIN';
+  const handleApproveReject = async (id: number, isApproved: boolean) => {
+    const actionText = isApproved ? 'menyetujui' : 'menolak';
+    if (!window.confirm(`Apakah Anda yakin ingin ${actionText} pengajuan pembatalan ini?`)) return;
+    try {
+      await approveMutation.mutateAsync({ id, isApproved });
+      alert(`Pengajuan berhasil ${isApproved ? 'disetujui' : 'ditolak'}.`);
+    } catch (error: any) {
+      const { message } = handleApiError(error);
+      alert(message);
+    }
+  };
+  const columnsApproval = [
+    { header: 'Tgl Pengajuan', accessor: 'createdAt', render: (val: string) => formatDate(val) },
+    {
+      header: 'Customer',
+      accessor: 'penjualan',
+      render: (val: any) => (
+        <div>
+          <p className="font-bold text-slate-900">{val?.customer?.nama}</p>
+          <p className="text-xs text-slate-500">Trx: {val?.noTransaksi}</p>
+        </div>
+      )
+    },
+    {
+      header: 'Kavling',
+      accessor: 'penjualan',
+      render: (val: any) => `${val?.kavling?.perumahan?.nama} Blok ${val?.kavling?.blok}-${val?.kavling?.nomorUnit}`
+    },
+    { header: 'Alasan Batal', accessor: 'alasan', render: (val: string) => <span className="text-sm italic text-slate-600">{val}</span> },
+    {
+      header: 'Diajukan Oleh',
+      accessor: 'requestedBy',
+      render: (val: any) => val ? <span className="font-medium text-slate-700">{val.nama}</span> : '-'
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string, row: any) => {
+        if (val === 'PENDING') return <span className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md w-fit"><Clock size={12} /> Menunggu</span>;
+        if (val === 'APPROVED') return (
+          <div className="flex flex-col">
+            <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md w-fit"><CheckCircle2 size={12} /> Disetujui</span>
+            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.nama || 'Admin'}</span>
+          </div>
+        );
+        return (
+          <div className="flex flex-col">
+            <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md w-fit"><XCircle size={12} /> Ditolak</span>
+            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.nama || 'Admin'}</span>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Aksi (Admin)',
+      accessor: 'id',
+      render: (_: any, row: any) => {
+        if (row.status === 'PENDING' && isAdmin) {
+          return (
+            <div className="flex items-center gap-2">
+              <button onClick={() => handleApproveReject(row.id, true)} disabled={approveMutation.isPending} className="p-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer shadow-sm" title="Setujui Batal">
+                <Check size={16} />
+              </button>
+              <button onClick={() => handleApproveReject(row.id, false)} disabled={approveMutation.isPending} className="p-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition cursor-pointer shadow-sm" title="Tolak Pengajuan">
+                <X size={16} />
+              </button>
+            </div>
+          );
+        }
+        return <span className="text-slate-300 text-xs">-</span>;
+      }
+    }
+  ];
+  const canceledTransactions = useMemo(() => {
+    return penjualanData.filter((p: any) => p.status === 'BATAL');
+  }, [penjualanData]);
+  const columnsRefund = [
+    { header: 'No. Transaksi', accessor: 'id' },
+    { header: 'Tanggal Batal', accessor: 'updatedAt', render: (val: string) => formatDate(val) },
+    { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
+    { header: 'Kavling', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
+    {
+      header: 'Total Dana Masuk',
+      accessor: 'tagihan',
+      render: (_: any, row: any) => {
+        const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
+        const total = tagihanLunas.reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
+        return <span className="font-bold text-slate-900">{formatRupiah(total)}</span>;
+      }
+    },
+    {
+      header: 'Status', accessor: 'status', render: (val: string) => (
+        <span className="px-2.5 py-1 bg-red-100 text-red-800 text-[10px] font-bold uppercase tracking-wider rounded-md">
+          {val}
+        </span>
+      )
+    },
+  ];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        alert("Hanya file gambar dan PDF yang diperbolehkan!");
+        e.target.value = '';
+        return;
+      }
+      setRefundFile(file);
+    }
+  };
+  const handleRefundSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!refundFile || !selectedTagihan) {
+      alert("Silakan pilih file bukti refund terlebih dahulu!");
+      return;
+    }
+    try {
+      await uploadRefundMutation.mutateAsync({
+        id: selectedTagihan.id,
+        file: refundFile
+      });
+      alert("Bukti refund berhasil diunggah!");
+      setIsRefundModalOpen(false);
+      setRefundFile(null);
+      setSelectedTagihan(null);
+    } catch (error: any) {
+      const { message } = handleApiError(error);
+      alert(message);
+    }
+  };
+  const expandedRowRenderRefund = (row: any) => {
+    const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-100 pb-3 gap-4">
+          <div>
+            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Ban size={16} className="text-red-500" /> Alasan Pembatalan
+            </h4>
+            <p className="text-sm text-slate-600 mt-1">{row.alasanBatal || 'Tidak ada alasan yang dicantumkan.'}</p>
+          </div>
+        </div>
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 mt-4">Dana yang Masuk (Bisa Di-refund)</h4>
+        {tagihanLunas.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-lg font-bold">Keterangan Tagihan</th>
+                  <th className="px-4 py-3 font-bold">Tanggal Pembayaran</th>
+                  <th className="px-4 py-3 text-right font-bold">Nominal (Rp)</th>
+                  <th className="px-4 py-3 text-center font-bold">Status Refund</th>
+                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {tagihanLunas.map((tagihan: any) => (
+                  <tr key={tagihan.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-4 py-3 font-bold text-slate-800">{tagihan.pembayaran}</td>
+                    <td className="px-4 py-3 text-slate-600">{formatDate(tagihan.updatedAt)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-900">{formatRupiah(tagihan.nominal)}</td>
+                    <td className="px-4 py-3 text-center">
+                      {tagihan.isRefunded ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700">
+                          <CheckCircle2 size={12} /> Dikembalikan
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700">
+                          <AlertCircle size={12} /> Belum Refund
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {tagihan.isRefunded ? (
+                        <button
+                          onClick={() => setPreviewImage(tagihan.fileBuktiRefund)}
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                        >
+                          <Eye size={14} /> Lihat Bukti
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedTagihan(tagihan);
+                            setRefundFile(null);
+                            setIsRefundModalOpen(true);
+                          }}
+                          className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-black transition shadow-sm cursor-pointer"
+                        >
+                          <FileUp size={14} /> Proses Refund
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <p className="text-sm text-slate-500 italic">Belum ada dana yang dibayarkan oleh customer ini (0 Rupiah).</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+  if (loadingPengajuan || loadingPenjualan) return <PageLoader />;
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* TABS NAVIGATION */}
+      <div className="flex border-b border-slate-200 mb-6 overflow-x-auto hide-scrollbar bg-white p-2 rounded-t-2xl shadow-sm">
+        <button
+          type="button"
+          onClick={() => setActiveTab('pengajuan')}
+          className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'pengajuan' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+        >
+          Antrean Persetujuan Pembatalan
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('refund')}
+          className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'refund' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+        >
+          Proses Pengembalian Dana (Refund)
+        </button>
+      </div>
+      {/* TAB 1: PENGAJUAN */}
+      {activeTab === 'pengajuan' && (
+        <DataTable
+          title="Daftar Pengajuan Pembatalan Transaksi"
+          columns={columnsApproval}
+          data={pengajuanList}
+        />
+      )}
+      {/* TAB 2: REFUND */}
+      {activeTab === 'refund' && (
+        <DataTable
+          title="Daftar Transaksi Batal"
+          columns={columnsRefund}
+          data={canceledTransactions}
+          expandedRowRender={expandedRowRenderRefund}
+        />
+      )}
+      {/* MODAL PROSES REFUND */}
+      <Modal isOpen={isRefundModalOpen} onClose={() => setIsRefundModalOpen(false)} title="Proses Pengembalian Dana (Refund)">
+        <form onSubmit={handleRefundSubmit} className="space-y-5">
+          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Item yang di-refund</p>
+            <p className="text-sm font-black text-blue-900 mb-1">{selectedTagihan?.pembayaran}</p>
+            <p className="text-lg font-black text-blue-700">{formatRupiah(selectedTagihan?.nominal || 0)}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">
+              Jika dana {selectedTagihan?.pembayaran} dikembalikan kepada customer, silakan unggah bukti transfer pengembalian dana di bawah ini. Jika dana hangus (tidak di-refund), Anda tidak perlu melakukan aksi ini.
+            </p>
+            <FileInput
+              label="Upload Bukti Transfer Refund (Gambar/PDF)"
+              accept="image/*,application/pdf"
+              onChange={handleFileChange}
+              required
+            />
+            {refundFile && (
+              <p className="text-xs text-green-600 font-bold bg-green-50 p-2 rounded-lg border border-green-100">
+                File siap diunggah: {refundFile.name}
+              </p>
+            )}
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setIsRefundModalOpen(false)}
+              disabled={uploadRefundMutation.isPending}
+              className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={uploadRefundMutation.isPending || !refundFile}
+              className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
+            >
+              {uploadRefundMutation.isPending ? "Memproses..." : "Konfirmasi Refund"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+      {/* MODAL LIGHTBOX PREVIEW GAMBAR REFUND */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Bukti Transfer Refund">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              <img
+                src={previewImage}
+                alt="Preview Bukti Refund"
+                className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain"
+              />
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a
+              href={previewImage || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer"
+            >
+              Buka Tab Baru
+            </a>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-md"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+export default BatalTransaksi;
+</file>
+
+<file path="src/pages/Management/Notaris.tsx">
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import PageLoader from "../PageLoader";
+import { formatRupiah } from "../../utils/formatters";
+import {
+  useGetNotaris,
+  useCreateNotaris,
+  useUpdateNotaris,
+  useDeleteNotaris
+} from "../../hooks/queries/useNotaris";
+import type { NotarisData, CreateNotarisDTO, PicNotarisData } from "../../services/notaris.service";
+import { handleApiError } from '../../utils/errorHandler';
+
+interface AjbDitanganiData {
+  id: string;
+  customer: string;
+  kavling: string;
+  biayaAjbTransaksi?: number;
+}
+
+type ExtendedNotarisData = NotarisData & {
+  ajbDitangani?: AjbDitanganiData[];
+};
+
+interface NotarisFormState {
+  id: number | '';
+  nik: string;
+  nama: string;
+  noHp: string;
+  alamat: string;
+  pics: PicNotarisData[];
+}
+
+const initialFormState: NotarisFormState = {
+  id: '',
+  nik: '',
+  nama: '',
+  noHp: '',
+  alamat: '',
+  pics: []
+};
+
+const Notaris = () => {
+  const { data: notarisData = [], isLoading } = useGetNotaris();
+  const createMutation = useCreateNotaris();
+  const updateMutation = useUpdateNotaris();
+  const deleteMutation = useDeleteNotaris();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<NotarisFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  // === State untuk Modal Detail Notaris ===
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedNotarisDetail, setSelectedNotarisDetail] = useState<ExtendedNotarisData | null>(null);
+
+  // State untuk Modal Detail AJB (saat klik row di dalam detail)
+  const [selectedAjb, setSelectedAjb] = useState<AjbDitanganiData | null>(null);
+
+  const columns = [
+    { header: 'Nama Notaris', accessor: 'nama' },
+    {
+      header: 'Kontak Utama (PIC)',
+      accessor: 'pics',
+      render: (pics: PicNotarisData[]) => pics?.[0]?.noHp || '-'
+    },
+    {
+      header: 'Total PIC',
+      accessor: 'pics',
+      render: (pics: PicNotarisData[]) => <>{pics?.length || 0} Orang</>
+    },
+  ];
+
+  const openDetailModal = (item: ExtendedNotarisData) => {
+    setSelectedNotarisDetail(item);
+    setIsDetailModalOpen(true);
+  };
+
+  const openModal = (item?: ExtendedNotarisData) => {
+    if (item) {
+      const mainPic = item.pics?.[0];
+      const additionalPics = item.pics?.slice(1) || [];
+      setFormData({
+        id: item.id,
+        nik: '',
+        nama: item.nama,
+        noHp: mainPic?.noHp || '',
+        alamat: mainPic?.alamat || '',
+        pics: additionalPics
+      });
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const newPics = [...prev.pics];
+      newPics[index] = { ...newPics[index], [name]: value };
+      return { ...prev, pics: newPics };
+    });
+    const errorKey = `pics.${index}.${name}`;
+    if (errors[errorKey]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAddPIC = () => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
+    }));
+  };
+
+  const handleRemovePIC = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: prev.pics.filter((_, i) => i !== index)
+    }));
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.nama.trim()) newErrors.nama = 'Nama Notaris wajib diisi';
+    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    const additionalPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
+    const allPics = [
+      { nama: `Admin/PIC Utama ${formData.nama}`, noHp: formData.noHp, alamat: formData.alamat },
+      ...additionalPics
+    ];
+    const payload: CreateNotarisDTO = {
+      nama: formData.nama,
+      biayaAjb: 0,
+      pics: allPics,
+    };
+    try {
+      if (isEditing && formData.id !== '') {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: any) {
+      const { message, errors: backendErrors } = handleApiError(error);
+
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
+    }
+  };
+
+  const handleDelete = async (item: ExtendedNotarisData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus data Notaris ${item.nama}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: any) {
+        const { message } = handleApiError(error);
+        alert(message);
+      }
+    }
+  };
+
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div>
+      <DataTable
+        title="Data Notaris"
+        columns={columns}
+        data={notarisData as ExtendedNotarisData[]}
+        onAdd={() => openModal()}
+        onDetail={(item) => openDetailModal(item as ExtendedNotarisData)}
+        onEdit={(item) => openModal(item as ExtendedNotarisData)}
+        onDelete={(item) => handleDelete(item as ExtendedNotarisData)}
+      />
+
+      {/* MODAL FORM TAMBAH/EDIT */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={isEditing ? "Edit Data Notaris" : "Tambah Data Notaris"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Notaris</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Nama Notaris / PPAT"
+                name="nama"
+                value={formData.nama}
+                onChange={handleChange}
+                error={errors.nama}
+                placeholder="Contoh: Notaris Budi Hartono, S.H."
+              />
+              <Input
+                label="No. Telepon / HP"
+                name="noHp"
+                value={formData.noHp}
+                onChange={handleChange}
+                error={errors.noHp}
+                placeholder="08xxxxxxxxxx"
+              />
+              <div className="md:col-span-2">
+                <Input
+                  label="Alamat Lengkap (Opsional)"
+                  name="alamat"
+                  value={formData.alamat}
+                  onChange={handleChange}
+                  error={errors.alamat}
+                  placeholder="Masukkan alamat lengkap kantor notaris"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Notaris (Opsional)</h4>
+                <p className="text-xs text-gray-500">Tambahkan staf tambahan/PIC yang bisa dihubungi</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddPIC}
+                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer shadow-sm"
+              >
+                + Tambah PIC
+              </button>
+            </div>
+            <div className="space-y-4">
+              {formData.pics.map((pic, index) => (
+                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePIC(index)}
+                    className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
+                  >
+                    Hapus
+                  </button>
+                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC Tambahan #{index + 1}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Nama PIC"
+                      name="nama"
+                      value={pic.nama}
+                      onChange={(e) => handlePICChange(index, e)}
+                      error={errors[`pics.${index}.nama`]}
+                      placeholder="Masukkan nama PIC"
+                    />
+                    <Input
+                      label="No. Telepon / HP PIC"
+                      name="noHp"
+                      value={pic.noHp}
+                      onChange={(e) => handlePICChange(index, e)}
+                      error={errors[`pics.${index}.noHp`]}
+                      placeholder="08xxxxxxxxxx"
+                    />
+                    <div className="md:col-span-2">
+                      <Input
+                        label="Alamat PIC (Opsional)"
+                        name="alamat"
+                        value={pic.alamat || ''}
+                        onChange={(e) => handlePICChange(index, e)}
+                        error={errors[`pics.${index}.alamat`]}
+                        placeholder="Masukkan alamat lengkap PIC"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL DETAIL NOTARIS */}
+      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Notaris">
+        {selectedNotarisDetail && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+              <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Informasi Notaris / PPAT</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                <div className="md:col-span-2">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Notaris</p>
+                  <p className="text-base font-black text-slate-900">{selectedNotarisDetail.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kontak Utama / No. HP</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedNotarisDetail.pics?.[0]?.noHp || '-'}</p>
+                </div>
+                <div className="md:col-span-2 mt-2">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Kantor</p>
+                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedNotarisDetail.pics?.[0]?.alamat || '-'}</p>
+                </div>
+              </div>
+            </div>
+
+            {selectedNotarisDetail.pics && selectedNotarisDetail.pics.length > 1 && (
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Daftar PIC / Staf Tambahan</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {selectedNotarisDetail.pics.slice(1).map((pic, idx) => (
+                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                      <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
+                      <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
+                      <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
+                Daftar AJB / Kavling yang Ditangani
+              </h4>
+              {selectedNotarisDetail.ajbDitangani && selectedNotarisDetail.ajbDitangani.length > 0 ? (
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
+                        <th className="px-4 py-3 font-bold">Customer</th>
+                        <th className="px-4 py-3 font-bold">Kavling</th>
+                        <th className="px-4 py-3 rounded-r-lg font-bold text-right">Biaya AJB Transaksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {selectedNotarisDetail.ajbDitangani.map((ajb, idx) => (
+                        <tr
+                          key={idx}
+                          onClick={() => setSelectedAjb(ajb)}
+                          className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                        >
+                          <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{ajb.id}</td>
+                          <td className="px-4 py-3 text-slate-600 group-hover:text-slate-900">{ajb.customer}</td>
+                          <td className="px-4 py-3 font-medium text-slate-600">{ajb.kavling}</td>
+                          <td className="px-4 py-3 font-bold text-slate-900 text-right tabular-nums">
+                            {ajb.biayaAjbTransaksi ? formatRupiah(ajb.biayaAjbTransaksi) : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                  Belum ada berkas kavling yang ditangani notaris ini.
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors cursor-pointer shadow-md"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL DETAIL AJB (KETIKA ROW AJB DIKLIK) */}
+      <Modal isOpen={!!selectedAjb} onClose={() => setSelectedAjb(null)} title="Detail Transaksi AJB">
+        {selectedAjb && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">No. Transaksi Penjualan</p>
+                <p className="text-sm font-black text-slate-900">{selectedAjb.id}</p>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 shadow-sm">
+                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Biaya AJB Transaksi</p>
+                <p className="text-xl font-black text-blue-700 tabular-nums">
+                  {selectedAjb.biayaAjbTransaksi ? formatRupiah(selectedAjb.biayaAjbTransaksi) : 'Rp 0'}
+                </p>
+              </div>
+            </div>
+            <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
+              <p className="text-base font-bold text-slate-800">{selectedAjb.customer}</p>
+
+              <div className="h-px w-full bg-slate-100 my-4"></div>
+
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Kavling / Unit Dibeli</p>
+              <p className="text-sm font-bold text-slate-700">{selectedAjb.kavling}</p>
+            </div>
+            <div className="flex justify-end pt-4 border-t border-slate-100 mt-4">
+              <button
+                onClick={() => setSelectedAjb(null)}
+                className="px-6 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-xl cursor-pointer hover:bg-slate-800 transition-colors shadow-md"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default Notaris;
 </file>
 
 <file path="src/services/tagihan.service.ts">
@@ -7347,472 +7745,6 @@ export const useApproveTagihan = () => {
 };
 </file>
 
-<file path="src/pages/Management/Notaris.tsx">
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import PageLoader from "../PageLoader";
-import { formatRupiah } from "../../utils/formatters";
-import {
-  useGetNotaris,
-  useCreateNotaris,
-  useUpdateNotaris,
-  useDeleteNotaris
-} from "../../hooks/queries/useNotaris";
-import type { NotarisData, CreateNotarisDTO, PicNotarisData } from "../../services/notaris.service";
-import { handleApiError } from '../../utils/errorHandler';
-
-interface AjbDitanganiData {
-  id: string;
-  customer: string;
-  kavling: string;
-  biayaAjbTransaksi?: number;
-}
-
-type ExtendedNotarisData = NotarisData & {
-  ajbDitangani?: AjbDitanganiData[];
-};
-
-interface NotarisFormState {
-  id: number | '';
-  nik: string;
-  nama: string;
-  noHp: string;
-  alamat: string;
-  pics: PicNotarisData[];
-}
-
-const initialFormState: NotarisFormState = {
-  id: '',
-  nik: '',
-  nama: '',
-  noHp: '',
-  alamat: '',
-  pics: []
-};
-
-const Notaris = () => {
-  const { data: notarisData = [], isLoading } = useGetNotaris();
-  const createMutation = useCreateNotaris();
-  const updateMutation = useUpdateNotaris();
-  const deleteMutation = useDeleteNotaris();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<NotarisFormState>(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  // === State untuk Modal Detail Notaris ===
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedNotarisDetail, setSelectedNotarisDetail] = useState<ExtendedNotarisData | null>(null);
-
-  // State untuk Modal Detail AJB (saat klik row di dalam detail)
-  const [selectedAjb, setSelectedAjb] = useState<AjbDitanganiData | null>(null);
-
-  const columns = [
-    { header: 'Nama Notaris', accessor: 'nama' },
-    {
-      header: 'Kontak Utama (PIC)',
-      accessor: 'pics',
-      render: (pics: PicNotarisData[]) => pics?.[0]?.noHp || '-'
-    },
-    {
-      header: 'Total PIC',
-      accessor: 'pics',
-      render: (pics: PicNotarisData[]) => <>{pics?.length || 0} Orang</>
-    },
-  ];
-
-  const openDetailModal = (item: ExtendedNotarisData) => {
-    setSelectedNotarisDetail(item);
-    setIsDetailModalOpen(true);
-  };
-
-  const openModal = (item?: ExtendedNotarisData) => {
-    if (item) {
-      const mainPic = item.pics?.[0];
-      const additionalPics = item.pics?.slice(1) || [];
-      setFormData({
-        id: item.id,
-        nik: '',
-        nama: item.nama,
-        noHp: mainPic?.noHp || '',
-        alamat: mainPic?.alamat || '',
-        pics: additionalPics
-      });
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => {
-      const newPics = [...prev.pics];
-      newPics[index] = { ...newPics[index], [name]: value };
-      return { ...prev, pics: newPics };
-    });
-    const errorKey = `pics.${index}.${name}`;
-    if (errors[errorKey]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[errorKey];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleAddPIC = () => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
-    }));
-  };
-
-  const handleRemovePIC = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: prev.pics.filter((_, i) => i !== index)
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama Notaris wajib diisi';
-    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    const additionalPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
-    const allPics = [
-      { nama: `Admin/PIC Utama ${formData.nama}`, noHp: formData.noHp, alamat: formData.alamat },
-      ...additionalPics
-    ];
-    const payload: CreateNotarisDTO = {
-      nama: formData.nama,
-      biayaAjb: 0,
-      pics: allPics,
-    };
-    try {
-      if (isEditing && formData.id !== '') {
-        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
-      closeModal();
-    } catch (error: any) {
-      const { message, errors: backendErrors } = handleApiError(error);
-
-      if (backendErrors && Array.isArray(backendErrors)) {
-        const fieldErrors: Record<string, string> = {};
-        backendErrors.forEach((err: { field: string; message: string }) => {
-          fieldErrors[err.field] = err.message;
-        });
-        setErrors(fieldErrors);
-      } else {
-        alert(message);
-      }
-    }
-  };
-
-  const handleDelete = async (item: ExtendedNotarisData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus data Notaris ${item.nama}?`)) {
-      try {
-        await deleteMutation.mutateAsync(item.id);
-      } catch (error: any) {
-        const { message } = handleApiError(error);
-        alert(message);
-      }
-    }
-  };
-
-  if (isLoading) return <PageLoader />;
-
-  return (
-    <div>
-      <DataTable
-        title="Data Notaris"
-        columns={columns}
-        data={notarisData as ExtendedNotarisData[]}
-        onAdd={() => openModal()}
-        onDetail={(item) => openDetailModal(item as ExtendedNotarisData)}
-        onEdit={(item) => openModal(item as ExtendedNotarisData)}
-        onDelete={(item) => handleDelete(item as ExtendedNotarisData)}
-      />
-
-      {/* MODAL FORM TAMBAH/EDIT */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={isEditing ? "Edit Data Notaris" : "Tambah Data Notaris"}
-      >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Notaris</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Nama Notaris / PPAT"
-                name="nama"
-                value={formData.nama}
-                onChange={handleChange}
-                error={errors.nama}
-                placeholder="Contoh: Notaris Budi Hartono, S.H."
-              />
-              <Input
-                label="No. Telepon / HP"
-                name="noHp"
-                value={formData.noHp}
-                onChange={handleChange}
-                error={errors.noHp}
-                placeholder="08xxxxxxxxxx"
-              />
-              <div className="md:col-span-2">
-                <Input
-                  label="Alamat Lengkap (Opsional)"
-                  name="alamat"
-                  value={formData.alamat}
-                  onChange={handleChange}
-                  error={errors.alamat}
-                  placeholder="Masukkan alamat lengkap kantor notaris"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Notaris (Opsional)</h4>
-                <p className="text-xs text-gray-500">Tambahkan staf tambahan/PIC yang bisa dihubungi</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleAddPIC}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer shadow-sm"
-              >
-                + Tambah PIC
-              </button>
-            </div>
-            <div className="space-y-4">
-              {formData.pics.map((pic, index) => (
-                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePIC(index)}
-                    className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer"
-                  >
-                    Hapus
-                  </button>
-                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC Tambahan #{index + 1}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      label="Nama PIC"
-                      name="nama"
-                      value={pic.nama}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.nama`]}
-                      placeholder="Masukkan nama PIC"
-                    />
-                    <Input
-                      label="No. Telepon / HP PIC"
-                      name="noHp"
-                      value={pic.noHp}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.noHp`]}
-                      placeholder="08xxxxxxxxxx"
-                    />
-                    <div className="md:col-span-2">
-                      <Input
-                        label="Alamat PIC (Opsional)"
-                        name="alamat"
-                        value={pic.alamat || ''}
-                        onChange={(e) => handlePICChange(index, e)}
-                        error={errors[`pics.${index}.alamat`]}
-                        placeholder="Masukkan alamat lengkap PIC"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* MODAL DETAIL NOTARIS */}
-      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Notaris">
-        {selectedNotarisDetail && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
-              <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Informasi Notaris / PPAT</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
-                <div className="md:col-span-2">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Notaris</p>
-                  <p className="text-base font-black text-slate-900">{selectedNotarisDetail.nama}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kontak Utama / No. HP</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedNotarisDetail.pics?.[0]?.noHp || '-'}</p>
-                </div>
-                <div className="md:col-span-2 mt-2">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Kantor</p>
-                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedNotarisDetail.pics?.[0]?.alamat || '-'}</p>
-                </div>
-              </div>
-            </div>
-
-            {selectedNotarisDetail.pics && selectedNotarisDetail.pics.length > 1 && (
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Daftar PIC / Staf Tambahan</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {selectedNotarisDetail.pics.slice(1).map((pic, idx) => (
-                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
-                      <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
-                      <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
-                      <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
-                Daftar AJB / Kavling yang Ditangani
-              </h4>
-              {selectedNotarisDetail.ajbDitangani && selectedNotarisDetail.ajbDitangani.length > 0 ? (
-                <div className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-50">
-                      <tr>
-                        <th className="px-4 py-3 rounded-l-lg font-bold">ID Penjualan</th>
-                        <th className="px-4 py-3 font-bold">Customer</th>
-                        <th className="px-4 py-3 font-bold">Kavling</th>
-                        <th className="px-4 py-3 rounded-r-lg font-bold text-right">Biaya AJB Transaksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {selectedNotarisDetail.ajbDitangani.map((ajb, idx) => (
-                        <tr
-                          key={idx}
-                          onClick={() => setSelectedAjb(ajb)}
-                          className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                        >
-                          <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{ajb.id}</td>
-                          <td className="px-4 py-3 text-slate-600 group-hover:text-slate-900">{ajb.customer}</td>
-                          <td className="px-4 py-3 font-medium text-slate-600">{ajb.kavling}</td>
-                          <td className="px-4 py-3 font-bold text-slate-900 text-right tabular-nums">
-                            {ajb.biayaAjbTransaksi ? formatRupiah(ajb.biayaAjbTransaksi) : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                  Belum ada berkas kavling yang ditangani notaris ini.
-                </p>
-              )}
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors cursor-pointer shadow-md"
-              >
-                Tutup Detail
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* MODAL DETAIL AJB (KETIKA ROW AJB DIKLIK) */}
-      <Modal isOpen={!!selectedAjb} onClose={() => setSelectedAjb(null)} title="Detail Transaksi AJB">
-        {selectedAjb && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">No. Transaksi Penjualan</p>
-                <p className="text-sm font-black text-slate-900">{selectedAjb.id}</p>
-              </div>
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 shadow-sm">
-                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Biaya AJB Transaksi</p>
-                <p className="text-xl font-black text-blue-700 tabular-nums">
-                  {selectedAjb.biayaAjbTransaksi ? formatRupiah(selectedAjb.biayaAjbTransaksi) : 'Rp 0'}
-                </p>
-              </div>
-            </div>
-            <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
-              <p className="text-base font-bold text-slate-800">{selectedAjb.customer}</p>
-
-              <div className="h-px w-full bg-slate-100 my-4"></div>
-
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Kavling / Unit Dibeli</p>
-              <p className="text-sm font-bold text-slate-700">{selectedAjb.kavling}</p>
-            </div>
-            <div className="flex justify-end pt-4 border-t border-slate-100 mt-4">
-              <button
-                onClick={() => setSelectedAjb(null)}
-                className="px-6 py-2.5 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-xl cursor-pointer hover:bg-slate-800 transition-colors shadow-md"
-              >
-                Tutup Detail
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-    </div>
-  );
-};
-
-export default Notaris;
-</file>
-
 <file path="src/pages/CustomerPortal/PortalDashboard.tsx">
 import React, { useState } from 'react';
 import {
@@ -7878,12 +7810,16 @@ const PortalDashboard = () => {
       e.target.value = '';
     }
   };
-
   const handleUploadLainnya = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!newDocName.trim()) {
       alert("Tuliskan nama dokumen terlebih dahulu (contoh: Slip Gaji)!");
+      e.target.value = "";
+      return;
+    }
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya file gambar dan PDF yang diperbolehkan!");
       e.target.value = "";
       return;
     }
@@ -8096,7 +8032,7 @@ const PortalDashboard = () => {
                           <input
                             type="file"
                             className="hidden"
-                            accept="image/*"
+                            accept="image/*,application/pdf"
                             onChange={handleUploadLainnya}
                             disabled={uploadMutation.isPending || !newDocName.trim()}
                           />
@@ -8179,7 +8115,7 @@ const PortalDashboard = () => {
                                   <input
                                     type="file"
                                     className="hidden"
-                                    accept="image/*"
+                                    accept="image/*,application/pdf"
                                     onChange={(e) => handleUploadBuktiTagihan(t.id, e)}
                                     disabled={uploadBuktiMutation.isPending}
                                   />
@@ -8301,6 +8237,248 @@ const PortalDashboard = () => {
 };
 
 export default PortalDashboard;
+</file>
+
+<file path="src/pages/Management/GantiKavling.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Select from "../../components/shared/Select";
+import Input from "../../components/shared/Input";
+import PageLoader from "../PageLoader";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import { ArrowRightLeft, Check, X, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { useGetPenjualan, useGantiKavling, useGetPengajuanGantiKavling, useApproveGantiKavling } from "../../hooks/queries/usePenjualan";
+import { useGetKavlings } from "../../hooks/queries/useKavling";
+import { storage } from "../../utils/storage";
+
+const GantiKavling = () => {
+  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const penjualanData = penjualanResponse?.items || [];
+  const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
+  const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanGantiKavling();
+
+  const gantiKavlingMutation = useGantiKavling();
+  const approveMutation = useApproveGantiKavling();
+
+  const user = storage.getUser();
+  const isAdmin = user?.role === 'ADMIN';
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTransaksi, setSelectedTransaksi] = useState<any>(null);
+  const [formData, setFormData] = useState({ blokBaru: '', nomorUnitBaru: '', kavlingBaruId: '', alasan: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const eligiblePenjualan = useMemo(() => {
+    return penjualanData.filter((p: any) => p.status === 'BOOKED' || p.status === 'PROSES');
+  }, [penjualanData]);
+
+  const availableKavlings = useMemo(() => {
+    if (!kavlingResponse?.items) return [];
+    return kavlingResponse.items.filter(k => k.status === 'AVAILABLE');
+  }, [kavlingResponse]);
+
+  const uniqueBloks = useMemo(() => {
+    const bloks = availableKavlings.map(k => k.blok);
+    return [...new Set(bloks)].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+    );
+  }, [availableKavlings]);
+
+  const availableUnits = useMemo(() => {
+    if (!formData.blokBaru) return [];
+    return availableKavlings.filter(k => k.blok === formData.blokBaru).map(k => k.nomorUnit).sort();
+  }, [availableKavlings, formData.blokBaru]);
+
+  const selectedKavlingInfo = useMemo(() => {
+    return availableKavlings.find(k => k.blok === formData.blokBaru && k.nomorUnit === formData.nomorUnitBaru);
+  }, [availableKavlings, formData.blokBaru, formData.nomorUnitBaru]);
+
+  const handleApproveReject = async (id: number, isApproved: boolean) => {
+    const actionText = isApproved ? 'menyetujui' : 'menolak';
+    if (!window.confirm(`Apakah Anda yakin ingin ${actionText} ganti kavling ini?`)) return;
+    try {
+      await approveMutation.mutateAsync({ id, isApproved });
+      alert(`Pengajuan berhasil ${isApproved ? 'disetujui' : 'ditolak'}.`);
+    } catch (error: any) {
+      alert(error.response?.data?.message || `Gagal memproses pengajuan.`);
+    }
+  };
+
+  const columnsMaster = [
+    { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
+    { header: 'Blok - No', accessor: 'blok', render: (_: any, row: any) => `${row.blok}-${row.nomorUnit}` },
+    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
+    {
+      header: 'Aksi', accessor: 'id', render: (_: any, row: any) => (
+        <button
+          onClick={() => {
+            setSelectedTransaksi(row);
+            setFormData({ blokBaru: '', nomorUnitBaru: '', kavlingBaruId: '', alasan: '' });
+            setErrors({});
+            setIsModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors cursor-pointer"
+        >
+          <ArrowRightLeft size={14} /> Ajukan Ganti
+        </button>
+      )
+    }
+  ];
+
+  const columnsHistory = [
+    { header: 'Customer', accessor: 'penjualan', render: (val: any) => <span className="font-bold">{val?.customer?.nama}</span> },
+    { header: 'Dari Kavling', accessor: 'kavlingLama', render: (val: any) => <span className="text-red-600 font-medium">Blok {val?.blok}-{val?.nomorUnit}</span> },
+    { header: 'Ke Kavling', accessor: 'kavlingBaru', render: (val: any) => <span className="text-green-600 font-bold">Blok {val?.blok}-{val?.nomorUnit}</span> },
+    { header: 'Tgl Pengajuan', accessor: 'createdAt', render: (val: string) => formatDate(val) },
+    { header: 'Alasan', accessor: 'alasan', render: (val: string) => <span className="text-slate-500 italic text-xs">{val}</span> },
+    { header: 'Diajukan Oleh', accessor: 'requestedBy', render: (val: any) => val ? <span className="font-medium text-slate-700">{val.username}</span> : '-' },
+    {
+      header: 'Status', accessor: 'status', render: (val: string, row: any) => {
+        if (val === 'PENDING') return <span className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md w-fit"><Clock size={12} /> Menunggu</span>;
+        if (val === 'APPROVED') return (
+          <div className="flex flex-col">
+            <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md w-fit"><CheckCircle2 size={12} /> Disetujui</span>
+            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.username}</span>
+          </div>
+        );
+        return (
+          <div className="flex flex-col">
+            <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md w-fit"><XCircle size={12} /> Ditolak</span>
+            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.username}</span>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Aksi', accessor: 'id', render: (_: any, row: any) => {
+        if (row.status === 'PENDING' && isAdmin) {
+          return (
+            <div className="flex items-center gap-2">
+              <button onClick={() => handleApproveReject(row.id, true)} disabled={approveMutation.isPending} className="p-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer shadow-sm" title="Setujui Ganti">
+                <Check size={16} />
+              </button>
+              <button onClick={() => handleApproveReject(row.id, false)} disabled={approveMutation.isPending} className="p-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition cursor-pointer shadow-sm" title="Tolak Pengajuan">
+                <X size={16} />
+              </button>
+            </div>
+          );
+        }
+        return <span className="text-slate-300 text-xs">-</span>;
+      }
+    }
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+    if (!formData.kavlingBaruId) newErrors.kavlingBaruId = "Pilih unit terlebih dahulu";
+    if (formData.alasan.length < 5) newErrors.alasan = "Alasan wajib diisi (min. 5 karakter)";
+
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+
+    try {
+      await gantiKavlingMutation.mutateAsync({
+        id: selectedTransaksi.id,
+        data: { kavlingBaruId: Number(formData.kavlingBaruId), alasan: formData.alasan }
+      });
+      alert("Pengajuan Ganti Kavling Berhasil Dikirim ke Admin!");
+      setIsModalOpen(false);
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Terjadi kesalahan saat memproses pengajuan");
+    }
+  };
+
+  if (loadingPenjualan || loadingKavling || loadingPengajuan) return <PageLoader />;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="max-h-[450px] overflow-y-auto custom-scrollbar rounded-2xl shadow-sm border border-slate-200/60 bg-white">
+        <DataTable title="Pilih Transaksi Untuk Ganti Kavling" columns={columnsMaster} data={eligiblePenjualan} />
+      </div>
+
+      <div className="mt-8">
+        <DataTable title="Daftar Pengajuan Ganti Kavling" columns={columnsHistory} data={pengajuanList} />
+      </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formulir Pengajuan Ganti Kavling">
+        {selectedTransaksi && (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Detail Transaksi Saat Ini</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                <div><p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Customer</p><p className="text-sm font-bold text-slate-900">{selectedTransaksi.nama}</p></div>
+                <div><p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kavling Lama</p><p className="text-sm font-bold text-red-600">{selectedTransaksi.perumahan} Blok {selectedTransaksi.blok}-{selectedTransaksi.nomorUnit}</p></div>
+                <div><p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Harga Jual Lama</p><p className="text-sm font-bold text-slate-700">{formatRupiah(selectedTransaksi.hargaJual)}</p></div>
+              </div>
+            </div>
+
+            <div className="p-5 bg-blue-50/50 border border-blue-200 rounded-2xl shadow-sm">
+              <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <ArrowRightLeft size={14} /> Pilih Unit Kavling Baru
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select label="Pilih Blok" name="blokBaru" value={formData.blokBaru} onChange={(e) => setFormData({ ...formData, blokBaru: e.target.value, nomorUnitBaru: '', kavlingBaruId: '' })} options={[{ value: '', label: '-- Pilih Blok --' }, ...uniqueBloks.map(b => ({ value: b, label: `${b}` }))]} />
+                <Select label="Pilih Nomor Unit" name="nomorUnitBaru" value={formData.nomorUnitBaru} onChange={(e) => { const unit = e.target.value; const kav = availableKavlings.find(k => k.blok === formData.blokBaru && k.nomorUnit === unit); setFormData({ ...formData, nomorUnitBaru: unit, kavlingBaruId: kav?.id?.toString() || '' }); }} disabled={!formData.blokBaru} options={[{ value: '', label: '-- Pilih Nomor Unit --' }, ...availableUnits.map(u => ({ value: u, label: `${u}` }))]} error={errors.kavlingBaruId} />
+              </div>
+              {selectedKavlingInfo && (
+                <div className="mt-5 p-4 bg-white rounded-xl border border-blue-100 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in zoom-in-95 duration-200 shadow-sm">
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Perumahan</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.perumahan?.nama || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Tipe Kavling</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.namaTipe}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Luas Tanah</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.luasTanah} m²</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Luas Bangunan</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.luasBangunan} m²</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Harga Dasar</p>
+                    <p className="text-sm font-black text-blue-700">{formatRupiah(selectedKavlingInfo.hargaDasar)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Rekening Bank PT</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {selectedKavlingInfo.rekeningTujuan
+                        ? `${selectedKavlingInfo.rekeningTujuan.namaBank} - ${selectedKavlingInfo.rekeningTujuan.noRekening}`
+                        : 'Belum Diatur'}
+                    </p>
+                    {selectedKavlingInfo.rekeningTujuan && (
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        a/n {selectedKavlingInfo.rekeningTujuan.atasNama}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-1">
+              <Input label="Alasan Pindah / Ganti Kavling" name="alasan" value={formData.alasan} onChange={(e) => setFormData({ ...formData, alasan: e.target.value })} error={errors.alasan} placeholder="Contoh: Customer ingin upgrade ke tipe yang lebih besar..." />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">Batal</button>
+              <button type="submit" disabled={gantiKavlingMutation.isPending || !formData.kavlingBaruId} className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 shadow-lg cursor-pointer transition-colors disabled:opacity-50">
+                {gantiKavlingMutation.isPending ? "Memproses..." : "Ajukan Ganti Kavling"}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default GantiKavling;
 </file>
 
 <file path="src/pages/Management/ProgressPenjualan.tsx">
@@ -8476,8 +8654,8 @@ const ProgressPenjualan = () => {
   const handleUploadCustDoc = async (docType: CustomerDocType, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentCustomer) return;
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya file gambar dan PDF yang diperbolehkan!");
       e.target.value = "";
       return;
     }
@@ -8495,12 +8673,13 @@ const ProgressPenjualan = () => {
     const file = e.target.files?.[0];
     if (!file || !currentCustomer) return;
     if (!newDocName.trim()) {
-      alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file!");
+      alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file tambahan!");
       e.target.value = "";
       return;
     }
-    if (!file.type.startsWith('image/')) {
-      alert("Hanya file gambar yang diperbolehkan!");
+    // Tambahkan pengecekan application/pdf
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya file gambar dan PDF yang diperbolehkan!");
       e.target.value = "";
       return;
     }
@@ -8668,7 +8847,12 @@ const ProgressPenjualan = () => {
                                 </div>
                               )}
                             </div>
-                            <FileInput label="Upload / Ganti" accept="image/*" onChange={(e) => handleUploadCustDoc(type, e)} disabled={uploadCustomerDocMutation.isPending} />
+                            <FileInput
+                              label="Upload / Ganti"
+                              accept="image/*,application/pdf"
+                              onChange={(e) => handleUploadCustDoc(type, e)}
+                              disabled={uploadCustomerDocMutation.isPending}
+                            />
                           </div>
                         ))}
                       </div>
@@ -8696,7 +8880,12 @@ const ProgressPenjualan = () => {
                             <div className="w-full">
                               <input type="text" value={newDocName} onChange={(e) => setNewDocName(e.target.value)} placeholder="Nama Dok. Baru (Cth: Slip Gaji)" className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400" />
                             </div>
-                            <FileInput label="Pilih File" accept="image/*" onChange={handleUploadLainnya} disabled={uploadCustomerDocMutation.isPending || newDocName.trim() === ""} />
+                            <FileInput
+                              label="Pilih File"
+                              accept="image/*,application/pdf"
+                              onChange={handleUploadLainnya}
+                              disabled={uploadCustomerDocMutation.isPending || newDocName.trim() === ""}
+                            />
                           </div>
                         </div>
                       </div>
@@ -8953,8 +9142,8 @@ const FeeAgent = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith("image/")) {
-        alert("Hanya format gambar yang diperbolehkan!");
+      if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+        alert("Hanya format gambar dan PDF yang diperbolehkan!");
         e.target.value = "";
         return;
       }
@@ -9129,8 +9318,7 @@ const FeeAgent = () => {
               <CurrencyInput label="Nominal (Rp)" name="closingNominal" value={Number(formData.closingNominal) || 0} onValueChange={(_, val) => setFormData(prev => ({ ...prev, closingNominal: val }))} error={errors.closingNominal} placeholder="0" />
               <Input label="Tanggal Transfer" name="closingTanggal" type="date" value={formData.closingTanggal} onChange={handleChange} error={errors.closingTanggal} />
               <div>
-                <FileInput label={formData.closingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*" onChange={(e) => handleFileChange(e, "closingBukti")} />
-                {renderThumbnail(formData.closingBukti)}
+                <FileInput label={formData.closingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "closingBukti")} />
               </div>
             </div>
           </div>
@@ -9141,7 +9329,7 @@ const FeeAgent = () => {
               <CurrencyInput label="Nominal (Rp)" name="marketingNominal" value={Number(formData.marketingNominal) || 0} onValueChange={(_, val) => setFormData(prev => ({ ...prev, marketingNominal: val }))} error={errors.marketingNominal} placeholder="0" />
               <Input label="Tanggal Transfer" name="marketingTanggal" type="date" value={formData.marketingTanggal} onChange={handleChange} error={errors.marketingTanggal} />
               <div>
-                <FileInput label={formData.marketingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*" onChange={(e) => handleFileChange(e, "marketingBukti")} />
+                <FileInput label={formData.marketingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "marketingBukti")} />
                 {renderThumbnail(formData.marketingBukti)}
               </div>
             </div>
@@ -9229,248 +9417,6 @@ const FeeAgent = () => {
 };
 
 export default FeeAgent;
-</file>
-
-<file path="src/pages/Management/GantiKavling.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Select from "../../components/shared/Select";
-import Input from "../../components/shared/Input";
-import PageLoader from "../PageLoader";
-import { formatRupiah, formatDate } from "../../utils/formatters";
-import { ArrowRightLeft, Check, X, Clock, CheckCircle2, XCircle } from 'lucide-react';
-import { useGetPenjualan, useGantiKavling, useGetPengajuanGantiKavling, useApproveGantiKavling } from "../../hooks/queries/usePenjualan";
-import { useGetKavlings } from "../../hooks/queries/useKavling";
-import { storage } from "../../utils/storage";
-
-const GantiKavling = () => {
-  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
-  const penjualanData = penjualanResponse?.items || [];
-  const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
-  const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanGantiKavling();
-
-  const gantiKavlingMutation = useGantiKavling();
-  const approveMutation = useApproveGantiKavling();
-
-  const user = storage.getUser();
-  const isAdmin = user?.role === 'ADMIN';
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTransaksi, setSelectedTransaksi] = useState<any>(null);
-  const [formData, setFormData] = useState({ blokBaru: '', nomorUnitBaru: '', kavlingBaruId: '', alasan: '' });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const eligiblePenjualan = useMemo(() => {
-    return penjualanData.filter((p: any) => p.status === 'BOOKED' || p.status === 'PROSES');
-  }, [penjualanData]);
-
-  const availableKavlings = useMemo(() => {
-    if (!kavlingResponse?.items) return [];
-    return kavlingResponse.items.filter(k => k.status === 'AVAILABLE');
-  }, [kavlingResponse]);
-
-  const uniqueBloks = useMemo(() => {
-    const bloks = availableKavlings.map(k => k.blok);
-    return [...new Set(bloks)].sort((a, b) =>
-      a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-    );
-  }, [availableKavlings]);
-
-  const availableUnits = useMemo(() => {
-    if (!formData.blokBaru) return [];
-    return availableKavlings.filter(k => k.blok === formData.blokBaru).map(k => k.nomorUnit).sort();
-  }, [availableKavlings, formData.blokBaru]);
-
-  const selectedKavlingInfo = useMemo(() => {
-    return availableKavlings.find(k => k.blok === formData.blokBaru && k.nomorUnit === formData.nomorUnitBaru);
-  }, [availableKavlings, formData.blokBaru, formData.nomorUnitBaru]);
-
-  const handleApproveReject = async (id: number, isApproved: boolean) => {
-    const actionText = isApproved ? 'menyetujui' : 'menolak';
-    if (!window.confirm(`Apakah Anda yakin ingin ${actionText} ganti kavling ini?`)) return;
-    try {
-      await approveMutation.mutateAsync({ id, isApproved });
-      alert(`Pengajuan berhasil ${isApproved ? 'disetujui' : 'ditolak'}.`);
-    } catch (error: any) {
-      alert(error.response?.data?.message || `Gagal memproses pengajuan.`);
-    }
-  };
-
-  const columnsMaster = [
-    { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
-    { header: 'Blok - No', accessor: 'blok', render: (_: any, row: any) => `${row.blok}-${row.nomorUnit}` },
-    { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
-    {
-      header: 'Aksi', accessor: 'id', render: (_: any, row: any) => (
-        <button
-          onClick={() => {
-            setSelectedTransaksi(row);
-            setFormData({ blokBaru: '', nomorUnitBaru: '', kavlingBaruId: '', alasan: '' });
-            setErrors({});
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition-colors cursor-pointer"
-        >
-          <ArrowRightLeft size={14} /> Ajukan Ganti
-        </button>
-      )
-    }
-  ];
-
-  const columnsHistory = [
-    { header: 'Customer', accessor: 'penjualan', render: (val: any) => <span className="font-bold">{val?.customer?.nama}</span> },
-    { header: 'Dari Kavling', accessor: 'kavlingLama', render: (val: any) => <span className="text-red-600 font-medium">Blok {val?.blok}-{val?.nomorUnit}</span> },
-    { header: 'Ke Kavling', accessor: 'kavlingBaru', render: (val: any) => <span className="text-green-600 font-bold">Blok {val?.blok}-{val?.nomorUnit}</span> },
-    { header: 'Tgl Pengajuan', accessor: 'createdAt', render: (val: string) => formatDate(val) },
-    { header: 'Alasan', accessor: 'alasan', render: (val: string) => <span className="text-slate-500 italic text-xs">{val}</span> },
-    { header: 'Diajukan Oleh', accessor: 'requestedBy', render: (val: any) => val ? <span className="font-medium text-slate-700">{val.username}</span> : '-' },
-    {
-      header: 'Status', accessor: 'status', render: (val: string, row: any) => {
-        if (val === 'PENDING') return <span className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md w-fit"><Clock size={12} /> Menunggu</span>;
-        if (val === 'APPROVED') return (
-          <div className="flex flex-col">
-            <span className="flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md w-fit"><CheckCircle2 size={12} /> Disetujui</span>
-            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.username}</span>
-          </div>
-        );
-        return (
-          <div className="flex flex-col">
-            <span className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md w-fit"><XCircle size={12} /> Ditolak</span>
-            <span className="text-[10px] text-slate-400 mt-1">Oleh: {row.approvedBy?.username}</span>
-          </div>
-        );
-      }
-    },
-    {
-      header: 'Aksi', accessor: 'id', render: (_: any, row: any) => {
-        if (row.status === 'PENDING' && isAdmin) {
-          return (
-            <div className="flex items-center gap-2">
-              <button onClick={() => handleApproveReject(row.id, true)} disabled={approveMutation.isPending} className="p-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer shadow-sm" title="Setujui Ganti">
-                <Check size={16} />
-              </button>
-              <button onClick={() => handleApproveReject(row.id, false)} disabled={approveMutation.isPending} className="p-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition cursor-pointer shadow-sm" title="Tolak Pengajuan">
-                <X size={16} />
-              </button>
-            </div>
-          );
-        }
-        return <span className="text-slate-300 text-xs">-</span>;
-      }
-    }
-  ];
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const newErrors: Record<string, string> = {};
-    if (!formData.kavlingBaruId) newErrors.kavlingBaruId = "Pilih unit terlebih dahulu";
-    if (formData.alasan.length < 5) newErrors.alasan = "Alasan wajib diisi (min. 5 karakter)";
-
-    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-
-    try {
-      await gantiKavlingMutation.mutateAsync({
-        id: selectedTransaksi.id,
-        data: { kavlingBaruId: Number(formData.kavlingBaruId), alasan: formData.alasan }
-      });
-      alert("Pengajuan Ganti Kavling Berhasil Dikirim ke Admin!");
-      setIsModalOpen(false);
-    } catch (error: any) {
-      alert(error.response?.data?.message || "Terjadi kesalahan saat memproses pengajuan");
-    }
-  };
-
-  if (loadingPenjualan || loadingKavling || loadingPengajuan) return <PageLoader />;
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="max-h-[450px] overflow-y-auto custom-scrollbar rounded-2xl shadow-sm border border-slate-200/60 bg-white">
-        <DataTable title="Pilih Transaksi Untuk Ganti Kavling" columns={columnsMaster} data={eligiblePenjualan} />
-      </div>
-
-      <div className="mt-8">
-        <DataTable title="Daftar Pengajuan Ganti Kavling" columns={columnsHistory} data={pengajuanList} />
-      </div>
-
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Formulir Pengajuan Ganti Kavling">
-        {selectedTransaksi && (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl shadow-sm">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Detail Transaksi Saat Ini</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
-                <div><p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Customer</p><p className="text-sm font-bold text-slate-900">{selectedTransaksi.nama}</p></div>
-                <div><p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kavling Lama</p><p className="text-sm font-bold text-red-600">{selectedTransaksi.perumahan} Blok {selectedTransaksi.blok}-{selectedTransaksi.nomorUnit}</p></div>
-                <div><p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Harga Jual Lama</p><p className="text-sm font-bold text-slate-700">{formatRupiah(selectedTransaksi.hargaJual)}</p></div>
-              </div>
-            </div>
-
-            <div className="p-5 bg-blue-50/50 border border-blue-200 rounded-2xl shadow-sm">
-              <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                <ArrowRightLeft size={14} /> Pilih Unit Kavling Baru
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select label="Pilih Blok" name="blokBaru" value={formData.blokBaru} onChange={(e) => setFormData({ ...formData, blokBaru: e.target.value, nomorUnitBaru: '', kavlingBaruId: '' })} options={[{ value: '', label: '-- Pilih Blok --' }, ...uniqueBloks.map(b => ({ value: b, label: `${b}` }))]} />
-                <Select label="Pilih Nomor Unit" name="nomorUnitBaru" value={formData.nomorUnitBaru} onChange={(e) => { const unit = e.target.value; const kav = availableKavlings.find(k => k.blok === formData.blokBaru && k.nomorUnit === unit); setFormData({ ...formData, nomorUnitBaru: unit, kavlingBaruId: kav?.id?.toString() || '' }); }} disabled={!formData.blokBaru} options={[{ value: '', label: '-- Pilih Nomor Unit --' }, ...availableUnits.map(u => ({ value: u, label: `${u}` }))]} error={errors.kavlingBaruId} />
-              </div>
-              {selectedKavlingInfo && (
-                <div className="mt-5 p-4 bg-white rounded-xl border border-blue-100 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in zoom-in-95 duration-200 shadow-sm">
-                  <div>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Perumahan</p>
-                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.perumahan?.nama || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Tipe Kavling</p>
-                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.namaTipe}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Luas Tanah</p>
-                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.luasTanah} m²</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Luas Bangunan</p>
-                    <p className="text-sm font-bold text-slate-900">{selectedKavlingInfo.luasBangunan} m²</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Harga Dasar</p>
-                    <p className="text-sm font-black text-blue-700">{formatRupiah(selectedKavlingInfo.hargaDasar)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Rekening Bank PT</p>
-                    <p className="text-xs font-bold text-slate-900">
-                      {selectedKavlingInfo.rekeningTujuan
-                        ? `${selectedKavlingInfo.rekeningTujuan.namaBank} - ${selectedKavlingInfo.rekeningTujuan.noRekening}`
-                        : 'Belum Diatur'}
-                    </p>
-                    {selectedKavlingInfo.rekeningTujuan && (
-                      <p className="text-[10px] text-slate-500 font-medium">
-                        a/n {selectedKavlingInfo.rekeningTujuan.atasNama}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="px-1">
-              <Input label="Alasan Pindah / Ganti Kavling" name="alasan" value={formData.alasan} onChange={(e) => setFormData({ ...formData, alasan: e.target.value })} error={errors.alasan} placeholder="Contoh: Customer ingin upgrade ke tipe yang lebih besar..." />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">Batal</button>
-              <button type="submit" disabled={gantiKavlingMutation.isPending || !formData.kavlingBaruId} className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 shadow-lg cursor-pointer transition-colors disabled:opacity-50">
-                {gantiKavlingMutation.isPending ? "Memproses..." : "Ajukan Ganti Kavling"}
-              </button>
-            </div>
-          </form>
-        )}
-      </Modal>
-    </div>
-  );
-};
-
-export default GantiKavling;
 </file>
 
 <file path="src/services/kavling.service.ts">
@@ -14137,7 +14083,7 @@ const Tagihan = () => {
               <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
                 Upload bukti transfer dari pihak pelanggan di sini. Sistem otomatis mengubah status menjadi <strong className="text-green-700">LUNAS</strong>.
               </p>
-              <FileInput label="Upload Bukti Transfer" accept="image/*" onChange={handleFileChange} />
+              <FileInput label="Upload Bukti Transfer" accept="image/*,application/pdf" onChange={handleFileChange} />
               {formData.fileBukti && typeof formData.fileBukti === 'string' && (
                 <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
                   <FileText size={14} /> File saat ini sudah diupload
@@ -15721,7 +15667,7 @@ const Penjualan = () => {
               ) : (
                 <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                   <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Booking"}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
+                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
                 </label>
               )}
             </div>
