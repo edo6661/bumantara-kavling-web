@@ -424,26 +424,18 @@ const Administrasi = () => {
       alert("Customer ini sudah memiliki akun portal!");
       return;
     }
-    if (!customer.email) {
-      alert("Gagal: Email customer masih kosong. Silakan Edit data administrasi dan isi email terlebih dahulu!");
-      return;
-    }
 
-    const password = window.prompt(`Masukkan password baru untuk akun portal ${customer.nama} (Min. 6 karakter):`);
-    if (!password) return;
-    if (password.length < 6) {
-      alert("Password harus minimal 6 karakter!");
+    if (!window.confirm(`Buat akun portal untuk ${customer.nama}?\n\nUsername: ${customer.noHp}\nPassword: ${customer.nikKtp}`)) {
       return;
     }
 
     try {
-      await generateAccountMutation.mutateAsync({ id: customer.id, password });
-      alert(`Berhasil! Akun portal untuk ${customer.nama} telah dibuat. Silakan login menggunakan email: ${customer.email}`);
+      await generateAccountMutation.mutateAsync({ id: customer.id, password: "" });
+      alert(`Berhasil! Akun portal untuk ${customer.nama} telah dibuat.\nUsername: ${customer.noHp}\nPassword: ${customer.nikKtp}`);
     } catch (error: any) {
       alert(error.response?.data?.message || "Gagal membuat akun portal.");
     }
   };
-
   const processUpload = async (file: File, docType: CustomerDocType | 'lainnya') => {
     if (!currentCustomer) return;
 

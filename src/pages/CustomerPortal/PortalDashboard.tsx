@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// src/pages/CustomerPortal/PortalDashboard.tsx
 import React, { useState } from 'react';
 import {
   useGetCustomerDashboard,
@@ -27,9 +25,9 @@ const PortalDashboard = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [newDocName, setNewDocName] = useState("");
 
-  // State untuk Modal Pengaturan Akun
+  // 1. TAMBAHKAN USERNAME DI STATE FORM
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  const [accountForm, setAccountForm] = useState({ username: '', password: '', confirmPassword: '' });
+  const [accountForm, setAccountForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
 
   if (isLoading) return <PageLoader />;
   if (!data) return <div className="p-8 text-center">Gagal memuat data portal.</div>;
@@ -81,14 +79,13 @@ const PortalDashboard = () => {
     }
   };
 
-  // Handler Buka Modal & Submit Pengaturan Akun
+  // 2. SET STATE AWAL SAAT MODAL DIBUKA
   const openAccountModal = () => {
-    // Karena kita tidak mengembalikan username via response standar getProfile yang terhubung di useAuth,
-    // biarkan user mengisi username barunya jika ingin mengubah
-    setAccountForm({ username: '', password: '', confirmPassword: '' });
+    setAccountForm({ username: '', email: profil.email || '', password: '', confirmPassword: '' });
     setIsAccountModalOpen(true);
   };
 
+  // 3. PROSES PAYLOAD
   const handleAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (accountForm.password && accountForm.password.length < 6) {
@@ -101,9 +98,17 @@ const PortalDashboard = () => {
     }
 
     try {
-      const payload: { username?: string; password?: string } = {};
+      const payload: { username?: string; email?: string; password?: string } = {};
+
       if (accountForm.username) payload.username = accountForm.username;
-      if (accountForm.password) payload.password = accountForm.password;
+
+      if (accountForm.email && accountForm.email !== profil.email) {
+        payload.email = accountForm.email;
+      }
+
+      if (accountForm.password) {
+        payload.password = accountForm.password;
+      }
 
       if (Object.keys(payload).length === 0) {
         alert("Tidak ada perubahan data.");
@@ -112,17 +117,14 @@ const PortalDashboard = () => {
       }
 
       await updateAccountMutation.mutateAsync(payload);
-      alert("Data akun berhasil diperbarui! Jika Anda mengubah email atau password, silakan login kembali.");
+      alert("Data akun berhasil diperbarui! Silakan login kembali dengan data baru Anda.");
       setIsAccountModalOpen(false);
-
-      // Paksa logout setelah update berhasil agar keamanan terjamin dan state ter-refresh
       logout();
     } catch (error: any) {
       alert(error.response?.data?.message || "Gagal memperbarui akun.");
     }
   };
 
-  // Kumpulan dokumen utama yang wajib
   const dokumenUtama = [
     { key: 'fileKtp', label: 'KTP' },
     { key: 'fileKk', label: 'Kartu Keluarga (KK)' },
@@ -131,7 +133,6 @@ const PortalDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans pb-12">
-      {/* Navbar */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-4 flex justify-between items-center shadow-sm">
         <h1 className="text-lg font-black text-slate-900 tracking-tight">Kavling<span className="text-blue-600">Portal</span></h1>
         <button onClick={logout} className="flex items-center gap-2 text-sm font-bold text-red-500 hover:text-red-700 transition-colors cursor-pointer">
@@ -140,8 +141,6 @@ const PortalDashboard = () => {
       </header>
 
       <main className="max-w-6xl mx-auto mt-8 px-4 space-y-8 animate-in fade-in duration-500">
-
-        {/* Section: Profil & Upload */}
         <section className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
             <div className="flex items-center gap-3">
@@ -157,8 +156,6 @@ const PortalDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-            {/* Tabel Profil */}
             <div>
               <h3 className="text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">Informasi Biodata</h3>
               <div className="overflow-hidden border border-slate-200 rounded-xl">
@@ -193,7 +190,6 @@ const PortalDashboard = () => {
               </div>
             </div>
 
-            {/* Tabel Kelengkapan Administrasi */}
             <div>
               <h3 className="text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">Kelengkapan Administrasi</h3>
               <div className="overflow-hidden border border-slate-200 rounded-xl">
@@ -206,8 +202,6 @@ const PortalDashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-
-                    {/* Render Dokumen Utama */}
                     {dokumenUtama.map(({ key, label }) => (
                       <tr key={key} className="hover:bg-slate-50 transition-colors">
                         <td className="py-3 px-4 font-bold text-slate-700">{label}</td>
@@ -237,8 +231,6 @@ const PortalDashboard = () => {
                         </td>
                       </tr>
                     ))}
-
-                    {/* Render Dokumen Pendukung Lainnya */}
                     {profil.dokumenLainnya && profil.dokumenLainnya.map((doc: any) => (
                       <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-3 px-4 font-bold text-slate-700">{doc.nama}</td>
@@ -261,8 +253,6 @@ const PortalDashboard = () => {
                         </td>
                       </tr>
                     ))}
-
-                    {/* Baris Input Tambah Dokumen Lainnya */}
                     <tr className="bg-blue-50/30">
                       <td className="py-3 px-4">
                         <input
@@ -292,16 +282,13 @@ const PortalDashboard = () => {
                         </label>
                       </td>
                     </tr>
-
                   </tbody>
                 </table>
               </div>
             </div>
-
           </div>
         </section>
 
-        {/* Section: Transaksi & Cicilan */}
         <section className="space-y-6">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 px-2">
             <Home className="text-indigo-600" size={20} /> Unit & Tagihan Saya
@@ -347,7 +334,6 @@ const PortalDashboard = () => {
                           </td>
                           <td className="p-4 text-right font-black text-slate-900 tabular-nums">{formatRupiah(t.nominal)}</td>
                           <td className="p-4 text-center">
-                            {/* BADGE STATUS */}
                             <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider 
                               ${t.status === 'LUNAS' ? 'bg-green-100 text-green-700' :
                                 t.status === 'MENUNGGU_KONFIRMASI' ? 'bg-yellow-100 text-yellow-700' :
@@ -357,8 +343,6 @@ const PortalDashboard = () => {
                           </td>
                           <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-3">
-
-                              {/* TOMBOL INVOICE / KWITANSI */}
                               <a
                                 href={`/verify/${t.status === 'LUNAS' ? t.noTagihan.replace('INV-', 'KWT-') : t.noTagihan}`}
                                 target="_blank"
@@ -367,8 +351,6 @@ const PortalDashboard = () => {
                               >
                                 {t.status === 'LUNAS' ? 'Kwitansi' : 'Invoice'}
                               </a>
-
-                              {/* TOMBOL UPLOAD BUKTI (Hanya jika belum bayar) */}
                               {t.status === 'BELUM_BAYAR' && (
                                 <label className="px-3 py-1.5 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg cursor-pointer hover:bg-blue-700 transition-colors shadow-sm shrink-0 flex items-center gap-1.5">
                                   <UploadCloud size={14} />
@@ -382,8 +364,6 @@ const PortalDashboard = () => {
                                   />
                                 </label>
                               )}
-
-                              {/* THUMBNAIL BUKTI TRANSFER (Langsung Tampil Gambar) */}
                               {t.fileBukti ? (
                                 <div
                                   onClick={() => setPreviewImage(t.fileBukti as string)}
@@ -418,14 +398,14 @@ const PortalDashboard = () => {
         </section>
       </main>
 
-      {/* MODAL: Pengaturan Akun */}
       <Modal isOpen={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} title="Pengaturan Akun Portal">
         <form onSubmit={handleAccountSubmit} className="space-y-4">
           <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 mb-4">
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
-              Anda dapat memperbarui Username (Login) dan Password Anda di sini. Kosongkan kolom yang tidak ingin diubah.
+              Anda dapat memperbarui Username (Login), Email, dan Password Anda di sini. Kosongkan kolom yang tidak ingin diubah.
             </p>
           </div>
+
           <Input
             label="Username Baru (Opsional)"
             name="username"
@@ -433,6 +413,15 @@ const PortalDashboard = () => {
             value={accountForm.username}
             onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
             placeholder="Masukkan username baru..."
+          />
+
+          <Input
+            label="Email Baru (Opsional)"
+            name="email"
+            type="email"
+            value={accountForm.email}
+            onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+            placeholder="email@example.com"
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -473,7 +462,6 @@ const PortalDashboard = () => {
         </form>
       </Modal>
 
-      {/* Komponen Modal untuk Lightbox Pratinjau Gambar */}
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
         <div className="flex flex-col items-center">
           {previewImage && (
@@ -487,7 +475,6 @@ const PortalDashboard = () => {
           </div>
         </div>
       </Modal>
-
     </div>
   );
 };
