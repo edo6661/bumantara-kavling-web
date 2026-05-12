@@ -34,7 +34,7 @@ const initialFormState: AgentFormState = {
 
 const Agents = () => {
   const { data: agentData = [], isLoading } = useGetAgents();
-  // Ambil data penjualan untuk detail (riwayat di dalam row expand)
+
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
   const penjualanList = penjualanResponse?.items || [];
   const createMutation = useCreateAgent();
@@ -46,12 +46,12 @@ const Agents = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  // === State untuk Modal View Detail Agent ===
+
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentData | null>(null);
 
-  // State untuk Lightbox Detail Penjualan (saat melihat data di dalam tabel expand)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
 
   const columns = [
@@ -120,6 +120,15 @@ const Agents = () => {
       newPics[index] = { ...newPics[index], [name]: value };
       return { ...prev, pics: newPics };
     });
+
+    const errorKey = `pics.${index}.${name}`;
+    if (errors[errorKey]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
   };
 
   const handleAddPIC = () => {
@@ -151,7 +160,17 @@ const Agents = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
+
+    const picMapping: number[] = [];
+    const validPics: PicAgentData[] = [];
+
+    formData.pics.forEach((pic, index) => {
+      if (pic.nama.trim() !== '' || pic.noHp.trim() !== '') {
+        picMapping.push(index);
+        validPics.push(pic);
+      }
+    });
+
     const payload: CreateAgentDTO = {
       nik: formData.nik,
       nama: formData.nama,
@@ -168,9 +187,38 @@ const Agents = () => {
         await createMutation.mutateAsync(payload);
       }
       closeModal();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+      const responseData = error.response?.data;
+
+      if (responseData?.error && Array.isArray(responseData.error)) {
+        const backendErrors: Record<string, string> = {};
+
+        responseData.error.forEach((err: { field: string; message: string }) => {
+
+          const fieldName = err.field.replace(/\[(\d+)\]/g, '.$1');
+          const parts = fieldName.split('.');
+
+
+          if (parts.length >= 3 && parts[0].toLowerCase() === 'pics') {
+            const backendIdx = parseInt(parts[1], 10);
+            const frontendIdx = picMapping[backendIdx] !== undefined ? picMapping[backendIdx] : backendIdx;
+
+
+            let propName = parts[2];
+            propName = propName.charAt(0).toLowerCase() + propName.slice(1);
+
+            backendErrors[`pics.${frontendIdx}.${propName}`] = err.message;
+          } else {
+
+            const normalField = parts.map(p => p.charAt(0).toLowerCase() + p.slice(1)).join('.');
+            backendErrors[normalField] = err.message;
+          }
+        });
+
+        setErrors(backendErrors);
+      } else {
+        alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
+      }
     }
   };
 
@@ -178,7 +226,7 @@ const Agents = () => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
       try {
         await deleteMutation.mutateAsync(item.id);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       } catch (error: any) {
         alert(error.response?.data?.message || 'Gagal menghapus agen');
       }
@@ -211,8 +259,8 @@ const Agents = () => {
                   <tr
                     key={sale.id}
                     onClick={() => {
-                      // Cari data lengkap dari list penjualan berdasarkan noTransaksi
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+
                       const detail = penjualanList.find((p: any) => p.id === sale.noTransaksi);
                       setSelectedDetailPenjualan(detail || sale);
                     }}
@@ -287,7 +335,7 @@ const Agents = () => {
                 <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent (Opsional)</h4>
                 <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk di bawah agent ini</p>
               </div>
-              <button type="button" onClick={handleAddPIC} className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer">
+              <button type="button" onClick={handleAddPIC} className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer shadow-sm">
                 + Tambah PIC
               </button>
             </div>
@@ -301,10 +349,10 @@ const Agents = () => {
                   <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="Nama PIC" name="nama" value={pic.nama} onChange={(e) => handlePICChange(index, e)} placeholder="Masukkan nama PIC" />
-                    <Input label="No. Telepon / HP PIC" name="noHp" value={pic.noHp} onChange={(e) => handlePICChange(index, e)} placeholder="08xxxxxxxxxx" />
+                    <Input label="Nama PIC" name="nama" value={pic.nama} onChange={(e) => handlePICChange(index, e)} error={errors[`pics.${index}.nama`]} placeholder="Masukkan nama PIC" />
+                    <Input label="No. Telepon / HP PIC" name="noHp" value={pic.noHp} onChange={(e) => handlePICChange(index, e)} error={errors[`pics.${index}.noHp`]} placeholder="08xxxxxxxxxx" />
                     <div className="md:col-span-2">
-                      <Input label="Alamat PIC (Opsional)" name="alamat" value={pic.alamat || ''} onChange={(e) => handlePICChange(index, e)} placeholder="Masukkan alamat lengkap PIC" />
+                      <Input label="Alamat PIC (Opsional)" name="alamat" value={pic.alamat || ''} onChange={(e) => handlePICChange(index, e)} error={errors[`pics.${index}.alamat`]} placeholder="Masukkan alamat lengkap PIC" />
                     </div>
                   </div>
                 </div>
@@ -313,10 +361,10 @@ const Agents = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50">
+            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors">
               Batal
             </button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50">
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors">
               {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
             </button>
           </div>
