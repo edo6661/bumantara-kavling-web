@@ -634,31 +634,31 @@ const Administrasi = () => {
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => {
-                const isPdf = doc.fileUrl.toLowerCase().includes('.pdf');
-                return (
-                  <div key={doc.id} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50 hover:bg-white transition-all group shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate" title={doc.nama}>
-                      {doc.nama}
-                    </span>
-                    <div
-                      onClick={() => handleViewDocument(doc.fileUrl)}
-                      className="aspect-video w-full rounded-xl border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-pointer hover:border-blue-400 transition-colors group"
-                    >
-                      {isPdf ? (
-                        <div className="flex flex-col items-center gap-1 text-red-500 group-hover:scale-105 transition-transform">
-                          <FileText size={32} />
-                          <span className="text-[10px] font-bold text-slate-600">Dokumen PDF</span>
-                        </div>
-                      ) : (
-                        <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      )}
-                      <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        {isPdf ? <Eye size={20} className="text-white" /> : <ZoomIn size={20} className="text-white" />}
+              {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.flatMap((doc: any) => {
+                const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : [doc.fileUrl];
+
+                return fileUrls.map((url: string, idx: number) => {
+                  const isPdf = url.toLowerCase().includes('.pdf');
+                  return (
+                    <div key={`${doc.id}-${idx}`} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50 hover:bg-white transition-all group shadow-sm">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate" title={doc.nama}>
+                        {doc.nama} {fileUrls.length > 1 ? `(${idx + 1})` : ''}
+                      </span>
+                      <div
+                        onClick={() => handleViewDocument(url)}
+                        className="aspect-video w-full rounded-xl border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-pointer hover:border-blue-400 transition-colors group"
+                      >
+                        {isPdf ? (
+                          <div className="flex flex-col items-center gap-1 text-red-500 group-hover:scale-105 transition-transform">
+                            <FileText size={32} />
+                          </div>
+                        ) : (
+                          <img src={url} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        )}
                       </div>
                     </div>
-                  </div>
-                );
+                  );
+                });
               })}
 
               <div

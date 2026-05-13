@@ -17,7 +17,7 @@ export interface CustomerData {
   fileNpwp: string | null;
   hasAccount: boolean;
 
-  dokumenLainnya?: { id: string; nama: string; fileUrl: string }[];
+  dokumenLainnya?: { id: string; nama: string; fileUrl: string | string[] }[];
 }
 
 export interface CreateCustomerDTO {

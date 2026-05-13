@@ -38,6 +38,9 @@ const ProgressPenjualan = () => {
   const [uploadingProgressDoc, setUploadingProgressDoc] = useState<string | null>(null);
   const [uploadingCustDoc, setUploadingCustDoc] = useState<string | null>(null);
 
+  // State untuk Drag and Drop
+  const [dragActive, setDragActive] = useState<string | null>(null);
+
   const activePenjualan = useMemo(() => {
     return penjualanData.filter((p: Record<string, any>) => p.status !== 'BATAL');
   }, [penjualanData]);
@@ -72,6 +75,26 @@ const ProgressPenjualan = () => {
       }
     }
   }, [progressData]);
+
+  // Handlers untuk Drag & Drop dan Paste
+  const handleDrag = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(id);
+    else if (e.type === "dragleave") setDragActive(null);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent, callback: (files: File[]) => void) => {
+    const items = e.clipboardData.items;
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1 || items[i].type === "application/pdf") {
+        const file = items[i].getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (files.length > 0) callback(files);
+  };
 
   const ProgressIcons = ({ row }: { row: Record<string, any> }) => {
     const safeProgress = row.progressPenjualan || {};
@@ -151,97 +174,123 @@ const ProgressPenjualan = () => {
     },
     { header: 'Progress', accessor: 'id', render: (_: unknown, row: Record<string, any>) => <ProgressIcons row={row} /> }
   ];
+
   const handleDeleteDokumenLainnya = async (docId: string) => {
     if (!currentCustomer) return;
-
-    const isConfirm = window.confirm("Apakah Anda yakin ingin menghapus dokumen pendukung ini?");
+    const isConfirm = window.confirm("Apakah Anda yakin ingin menghapus seluruh grup dokumen ini?");
     if (!isConfirm) return;
-
     try {
-      // Filter dokumen untuk membuang yang di-klik
       const updatedDocs = currentCustomer.dokumenLainnya?.filter(
         (doc: any) => doc.id !== docId
       );
+      await updateCustomerMutation.mutateAsync({
+        id: currentCustomer.id,
+        data: { dokumenLainnya: updatedDocs } as any
+      });
+      alert("Grup dokumen berhasil dihapus!");
+    } catch (error: any) {
+      alert(handleApiError(error).message);
+    }
+  };
+
+  // Fungsi baru untuk Hapus 1 Gambar/File saja di dalam grup
+  const handleDeleteSingleItemLainnya = async (docId: string, urlToDelete: string) => {
+    if (!currentCustomer) return;
+    const isConfirm = window.confirm("Apakah Anda yakin ingin menghapus file ini?");
+    if (!isConfirm) return;
+
+    try {
+      const updatedDocs = currentCustomer.dokumenLainnya?.map((doc: any) => {
+        if (doc.id === docId) {
+          const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : [doc.fileUrl];
+          // Saring URL yang ingin dihapus
+          const newUrls = fileUrls.filter((url: string) => url !== urlToDelete);
+          return { ...doc, fileUrl: newUrls };
+        }
+        return doc;
+      }).filter((doc: any) => doc.fileUrl.length > 0); // Hapus grup otomatis jika kosong
 
       await updateCustomerMutation.mutateAsync({
         id: currentCustomer.id,
         data: { dokumenLainnya: updatedDocs } as any
       });
-
-      alert("Dokumen pendukung berhasil dihapus!");
+      alert("File berhasil dihapus!");
     } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
+      alert(handleApiError(error).message);
     }
   };
-  const handleUploadProgress = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !progressData) return;
+
+  const handleUploadProgress = async (docType: string, file: File) => {
+    if (!progressData) return;
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       alert("Hanya format gambar dan PDF yang diperbolehkan!");
-      e.target.value = '';
       return;
     }
-
     setUploadingProgressDoc(docType);
     try {
       await uploadMutation.mutateAsync({ id: progressData.penjualanId, docType, file });
       alert(`Dokumen berhasil diunggah!`);
     } catch (err: any) {
-      const { message } = handleApiError(err);
-      alert(message);
+      alert(handleApiError(err).message);
     } finally {
       setUploadingProgressDoc(null);
-      e.target.value = '';
     }
   };
 
-  const handleUploadCustDoc = async (docType: CustomerDocType, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentCustomer) return;
+  const handleUploadCustDoc = async (docType: CustomerDocType, file: File) => {
+    if (!currentCustomer) return;
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       alert("Hanya file gambar dan PDF yang diperbolehkan!");
-      e.target.value = "";
       return;
     }
-
     setUploadingCustDoc(docType);
     try {
       await uploadCustomerDocMutation.mutateAsync({ id: currentCustomer.id, docType, file });
     } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
+      alert(handleApiError(error).message);
     } finally {
       setUploadingCustDoc(null);
-      e.target.value = "";
     }
   };
 
-  const handleUploadLainnya = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentCustomer) return;
-    if (!newDocName.trim()) {
+  // Diperbarui menerima nama override untuk support penambahan file di grup yang sudah ada
+  const handleUploadLainnya = async (files: File[] | FileList, groupNameOverride?: string) => {
+    if (!currentCustomer) return;
+
+    const docName = groupNameOverride || newDocName;
+
+    if (!docName.trim()) {
       alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file tambahan!");
-      e.target.value = "";
       return;
     }
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+
+    const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
+    if (validFiles.length === 0) {
       alert("Hanya file gambar dan PDF yang diperbolehkan!");
-      e.target.value = "";
       return;
     }
 
     setUploadingCustDoc('lainnya');
     try {
-      await uploadCustomerDocMutation.mutateAsync({ id: currentCustomer.id, docType: 'lainnya', file, namaDokumen: newDocName });
-      setNewDocName("");
-      alert("Dokumen pendukung berhasil diunggah!");
+      for (const file of validFiles) {
+        await uploadCustomerDocMutation.mutateAsync({
+          id: currentCustomer.id,
+          docType: 'lainnya',
+          file,
+          namaDokumen: docName
+        });
+      }
+
+      // Hanya reset input jika ini upload grup baru
+      if (!groupNameOverride) {
+        setNewDocName("");
+      }
+
+      alert("Dokumen pendukung berhasil diunggah/ditambahkan!");
     } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
+      alert(handleApiError(error).message);
     } finally {
       setUploadingCustDoc(null);
-      e.target.value = "";
     }
   };
 
@@ -251,8 +300,7 @@ const ProgressPenjualan = () => {
       await updateMutation.mutateAsync({ id: progressData.penjualanId, data: { nilaiAjb: nilaiAjbInput } });
       alert("Nilai AJB & Pajak otomatis berhasil dihitung dan disimpan!");
     } catch (err: any) {
-      const { message } = handleApiError(err);
-      alert(message);
+      alert(handleApiError(err).message);
     }
   };
 
@@ -264,31 +312,51 @@ const ProgressPenjualan = () => {
       await updateMutation.mutateAsync({ id: progressData.penjualanId, data: { checklistBast: Object.keys(obj).length > 0 ? obj : null } });
       alert("Checklist BAST berhasil disimpan!");
     } catch (err: any) {
-      const { message } = handleApiError(err);
-      alert(message);
+      alert(handleApiError(err).message);
     }
   };
-
 
   const renderFileBox = (title: string, docType: string, url: string | null) => {
     const isPdf = url?.toLowerCase().endsWith('.pdf') || url?.includes('application/pdf');
     const isUploading = uploadMutation.isPending && uploadingProgressDoc === docType;
+    const isDrag = dragActive === docType;
 
     return (
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200 relative overflow-hidden">
+      <div
+        className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-indigo-400
+          ${isDrag ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-200'}
+        `}
+        tabIndex={0}
+        onDragEnter={(e) => handleDrag(e, docType)}
+        onDragLeave={(e) => handleDrag(e, docType)}
+        onDragOver={(e) => handleDrag(e, docType)}
+        onDrop={(e) => {
+          e.preventDefault(); e.stopPropagation(); setDragActive(null);
+          const file = e.dataTransfer.files?.[0];
+          if (file) handleUploadProgress(docType, file);
+        }}
+        onPaste={(e) => handlePaste(e, (files) => handleUploadProgress(docType, files[0]))}
+      >
         <div className="flex justify-between items-center relative z-10">
-          <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+          <div className="flex flex-col">
+            <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+            <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
+          </div>
           <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
             {isUploading ? (
               <><Loader2 size={14} className="animate-spin text-indigo-600" /> Mengunggah...</>
             ) : (
               <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
             )}
-            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadProgress(docType, e)} disabled={uploadMutation.isPending} />
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUploadProgress(docType, file);
+              e.target.value = '';
+            }} disabled={uploadMutation.isPending} />
           </label>
         </div>
 
-        <div className="w-full h-64 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden relative group">
+        <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-indigo-400 border-dashed' : 'border-slate-200'}`}>
           {isUploading && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
               <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
@@ -309,8 +377,8 @@ const ProgressPenjualan = () => {
               </div>
             </>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
-              <span className="text-[10px] font-medium italic">Belum ada dokumen yang diunggah</span>
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2 pointer-events-none">
+              <span className="text-[10px] font-medium italic text-center px-4">Area Upload<br />Klik / Drag & Drop / Paste</span>
             </div>
           )}
         </div>
@@ -389,15 +457,36 @@ const ProgressPenjualan = () => {
                           const isUploading = uploadCustomerDocMutation.isPending && uploadingCustDoc === type;
                           const fileUrl = currentCustomer?.[type] as string | undefined;
                           const isPdf = fileUrl?.toLowerCase().endsWith('.pdf') || fileUrl?.includes('application/pdf');
+                          const isDrag = dragActive === type;
 
                           return (
-                            <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm relative overflow-hidden">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                                {type.replace('file', '')}
-                              </span>
+                            <div
+                              key={type}
+                              className={`flex flex-col gap-3 p-4 border rounded-2xl transition-all group shadow-sm relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-blue-400
+                                ${isDrag ? 'border-blue-500 bg-blue-50' : 'bg-slate-50/50 hover:bg-white'}
+                              `}
+                              tabIndex={0}
+                              onDragEnter={(e) => handleDrag(e, type)}
+                              onDragLeave={(e) => handleDrag(e, type)}
+                              onDragOver={(e) => handleDrag(e, type)}
+                              onDrop={(e) => {
+                                e.preventDefault(); e.stopPropagation(); setDragActive(null);
+                                const file = e.dataTransfer.files?.[0];
+                                if (file) handleUploadCustDoc(type, file);
+                              }}
+                              onPaste={(e) => handlePaste(e, (files) => handleUploadCustDoc(type, files[0]))}
+                            >
+                              <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                  {type.replace('file', '')}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
+                                  Drag / Paste
+                                </span>
+                              </div>
                               <div
                                 onClick={() => !isUploading && fileUrl && window.open(fileUrl, '_blank')}
-                                className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${fileUrl ? 'border-slate-200 cursor-pointer' : 'border-slate-300 bg-slate-100'}`}
+                                className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${fileUrl ? 'border-slate-200 cursor-pointer hover:border-blue-400' : 'border-slate-300 bg-slate-100'}`}
                               >
                                 {isUploading && (
                                   <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
@@ -417,7 +506,7 @@ const ProgressPenjualan = () => {
                                     </div>
                                   </>
                                 ) : (
-                                  <div className="flex flex-col items-center gap-1 text-slate-400">
+                                  <div className="flex flex-col items-center gap-1 text-slate-400 pointer-events-none">
                                     <ImageIcon size={24} strokeWidth={1.5} />
                                     <span className="text-[9px] font-bold">KOSONG</span>
                                   </div>
@@ -426,7 +515,11 @@ const ProgressPenjualan = () => {
                               <FileInput
                                 label={isUploading ? "Mengunggah..." : "Upload / Ganti"}
                                 accept="image/*,application/pdf"
-                                onChange={(e) => handleUploadCustDoc(type, e)}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleUploadCustDoc(type, file);
+                                  e.target.value = '';
+                                }}
                                 disabled={uploadCustomerDocMutation.isPending}
                               />
                             </div>
@@ -438,54 +531,115 @@ const ProgressPenjualan = () => {
                         <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                           <PlusCircle size={14} className="text-blue-600" /> Dokumen Pendukung KPR (Slip Gaji, Mutasi, dll)
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => {
-                            const isPdf = doc.fileUrl?.toLowerCase().endsWith('.pdf') || doc.fileUrl?.includes('application/pdf');
+                            // Antisipasi data lama (string) maupun data baru (array)
+                            const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : [doc.fileUrl];
 
                             return (
-                              <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 hover:bg-white transition-all group shadow-sm overflow-hidden relative">
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteDokumenLainnya(doc.id)}
-                                  disabled={updateCustomerMutation.isPending}
-                                  className="absolute top-2 right-2 p-1.5 bg-red-50 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg  transition-all z-30 disabled:opacity-50"
-                                  title="Hapus Dokumen"
-                                >
-                                  {updateCustomerMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                                </button>
-
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pr-7" title={doc.nama}>{doc.nama}</span>
-
-                                <div
-                                  onClick={() => window.open(doc.fileUrl, '_blank')}
-                                  className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-pointer group-hover:border-indigo-200 transition-all"
-                                >
-                                  {isPdf ? (
-                                    <iframe src={doc.fileUrl} title={doc.nama} className="w-full h-full border-none pointer-events-none" />
-                                  ) : (
-                                    <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                                  )}
-                                  <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <ZoomIn size={20} className="text-white" />
+                              <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 relative shadow-sm">
+                                <div className="flex justify-between items-start mb-2 border-b border-slate-200 pb-2">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pr-2 pt-1" title={doc.nama}>
+                                    {doc.nama} <span className="text-blue-500">({fileUrls.length} File)</span>
+                                  </span>
+                                  <div className="flex gap-1 shrink-0">
+                                    <label className="p-1.5 bg-blue-50 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-all z-30 cursor-pointer" title="Tambah File ke Grup Ini">
+                                      {uploadCustomerDocMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                                      <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*,application/pdf"
+                                        className="hidden"
+                                        disabled={uploadCustomerDocMutation.isPending}
+                                        onChange={(e) => {
+                                          if (e.target.files?.length) handleUploadLainnya(e.target.files, doc.nama);
+                                          e.target.value = '';
+                                        }}
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteDokumenLainnya(doc.id)}
+                                      disabled={updateCustomerMutation.isPending}
+                                      className="p-1.5 bg-red-50 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-all z-30 disabled:opacity-50"
+                                      title="Hapus Grup Dokumen"
+                                    >
+                                      {updateCustomerMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                    </button>
                                   </div>
+                                </div>
+
+                                <div className={`grid gap-2 ${fileUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                  {fileUrls.map((url: string, idx: number) => {
+                                    const isPdf = url?.toLowerCase().endsWith('.pdf') || url?.includes('application/pdf');
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative group/item bg-white transition-all hover:border-indigo-200"
+                                      >
+                                        {isPdf ? (
+                                          <iframe src={url} title={`${doc.nama}-${idx}`} className="w-full h-full border-none pointer-events-none" />
+                                        ) : (
+                                          <img src={url} alt={doc.nama} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform" />
+                                        )}
+
+                                        {/* Overlay Hover Actions */}
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/item:opacity-100 flex items-center justify-center gap-2 transition-opacity z-10">
+                                          <button onClick={() => window.open(url, '_blank')} className="p-1.5 bg-white text-slate-800 rounded-md hover:bg-slate-200 transition" title="Lihat">
+                                            <ZoomIn size={16} />
+                                          </button>
+                                          <button onClick={() => handleDeleteSingleItemLainnya(doc.id, url)} className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition" title="Hapus Gambar Ini">
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                               </div>
                             );
                           })}
-                          <div className="flex flex-col gap-3 p-3 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30 relative overflow-hidden">
+
+                          <div
+                            className={`flex flex-col gap-3 p-3 border-2 border-dashed rounded-xl relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-blue-400 transition-all
+                              ${dragActive === 'lainnya' ? 'border-blue-500 bg-blue-100/50' : 'border-blue-200 bg-blue-50/30'}`}
+                            tabIndex={0}
+                            onDragEnter={(e) => handleDrag(e, 'lainnya')}
+                            onDragLeave={(e) => handleDrag(e, 'lainnya')}
+                            onDragOver={(e) => handleDrag(e, 'lainnya')}
+                            onDrop={(e) => {
+                              e.preventDefault(); e.stopPropagation(); setDragActive(null);
+                              if (e.dataTransfer.files?.length > 0) handleUploadLainnya(e.dataTransfer.files);
+                            }}
+                            onPaste={(e) => handlePaste(e, handleUploadLainnya)}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-[10px] font-bold text-blue-600 uppercase">Input Grup Baru</span>
+                              <span className="text-[9px] text-blue-500/70 font-medium bg-blue-100/50 px-1.5 py-0.5 rounded">Drag / Paste Di Sini</span>
+                            </div>
                             {uploadingCustDoc === 'lainnya' && (
                               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
                                 <Loader2 size={24} className="animate-spin text-blue-600 mb-2" />
-                                <span className="text-[10px] font-bold text-blue-600 animate-pulse">Mengunggah file...</span>
+                                <span className="text-[10px] font-bold text-blue-600 animate-pulse">Mengunggah...</span>
                               </div>
                             )}
                             <div className="w-full">
-                              <input type="text" value={newDocName} onChange={(e) => setNewDocName(e.target.value)} placeholder="Nama Dok. Baru (Cth: Slip Gaji)" className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400" />
+                              <input
+                                type="text"
+                                value={newDocName}
+                                onChange={(e) => setNewDocName(e.target.value)}
+                                placeholder="Nama Dok. (Cth: Slip Gaji)"
+                                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400"
+                              />
                             </div>
                             <FileInput
-                              label="Pilih File"
+                              label="Pilih File Manual"
                               accept="image/*,application/pdf"
-                              onChange={handleUploadLainnya}
+                              multiple
+                              onChange={(e) => {
+                                if (e.target.files?.length) handleUploadLainnya(e.target.files);
+                                e.target.value = '';
+                              }}
                               disabled={uploadCustomerDocMutation.isPending}
                             />
                           </div>
@@ -555,7 +709,7 @@ const ProgressPenjualan = () => {
                                 });
                                 alert("Detail Nomor & Tanggal AJB berhasil disimpan!");
                               } catch (e: any) {
-                                alert(e.response?.data?.message || "Gagal menyimpan data AJB.");
+                                alert(handleApiError(e).message);
                               }
                             }}
                             disabled={updateMutation.isPending}
