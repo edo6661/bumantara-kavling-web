@@ -73,8 +73,16 @@ const AgentRegister = () => {
 
       await authService.registerAgent(payload);
 
-      alert("Terimakasih telah mendaftar sebagai agent di Puri Safana. Mohon tunggu approval oleh admin untuk bisa login ke sistem.");
-      navigate('/agent-login', { replace: true });
+      navigate('/agent-register-success', {
+        state: {
+          nama: formData.nama,
+          alamat: formData.alamat,
+          perusahaan: getNamaPerusahaan()
+        },
+        replace: true
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.response?.data?.message || 'Terjadi kesalahan saat registrasi.');
     } finally {

@@ -7,7 +7,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle } from "lucide-react"; // <-- Tambah CheckCircle
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText } from "lucide-react"; // <-- Tambah CheckCircle
 import {
   useGetAgents,
   useCreateAgent,
@@ -591,7 +591,14 @@ const Agents = () => {
                     className={`aspect-[4/3] w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedUploadAgent[type as keyof AgentData] ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-300 bg-slate-100'}`}
                   >
                     {selectedUploadAgent[type as keyof AgentData] ? (
-                      <img src={selectedUploadAgent[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      ((selectedUploadAgent[type as keyof AgentData] as string).split('?')[0].toLowerCase().endsWith('.pdf') || (selectedUploadAgent[type as keyof AgentData] as string).includes('application/pdf')) ? (
+                        <div className="flex flex-col items-center text-red-500 group-hover:scale-105 transition-transform">
+                          <FileText size={32} />
+                          <span className="text-[10px] font-bold mt-1 text-slate-600">PDF</span>
+                        </div>
+                      ) : (
+                        <img src={selectedUploadAgent[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      )
                     ) : (
                       <span className="text-[10px] font-bold text-slate-400 italic">KOSONG</span>
                     )}
@@ -696,7 +703,14 @@ const Agents = () => {
                         className={`aspect-[4/3] rounded-xl border flex items-center justify-center overflow-hidden transition-all ${selectedAgentDetail[type as keyof AgentData] ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-100 bg-slate-50'}`}
                       >
                         {selectedAgentDetail[type as keyof AgentData] ? (
-                          <img src={selectedAgentDetail[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover" />
+                          ((selectedAgentDetail[type as keyof AgentData] as string).split('?')[0].toLowerCase().endsWith('.pdf') || (selectedAgentDetail[type as keyof AgentData] as string).includes('application/pdf')) ? (
+                            <div className="flex flex-col items-center text-red-500">
+                              <FileText size={24} />
+                              <span className="text-[8px] font-bold mt-1 text-slate-600">PDF</span>
+                            </div>
+                          ) : (
+                            <img src={selectedAgentDetail[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover" />
+                          )
                         ) : (
                           <span className="text-[10px] font-bold text-slate-300 italic text-center px-2">Belum Upload</span>
                         )}

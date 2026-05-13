@@ -10,12 +10,13 @@ import SignatureCanvas from 'react-signature-canvas';
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import { useGetPenjualan, useUploadSignature } from "../../hooks/queries/usePenjualan";
 import {
-  ShoppingCart, ZoomIn, ImageIcon, PlusCircle, FileUp,
+  ShoppingCart, ZoomIn, ImageIcon, PlusCircle,
   Eye, Edit2, UploadCloud, Trash2,
   FileText, Share2, PenTool, AlertCircle,
   Key,
   LinkIcon,
-  Loader2
+  Loader2,
+  CheckCircle2
 } from "lucide-react";
 import {
   useGetCustomers,
@@ -562,13 +563,14 @@ const Administrasi = () => {
               const isUploading = uploadingDocType === type;
               const isDrag = dragActive === type;
               const fileUrl = currentCustomer?.[type] as string | undefined;
-              const isPdf = fileUrl?.toLowerCase().includes('.pdf');
+              const isPdf = fileUrl?.split('?')[0].toLowerCase().endsWith('.pdf') || fileUrl?.includes('application/pdf');
 
               return (
                 <div
                   key={type}
-                  className={`flex flex-col gap-3 p-4 border rounded-2xl transition-all group shadow-sm outline-none cursor-default ${isDrag ? 'border-blue-500 bg-blue-50' : 'bg-slate-50/50 hover:bg-white focus-within:ring-2 focus-within:ring-blue-400'
-                    }`}
+                  className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-indigo-400
+                    ${isDrag ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-200'}
+                  `}
                   tabIndex={0}
                   onDragEnter={(e) => handleDrag(e, type)}
                   onDragLeave={(e) => handleDrag(e, type)}
@@ -576,53 +578,47 @@ const Administrasi = () => {
                   onDrop={(e) => handleDrop(e, type)}
                   onPaste={(e) => handlePaste(e, type)}
                 >
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                      {type.replace('file', '')}
-                    </span>
-                    <span className="text-[9px] text-slate-400 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
-                      Drag / Paste / Klik
-                    </span>
+                  <div className="flex justify-between items-center relative z-10">
+                    <div className="flex flex-col">
+                      <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{type.replace('file', '')}</h5>
+                      <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
+                    </div>
+                    <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+                      {isUploading ? (
+                        <><Loader2 size={14} className="animate-spin text-indigo-600" /> Mengunggah...</>
+                      ) : (
+                        <><UploadCloud size={14} /> {fileUrl ? 'Ganti File' : 'Upload File'}</>
+                      )}
+                      <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleFileInputChange(e, type)} disabled={uploadMutation.isPending || isUploading} />
+                    </label>
                   </div>
 
-                  <div
-                    onClick={() => fileUrl && !isUploading && handleViewDocument(fileUrl)}
-                    className={`aspect-video w-full rounded-xl border-2 flex items-center justify-center overflow-hidden relative transition-all ${isDrag ? 'border-blue-400 border-dashed bg-blue-100/50' :
-                      fileUrl ? 'border-slate-200 border-solid cursor-pointer hover:border-blue-400' : 'border-slate-300 border-dashed bg-slate-100'
-                      }`}
-                  >
-                    {isUploading ? (
-                      <div className="flex flex-col items-center gap-2 text-blue-600">
-                        <Loader2 size={24} className="animate-spin" />
-                        <span className="text-[10px] font-bold animate-pulse">Mengunggah...</span>
+                  <div className={`w-full h-48 sm:h-56 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-indigo-400 border-dashed' : 'border-slate-200'}`}>
+                    {isUploading && (
+                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                        <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
+                        <span className="text-xs font-bold text-indigo-600 animate-pulse">Sedang mengunggah...</span>
                       </div>
-                    ) : fileUrl ? (
+                    )}
+                    {fileUrl ? (
                       <>
                         {isPdf ? (
-                          <div className="flex flex-col items-center gap-1 text-red-500 group-hover:scale-105 transition-transform">
-                            <FileText size={32} />
-                            <span className="text-[10px] font-bold text-slate-600">Dokumen PDF</span>
-                          </div>
+                          <iframe src={fileUrl} className="w-full h-full border-none pointer-events-none" title={type} />
                         ) : (
-                          <img src={fileUrl} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                          <img src={fileUrl} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                         )}
-                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                          {isPdf ? <Eye size={20} className="text-white" /> : <ZoomIn size={20} className="text-white" />}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
+                          <button onClick={(e) => { e.stopPropagation(); handleViewDocument(fileUrl); }} className="pointer-events-auto px-4 py-2 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md hover:bg-slate-50 transition-colors">
+                            Lihat Dokumen
+                          </button>
                         </div>
                       </>
                     ) : (
-                      <div className="flex flex-col items-center gap-1 text-slate-400 pointer-events-none">
-                        <FileUp size={24} strokeWidth={1.5} />
-                        <span className="text-[9px] font-bold text-center px-2">KOSONG</span>
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2 pointer-events-none">
+                        <span className="text-[10px] font-medium italic text-center px-4">Area Upload<br />Klik / Drag & Drop / Paste</span>
                       </div>
                     )}
                   </div>
-                  <FileInput
-                    label="Pilih File Manual"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => handleFileInputChange(e, type)}
-                    disabled={uploadMutation.isPending || isUploading}
-                  />
                 </div>
               );
             })}
@@ -716,7 +712,7 @@ const Administrasi = () => {
             </button>
           </div>
         </div>
-      </Modal>
+      </Modal >
 
       <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Customer">
         {currentCustomer && (
@@ -741,7 +737,7 @@ const Administrasi = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => {
                   const fileUrl = currentCustomer[type] as string | undefined;
-                  const isPdf = fileUrl?.toLowerCase().includes('.pdf');
+                  const isPdf = fileUrl ? (fileUrl.split('?')[0].toLowerCase().endsWith('.pdf') || fileUrl.includes('application/pdf')) : false;
 
                   return (
                     <div key={type} className="flex flex-col gap-2">
@@ -767,26 +763,40 @@ const Administrasi = () => {
                   )
                 })}
 
-                {currentCustomer.dokumenLainnya?.map((doc: any) => {
-                  const isPdf = doc.fileUrl.toLowerCase().includes('.pdf');
-                  return (
-                    <div key={doc.id} className="flex flex-col gap-2">
-                      <span className="text-[9px] font-black uppercase text-slate-400 text-center truncate px-1" title={doc.nama}>{doc.nama}</span>
-                      <div
-                        onClick={() => handleViewDocument(doc.fileUrl)}
-                        className="aspect-[4/3] rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:border-blue-400 overflow-hidden flex items-center justify-center"
-                      >
-                        {isPdf ? (
-                          <div className="flex flex-col items-center text-red-500">
-                            <FileText size={24} />
-                            <span className="text-[8px] font-bold mt-1">PDF</span>
+                {currentCustomer.dokumenLainnya?.flatMap((doc: any) => {
+                  const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : [doc.fileUrl];
+                  return fileUrls.map((url: string, idx: number) => {
+                    const isPdf = url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf');
+                    return (
+                      <tr key={`${doc.id}-${idx}`} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-4 font-bold text-slate-700">{doc.nama} {fileUrls.length > 1 ? `(${idx + 1})` : ''}</td>
+                        <td className="py-3 px-4 text-center">
+                          <div
+                            onClick={() => handleViewDocument(url)}
+                            className="relative w-14 h-10 mx-auto rounded border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
+                            title={`Lihat ${doc.nama}`}
+                          >
+                            {isPdf ? (
+                              <div className="flex flex-col items-center justify-center h-full text-red-500">
+                                <FileText size={16} />
+                                <span className="text-[8px] font-bold mt-1">PDF</span>
+                              </div>
+                            ) : (
+                              <img src={url} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                            )}
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                              <ZoomIn className="text-white" size={14} />
+                            </div>
                           </div>
-                        ) : (
-                          <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                    </div>
-                  )
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="flex items-center justify-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1.5 rounded-lg border border-green-100">
+                            <CheckCircle2 size={12} /> Terupload
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  });
                 })}
               </div>
             </div>
@@ -846,7 +856,11 @@ const Administrasi = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[70vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
             </div>
           )}
           <div className="mt-6 flex gap-3">
@@ -938,7 +952,7 @@ const Administrasi = () => {
         </div>
       </Modal>
 
-    </div>
+    </div >
   );
 };
 

@@ -11,7 +11,8 @@ import Input from '../../components/shared/Input';
 import { useAuth } from '../../context/AuthContext';
 import {
   LogOut, User, Home, Clock, ZoomIn, PlusCircle,
-  CheckCircle2, UploadCloud, Settings
+  CheckCircle2, UploadCloud, Settings,
+  FileText
 } from 'lucide-react';
 import { formatRupiah, formatDate } from '../../utils/formatters';
 import { handleApiError } from '../../utils/errorHandler';
@@ -218,10 +219,14 @@ const PortalDashboard = () => {
                           {profil[key] ? (
                             <div
                               onClick={() => setPreviewImage(profil[key] as string)}
-                              className="relative w-14 h-10 mx-auto rounded border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
+                              className="relative w-14 h-10 mx-auto rounded border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 flex justify-center items-center"
                               title={`Lihat Dokumen ${label}`}
                             >
-                              <img src={profil[key] as string} alt={label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                              {(profil[key] as string).split('?')[0].toLowerCase().endsWith('.pdf') || (profil[key] as string).includes('application/pdf') ? (
+                                <div className="text-red-500 group-hover:scale-110 transition-transform duration-300"><FileText size={18} /></div>
+                              ) : (
+                                <img src={profil[key] as string} alt={label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                              )}
                               <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                 <ZoomIn className="text-white" size={14} />
                               </div>
@@ -475,7 +480,11 @@ const PortalDashboard = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[70vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
             </div>
           )}
           <div className="mt-6 flex gap-3">

@@ -155,7 +155,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
         <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="min-w-[36px] w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
+            <div className="min-w-9 w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
               B
             </div>
             <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>

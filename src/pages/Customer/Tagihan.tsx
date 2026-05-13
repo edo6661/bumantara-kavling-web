@@ -549,10 +549,14 @@ const Tagihan = () => {
                       {c.fileBukti ? (
                         <div
                           onClick={() => setPreviewImage(c.fileBukti as string)}
-                          className="relative w-8 h-6 mx-auto rounded border border-slate-200 overflow-hidden cursor-zoom-in group-hover:border-blue-300 transition-colors shadow-sm bg-slate-100"
+                          className="relative w-8 h-6 mx-auto rounded border border-slate-200 overflow-hidden cursor-zoom-in group-hover:border-blue-300 transition-colors shadow-sm bg-slate-100 flex justify-center items-center"
                           title="Lihat Bukti Transfer"
                         >
-                          <img src={c.fileBukti as string} alt="Bukti" className="w-full h-full object-cover" />
+                          {c.fileBukti.split('?')[0].toLowerCase().endsWith('.pdf') || c.fileBukti.includes('application/pdf') ? (
+                            <div className="text-red-500"><FileText size={16} /></div>
+                          ) : (
+                            <img src={c.fileBukti as string} alt="Bukti" className="w-full h-full object-cover" />
+                          )}
                         </div>
                       ) : (
                         <span className="text-[10px] text-slate-400 italic">-</span>
@@ -1038,11 +1042,11 @@ const Tagihan = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img
-                src={previewImage}
-                alt="Preview Bukti Transfer"
-                className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain"
-              />
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Bukti Transfer" className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain" />
+              )}
             </div>
           )}
           <div className="mt-6 flex gap-3">

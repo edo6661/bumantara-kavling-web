@@ -18,6 +18,7 @@ const Administrasi = lazy(() => import('./pages/Customer/Administrasi'));
 const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
 const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
 const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const AgentRegisterSuccess = lazy(() => import('./pages/Public/AgentRegisterSuccess'));
 const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
 const PerusahaanAgent = lazy(() => import('./pages/Marketing/PerusahaanAgent'));
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
@@ -84,6 +85,7 @@ const App = () => {
               {/* Routing Agent Portal */}
               <Route path="/agent-login" element={<AgentLogin />} />
               <Route path="/agent-register" element={<AgentRegister />} />
+              <Route path="/agent-register-success" element={<AgentRegisterSuccess />} />
               <Route path="/agent-portal" element={
                 <AgentPortalGuard>
                   <AgentPortalDashboard />

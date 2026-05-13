@@ -315,9 +315,8 @@ const ProgressPenjualan = () => {
       alert(handleApiError(err).message);
     }
   };
-
   const renderFileBox = (title: string, docType: string, url: string | null) => {
-    const isPdf = url?.toLowerCase().endsWith('.pdf') || url?.includes('application/pdf');
+    const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf')) : false;
     const isUploading = uploadMutation.isPending && uploadingProgressDoc === docType;
     const isDrag = dragActive === docType;
 
@@ -456,7 +455,7 @@ const ProgressPenjualan = () => {
                         {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => {
                           const isUploading = uploadCustomerDocMutation.isPending && uploadingCustDoc === type;
                           const fileUrl = currentCustomer?.[type] as string | undefined;
-                          const isPdf = fileUrl?.toLowerCase().endsWith('.pdf') || fileUrl?.includes('application/pdf');
+                          const isPdf = fileUrl ? (fileUrl.split('?')[0].toLowerCase().endsWith('.pdf') || fileUrl.includes('application/pdf')) : false;
                           const isDrag = dragActive === type;
 
                           return (
@@ -571,7 +570,7 @@ const ProgressPenjualan = () => {
 
                                 <div className={`grid gap-2 ${fileUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                                   {fileUrls.map((url: string, idx: number) => {
-                                    const isPdf = url?.toLowerCase().endsWith('.pdf') || url?.includes('application/pdf');
+                                    const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf')) : false;
                                     return (
                                       <div
                                         key={idx}

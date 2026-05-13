@@ -11,7 +11,7 @@ import Input from '../../components/shared/Input';
 import FileInput from '../../components/shared/FileInput';
 import { useAuth } from '../../context/AuthContext';
 import { formatRupiah } from '../../utils/formatters';
-import { LogOut, Briefcase, Settings, UploadCloud, Users, ShoppingCart } from 'lucide-react';
+import { LogOut, Briefcase, Settings, UploadCloud, Users, ShoppingCart, AlertCircle, FileText } from 'lucide-react';
 import { handleApiError } from '../../utils/errorHandler';
 
 const AgentPortalDashboard = () => {
@@ -112,7 +112,17 @@ const AgentPortalDashboard = () => {
       </header>
 
       <main className="max-w-6xl mx-auto mt-8 px-4 space-y-8 animate-in fade-in duration-500">
-
+        {agentData.status === 'PENDING' && (
+          <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl shadow-sm flex items-start gap-4 text-amber-800">
+            <AlertCircle className="shrink-0 mt-0.5" size={24} />
+            <div>
+              <h3 className="font-bold text-base mb-1">Akun Anda masih dalam status PENDING</h3>
+              <p className="text-sm font-medium leading-relaxed">
+                Anda belum di-approve sebagai agent. Anda harus melengkapi berkas-berkas dokumen di bawah ini. Setelah dokumen lengkap, silakan <strong>hubungi admin untuk approval</strong> dan validasi berkas.
+              </p>
+            </div>
+          </div>
+        )}
         {/* Ringkasan Profil */}
         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-8 rounded-2xl shadow-lg text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
@@ -189,7 +199,14 @@ const AgentPortalDashboard = () => {
                         className={`aspect-[4/3] w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${fileUrl ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-300 bg-slate-100'}`}
                       >
                         {fileUrl ? (
-                          <img src={fileUrl} alt={label} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                          (fileUrl.split('?')[0].toLowerCase().endsWith('.pdf') || fileUrl.includes('application/pdf')) ? (
+                            <div className="flex flex-col items-center text-red-500 hover:scale-105 transition-transform duration-300">
+                              <FileText size={32} />
+                              <span className="text-[10px] font-bold mt-1 text-slate-600">PDF</span>
+                            </div>
+                          ) : (
+                            <img src={fileUrl} alt={label} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                          )
                         ) : (
                           <span className="text-[10px] font-bold text-slate-400 italic">BELUM ADA DOKUMEN</span>
                         )}
@@ -316,7 +333,11 @@ const AgentPortalDashboard = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[70vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
             </div>
           )}
           <div className="mt-6 flex gap-3">

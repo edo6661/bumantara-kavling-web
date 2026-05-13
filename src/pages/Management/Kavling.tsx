@@ -318,8 +318,7 @@ const Kavling = () => {
 
 
   const renderFileBox = (title: string, docType: string, url: string | null | undefined) => {
-    const isPdf = url?.toLowerCase().endsWith('.pdf') || url?.includes('application/pdf');
-
+    const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf')) : false;
     return (
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200">
         <div className="flex justify-between items-center">

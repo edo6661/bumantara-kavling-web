@@ -319,11 +319,11 @@ const BatalTransaksi = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img
-                src={previewImage}
-                alt="Preview Bukti Refund"
-                className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain"
-              />
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Bukti Refund" className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain" />
+              )}
             </div>
           )}
           <div className="mt-6 flex gap-3">

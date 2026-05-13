@@ -6,7 +6,7 @@ import Input from "../../components/shared/Input";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, ZoomIn } from "lucide-react";
+import { Edit2, Eye, FileText, ZoomIn } from "lucide-react";
 import {
   useGetFeeAgents,
   useUpdateFeeAgent,
@@ -208,12 +208,18 @@ const FeeAgent = () => {
     if (!fileUrl) return null;
 
     const src = fileUrl instanceof File ? URL.createObjectURL(fileUrl) : fileUrl;
+    const isPdf = typeof fileUrl === 'string' ? (fileUrl.split('?')[0].toLowerCase().endsWith('.pdf') || fileUrl.includes('application/pdf')) : fileUrl.type === 'application/pdf';
+
     return (
       <div
         onClick={() => setPreviewImage(src)}
-        className="mt-3 relative w-32 h-20 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
+        className="mt-3 relative w-32 h-20 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 flex justify-center items-center"
       >
-        <img src={src} alt="Bukti" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+        {isPdf ? (
+          <div className="text-red-500 flex flex-col items-center"><FileText size={24} /><span className="text-[8px] font-bold mt-1">PDF</span></div>
+        ) : (
+          <img src={src} alt="Bukti" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+        )}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
           <ZoomIn size={16} className="text-white" />
         </div>
@@ -348,7 +354,17 @@ const FeeAgent = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') || previewImage.startsWith('blob:') ? (
+                previewImage.startsWith('blob:') && previewImage.includes('application/pdf') ? (
+                  <iframe src={previewImage} className="w-full h-[70vh] rounded-lg border-none" title="PDF Preview" />
+                ) : previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                  <iframe src={previewImage} className="w-full h-[70vh] rounded-lg border-none" title="PDF Preview" />
+                ) : (
+                  <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+                )
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
             </div>
           )}
           <div className="mt-6 flex gap-3">

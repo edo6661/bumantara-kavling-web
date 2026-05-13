@@ -148,7 +148,14 @@ const CustomerDetail = () => {
                   className={`w-full aspect-[4/3] rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed transition-all ${doc.url ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-200 bg-slate-100'}`}
                 >
                   {doc.url ? (
-                    <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    (doc.url.split('?')[0].toLowerCase().endsWith('.pdf') || doc.url.includes('application/pdf')) ? (
+                      <div className="flex flex-col items-center text-red-500 group-hover:scale-105 transition-transform duration-300">
+                        <FileText size={32} />
+                        <span className="text-[10px] font-bold mt-1 text-slate-600">PDF</span>
+                      </div>
+                    ) : (
+                      <img src={doc.url} alt={doc.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    )
                   ) : (
                     <span className="text-[10px] font-bold text-slate-400 italic">Belum Diunggah</span>
                   )}
@@ -167,7 +174,14 @@ const CustomerDetail = () => {
                   onClick={() => setPreviewImage(doc.fileUrl)}
                   className="w-full aspect-[4/3] rounded-lg overflow-hidden flex items-center justify-center border border-slate-200 bg-white cursor-zoom-in"
                 >
-                  <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  {doc.fileUrl.split('?')[0].toLowerCase().endsWith('.pdf') || doc.fileUrl.includes('application/pdf') ? (
+                    <div className="flex flex-col items-center text-red-500 group-hover:scale-105 transition-transform duration-300">
+                      <FileText size={32} />
+                      <span className="text-[10px] font-bold mt-1 text-slate-600">PDF</span>
+                    </div>
+                  ) : (
+                    <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  )}
                 </div>
                 <a href={getDownloadUrl(doc.fileUrl)} download className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-indigo-100">
                   Unduh File
@@ -182,7 +196,11 @@ const CustomerDetail = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[75vh] rounded-lg shadow-xl object-contain" />
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[75vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[75vh] rounded-lg shadow-xl object-contain" />
+              )}
             </div>
           )}
           <div className="mt-6 flex gap-3">

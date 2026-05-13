@@ -1251,7 +1251,7 @@ const Penjualan = () => {
                     {uploadBuktiMutation.isPending ? 'Mengunggah...' : 'Ganti Bukti'}
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.pdf"
                       className="hidden"
                       onChange={(e) => handleUploadBukti(row.id!, 'booking', e)}
                       disabled={uploadBuktiMutation.isPending}
@@ -1261,14 +1261,18 @@ const Penjualan = () => {
 
                 <div
                   onClick={() => setPreviewImage(row.fileBuktiBooking as string)}
-                  className="relative w-24 h-16 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 ring-1 ring-slate-900/5"
+                  className="relative w-24 h-16 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 ring-1 ring-slate-900/5 flex justify-center items-center"
                   title="Klik untuk perbesar"
                 >
-                  <img
-                    src={`${row.fileBuktiBooking}?t=${new Date(row.updatedAt!).getTime()}`}
-                    alt="Bukti Booking"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
+                  {row.fileBuktiBooking.split('?')[0].toLowerCase().endsWith('.pdf') || row.fileBuktiBooking.includes('application/pdf') ? (
+                    <div className="text-red-500"><FileText size={24} /></div>
+                  ) : (
+                    <img
+                      src={`${row.fileBuktiBooking}?t=${new Date(row.updatedAt!).getTime()}`}
+                      alt="Bukti Booking"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  )}
                   <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                     <ZoomIn size={14} className="text-white" />
                   </div>
@@ -1306,10 +1310,14 @@ const Penjualan = () => {
                     </button>
                     <div
                       onClick={() => setPreviewImage(row.fileBuktiDp as string)}
-                      className="relative w-10 h-8 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
+                      className="relative w-10 h-8 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 flex justify-center items-center"
                       title="Lihat Bukti DP"
                     >
-                      <img src={row.fileBuktiDp} alt="Bukti DP" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      {row.fileBuktiDp.split('?')[0].toLowerCase().endsWith('.pdf') || row.fileBuktiDp.includes('application/pdf') ? (
+                        <div className="text-red-500"><FileText size={16} /></div>
+                      ) : (
+                        <img src={row.fileBuktiDp} alt="Bukti DP" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                      )}
                     </div>
                   </>
                 ) : (
@@ -2836,7 +2844,11 @@ const Penjualan = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-50 rounded-2xl p-3 border border-slate-200 shadow-inner">
-              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-xl shadow-md object-contain" />
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[70vh] rounded-xl border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-xl shadow-md object-contain" />
+              )}
             </div>
           )}
 
