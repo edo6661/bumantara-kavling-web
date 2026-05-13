@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import {
   useGetMyAgentProfile,
@@ -88,7 +89,6 @@ const AgentPortalDashboard = () => {
     ? [
       { key: 'fileKtp', label: 'Foto KTP' },
       { key: 'fileNpwp', label: 'Foto NPWP' },
-      { key: 'kwitansiBookingFee', label: 'Kwitansi Booking Fee' }
     ]
     : [
       { key: 'fileSuratKeterangan', label: 'Surat Keterangan' },
