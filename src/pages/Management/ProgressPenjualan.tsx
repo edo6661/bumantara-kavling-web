@@ -387,6 +387,8 @@ const ProgressPenjualan = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => {
                           const isUploading = uploadCustomerDocMutation.isPending && uploadingCustDoc === type;
+                          const fileUrl = currentCustomer?.[type] as string | undefined;
+                          const isPdf = fileUrl?.toLowerCase().endsWith('.pdf') || fileUrl?.includes('application/pdf');
 
                           return (
                             <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm relative overflow-hidden">
@@ -394,8 +396,8 @@ const ProgressPenjualan = () => {
                                 {type.replace('file', '')}
                               </span>
                               <div
-                                onClick={() => !isUploading && currentCustomer?.[type] && window.open(currentCustomer[type] as string, '_blank')}
-                                className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${currentCustomer?.[type] ? 'border-slate-200 cursor-pointer' : 'border-slate-300 bg-slate-100'}`}
+                                onClick={() => !isUploading && fileUrl && window.open(fileUrl, '_blank')}
+                                className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${fileUrl ? 'border-slate-200 cursor-pointer' : 'border-slate-300 bg-slate-100'}`}
                               >
                                 {isUploading && (
                                   <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
@@ -403,9 +405,13 @@ const ProgressPenjualan = () => {
                                     <span className="text-[10px] font-bold text-indigo-600 animate-pulse">Mengunggah...</span>
                                   </div>
                                 )}
-                                {currentCustomer?.[type] ? (
+                                {fileUrl ? (
                                   <>
-                                    <img src={currentCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                    {isPdf ? (
+                                      <iframe src={fileUrl} title={type} className="w-full h-full border-none pointer-events-none" />
+                                    ) : (
+                                      <img src={fileUrl} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                    )}
                                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                       <ZoomIn size={20} className="text-white" />
                                     </div>
@@ -433,32 +439,39 @@ const ProgressPenjualan = () => {
                           <PlusCircle size={14} className="text-blue-600" /> Dokumen Pendukung KPR (Slip Gaji, Mutasi, dll)
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => (
-                            <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 hover:bg-white transition-all group shadow-sm overflow-hidden relative">
+                          {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => {
+                            const isPdf = doc.fileUrl?.toLowerCase().endsWith('.pdf') || doc.fileUrl?.includes('application/pdf');
 
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteDokumenLainnya(doc.id)}
-                                disabled={updateCustomerMutation.isPending}
-                                className="absolute top-2 right-2 p-1.5 bg-red-50 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg  transition-all z-30 disabled:opacity-50"
-                                title="Hapus Dokumen"
-                              >
-                                {updateCustomerMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                              </button>
+                            return (
+                              <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 hover:bg-white transition-all group shadow-sm overflow-hidden relative">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteDokumenLainnya(doc.id)}
+                                  disabled={updateCustomerMutation.isPending}
+                                  className="absolute top-2 right-2 p-1.5 bg-red-50 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg  transition-all z-30 disabled:opacity-50"
+                                  title="Hapus Dokumen"
+                                >
+                                  {updateCustomerMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                </button>
 
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pr-7" title={doc.nama}>{doc.nama}</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pr-7" title={doc.nama}>{doc.nama}</span>
 
-                              <div
-                                onClick={() => window.open(doc.fileUrl, '_blank')}
-                                className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-pointer group-hover:border-indigo-200 transition-all"
-                              >
-                                <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                                <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
-                                  <ZoomIn size={20} className="text-white" />
+                                <div
+                                  onClick={() => window.open(doc.fileUrl, '_blank')}
+                                  className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-pointer group-hover:border-indigo-200 transition-all"
+                                >
+                                  {isPdf ? (
+                                    <iframe src={doc.fileUrl} title={doc.nama} className="w-full h-full border-none pointer-events-none" />
+                                  ) : (
+                                    <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                                  )}
+                                  <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <ZoomIn size={20} className="text-white" />
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                           <div className="flex flex-col gap-3 p-3 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30 relative overflow-hidden">
                             {uploadingCustDoc === 'lainnya' && (
                               <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
