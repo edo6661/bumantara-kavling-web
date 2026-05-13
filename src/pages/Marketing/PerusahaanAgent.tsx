@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
-import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
-import { Edit2, Trash2, UploadCloud, Eye, ZoomIn } from "lucide-react";
+import { Edit2, Trash2, UploadCloud, Eye } from "lucide-react";
 import {
   useGetPerusahaanAgents,
   useCreatePerusahaanAgent,
