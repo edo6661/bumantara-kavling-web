@@ -52,7 +52,6 @@ export const useAdminSocket = () => {
       }
 
       socket.on("connect", () => {
-        console.log("🟢 Terhubung ke WebSocket Server");
         socket?.emit("join-admin");
       });
 
