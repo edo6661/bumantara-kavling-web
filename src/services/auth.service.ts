@@ -13,6 +13,8 @@ export interface RegisterAgentPayload {
   namaBank?: string;
   noRekening?: string;
   atasNamaRekening?: string;
+  perusahaanAgentId?: number;
+  ttdData?: string;
 }
 
 export const authService = {

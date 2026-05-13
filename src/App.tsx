@@ -19,6 +19,7 @@ const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
 const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
 const Agents = lazy(() => import('./pages/Marketing/Agents'));
 const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
+const PerusahaanAgent = lazy(() => import('./pages/Marketing/PerusahaanAgent'));
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
 const Progress = lazy(() => import('./pages/Proyek/Progress'));
 const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
@@ -111,6 +112,7 @@ const App = () => {
                 <Route path="customer/tagihan" element={<PermissionGuard resource="TAGIHAN"><Tagihan /></PermissionGuard>} />
                 <Route path="marketing/agents" element={<PermissionGuard resource="AGENT"><Agents /></PermissionGuard>} />
                 <Route path="marketing/fee-agent" element={<PermissionGuard resource="FEE_AGENT"><FeeAgent /></PermissionGuard>} />
+                <Route path="marketing/perusahaan" element={<PermissionGuard resource="AGENT"><PerusahaanAgent /></PermissionGuard>} />
                 <Route path="proyek/spk" element={<PermissionGuard resource="SPK"><SPK /></PermissionGuard>} />
                 <Route path="proyek/progress" element={<PermissionGuard resource="PROGRESS_PROYEK"><Progress /></PermissionGuard>} />
               </Route>

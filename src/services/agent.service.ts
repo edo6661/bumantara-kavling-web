@@ -3,7 +3,7 @@ import type { AgentData, CreateAgentDTO } from "../types/models/agent";
 
 export const agentService = {
   getAll: async (): Promise<AgentData[]> => {
-    const response = await api.get("/agents?limit=100");
+    const response = await api.get("/agents?limit=300");
     return response.data.data.items;
   },
 

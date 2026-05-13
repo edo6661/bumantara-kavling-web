@@ -30,6 +30,8 @@ export interface AgentData {
   email: string | null;
   status: string;
   type: string;
+  ttdData?: string;
+  perusahaanAgent?: { id: number; nama: string };
   namaBank: string | null;
   noRekening: string | null;
   atasNamaRekening: string | null;
@@ -54,6 +56,7 @@ export interface CreateAgentDTO {
   email?: string;
   status?: string;
   type?: string;
+  perusahaanAgentId?: number;
   namaBank: string | null;
   noRekening: string | null;
   atasNamaRekening: string | null;

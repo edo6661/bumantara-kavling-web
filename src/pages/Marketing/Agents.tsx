@@ -7,7 +7,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud } from "lucide-react";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle } from "lucide-react"; // <-- Tambah CheckCircle
 import {
   useGetAgents,
   useCreateAgent,
@@ -17,6 +17,7 @@ import {
   useGenerateAgentAccount
 } from "../../hooks/queries/useAgent";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent"; // <-- Tambah Hooks Perusahaan
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
 
@@ -28,6 +29,7 @@ interface AgentFormState {
   noHp: string;
   email: string;
   type: string;
+  perusahaanAgentId: number | ''; // <-- Tambahan State
   namaBank: string;
   noRekening: string;
   atasNamaRekening: string;
@@ -44,6 +46,7 @@ const initialFormState: AgentFormState = {
   noHp: '',
   email: '',
   type: 'PRIBADI',
+  perusahaanAgentId: '', // <-- Tambahan State
   namaBank: '',
   noRekening: '',
   atasNamaRekening: '',
@@ -55,6 +58,7 @@ const initialFormState: AgentFormState = {
 const Agents = () => {
   const { data: agentData = [], isLoading } = useGetAgents();
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
+  const { data: perusahaanList = [] } = useGetPerusahaanAgents(); // <-- Ambil Data Perusahaan
   const penjualanList = penjualanResponse?.items || [];
 
   const createMutation = useCreateAgent();
@@ -77,15 +81,63 @@ const Agents = () => {
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // 👇 FUNGSI APPROVE AGENT 👇
+  const handleApprove = async (agent: AgentData) => {
+    if (window.confirm(`Setujui pendaftaran agent ${agent.nama}? Status akan menjadi Aktif.`)) {
+      try {
+        await updateMutation.mutateAsync({ id: agent.id, data: { status: 'AKTIF' } });
+        alert(`Agent ${agent.nama} berhasil disetujui!`);
+      } catch (error: any) {
+        const { message } = handleApiError(error);
+        alert(message);
+      }
+    }
+  };
+
   const columns = [
     { header: 'NIK', accessor: 'nik' },
     { header: 'Nama Agent', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
 
+    // 👇 KOLOM TIPE & NAMA PERUSAHAAN 👇
+    {
+      header: 'Tipe',
+      accessor: 'type',
+      render: (val: string, row: AgentData) => (
+        <div className="flex flex-col gap-1 items-start">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{val}</span>
+          {val === 'PERUSAHAAN' && row.perusahaanAgent && (
+            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded w-fit border border-indigo-100">
+              {row.perusahaanAgent.nama}
+            </span>
+          )}
+        </div>
+      )
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        if (val === 'PENDING') return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase tracking-wider rounded border border-yellow-200 shadow-sm">Menunggu Approval</span>;
+        if (val === 'AKTIF') return <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded border border-green-200 shadow-sm">Aktif</span>;
+        return <span className="px-2 py-1 bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wider rounded border border-red-200 shadow-sm">{val}</span>;
+      }
+    },
     {
       header: 'Aksi',
       accessor: 'id',
       render: (_: any, row: AgentData) => (
         <div className="flex items-center gap-1.5">
+          {/* 👇 TOMBOL APPROVE 👇 */}
+          {row.status === 'PENDING' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleApprove(row); }}
+              className="p-1.5 text-white bg-green-500 hover:bg-green-600 rounded-md transition-all cursor-pointer shadow-sm"
+              title="Setujui Agent (Approve)"
+            >
+              <CheckCircle size={16} />
+            </button>
+          )}
+
           <button onClick={(e) => { e.stopPropagation(); openDetailModal(row); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer" title="Detail">
             <Eye size={16} />
           </button>
@@ -132,6 +184,7 @@ const Agents = () => {
         noHp: item.noHp,
         email: item.email || '',
         type: item.type || 'PRIBADI',
+        perusahaanAgentId: item.perusahaanAgent?.id || '', // <-- Tambahan State
         namaBank: item.namaBank || '',
         noRekening: item.noRekening || '',
         atasNamaRekening: item.atasNamaRekening || '',
@@ -204,6 +257,7 @@ const Agents = () => {
     if (formData.nik.trim().length !== 16 && formData.nik.trim().length !== 15) newErrors.nik = 'NIK tidak valid (minimal 15-16 digit)';
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
+    if (formData.type === 'PERUSAHAAN' && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -212,7 +266,6 @@ const Agents = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
 
     const picMapping: number[] = [];
     const validPics: PicAgentData[] = [];
@@ -231,6 +284,7 @@ const Agents = () => {
       email: formData.email || undefined,
       alamat: formData.alamat || undefined,
       type: formData.type,
+      perusahaanAgentId: formData.type === 'PERUSAHAAN' ? Number(formData.perusahaanAgentId) : undefined, // <-- Tambahan payload
       namaBank: formData.namaBank || null,
       noRekening: formData.noRekening || null,
       atasNamaRekening: formData.atasNamaRekening || null,
@@ -292,14 +346,13 @@ const Agents = () => {
     const actionText = agent.hasAccount ? 'me-reset password' : 'membuat akun portal';
     const password = window.prompt(`Masukkan password baru untuk ${actionText} ${agent.nama} (Min. 6 karakter):`);
 
-    if (password === null) return; // Jika user menekan Cancel
+    if (password === null) return;
     if (password.length < 6) {
       alert("Password harus minimal 6 karakter!");
       return;
     }
 
     try {
-      // API merespons dengan struktur success & message
       const res = await generateAccountMutation.mutateAsync({ id: agent.id, password });
       alert(res.message || `Berhasil! Kredensial untuk ${agent.nama} telah disimpan. Silakan login menggunakan email: ${agent.email}`);
     } catch (error: any) {
@@ -395,7 +448,7 @@ const Agents = () => {
   if (isLoading) return <PageLoader />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
         title="Data Agent Marketing"
         columns={columns}
@@ -413,16 +466,34 @@ const Agents = () => {
                 label="Tipe Agent"
                 name="type"
                 value={formData.type}
-                onChange={handleChange}
+                onChange={(e) => {
+                  setFormData({ ...formData, type: e.target.value, perusahaanAgentId: '' });
+                }}
                 options={[
                   { value: 'PRIBADI', label: 'Pribadi' },
                   { value: 'PERUSAHAAN', label: 'Perusahaan' }
                 ]}
               />
-              <Input label="NIK" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan NIK/No. KTP" />
-              <Input label="Nama Lengkap / Perusahaan" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Masukkan nama agent" />
+
+              {/* 👇 FIELD SELECT PERUSAHAAN 👇 */}
+              {formData.type === 'PERUSAHAAN' && (
+                <Select
+                  label="Pilih Perusahaan"
+                  name="perusahaanAgentId"
+                  value={formData.perusahaanAgentId || ''}
+                  onChange={handleChange}
+                  error={errors.perusahaanAgentId}
+                  options={[
+                    { value: '', label: '-- Pilih Perusahaan --' },
+                    ...perusahaanList.map(p => ({ value: p.id, label: p.nama }))
+                  ]}
+                />
+              )}
+
+              <Input label="NIK KTP" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan NIK 16 Digit" />
+              <Input label="Nama Lengkap / Perusahaan" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Sesuai KTP" />
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
-              <Input label="Email (Opsional)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
+              <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
               <Input label="Fee Marketing (%)" name="feeMarketingPct" type="number" step="any" value={formData.feeMarketingPct} onChange={handleChange} placeholder="Contoh: 2.5" />
               <Input label="Potongan PPh (%)" name="potonganPph" type="number" step="any" value={formData.potonganPph} onChange={handleChange} placeholder="Contoh: 2.5" />
               <div className="md:col-span-2">
@@ -452,13 +523,12 @@ const Agents = () => {
 
             <div className="space-y-4">
               {formData.pics.map((pic, index) => (
-                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative">
+                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative shadow-sm">
                   {formData.pics.length > 1 && (
                     <button type="button" onClick={() => handleRemovePIC(index)} className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Hapus</button>
                   )}
                   <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
 
-                  {/* BAGIAN YANG DIUBAH: Penambahan props error={errors[`pics.${index}.namaField`]} */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                       label="Nama PIC"
@@ -493,10 +563,10 @@ const Agents = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors">
+            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors">
               Batal
             </button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors">
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-6 py-2 text-sm font-bold text-white bg-black rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shadow-md">
               {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
             </button>
           </div>
@@ -518,7 +588,7 @@ const Agents = () => {
                   </span>
                   <div
                     onClick={() => selectedUploadAgent[type as keyof AgentData] && setPreviewImage(selectedUploadAgent[type as keyof AgentData] as string)}
-                    className={`aspect-[4/3] w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedUploadAgent[type as keyof AgentData] ? 'border-slate-200 cursor-zoom-in' : 'border-slate-300 bg-slate-100'}`}
+                    className={`aspect-[4/3] w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedUploadAgent[type as keyof AgentData] ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-300 bg-slate-100'}`}
                   >
                     {selectedUploadAgent[type as keyof AgentData] ? (
                       <img src={selectedUploadAgent[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -551,9 +621,19 @@ const Agents = () => {
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
               <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Biodata Agent</h4>
-                <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] uppercase font-bold tracking-wider">{selectedAgentDetail.type}</span>
+                <div className="flex gap-2">
+                  <span className={`px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider ${selectedAgentDetail.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{selectedAgentDetail.status}</span>
+                  <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] uppercase font-bold tracking-wider">{selectedAgentDetail.type}</span>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                {/* 👇 DETAIL PERUSAHAAN 👇 */}
+                {selectedAgentDetail.type === 'PERUSAHAAN' && selectedAgentDetail.perusahaanAgent && (
+                  <div className="md:col-span-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl mb-2">
+                    <p className="text-[10px] text-indigo-500 uppercase font-bold mb-1">Perusahaan Induk</p>
+                    <p className="text-sm font-black text-indigo-900">{selectedAgentDetail.perusahaanAgent.nama}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Agent</p>
                   <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.nama}</p>
@@ -628,16 +708,26 @@ const Agents = () => {
             )}
 
             {selectedAgentDetail.pics && selectedAgentDetail.pics.length > 0 && (
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Kontak Tim / PIC Pendukung</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {selectedAgentDetail.pics.map((pic, idx) => (
-                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                    <div key={pic.id || idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
                       <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
                       <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
                       <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* 👇 MENAMPILKAN TANDA TANGAN PENDAFTARAN AGENT 👇 */}
+            {selectedAgentDetail.ttdData && (
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm mt-4 text-center">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Tanda Tangan Pendaftar</h4>
+                <div className="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2 inline-block">
+                  <img src={selectedAgentDetail.ttdData} alt="Tanda Tangan" className="h-24 object-contain" />
                 </div>
               </div>
             )}
@@ -659,11 +749,15 @@ const Agents = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              {previewImage.toLowerCase().endsWith('.pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
             </div>
           )}
           <div className="mt-6 flex gap-3">
-            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all">Buka Tab Baru</a>
+            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">Buka Tab Baru</a>
             <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">Tutup</button>
           </div>
         </div>

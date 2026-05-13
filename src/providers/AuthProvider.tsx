@@ -6,6 +6,7 @@ import type { ActionResult } from '../types/common';
 import { storage } from '../utils/storage';
 import { handleApiError } from '../utils/errorHandler';
 import type { User } from '../types/models/user';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!storage.getToken());
@@ -13,12 +14,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(() => storage.getUser());
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const queryClient = useQueryClient();
+
   const logout = useCallback(() => {
     storage.clearAuth();
     setIsAuthenticated(false);
     setSelectedPerumahanState(null);
     setUser(null);
-  }, []);
+    queryClient.clear();
+  }, [queryClient]);
 
   useEffect(() => {
     const handleUnauthorized = () => logout();

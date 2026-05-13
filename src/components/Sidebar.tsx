@@ -57,6 +57,7 @@ const menuItems = [
     submenus: [
       { title: 'Agents', path: '/marketing/agents', resource: 'AGENT' },
       { title: 'Fee Agent', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
+      { title: 'Perusahaan Agent', path: '/marketing/perusahaan', resource: 'AGENT' },
     ],
   },
   {
