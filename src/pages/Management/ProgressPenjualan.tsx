@@ -7,7 +7,7 @@ import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { useGetCustomers, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
+import { useGetCustomers, useUpdateCustomer, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
 import type { CustomerDocType } from "../../services/customer.service";
 import {
   useGetProgressPenjualan,
@@ -30,6 +30,7 @@ const ProgressPenjualan = () => {
   const updateMutation = useUpdateProgressPenjualan();
   const uploadMutation = useUploadProgressDocument();
   const uploadCustomerDocMutation = useUploadCustomerDoc();
+  const updateCustomerMutation = useUpdateCustomer();
 
   const [selectedPenjualan, setSelectedPenjualan] = useState<Record<string, any> | null>(null);
   const [modalStep, setModalStep] = useState<string | null>(null);
@@ -150,6 +151,29 @@ const ProgressPenjualan = () => {
     },
     { header: 'Progress', accessor: 'id', render: (_: unknown, row: Record<string, any>) => <ProgressIcons row={row} /> }
   ];
+  const handleDeleteDokumenLainnya = async (docId: string) => {
+    if (!currentCustomer) return;
+
+    const isConfirm = window.confirm("Apakah Anda yakin ingin menghapus dokumen pendukung ini?");
+    if (!isConfirm) return;
+
+    try {
+      // Filter dokumen untuk membuang yang di-klik
+      const updatedDocs = currentCustomer.dokumenLainnya?.filter(
+        (doc: any) => doc.id !== docId
+      );
+
+      await updateCustomerMutation.mutateAsync({
+        id: currentCustomer.id,
+        data: { dokumenLainnya: updatedDocs } as any
+      });
+
+      alert("Dokumen pendukung berhasil dihapus!");
+    } catch (error: any) {
+      const { message } = handleApiError(error);
+      alert(message);
+    }
+  };
   const handleUploadProgress = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !progressData) return;
@@ -410,14 +434,26 @@ const ProgressPenjualan = () => {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => (
-                            <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 hover:bg-white transition-all group shadow-sm">
-                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate" title={doc.nama}>{doc.nama}</span>
+                            <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 hover:bg-white transition-all group shadow-sm overflow-hidden relative">
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDokumenLainnya(doc.id)}
+                                disabled={updateCustomerMutation.isPending}
+                                className="absolute top-2 right-2 p-1.5 bg-red-50 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg  transition-all z-30 disabled:opacity-50"
+                                title="Hapus Dokumen"
+                              >
+                                {updateCustomerMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                              </button>
+
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pr-7" title={doc.nama}>{doc.nama}</span>
+
                               <div
                                 onClick={() => window.open(doc.fileUrl, '_blank')}
-                                className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-pointer group"
+                                className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative cursor-pointer group-hover:border-indigo-200 transition-all"
                               >
-                                <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                                <div className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
                                   <ZoomIn size={20} className="text-white" />
                                 </div>
                               </div>
