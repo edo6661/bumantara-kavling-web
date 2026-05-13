@@ -16,7 +16,8 @@ import {
 } from "../../hooks/queries/useProgressPenjualan";
 import {
   Trash2, Plus, UploadCloud,
-  UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle
+  UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle,
+  Loader2
 } from 'lucide-react';
 import Input from '../../components/shared/Input';
 import { handleApiError } from '../../utils/errorHandler';
@@ -33,6 +34,8 @@ const ProgressPenjualan = () => {
   const [selectedPenjualan, setSelectedPenjualan] = useState<Record<string, any> | null>(null);
   const [modalStep, setModalStep] = useState<string | null>(null);
   const [newDocName, setNewDocName] = useState("");
+  const [uploadingProgressDoc, setUploadingProgressDoc] = useState<string | null>(null);
+  const [uploadingCustDoc, setUploadingCustDoc] = useState<string | null>(null);
 
   const activePenjualan = useMemo(() => {
     return penjualanData.filter((p: Record<string, any>) => p.status !== 'BATAL');
@@ -147,7 +150,6 @@ const ProgressPenjualan = () => {
     },
     { header: 'Progress', accessor: 'id', render: (_: unknown, row: Record<string, any>) => <ProgressIcons row={row} /> }
   ];
-
   const handleUploadProgress = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !progressData) return;
@@ -156,6 +158,8 @@ const ProgressPenjualan = () => {
       e.target.value = '';
       return;
     }
+
+    setUploadingProgressDoc(docType);
     try {
       await uploadMutation.mutateAsync({ id: progressData.penjualanId, docType, file });
       alert(`Dokumen berhasil diunggah!`);
@@ -163,6 +167,7 @@ const ProgressPenjualan = () => {
       const { message } = handleApiError(err);
       alert(message);
     } finally {
+      setUploadingProgressDoc(null);
       e.target.value = '';
     }
   };
@@ -175,12 +180,15 @@ const ProgressPenjualan = () => {
       e.target.value = "";
       return;
     }
+
+    setUploadingCustDoc(docType);
     try {
       await uploadCustomerDocMutation.mutateAsync({ id: currentCustomer.id, docType, file });
     } catch (error: any) {
       const { message } = handleApiError(error);
       alert(message);
     } finally {
+      setUploadingCustDoc(null);
       e.target.value = "";
     }
   };
@@ -193,12 +201,13 @@ const ProgressPenjualan = () => {
       e.target.value = "";
       return;
     }
-    // Tambahkan pengecekan application/pdf
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       alert("Hanya file gambar dan PDF yang diperbolehkan!");
       e.target.value = "";
       return;
     }
+
+    setUploadingCustDoc('lainnya');
     try {
       await uploadCustomerDocMutation.mutateAsync({ id: currentCustomer.id, docType: 'lainnya', file, namaDokumen: newDocName });
       setNewDocName("");
@@ -207,6 +216,7 @@ const ProgressPenjualan = () => {
       const { message } = handleApiError(error);
       alert(message);
     } finally {
+      setUploadingCustDoc(null);
       e.target.value = "";
     }
   };
@@ -235,39 +245,51 @@ const ProgressPenjualan = () => {
     }
   };
 
-  // UI/UX Baru: Minimalis & Tanpa Modal Detail Khusus
+
   const renderFileBox = (title: string, docType: string, url: string | null) => {
     const isPdf = url?.toLowerCase().endsWith('.pdf') || url?.includes('application/pdf');
+    const isUploading = uploadMutation.isPending && uploadingProgressDoc === docType;
 
     return (
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200">
-        <div className="flex justify-between items-center">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200 relative overflow-hidden">
+        <div className="flex justify-between items-center relative z-10">
           <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
-          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${uploadMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
-            <UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+            {isUploading ? (
+              <><Loader2 size={14} className="animate-spin text-indigo-600" /> Mengunggah...</>
+            ) : (
+              <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
+            )}
             <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadProgress(docType, e)} disabled={uploadMutation.isPending} />
           </label>
         </div>
 
-        {url ? (
-          <div className="w-full h-64 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden relative group">
-            {isPdf ? (
-              <iframe src={url} className="w-full h-full border-none" title={title} />
-            ) : (
-              <img src={url} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            )}
-            {/* Tombol hover untuk buka full screen di tab baru */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-              <a href={url} target="_blank" rel="noopener noreferrer" className="pointer-events-auto px-4 py-2 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md hover:bg-slate-50 transition-colors">
-                Buka di Tab Baru
-              </a>
+        <div className="w-full h-64 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden relative group">
+          {isUploading && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+              <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
+              <span className="text-xs font-bold text-indigo-600 animate-pulse">Sedang mengunggah...</span>
             </div>
-          </div>
-        ) : (
-          <div className="w-full h-24 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
-            <span className="text-[10px] font-medium italic">Belum ada dokumen yang diunggah</span>
-          </div>
-        )}
+          )}
+          {url ? (
+            <>
+              {isPdf ? (
+                <iframe src={url} className="w-full h-full border-none" title={title} />
+              ) : (
+                <img src={url} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="pointer-events-auto px-4 py-2 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md hover:bg-slate-50 transition-colors">
+                  Buka di Tab Baru
+                </a>
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+              <span className="text-[10px] font-medium italic">Belum ada dokumen yang diunggah</span>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -339,38 +361,47 @@ const ProgressPenjualan = () => {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => (
-                          <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                              {type.replace('file', '')}
-                            </span>
-                            {/* Langsung ke tab baru jika sudah ada isinya */}
-                            <div
-                              onClick={() => currentCustomer?.[type] && window.open(currentCustomer[type] as string, '_blank')}
-                              className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${currentCustomer?.[type] ? 'border-slate-200 cursor-pointer' : 'border-slate-300 bg-slate-100'}`}
-                            >
-                              {currentCustomer?.[type] ? (
-                                <>
-                                  <img src={currentCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <ZoomIn size={20} className="text-white" />
+                        {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => {
+                          const isUploading = uploadCustomerDocMutation.isPending && uploadingCustDoc === type;
+
+                          return (
+                            <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm relative overflow-hidden">
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                {type.replace('file', '')}
+                              </span>
+                              <div
+                                onClick={() => !isUploading && currentCustomer?.[type] && window.open(currentCustomer[type] as string, '_blank')}
+                                className={`aspect-video w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${currentCustomer?.[type] ? 'border-slate-200 cursor-pointer' : 'border-slate-300 bg-slate-100'}`}
+                              >
+                                {isUploading && (
+                                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                                    <Loader2 size={24} className="animate-spin text-indigo-600 mb-2" />
+                                    <span className="text-[10px] font-bold text-indigo-600 animate-pulse">Mengunggah...</span>
                                   </div>
-                                </>
-                              ) : (
-                                <div className="flex flex-col items-center gap-1 text-slate-400">
-                                  <ImageIcon size={24} strokeWidth={1.5} />
-                                  <span className="text-[9px] font-bold">KOSONG</span>
-                                </div>
-                              )}
+                                )}
+                                {currentCustomer?.[type] ? (
+                                  <>
+                                    <img src={currentCustomer[type] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                      <ZoomIn size={20} className="text-white" />
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="flex flex-col items-center gap-1 text-slate-400">
+                                    <ImageIcon size={24} strokeWidth={1.5} />
+                                    <span className="text-[9px] font-bold">KOSONG</span>
+                                  </div>
+                                )}
+                              </div>
+                              <FileInput
+                                label={isUploading ? "Mengunggah..." : "Upload / Ganti"}
+                                accept="image/*,application/pdf"
+                                onChange={(e) => handleUploadCustDoc(type, e)}
+                                disabled={uploadCustomerDocMutation.isPending}
+                              />
                             </div>
-                            <FileInput
-                              label="Upload / Ganti"
-                              accept="image/*,application/pdf"
-                              onChange={(e) => handleUploadCustDoc(type, e)}
-                              disabled={uploadCustomerDocMutation.isPending}
-                            />
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
 
                       <div className="pt-4 border-t border-slate-100">
@@ -392,7 +423,13 @@ const ProgressPenjualan = () => {
                               </div>
                             </div>
                           ))}
-                          <div className="flex flex-col gap-3 p-3 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30">
+                          <div className="flex flex-col gap-3 p-3 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50/30 relative overflow-hidden">
+                            {uploadingCustDoc === 'lainnya' && (
+                              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                                <Loader2 size={24} className="animate-spin text-blue-600 mb-2" />
+                                <span className="text-[10px] font-bold text-blue-600 animate-pulse">Mengunggah file...</span>
+                              </div>
+                            )}
                             <div className="w-full">
                               <input type="text" value={newDocName} onChange={(e) => setNewDocName(e.target.value)} placeholder="Nama Dok. Baru (Cth: Slip Gaji)" className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400" />
                             </div>
