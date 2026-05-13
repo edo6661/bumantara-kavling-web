@@ -400,7 +400,7 @@ const ProgressPenjualan = () => {
                               label="Pilih File"
                               accept="image/*,application/pdf"
                               onChange={handleUploadLainnya}
-                              disabled={uploadCustomerDocMutation.isPending || newDocName.trim() === ""}
+                              disabled={uploadCustomerDocMutation.isPending}
                             />
                           </div>
                         </div>
