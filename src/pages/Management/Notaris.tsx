@@ -67,35 +67,28 @@ const Notaris = () => {
   const columns = [
     { header: 'Nama Notaris', accessor: 'nama' },
     {
-      header: 'Kontak Utama (PIC)',
-      accessor: 'pics',
-      render: (pics: PicNotarisData[]) => pics?.[0]?.noHp || '-'
-    },
-    {
-      header: 'Total PIC',
-      accessor: 'pics',
-      render: (pics: PicNotarisData[]) => <>{pics?.length || 0} Orang</>
-    },
+      header: 'No. Telepon / HP',
+      accessor: 'noHp',
+      render: (_: any, row: ExtendedNotarisData) => row.noHp || '-',
+    }
+
   ];
 
   const openDetailModal = (item: ExtendedNotarisData) => {
     setSelectedNotarisDetail(item);
     setIsDetailModalOpen(true);
   };
-
   const openModal = (item?: ExtendedNotarisData) => {
     if (item) {
-      const mainPic = item.pics?.[0];
-      const additionalPics = item.pics?.slice(1) || [];
       setFormData({
         id: item.id,
         nik: '',
         nama: item.nama,
         nomorKtp: item.nomorKtp || '',
         nomorIjin: item.nomorIjin || '',
-        noHp: mainPic?.noHp || '',
-        alamat: mainPic?.alamat || '',
-        pics: additionalPics
+        noHp: item.noHp || '',
+        alamat: item.alamat || '',
+        pics: item.pics || []
       });
       setIsEditing(true);
     } else {
@@ -161,21 +154,21 @@ const Notaris = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    const additionalPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
-    const allPics = [
-      { nama: `Admin/PIC Utama ${formData.nama}`, noHp: formData.noHp, alamat: formData.alamat },
-      ...additionalPics
-    ];
+
+    const validPics = formData.pics.filter(pic => pic.nama.trim() !== '' && pic.noHp.trim() !== '');
+
+
     const payload: CreateNotarisDTO = {
       nama: formData.nama,
       nomorKtp: formData.nomorKtp,
       nomorIjin: formData.nomorIjin,
+      noHp: formData.noHp,
+      alamat: formData.alamat,
       biayaAjb: 0,
-      pics: allPics,
+      pics: validPics,
     };
     try {
       if (isEditing && formData.id !== '') {

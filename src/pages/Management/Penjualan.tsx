@@ -210,7 +210,7 @@ const Penjualan = () => {
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [bankData, setBankData] = useState({ id: '', bank: '' });
 
-  // State for Dropdown Aksi
+
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0, dropUp: false });
 
@@ -306,7 +306,7 @@ const Penjualan = () => {
           plafonKredit = Math.round((plafonAwal || 0) + (biayaKpr || 0));
         }
 
-        // BLOK NILAI PENGAJUAN KPR YANG DIPERBAIKI
+
         let nilaiPengajuanKpr = merged.nilaiPengajuanKpr;
         if (name === 'nilaiPengajuanKpr') {
           nilaiPengajuanKpr = Number(value);
@@ -507,10 +507,10 @@ const Penjualan = () => {
                 if (isActive) {
                   setActiveActionId(null);
                 } else {
-                  // MODIFIKASI: Hitung posisi tombol relatif terhadap jendela browser
+
                   const rect = e.currentTarget.getBoundingClientRect();
                   const spaceBelow = window.innerHeight - rect.bottom;
-                  // Jika sisa ruang di bawah kurang dari 120px, tampilkan menu ke arah atas
+
                   const dropUp = spaceBelow < 120;
 
                   setDropdownPos({
@@ -619,7 +619,7 @@ const Penjualan = () => {
       setOriginalKavling({ blok: item.blok, unit: item.nomorUnit });
       setIsEditing(true);
 
-      // Load data riwayat biaya tambahan agar bisa dilanjutkan pengeditannya
+
       const existingTambahan = (item.tagihan || [])
         .filter((t: any) => t.noTagihan && t.noTagihan.includes('INV-ADD-'))
         .map((t: any) => ({
@@ -900,15 +900,15 @@ const Penjualan = () => {
       setFormData(prev => ({ ...prev, nomorUnit: unit }));
     }
   };
-
   const validateForm = () => {
     const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.noIdentitas.trim() || formData.noIdentitas.length < 16) newErrors.noIdentitas = 'NIK minimal 16 digit';
-    if (!formData.perumahan.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.agent.trim()) newErrors.agent = 'Agent wajib dipilih/diisi';
+
+    if (!formData.nama?.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.noIdentitas?.trim() || formData.noIdentitas.trim().length < 16) newErrors.noIdentitas = 'NIK minimal 16 digit';
+    if (!formData.perumahan?.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
+    if (!formData.blok?.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.nomorUnit?.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
+    if (!formData.agent?.trim()) newErrors.agent = 'Agent wajib dipilih/diisi';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -973,10 +973,14 @@ const Penjualan = () => {
       alert(message);
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+
+    if (!validateForm()) {
+
+      alert("Gagal menyimpan: Periksa kembali kolom yang bertanda merah (Contoh: NIK minimal 16 digit, Nama, Agent wajib diisi).");
+      return;
+    }
 
     try {
       if (isEditing && formData.id) {
@@ -995,12 +999,12 @@ const Penjualan = () => {
           luasTanah: Number(formData.luasTanah),
           rekeningTujuanId: formData.rekeningTujuanId ? Number(formData.rekeningTujuanId) : undefined,
 
-          // Data Kalkulasi (Di-save ulang saat edit)
+
           caraPembayaran: formData.caraPembayaran || undefined,
           hargaDasar: formData.hargaDasar,
           hargaJual: formData.hargaJual,
           plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
-          plafonAcc: formData.caraPembayaran === 'KPR' ? formData.plafonAcc : undefined, // Tambahkan ini
+          plafonAcc: formData.caraPembayaran === 'KPR' ? formData.plafonAcc : undefined,
           biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
           plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
           dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
@@ -1060,6 +1064,8 @@ const Penjualan = () => {
           backendErrors[err.field] = err.message;
         });
         setErrors(backendErrors);
+
+        alert("Gagal menyimpan: Ada data yang tidak valid. Silakan periksa pesan error merah pada form.");
       } else {
         alert(responseData?.message || 'Terjadi kesalahan saat menyimpan data');
       }

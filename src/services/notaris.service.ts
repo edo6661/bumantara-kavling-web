@@ -19,6 +19,8 @@ export interface NotarisData {
   nama: string;
   nomorKtp: string | null;
   nomorIjin: string | null;
+  noHp: string | null;
+  alamat: string | null;
   biayaAjb: number;
   pics: PicNotarisData[];
   ajbDitangani?: AjbDitanganiData[];
@@ -28,6 +30,8 @@ export interface CreateNotarisDTO {
   nama: string;
   nomorKtp: string | null;
   nomorIjin: string | null;
+  noHp: string | null;
+  alamat: string | null;
   biayaAjb: number;
   pics?: PicNotarisData[];
 }
