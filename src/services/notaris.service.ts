@@ -11,19 +11,23 @@ export interface AjbDitanganiData {
   id: string;
   customer: string;
   kavling: string;
-  biayaAjbTransaksi?: number; // Tambahkan properti ini
+  biayaAjbTransaksi?: number;
 }
 
 export interface NotarisData {
   id: number;
   nama: string;
-  biayaAjb: number; // Tetap ada karena backend masih memerlukannya walau nilainya 0
+  nomorKtp: string | null;
+  nomorIjin: string | null;
+  biayaAjb: number;
   pics: PicNotarisData[];
-  ajbDitangani?: AjbDitanganiData[]; // Array dari relasi DetailKavlingPajak
+  ajbDitangani?: AjbDitanganiData[];
 }
 
 export interface CreateNotarisDTO {
   nama: string;
+  nomorKtp: string | null;
+  nomorIjin: string | null;
   biayaAjb: number;
   pics?: PicNotarisData[];
 }

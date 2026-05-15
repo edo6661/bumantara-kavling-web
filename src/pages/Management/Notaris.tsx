@@ -27,6 +27,8 @@ type ExtendedNotarisData = NotarisData & {
 interface NotarisFormState {
   id: number | '';
   nik: string;
+  nomorKtp: string;
+  nomorIjin: string;
   nama: string;
   noHp: string;
   alamat: string;
@@ -36,6 +38,8 @@ interface NotarisFormState {
 const initialFormState: NotarisFormState = {
   id: '',
   nik: '',
+  nomorKtp: '',
+  nomorIjin: '',
   nama: '',
   noHp: '',
   alamat: '',
@@ -53,11 +57,11 @@ const Notaris = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
 
-  // === State untuk Modal Detail Notaris ===
+
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedNotarisDetail, setSelectedNotarisDetail] = useState<ExtendedNotarisData | null>(null);
 
-  // State untuk Modal Detail AJB (saat klik row di dalam detail)
+
   const [selectedAjb, setSelectedAjb] = useState<AjbDitanganiData | null>(null);
 
   const columns = [
@@ -87,6 +91,8 @@ const Notaris = () => {
         id: item.id,
         nik: '',
         nama: item.nama,
+        nomorKtp: item.nomorKtp || '',
+        nomorIjin: item.nomorIjin || '',
         noHp: mainPic?.noHp || '',
         alamat: mainPic?.alamat || '',
         pics: additionalPics
@@ -166,6 +172,8 @@ const Notaris = () => {
     ];
     const payload: CreateNotarisDTO = {
       nama: formData.nama,
+      nomorKtp: formData.nomorKtp,
+      nomorIjin: formData.nomorIjin,
       biayaAjb: 0,
       pics: allPics,
     };
@@ -233,6 +241,20 @@ const Notaris = () => {
                 onChange={handleChange}
                 error={errors.nama}
                 placeholder="Contoh: Notaris Budi Hartono, S.H."
+              />
+              <Input
+                label="Nomor KTP"
+                name="nomorKtp"
+                value={formData.nomorKtp}
+                onChange={handleChange}
+                placeholder="Masukkan NIK KTP Notaris"
+              />
+              <Input
+                label="Nomor Izin Notaris"
+                name="nomorIjin"
+                value={formData.nomorIjin}
+                onChange={handleChange}
+                placeholder="Masukkan No. Izin / SK"
               />
               <Input
                 label="No. Telepon / HP"
@@ -341,6 +363,14 @@ const Notaris = () => {
                 <div className="md:col-span-2">
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Notaris</p>
                   <p className="text-base font-black text-slate-900">{selectedNotarisDetail.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nomor KTP</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedNotarisDetail.nomorKtp || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nomor Izin / SK</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedNotarisDetail.nomorIjin || '-'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kontak Utama / No. HP</p>

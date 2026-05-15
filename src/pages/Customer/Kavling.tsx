@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// <file path="src/pages/Customer/Kavling.tsx">
 import React, { useState } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -76,6 +75,7 @@ interface KavlingData {
   ajbUping: number;
   rekeningTujuanId: number;
   notarisId: number | string;
+  biayaNotaris: number;
 }
 
 const initialFormState: KavlingData = {
@@ -88,6 +88,7 @@ const initialFormState: KavlingData = {
   pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
   ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
   notarisId: '',
+  biayaNotaris: 0,
 };
 
 const CustomerKavling = () => {
@@ -140,6 +141,7 @@ const CustomerKavling = () => {
       tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
       tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
       tanggalPembayaranBphtb: formatDateForInput(item.tanggalPembayaranBphtb),
+      biayaNotaris: item.biayaNotaris || 0,
     });
     setErrors({});
     setActiveTab('dasar');
@@ -220,6 +222,7 @@ const CustomerKavling = () => {
       rekeningTujuanId: getNum(formData.rekeningTujuanId),
 
       notarisId: getNum(formData.notarisId),
+      biayaNotaris: getNum(formData.biayaNotaris),
       lantai: getStr(formData.lantai),
       lokasiStrategis: getStr(formData.lokasiStrategis),
       tanggalAkadPpjb: getStr(formData.tanggalAkadPpjb),
@@ -540,7 +543,8 @@ const CustomerKavling = () => {
 
           {activeTab === 'notaris' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Pemilihan Notaris" />
+              <SectionTitle title="Pemilihan Notaris & Biaya" />
+
               <div className="md:col-span-2">
                 <Select
                   label="Pilih Notaris"
@@ -553,6 +557,17 @@ const CustomerKavling = () => {
                   ]}
                 />
               </div>
+
+              <div className="md:col-span-2">
+                <CurrencyInput
+                  label="Biaya Notaris (Rp)"
+                  name="biayaNotaris"
+                  value={formData.biayaNotaris || 0}
+                  onValueChange={handleCurrencyChange}
+                  placeholder="0"
+                />
+              </div>
+
             </div>
           )}
 

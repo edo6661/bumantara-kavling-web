@@ -21,9 +21,12 @@ import {
 } from 'lucide-react';
 import Input from '../../components/shared/Input';
 import { handleApiError } from '../../utils/errorHandler';
+import { useGetNotaris } from '../../hooks/queries/useNotaris';
+import Select from '../../components/shared/Select';
 
 const ProgressPenjualan = () => {
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const { data: notarisList = [] } = useGetNotaris();
   const penjualanData = useMemo(() => penjualanResponse?.items || [], [penjualanResponse?.items]);
   const { data: customers = [], isLoading: loadingCustomers } = useGetCustomers();
 
@@ -35,6 +38,7 @@ const ProgressPenjualan = () => {
   const [selectedPenjualan, setSelectedPenjualan] = useState<Record<string, any> | null>(null);
   const [modalStep, setModalStep] = useState<string | null>(null);
   const [newDocName, setNewDocName] = useState("");
+  const [notarisForm, setNotarisForm] = useState({ notarisId: '', biayaNotaris: 0 });
   const [uploadingProgressDoc, setUploadingProgressDoc] = useState<string | null>(null);
   const [uploadingCustDoc, setUploadingCustDoc] = useState<string | null>(null);
   const [pdfPassword, setPdfPassword] = useState("");
@@ -71,6 +75,10 @@ const ProgressPenjualan = () => {
   useEffect(() => {
     if (progressData) {
       setNilaiAjbInput(progressData.nilaiAjb || 0);
+      setNotarisForm({
+        notarisId: progressData.notarisId ? String(progressData.notarisId) : '',
+        biayaNotaris: progressData.biayaNotaris || 0
+      });
       setAjbForm({
         nomor: progressData.nomorAjb || '',
         tanggal: progressData.tanggalAjb ? new Date(progressData.tanggalAjb).toISOString().split('T')[0] : ''
@@ -102,6 +110,21 @@ const ProgressPenjualan = () => {
       }
     }
     if (files.length > 0) callback(files);
+  };
+  const handleSaveNotaris = async () => {
+    if (!progressData) return;
+    try {
+      await updateMutation.mutateAsync({
+        id: progressData.penjualanId,
+        data: {
+          notarisId: notarisForm.notarisId ? Number(notarisForm.notarisId) : null,
+          biayaNotaris: notarisForm.biayaNotaris
+        }
+      });
+      alert("Data Notaris berhasil disimpan!");
+    } catch (err: any) {
+      alert(handleApiError(err).message);
+    }
   };
 
   const ProgressIcons = ({ row }: { row: Record<string, any> }) => {
@@ -627,7 +650,6 @@ const ProgressPenjualan = () => {
                                           <img src={url} alt={doc.nama} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform" />
                                         )}
 
-                                        {/* Overlay Hover Actions */}
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/item:opacity-100 flex items-center justify-center gap-2 transition-opacity z-10">
                                           <button onClick={() => window.open(url, '_blank')} className="p-1.5 bg-white text-slate-800 rounded-md hover:bg-slate-200 transition" title="Lihat">
                                             <ZoomIn size={16} />
@@ -696,20 +718,54 @@ const ProgressPenjualan = () => {
                 {modalStep === 'SP3K' && (
                   <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
                     <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
-                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap SP3K & Biaya Notaris (Pajak)</h4>
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap SP3K & Biaya Notaris</h4>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {renderFileBox("Dokumen SP3K Bank", "fileSp3k", progressData.fileSp3k)}
-                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
-                          <div>
-                            <CurrencyInput label="Nilai AJB" name="nilaiAjb" value={nilaiAjbInput} onValueChange={(_, val) => setNilaiAjbInput(val)} placeholder="0" />
-                            <div className="grid grid-cols-2 gap-3 mt-3 border-t border-blue-200/50 pt-3">
-                              <div><p className="text-[9px] font-bold text-slate-500 uppercase">BPHTB</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedBphtb)}</p></div>
-                              <div><p className="text-[9px] font-bold text-slate-500 uppercase">PPh (2.5%)</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedPph)}</p></div>
-                            </div>
+                        <div>
+                          {renderFileBox("Dokumen SP3K Bank", "fileSp3k", progressData.fileSp3k)}
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <Select
+                              label="Pilih Notaris"
+                              value={notarisForm.notarisId}
+                              onChange={(e) => setNotarisForm({ ...notarisForm, notarisId: e.target.value })}
+                              options={[
+                                { value: '', label: '-- Pilih Notaris --' },
+                                ...notarisList.map(n => ({ value: n.id.toString(), label: n.nama }))
+                              ]}
+                            />
+                            <CurrencyInput
+                              label="Biaya Notaris (Rp)"
+                              name="biayaNotaris"
+                              value={notarisForm.biayaNotaris}
+                              onValueChange={(_, val) => setNotarisForm({ ...notarisForm, biayaNotaris: val })}
+                              placeholder="0"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveNotaris}
+                              disabled={updateMutation.isPending}
+                              className="w-full mt-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition cursor-pointer disabled:opacity-50"
+                            >
+                              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Notaris'}
+                            </button>
                           </div>
-                          <button onClick={handleSaveNilaiAjb} disabled={updateMutation.isPending} className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50">
-                            {updateMutation.isPending ? 'Menyimpan...' : 'Hitung & Simpan Nilai AJB'}
-                          </button>
+
+                          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
+                            <div>
+                              <CurrencyInput label="Nilai AJB" name="nilaiAjb" value={nilaiAjbInput} onValueChange={(_, val) => setNilaiAjbInput(val)} placeholder="0" />
+                              <div className="grid grid-cols-2 gap-3 mt-3 border-t border-blue-200/50 pt-3">
+                                <div><p className="text-[9px] font-bold text-slate-500 uppercase">BPHTB</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedBphtb)}</p></div>
+                                <div><p className="text-[9px] font-bold text-slate-500 uppercase">PPh (2.5%)</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedPph)}</p></div>
+                              </div>
+                            </div>
+                            <button onClick={handleSaveNilaiAjb} disabled={updateMutation.isPending} className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50">
+                              {updateMutation.isPending ? 'Menyimpan...' : 'Hitung & Simpan Nilai AJB'}
+                            </button>
+                          </div>
+
                         </div>
                       </div>
                     </div>
@@ -719,8 +775,60 @@ const ProgressPenjualan = () => {
                 {modalStep === 'PPJB' && (
                   <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
                     <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
-                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Pengikatan Jual Beli (PPJB)</h4>
-                      {renderFileBox("Dokumen PPJB", "filePpjb", progressData.filePpjb)}
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Pengikatan Jual Beli (PPJB) & Biaya Notaris</h4>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Kolom 1: Upload PPJB */}
+                        <div>
+                          {renderFileBox("Dokumen PPJB", "filePpjb", progressData.filePpjb)}
+                        </div>
+
+                        {/* Kolom 2: Form Pilih Notaris & Nilai AJB */}
+                        <div className="space-y-4">
+                          {/* Box Pemilihan Notaris */}
+                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <Select
+                              label="Pilih Notaris"
+                              value={notarisForm.notarisId}
+                              onChange={(e) => setNotarisForm({ ...notarisForm, notarisId: e.target.value })}
+                              options={[
+                                { value: '', label: '-- Pilih Notaris --' },
+                                ...notarisList.map((n: any) => ({ value: n.id.toString(), label: n.nama }))
+                              ]}
+                            />
+                            <CurrencyInput
+                              label="Biaya Notaris (Rp)"
+                              name="biayaNotaris"
+                              value={notarisForm.biayaNotaris}
+                              onValueChange={(_, val) => setNotarisForm({ ...notarisForm, biayaNotaris: val })}
+                              placeholder="0"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleSaveNotaris}
+                              disabled={updateMutation.isPending}
+                              className="w-full mt-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition cursor-pointer disabled:opacity-50"
+                            >
+                              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Notaris'}
+                            </button>
+                          </div>
+
+                          {/* Box Nilai AJB & Pajak */}
+                          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
+                            <div>
+                              <CurrencyInput label="Nilai AJB" name="nilaiAjb" value={nilaiAjbInput} onValueChange={(_, val) => setNilaiAjbInput(val)} placeholder="0" />
+                              <div className="grid grid-cols-2 gap-3 mt-3 border-t border-blue-200/50 pt-3">
+                                <div><p className="text-[9px] font-bold text-slate-500 uppercase">BPHTB</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedBphtb)}</p></div>
+                                <div><p className="text-[9px] font-bold text-slate-500 uppercase">PPh (2.5%)</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedPph)}</p></div>
+                              </div>
+                            </div>
+                            <button onClick={handleSaveNilaiAjb} disabled={updateMutation.isPending} className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50">
+                              {updateMutation.isPending ? 'Menyimpan...' : 'Hitung & Simpan Nilai AJB'}
+                            </button>
+                          </div>
+
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
