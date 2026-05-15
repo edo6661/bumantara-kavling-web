@@ -69,12 +69,15 @@ export const useUploadCustomerDoc = () => {
       docType,
       file,
       namaDokumen,
+      pdfPassword,
     }: {
       id: number;
       docType: CustomerDocType;
       file: File;
       namaDokumen?: string;
-    }) => customerService.uploadDoc(id, docType, file, namaDokumen),
+      pdfPassword?: string;
+    }) =>
+      customerService.uploadDoc(id, docType, file, namaDokumen, pdfPassword),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
     },

@@ -8,9 +8,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+const Modal = ({ isOpen, onClose, title, children, size }: ModalProps) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -21,6 +22,11 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+  const sizeClass = {
+    sm: 'max-w-sm',
+    md: 'max-w-xl',
+    lg: 'max-w-4xl',
+  };
 
   return createPortal(
     <AnimatePresence>
@@ -39,7 +45,7 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="relative bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5 overflow-hidden"
+            className={`relative bg-white rounded-2xl w-full ${sizeClass[size ?? 'lg']} max-h-[90vh] flex flex-col shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5 overflow-hidden`}
           >
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white/90 backdrop-blur-md shrink-0 z-10">
               <div>

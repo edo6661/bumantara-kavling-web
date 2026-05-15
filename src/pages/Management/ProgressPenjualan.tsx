@@ -37,8 +37,16 @@ const ProgressPenjualan = () => {
   const [newDocName, setNewDocName] = useState("");
   const [uploadingProgressDoc, setUploadingProgressDoc] = useState<string | null>(null);
   const [uploadingCustDoc, setUploadingCustDoc] = useState<string | null>(null);
+  const [pdfPassword, setPdfPassword] = useState("");
+  const [showPdfPasswordModal, setShowPdfPasswordModal] = useState(false);
+  const [pendingUpload, setPendingUpload] = useState<{
+    type: 'cust' | 'lainnya';
+    docType?: CustomerDocType;
+    files: File[];
+    groupName?: string;
+  } | null>(null);
 
-  // State untuk Drag and Drop
+
   const [dragActive, setDragActive] = useState<string | null>(null);
 
   const activePenjualan = useMemo(() => {
@@ -76,7 +84,7 @@ const ProgressPenjualan = () => {
     }
   }, [progressData]);
 
-  // Handlers untuk Drag & Drop dan Paste
+
   const handleDrag = (e: React.DragEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -193,7 +201,7 @@ const ProgressPenjualan = () => {
     }
   };
 
-  // Fungsi baru untuk Hapus 1 Gambar/File saja di dalam grup
+
   const handleDeleteSingleItemLainnya = async (docId: string, urlToDelete: string) => {
     if (!currentCustomer) return;
     const isConfirm = window.confirm("Apakah Anda yakin ingin menghapus file ini?");
@@ -203,12 +211,12 @@ const ProgressPenjualan = () => {
       const updatedDocs = currentCustomer.dokumenLainnya?.map((doc: any) => {
         if (doc.id === docId) {
           const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : [doc.fileUrl];
-          // Saring URL yang ingin dihapus
+
           const newUrls = fileUrls.filter((url: string) => url !== urlToDelete);
           return { ...doc, fileUrl: newUrls };
         }
         return doc;
-      }).filter((doc: any) => doc.fileUrl.length > 0); // Hapus grup otomatis jika kosong
+      }).filter((doc: any) => doc.fileUrl.length > 0);
 
       await updateCustomerMutation.mutateAsync({
         id: currentCustomer.id,
@@ -236,16 +244,33 @@ const ProgressPenjualan = () => {
       setUploadingProgressDoc(null);
     }
   };
-
   const handleUploadCustDoc = async (docType: CustomerDocType, file: File) => {
     if (!currentCustomer) return;
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       alert("Hanya file gambar dan PDF yang diperbolehkan!");
       return;
     }
+
+    if (file.type === 'application/pdf') {
+      setPendingUpload({ type: 'cust', docType, files: [file] });
+      setPdfPassword("");
+      setShowPdfPasswordModal(true);
+      return;
+    }
+
+    await doUploadCustDoc(docType, file);
+  };
+
+  const doUploadCustDoc = async (docType: CustomerDocType, file: File, password?: string) => {
+    if (!currentCustomer) return;
     setUploadingCustDoc(docType);
     try {
-      await uploadCustomerDocMutation.mutateAsync({ id: currentCustomer.id, docType, file });
+      await uploadCustomerDocMutation.mutateAsync({
+        id: currentCustomer.id,
+        docType,
+        file,
+        pdfPassword: password,
+      });
     } catch (error: any) {
       alert(handleApiError(error).message);
     } finally {
@@ -253,45 +278,65 @@ const ProgressPenjualan = () => {
     }
   };
 
-  // Diperbarui menerima nama override untuk support penambahan file di grup yang sudah ada
   const handleUploadLainnya = async (files: File[] | FileList, groupNameOverride?: string) => {
     if (!currentCustomer) return;
-
     const docName = groupNameOverride || newDocName;
-
     if (!docName.trim()) {
       alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file tambahan!");
       return;
     }
-
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
     if (validFiles.length === 0) {
       alert("Hanya file gambar dan PDF yang diperbolehkan!");
       return;
     }
 
+    const hasPdf = validFiles.some(f => f.type === 'application/pdf');
+    if (hasPdf) {
+      setPendingUpload({ type: 'lainnya', files: validFiles, groupName: docName });
+      setPdfPassword("");
+      setShowPdfPasswordModal(true);
+      return;
+    }
+
+    await doUploadLainnya(validFiles, docName);
+  };
+
+  const doUploadLainnya = async (files: File[], docName: string, password?: string) => {
+    if (!currentCustomer) return;
     setUploadingCustDoc('lainnya');
     try {
-      for (const file of validFiles) {
+      for (const file of files) {
         await uploadCustomerDocMutation.mutateAsync({
           id: currentCustomer.id,
           docType: 'lainnya',
           file,
-          namaDokumen: docName
+          namaDokumen: docName,
+          pdfPassword: file.type === 'application/pdf' ? password : undefined,
         });
       }
-
-      // Hanya reset input jika ini upload grup baru
-      if (!groupNameOverride) {
-        setNewDocName("");
-      }
-
+      setNewDocName("");
       alert("Dokumen pendukung berhasil diunggah/ditambahkan!");
     } catch (error: any) {
       alert(handleApiError(error).message);
     } finally {
       setUploadingCustDoc(null);
     }
+  };
+
+
+  const handleConfirmPdfPassword = async () => {
+    setShowPdfPasswordModal(false);
+    if (!pendingUpload) return;
+
+    if (pendingUpload.type === 'cust' && pendingUpload.docType) {
+      await doUploadCustDoc(pendingUpload.docType, pendingUpload.files[0]!, pdfPassword || undefined);
+    } else if (pendingUpload.type === 'lainnya' && pendingUpload.groupName) {
+      await doUploadLainnya(pendingUpload.files, pendingUpload.groupName, pdfPassword || undefined);
+    }
+
+    setPendingUpload(null);
+    setPdfPassword("");
   };
 
   const handleSaveNilaiAjb = async () => {
@@ -532,7 +577,7 @@ const ProgressPenjualan = () => {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => {
-                            // Antisipasi data lama (string) maupun data baru (array)
+
                             const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : [doc.fileUrl];
 
                             return (
@@ -746,6 +791,42 @@ const ProgressPenjualan = () => {
           </div>
         )}
       </Modal>
+      <Modal
+        isOpen={showPdfPasswordModal}
+        onClose={() => { setShowPdfPasswordModal(false); setPendingUpload(null); setPdfPassword(""); }}
+        title="File PDF Terkunci"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Masukkan password untuk membuka PDF ini. Kosongkan jika PDF tidak memiliki password.
+          </p>
+          <input
+            type="password"
+            value={pdfPassword}
+            onChange={(e) => setPdfPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleConfirmPdfPassword()}
+            placeholder="Password PDF (kosongkan jika tidak ada)"
+            className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900"
+            autoFocus
+          />
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={() => { setShowPdfPasswordModal(false); setPendingUpload(null); setPdfPassword(""); }}
+              className="flex-1 px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleConfirmPdfPassword}
+              className="flex-1 px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition cursor-pointer"
+            >
+              Upload PDF
+            </button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };

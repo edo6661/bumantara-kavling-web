@@ -53,16 +53,17 @@ export const customerService = {
     const response = await api.delete(`/customers/${id}`);
     return response.data;
   },
-
   uploadDoc: async (
     id: number,
     docType: CustomerDocType,
     file: File,
     namaDokumen?: string,
+    pdfPassword?: string,
   ) => {
     const formData = new FormData();
     formData.append("file", file);
     if (namaDokumen) formData.append("namaDokumen", namaDokumen);
+    if (pdfPassword) formData.append("pdfPassword", pdfPassword);
 
     const response = await api.patch(
       `/customers/${id}/upload/${docType}`,
