@@ -222,6 +222,16 @@ const AgentPortalDashboard = () => {
                         onChange={(e) => handleUpload(key, e)}
                         disabled={uploadDocMutation.isPending}
                       />
+                      {key === 'fileSuratPernyataan' && !fileUrl && agentData.defaultSuratPernyataan && (
+                        <a
+                          href={agentData.defaultSuratPernyataan}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 w-full px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-indigo-100"
+                        >
+                          Unduh Template
+                        </a>
+                      )}
                     </div>
                   );
                 })}

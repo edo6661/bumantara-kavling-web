@@ -38,7 +38,7 @@ const AgentRegisterSuccess = () => {
           </div>
           <h1 className="text-2xl font-black text-emerald-900 tracking-tight">Registrasi Berhasil!</h1>
           <p className="text-sm font-medium text-emerald-700 mt-2 max-w-lg mx-auto leading-relaxed">
-            Akun portal Anda telah dibuat. Silakan <strong>Print / Cetak dokumen ini (PDF)</strong>, beri Materai 10.000 dan tanda tangan basah, lalu upload kembali di dalam Portal Agent.
+            Akun portal Anda telah dibuat. Silakan <strong>Print / Cetak dokumen ini (PDF)</strong>, beri Materai dan tanda tangan basah, lalu upload kembali di dalam Portal Agent.
           </p>
           <div className="flex justify-center gap-4 mt-6">
             <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-2.5 bg-black text-white font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-md">
