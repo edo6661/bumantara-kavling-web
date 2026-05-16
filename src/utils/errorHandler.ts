@@ -11,8 +11,7 @@ export const handleApiError = (error: unknown): ActionResult => {
       if (error.code === "ERR_NETWORK") {
         return {
           success: false,
-          message:
-            "Gagal terhubung. Pastikan internet Anda stabil dan server backend sedang aktif.",
+          message: "Gagal terhubung. Pastikan internet Anda stabil",
         };
       }
       if (error.code === "ECONNABORTED") {
