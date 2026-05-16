@@ -492,7 +492,8 @@ const Tagihan = () => {
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <FileText size={16} className="text-blue-600" /> Detail Cicilan & Tagihan
+            {targetPenjualan?.pembiayaan?.replace(/_/g, ' ') || '-'}
+
           </h4>
 
           <div className="flex flex-wrap items-center gap-4 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
@@ -514,7 +515,7 @@ const Tagihan = () => {
             onClick={() => openModal(undefined, row)}
             className="flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer shadow-sm w-full md:w-auto"
           >
-            + Tambah Tagihan
+            +
           </button>
         </div>
 
@@ -537,7 +538,20 @@ const Tagihan = () => {
                   <tr key={c.id} className="hover:bg-blue-50/30 transition-colors group">
 
                     <td className="p-3 font-bold text-slate-800 text-xs">{c.pembayaran}</td>
-                    <td className="p-3 text-slate-600 text-xs font-medium">{formatDate(c.jatuhTempo.toString())}</td>
+                    <td className="p-3 text-slate-600 text-xs font-medium">
+                      <input
+                        type="date"
+                        defaultValue={c.jatuhTempo.toString().split('T')[0]}
+                        onBlur={(e) => {
+                          if (e.target.value && e.target.value !== c.jatuhTempo.toString().split('T')[0]) {
+                            updateMutation.mutate({ id: c.id, data: { jatuhTempo: e.target.value } });
+                          }
+                        }}
+                        className="px-2 py-1 border border-slate-200 rounded-md text-xs outline-none focus:border-blue-500 bg-transparent transition-all"
+                        disabled={updateMutation.isPending}
+                        title="Edit Jatuh Tempo"
+                      />
+                    </td>
                     <td className="p-3 text-slate-900 font-bold text-right tabular-nums text-xs">
                       {formatRupiah(c.nominal)}
                     </td>
@@ -816,16 +830,33 @@ const Tagihan = () => {
             <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
               <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
 
-              <FileInput label="Upload Bukti Transfer" accept="image/*,application/pdf" onChange={handleFileChange} />
-              {formData.fileBukti && typeof formData.fileBukti === 'string' && (
-                <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
-                  <FileText size={14} /> File saat ini sudah diupload
-                </p>
-              )}
-              {formData.fileBukti instanceof File && (
-                <p className="text-xs text-blue-600 mt-2 truncate flex items-center gap-1 font-medium bg-blue-50 p-2 rounded border border-blue-100">
-                  <UploadCloud size={14} /> File siap diupload: {formData.fileBukti.name}
-                </p>
+              <FileInput
+                label={formData.fileBukti ? "Ganti Bukti Transfer" : "Upload Bukti Transfer"}
+                accept="image/*,application/pdf"
+                onChange={handleFileChange}
+              />
+
+              {formData.fileBukti && (
+                <div className="mt-4 border border-blue-200 rounded-lg overflow-hidden bg-white relative">
+                  <p className="text-[10px] font-bold text-slate-500 bg-slate-50 px-3 py-1.5 border-b border-slate-200 uppercase tracking-widest">
+                    Pratinjau File
+                  </p>
+                  <div className="p-2 flex justify-center">
+                    {formData.fileBukti instanceof File ? (
+                      formData.fileBukti.type === 'application/pdf' ? (
+                        <iframe src={URL.createObjectURL(formData.fileBukti)} className="w-full h-48 rounded border-none" />
+                      ) : (
+                        <img src={URL.createObjectURL(formData.fileBukti)} alt="Preview Baru" className="max-h-48 object-contain rounded" />
+                      )
+                    ) : (
+                      typeof formData.fileBukti === 'string' && formData.fileBukti.includes('.pdf') ? (
+                        <iframe src={formData.fileBukti} className="w-full h-48 rounded border-none" />
+                      ) : (
+                        <img src={formData.fileBukti as string} alt="Preview Lama" className="max-h-48 object-contain rounded" />
+                      )
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}

@@ -318,16 +318,16 @@ const FeeAgent = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">1. Closing Fee</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">2. Closing Fee</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <CurrencyInput label="Nominal (Rp)" name="closingNominal" value={Number(formData.closingNominal) || 0} onValueChange={(_, val) => setFormData(prev => ({ ...prev, closingNominal: val }))} error={errors.closingNominal} placeholder="0" />
               <Input label="Tanggal Transfer" name="closingTanggal" type="date" value={formData.closingTanggal} onChange={handleChange} error={errors.closingTanggal} />
               <div>
                 <FileInput label={formData.closingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "closingBukti")} />
+                {renderThumbnail(formData.closingBukti)}
               </div>
             </div>
           </div>
-
           <div>
             <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">2. Marketing Fee</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

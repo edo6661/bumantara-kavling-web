@@ -34,6 +34,7 @@ interface AgentFormState {
   noRekening: string;
   atasNamaRekening: string;
   feeMarketingPct: number | '';
+  feeClosingPct: number | '';
   potonganPph: number | '';
   pics: PicAgentData[];
 }
@@ -51,6 +52,7 @@ const initialFormState: AgentFormState = {
   noRekening: '',
   atasNamaRekening: '',
   feeMarketingPct: '',
+  feeClosingPct: '',
   potonganPph: '',
   pics: [{ nama: '', noHp: '', alamat: '' }]
 };
@@ -193,6 +195,7 @@ const Agents = () => {
         noRekening: item.noRekening || '',
         atasNamaRekening: item.atasNamaRekening || '',
         feeMarketingPct: item.feeMarketingPct ?? '',
+        feeClosingPct: item.feeClosingPct ?? '',
         potonganPph: item.potonganPph ?? '',
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
@@ -293,6 +296,7 @@ const Agents = () => {
       noRekening: formData.noRekening || null,
       atasNamaRekening: formData.atasNamaRekening || null,
       feeMarketingPct: formData.feeMarketingPct !== '' ? Number(formData.feeMarketingPct) : undefined,
+      feeClosingPct: formData.feeClosingPct !== '' ? Number(formData.feeClosingPct) : undefined,
       potonganPph: formData.potonganPph !== '' ? Number(formData.potonganPph) : undefined,
       pics: validPics.length > 0 ? validPics : undefined,
     };
@@ -498,8 +502,11 @@ const Agents = () => {
               <Input label="Nama Lengkap / Perusahaan" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Sesuai KTP" />
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
               <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
-              <Input label="Fee Marketing (%)" name="feeMarketingPct" type="number" step="any" value={formData.feeMarketingPct} onChange={handleChange} placeholder="Contoh: 2.5" />
-              <Input label="Potongan PPh (%)" name="potonganPph" type="number" step="any" value={formData.potonganPph} onChange={handleChange} placeholder="Contoh: 2.5" />
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input label="Fee Marketing (%)" name="feeMarketingPct" type="number" step="any" value={formData.feeMarketingPct} onChange={handleChange} placeholder="Contoh: 2.5" />
+                <Input label="Fee Closing (%)" name="feeClosingPct" type="number" step="any" value={formData.feeClosingPct} onChange={handleChange} placeholder="Contoh: 1.5" />
+                <Input label="Potongan PPh (%)" name="potonganPph" type="number" step="any" value={formData.potonganPph} onChange={handleChange} placeholder="Contoh: 2.5" />
+              </div>
               <div className="md:col-span-2">
                 <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
               </div>
@@ -664,6 +671,10 @@ const Agents = () => {
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Marketing (%)</p>
                   <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeMarketingPct ?? '-'} %</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (%)</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingPct ?? '-'} %</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Potongan PPh (%)</p>
