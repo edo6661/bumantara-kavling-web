@@ -169,21 +169,24 @@ const ProgressPenjualan = () => {
     if (skema === 'CASH BERTAHAP') {
       return (
         <div className="flex items-center gap-1">
-          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="1. PPJB" step="PPJB" />
+          <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={!!safeProgress.filePpjb} />
+          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="2. PPJB" step="PPJB" />
           <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="2. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="3. BAST" step="BAST" />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />
         </div>
       );
     }
     if (skema === 'CASH KERAS') {
       return (
         <div className="flex items-center gap-1">
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="1. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={!!safeProgress.fileAjb} />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="2. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="2. BAST" step="BAST" />
-        </div>
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="3. BAST" step="BAST" />        </div>
       );
     }
     return <span className="text-xs text-slate-400 italic">-</span>;
