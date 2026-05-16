@@ -40,6 +40,7 @@ interface PenjualanData {
   perusahaan: string;
   plafonKredit?: number;
   dpTidakDibayar?: number;
+  dpDibayar?: number;
   alamatKoresponden: string;
   perumahan: string;
   blok: string;
@@ -107,6 +108,7 @@ const initialFormState: PenjualanData = {
   biayaKpr: 0,
   plafonKredit: 0,
   dpTidakDibayar: 0,
+  dpDibayar: 0,
   nilaiPengajuanKpr: 0,
   hargaJual: 0,
   dp: 0,
@@ -273,6 +275,10 @@ const Penjualan = () => {
       const diskon = Number(merged.diskonPenjualan) || 0;
       const bf = Number(merged.bookingFee) || 5000000;
 
+      let dpDibayar = merged.dpDibayar;
+      if (name === 'dpDibayar') {
+        dpDibayar = Number(value);
+      }
 
       const totalTambahanBaru = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
       const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
@@ -334,8 +340,9 @@ const Penjualan = () => {
         updates.biayaKpr = biayaKpr;
         updates.plafonKredit = plafonKredit;
         updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
-        updates.dp = dpTidakDibayar;
         updates.dpTidakDibayar = dpTidakDibayar;
+        updates.dpDibayar = dpDibayar;
+        updates.dp = (dpDibayar && dpDibayar > 0) ? dpDibayar : dpTidakDibayar;
         updates.hargaJual = hargaJual;
 
       } else {
@@ -940,6 +947,7 @@ const Penjualan = () => {
         biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
         plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
         dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
+        dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP')
           ? formData.dp
@@ -1017,6 +1025,7 @@ const Penjualan = () => {
           biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
           plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
           dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
+          dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
           nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
           dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP') ? formData.dp : undefined,
           termin: formData.caraPembayaran === 'CASH BERTAHAP' ? Number(formData.termin) : undefined,
@@ -2013,6 +2022,20 @@ const Penjualan = () => {
 
                         <div className="pt-3 border-t border-slate-200">
                           <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-blue-600 w-full">DP Dibayar (Opsional)</span>
+                            <div className="w-40 sm:w-44 shrink-0">
+                              <CurrencyInput
+                                name="dpDibayar"
+                                value={formData.dpDibayar || 0}
+                                onValueChange={handleCurrencyChange}
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-mono mt-1">
+                            <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini.
+                          </p>
+                          <div className="flex items-center justify-between">
                             <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
                             <div className="w-40 sm:w-44 shrink-0">
                               <CurrencyInput
@@ -2457,6 +2480,20 @@ const Penjualan = () => {
                     </div>
 
                     <div className="pt-3 border-t border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-blue-600 w-full">DP Dibayar (Opsional)</span>
+                        <div className="w-40 sm:w-44 shrink-0">
+                          <CurrencyInput
+                            name="dpDibayar"
+                            value={formData.dpDibayar || 0}
+                            onValueChange={handleCurrencyChange}
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono mt-1">
+                        <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini.
+                      </p>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
                         <div className="w-40 sm:w-44 shrink-0">
@@ -3094,6 +3131,21 @@ const Penjualan = () => {
                           <strong className="text-slate-400">Kalkulasi:</strong> ((Harga Jual - Diskon) × 10%) - Booking Fee
                         </p>
                       </div>
+
+                      {detailData.dpDibayar && detailData.dpDibayar > 0 ? (
+                        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-4 shadow-md">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-bold text-emerald-400">DP Dibayar</span>
+                            <span className="text-sm font-bold text-emerald-400 tabular-nums">{formatTanpaDesimal(detailData.dpDibayar)}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-mono">
+                            <strong className="text-slate-400">Info:</strong> Nilai DP manual yang disepakati untuk dibayarkan.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mb-4"></div> /* Spacer pengganti mb-4 jika tidak ada DP Dibayar */
+                      )}
+
                     </>
                   )}
 
