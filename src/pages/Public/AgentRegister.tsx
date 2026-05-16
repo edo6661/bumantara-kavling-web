@@ -7,6 +7,7 @@ import { UserPlus, Info } from 'lucide-react';
 import { authService, type RegisterAgentPayload } from '../../services/auth.service';
 import SignatureCanvas from 'react-signature-canvas';
 import api from '../../lib/axios';
+import { handleApiError } from '../../utils/errorHandler';
 
 const AgentRegister = () => {
   const [formData, setFormData] = useState<RegisterAgentPayload>({
@@ -23,10 +24,12 @@ const AgentRegister = () => {
     perusahaanAgentId: undefined,
   });
 
+  // ✅ PERBAIKAN TS ERROR: Tambahkan "| undefined" pada Record
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
+
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [perusahaanList, setPerusahaanList] = useState<{ id: number, nama: string }[]>([]);
-
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAgreed, setIsAgreed] = useState(false);
@@ -61,6 +64,7 @@ const AgentRegister = () => {
     }
 
     if (formData.type === 'PERUSAHAAN' && !formData.perusahaanAgentId) {
+      setFieldErrors({ perusahaanAgentId: "Perusahaan wajib dipilih" });
       setError("Anda wajib memilih Perusahaan tempat Anda bernaung.");
       return;
     }
@@ -82,9 +86,20 @@ const AgentRegister = () => {
         replace: true
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Terjadi kesalahan saat registrasi.');
+      // ✅ KODE YANG DIUBAH: Menggunakan helper standar untuk mapping validasi field
+      const { message, errors: backendErrors } = handleApiError(err);
+
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const newFieldErrors: Record<string, string> = {};
+        backendErrors.forEach((errorItem: { field: string; message: string }) => {
+          newFieldErrors[errorItem.field] = errorItem.message;
+        });
+        setFieldErrors(newFieldErrors);
+        setError("Ada data yang tidak valid, mohon periksa pesan error pada form di bawah.");
+      } else {
+        setError(message || 'Terjadi kesalahan saat registrasi.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -92,6 +107,11 @@ const AgentRegister = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    // ✅ KODE YANG DITAMBAHKAN: Hapus pesan error saat user mulai mengetik ulang
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors(prev => ({ ...prev, [e.target.name]: undefined }));
+    }
   };
 
   const getNamaPerusahaan = () => {
@@ -117,10 +137,12 @@ const AgentRegister = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="Tipe Agent"
+              error={fieldErrors.type}
               name="type"
               value={formData.type}
               onChange={(e) => {
                 setFormData({ ...formData, type: e.target.value, perusahaanAgentId: undefined });
+                if (fieldErrors.type) setFieldErrors(prev => ({ ...prev, type: undefined }));
               }}
               options={[{ value: 'PRIBADI', label: 'Pribadi' }, { value: 'PERUSAHAAN', label: 'Perusahaan' }]}
             />
@@ -129,6 +151,7 @@ const AgentRegister = () => {
               <Select
                 label="Pilih Perusahaan"
                 name="perusahaanAgentId"
+                error={fieldErrors.perusahaanAgentId}
                 value={formData.perusahaanAgentId || ''}
                 onChange={handleChange}
                 options={[
@@ -138,17 +161,49 @@ const AgentRegister = () => {
               />
             )}
 
-            <Input label="NIK KTP" name="nik" value={formData.nik} onChange={handleChange} placeholder="16 Digit NIK" required maxLength={16} />
+            <Input
+              label="NIK KTP"
+              name="nik"
+              value={formData.nik}
+              onChange={handleChange}
+              error={fieldErrors.nik}
+              placeholder="16 Digit NIK"
+              required
+              maxLength={16}
+            />
 
             <div className="flex flex-col">
-              <Input label="Nama Lengkap" name="nama" value={formData.nama} onChange={handleChange} placeholder="Sesuai KTP" required />
+              <Input
+                label="Nama Lengkap"
+                name="nama"
+                value={formData.nama}
+                onChange={handleChange}
+                error={fieldErrors.nama}
+                placeholder="Sesuai KTP"
+                required
+              />
               <span className="text-[10px] text-slate-400 italic ml-1 -mt-3">*Isi nama lengkap sesuai dengan KTP</span>
             </div>
 
-            <Input label="No. WhatsApp" name="noHp" value={formData.noHp} onChange={handleChange} placeholder="08xxxxxxxx" required />
+            <Input
+              label="No. WhatsApp"
+              name="noHp"
+              value={formData.noHp}
+              onChange={handleChange}
+              error={fieldErrors.noHp}
+              placeholder="08xxxxxxxx"
+              required
+            />
           </div>
 
-          <Input label="Alamat Lengkap" name="alamat" value={formData.alamat} onChange={handleChange} placeholder="Alamat Domisili" />
+          <Input
+            label="Alamat Lengkap"
+            name="alamat"
+            value={formData.alamat}
+            onChange={handleChange}
+            error={fieldErrors.alamat}
+            placeholder="Alamat Domisili"
+          />
 
           <div className="pt-4 border-t border-slate-100 mt-2">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Login</h3>
@@ -161,19 +216,32 @@ const AgentRegister = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="Email Aktif" name="email" type="email" value={formData.email} onChange={handleChange} placeholder="email@anda.com" required />
-              <Input label="Password" name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Min. 6 Karakter" required />
+              <Input
+                label="Email Aktif"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={fieldErrors.email}
+                placeholder="email@anda.com"
+                required
+              />
+              <Input
+                label="Password"
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                error={fieldErrors.password}
+                placeholder="Min. 6 Karakter"
+                required
+              />
             </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100 mt-2">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Persetujuan & Tanda Tangan</h3>
 
-            {/* 
-              Perubahan Disini: 
-              Container dibuat jadi onClick, ditambahkan class cursor-pointer dan hover effect.
-              Input checkbox dan label dibuat pointer-events-none agar klik diteruskan ke container.
-            */}
             <div
               onClick={() => setIsModalOpen(true)}
               className="flex items-start gap-3 mb-4 p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
@@ -274,7 +342,6 @@ const AgentRegister = () => {
           </p>
 
           <div className="flex justify-end pt-4 gap-3">
-            {/* Tombol batal jika user ingin menutup tanpa setuju */}
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}

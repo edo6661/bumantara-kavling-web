@@ -83,7 +83,6 @@ const PerusahaanAgent = () => {
     setFormData({ id: "", nama: "" });
     setErrors({});
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nama.trim()) {
@@ -98,9 +97,17 @@ const PerusahaanAgent = () => {
         await createMutation.mutateAsync({ nama: formData.nama });
       }
       closeModal();
-    } catch (error) {
-      const { message } = handleApiError(error);
-      alert(message);
+    } catch (error: any) {
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
     }
   };
 

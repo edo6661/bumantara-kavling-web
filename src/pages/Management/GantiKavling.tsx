@@ -10,6 +10,7 @@ import { ArrowRightLeft, Check, X, Clock, CheckCircle2, XCircle } from 'lucide-r
 import { useGetPenjualan, useGantiKavling, useGetPengajuanGantiKavling, useApproveGantiKavling } from "../../hooks/queries/usePenjualan";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
 import { storage } from "../../utils/storage";
+import { handleApiError } from '../../utils/errorHandler';
 
 const GantiKavling = () => {
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
@@ -144,7 +145,17 @@ const GantiKavling = () => {
       alert("Pengajuan Ganti Kavling Berhasil Dikirim ke Admin!");
       setIsModalOpen(false);
     } catch (error: any) {
-      alert(error.response?.data?.message || "Terjadi kesalahan saat memproses pengajuan");
+      // ✅ KODE YANG DIUBAH
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
     }
   };
 

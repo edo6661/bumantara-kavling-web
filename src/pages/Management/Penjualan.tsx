@@ -970,8 +970,16 @@ const Penjualan = () => {
       setBiayaTambahanKprList([]);
       alert("Skema pembayaran berhasil disimpan dan dokumen SPR siap dicetak!");
     } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
     }
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1082,11 +1090,21 @@ const Penjualan = () => {
     try {
       await cancelMutation.mutateAsync({ id: cancelData.id, alasanBatal: cancelData.alasanBatal });
       setIsCancelModalOpen(false);
+      setErrors({});
       setCancelData({ id: '', alasanBatal: '' });
       alert("Pengajuan pembatalan berhasil dikirim ke Admin.");
     } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
+      // ✅ KODE YANG DIUBAH
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
     }
   };
 
@@ -2859,8 +2877,12 @@ const Penjualan = () => {
               label="Alasan Pembatalan"
               name="alasanBatal"
               value={cancelData.alasanBatal}
-              onChange={(e) => setCancelData({ ...cancelData, alasanBatal: e.target.value })}
-              placeholder="Contoh: BI Checking ditolak / Customer mengundurkan diri..."
+              onChange={(e) => {
+                setCancelData({ ...cancelData, alasanBatal: e.target.value });
+                if (errors.alasanBatal) setErrors({});
+              }}
+              placeholder="Contoh: Customer mengundurkan diri..."
+              error={errors.alasanBatal}
               required
             />
 

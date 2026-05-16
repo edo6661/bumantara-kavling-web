@@ -8496,6 +8496,274 @@ const BatalTransaksi = () => {
 export default BatalTransaksi;
 </file>
 
+<file path="src/components/shared/DataTable.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft, Eye } from 'lucide-react';
+
+interface Column {
+  header: string;
+  accessor: string;
+  render?: (value: any, row: any) => React.ReactNode;
+}
+
+interface DataTableProps {
+  title: string;
+  columns: Column[];
+  data: any[];
+  onAdd?: () => void;
+  onDetail?: (item: any) => void;
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+  expandedRowRender?: (row: any) => React.ReactNode;
+  serverSide?: boolean;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+}
+
+const DataTable = ({
+  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
+  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
+}: DataTableProps) => {
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (serverSide && onSearchChange) {
+      const timeoutId = setTimeout(() => {
+        if (localSearchTerm !== searchTerm) {
+          onSearchChange(localSearchTerm);
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
+
+  const toggleRow = (rowIndex: number) => {
+    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+  };
+
+  const filteredData = useMemo(() => {
+    if (serverSide) return data;
+    if (!localSearchTerm) return data;
+    const lowercasedTerm = localSearchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, localSearchTerm, columns, serverSide]);
+
+  const hasActions = !!(onDetail || onEdit || onDelete);
+  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (hasActions ? 1 : 0);
+
+  const getPageNumbers = () => {
+    const delta = 1;
+    const range = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift("...");
+    if (page + delta < totalPages - 1) range.push("...");
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
+      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-30 bg-white">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+            {/* {!serverSide && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
+                {filteredData.length} Data
+              </span>
+            )} */}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-72 group">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={localSearchTerm}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Tambah Data
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-auto custom-scrollbar max-h-[65vh]">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead className="sticky top-0 z-20 shadow-sm ring-1 ring-slate-200">
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider">
+              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center bg-slate-50"></th>}
+              {columns.map((col, index) => (
+                <th key={index} className="px-6 py-3.5 whitespace-nowrap bg-slate-50">
+                  {col.header}
+                </th>
+              ))}
+              {hasActions && (
+                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24 bg-slate-50">Aksi</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => {
+                const isExpanded = !!expandedRows[rowIndex];
+                return (
+                  <React.Fragment key={rowIndex}>
+                    <tr
+                      onClick={() => {
+                        if (expandedRowRender) toggleRow(rowIndex);
+                      }}
+                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
+                    >
+                      {expandedRowRender && (
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </td>
+                      )}
+                      {columns.map((col, colIndex) => (
+                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
+                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
+                        </td>
+                      ))}
+                      {hasActions && (
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            {onDetail && (
+                              <button
+                                onClick={() => onDetail(row)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
+                                title="Detail"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            )}
+                            {onEdit && (
+                              <button
+                                onClick={() => onEdit(row)}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                onClick={() => onDelete(row)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                                title="Hapus"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                    {isExpanded && expandedRowRender && (
+                      <tr className="bg-slate-50/30 border-t-0">
+                        <td colSpan={totalCols} className="px-6 py-5 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            {expandedRowRender(row)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={totalCols} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center max-w-xs mx-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-slate-50/50">
+                      <FileX2 size={24} className="text-slate-300" />
+                    </div>
+                    <h3 className="text-slate-900 font-semibold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-500 text-sm">
+                      Kami tidak dapat menemukan data yang Anda cari.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {serverSide && totalPages > 1 && (
+        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-0 bg-white z-20">
+          <span className="text-xs font-semibold text-slate-500">
+            Halaman {page} dari {totalPages}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onPageChange?.(page - 1)}
+              disabled={page === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {getPageNumbers().map((num, idx) => (
+              num === "..." ? (
+                <span key={idx} className="px-2 text-slate-400 font-bold">...</span>
+              ) : (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange?.(num as number)}
+                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${page === num
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                >
+                  {num}
+                </button>
+              )
+            ))}
+
+            <button
+              onClick={() => onPageChange?.(page + 1)}
+              disabled={page === totalPages}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DataTable;
+</file>
+
 <file path="src/pages/Marketing/FeeAgent.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from "react";
@@ -8817,16 +9085,16 @@ const FeeAgent = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">1. Closing Fee</h4>
+            <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">2. Closing Fee</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <CurrencyInput label="Nominal (Rp)" name="closingNominal" value={Number(formData.closingNominal) || 0} onValueChange={(_, val) => setFormData(prev => ({ ...prev, closingNominal: val }))} error={errors.closingNominal} placeholder="0" />
               <Input label="Tanggal Transfer" name="closingTanggal" type="date" value={formData.closingTanggal} onChange={handleChange} error={errors.closingTanggal} />
               <div>
                 <FileInput label={formData.closingBukti ? "Ganti File Bukti" : "Upload Bukti Transfer"} accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "closingBukti")} />
+                {renderThumbnail(formData.closingBukti)}
               </div>
             </div>
           </div>
-
           <div>
             <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">2. Marketing Fee</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -8972,6 +9240,7 @@ export interface AgentData {
   noRekening: string | null;
   atasNamaRekening: string | null;
   feeMarketingPct: number | null;
+  feeClosingPct: number | null;
   potonganPph: number | null;
   fileKtp: string | null;
   fileNpwp: string | null;
@@ -8999,277 +9268,10 @@ export interface CreateAgentDTO {
   noRekening: string | null;
   atasNamaRekening: string | null;
   feeMarketingPct?: number;
+  feeClosingPct?: number;
   potonganPph?: number;
   pics?: PicAgentData[];
 }
-</file>
-
-<file path="src/components/shared/DataTable.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft, Eye } from 'lucide-react';
-
-interface Column {
-  header: string;
-  accessor: string;
-  render?: (value: any, row: any) => React.ReactNode;
-}
-
-interface DataTableProps {
-  title: string;
-  columns: Column[];
-  data: any[];
-  onAdd?: () => void;
-  onDetail?: (item: any) => void;
-  onEdit?: (item: any) => void;
-  onDelete?: (item: any) => void;
-  expandedRowRender?: (row: any) => React.ReactNode;
-  serverSide?: boolean;
-  searchTerm?: string;
-  onSearchChange?: (val: string) => void;
-  page?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
-}
-
-const DataTable = ({
-  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
-  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
-}: DataTableProps) => {
-
-  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-
-  useEffect(() => {
-    if (serverSide && onSearchChange) {
-      const timeoutId = setTimeout(() => {
-        if (localSearchTerm !== searchTerm) {
-          onSearchChange(localSearchTerm);
-        }
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
-
-  const toggleRow = (rowIndex: number) => {
-    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
-  };
-
-  const filteredData = useMemo(() => {
-    if (serverSide) return data;
-    if (!localSearchTerm) return data;
-    const lowercasedTerm = localSearchTerm.toLowerCase();
-    return data.filter((row) => {
-      return columns.some((col) => {
-        const value = row[col.accessor];
-        if (value == null) return false;
-        return String(value).toLowerCase().includes(lowercasedTerm);
-      });
-    });
-  }, [data, localSearchTerm, columns, serverSide]);
-
-  const hasActions = !!(onDetail || onEdit || onDelete);
-  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (hasActions ? 1 : 0);
-
-  const getPageNumbers = () => {
-    const delta = 1;
-    const range = [];
-    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
-      range.push(i);
-    }
-    if (page - delta > 2) range.unshift("...");
-    if (page + delta < totalPages - 1) range.push("...");
-    range.unshift(1);
-    if (totalPages > 1) range.push(totalPages);
-    return range;
-  };
-
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
-      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-30 bg-white">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-            {/* {!serverSide && (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
-                {filteredData.length} Data
-              </span>
-            )} */}
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-72 group">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
-            <input
-              type="text"
-              placeholder="Cari data..."
-              value={localSearchTerm}
-              onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
-            />
-          </div>
-
-          {onAdd && (
-            <button
-              onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Tambah Data
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="overflow-auto custom-scrollbar max-h-[65vh]">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead className="sticky top-0 z-20 shadow-sm ring-1 ring-slate-200">
-            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider">
-              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center bg-slate-50"></th>}
-              {columns.map((col, index) => (
-                <th key={index} className="px-6 py-3.5 whitespace-nowrap bg-slate-50">
-                  {col.header}
-                </th>
-              ))}
-              {hasActions && (
-                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24 bg-slate-50">Aksi</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredData.length > 0 ? (
-              filteredData.map((row, rowIndex) => {
-                const isExpanded = !!expandedRows[rowIndex];
-                return (
-                  <React.Fragment key={rowIndex}>
-                    <tr
-                      onClick={() => {
-                        if (expandedRowRender) toggleRow(rowIndex);
-                      }}
-                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
-                    >
-                      {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
-                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                        </td>
-                      )}
-                      {columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
-                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
-                        </td>
-                      ))}
-                      {hasActions && (
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            {onDetail && (
-                              <button
-                                onClick={() => onDetail(row)}
-                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
-                                title="Detail"
-                              >
-                                <Eye size={16} />
-                              </button>
-                            )}
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(row)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
-                                title="Edit"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button
-                                onClick={() => onDelete(row)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
-                                title="Hapus"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                    {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/30 border-t-0">
-                        <td colSpan={totalCols} className="px-6 py-5 border-b border-slate-100">
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                            {expandedRowRender(row)}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={totalCols} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center max-w-xs mx-auto">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-slate-50/50">
-                      <FileX2 size={24} className="text-slate-300" />
-                    </div>
-                    <h3 className="text-slate-900 font-semibold mb-1">Data tidak ditemukan</h3>
-                    <p className="text-slate-500 text-sm">
-                      Kami tidak dapat menemukan data yang Anda cari.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {serverSide && totalPages > 1 && (
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-0 bg-white z-20">
-          <span className="text-xs font-semibold text-slate-500">
-            Halaman {page} dari {totalPages}
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => onPageChange?.(page - 1)}
-              disabled={page === 1}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {getPageNumbers().map((num, idx) => (
-              num === "..." ? (
-                <span key={idx} className="px-2 text-slate-400 font-bold">...</span>
-              ) : (
-                <button
-                  key={idx}
-                  onClick={() => onPageChange?.(num as number)}
-                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${page === num
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                >
-                  {num}
-                </button>
-              )
-            ))}
-
-            <button
-              onClick={() => onPageChange?.(page + 1)}
-              disabled={page === totalPages}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default DataTable;
 </file>
 
 <file path="src/pages/Management/GantiKavling.tsx">
@@ -9512,6 +9514,610 @@ const GantiKavling = () => {
 };
 
 export default GantiKavling;
+</file>
+
+<file path="src/pages/Customer/Kavling.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
+import { useGetNotaris } from '../../hooks/queries/useNotaris';
+import { useGetTagihans } from '../../hooks/queries/useTagihan';
+import CurrencyInput from '../../components/shared/CurrencyInput';
+import { handleApiError } from '../../utils/errorHandler';
+interface KavlingData {
+  id: string;
+  perumahan: string;
+  status: string;
+  statusKavling: string;
+  lantai: string;
+  blok: string;
+  unit: string;
+  tipe: string;
+  luasBangunan: string | number;
+  luasTanah: string | number;
+  lokasiStrategis: string;
+  tanggalAkadPpjb: string;
+  akadPpjb: string;
+  tanggalAkadAjbPpat: string;
+  tanggalPembayaranPph: string;
+  tanggalPembayaranBphtb: string;
+  pembiayaan: string;
+  sp3r: string;
+  hargaDasarKavling: number; // Tambahan Baru dari UseCase
+  diskonPenjualan: number;   // Tambahan Baru dari UseCase
+  lebihTanah: number;
+  biayaStrategis: number;
+  totalHargaJual: number;
+  nrBiayaKprAsuransi: number;
+  nrDiskonAngsuran: number;
+  nrDiskonCash: number;
+  nrBiayaBbn: number;
+  nrBiayaNotarisAjb: number;
+  nrBiayaNotarisPpjb: number;
+  nrBiayaAppraisal: number;
+  nrBiayaBphtb: number;
+  nrLainLain: number;
+  nrTotalSubsidi: number;
+  nrNilaiPenyerahan: number;
+  nrPpn: number;
+  nrBphtb: number;
+  nrPph: number;
+  pjBiayaKpr: number;
+  pjBiayaAsuransi: number;
+  pjDiskonAngsuran: number;
+  pjBiayaBbn: number;
+  pjBiayaAjb: number;
+  pjBiayaAppraisal: number;
+  pjBphtb: number;
+  pjLainLain: number;
+  pjTotalSubsidi: number;
+  pjNilaiPenyerahan: number;
+  pjPpn: number;
+  pjBphtbPajak: number;
+  pjPph: number;
+  pjTotalBphtbPph: number;
+  ajbNjopTanahPerMeter: number;
+  ajbNjopTanah: number;
+  ajbNjopBangunanPerMeter: number;
+  ajbNjopBangunan: number;
+  ajbNjopTotal: number;
+  ajbPpn: number;
+  ajbBphtb: number;
+  ajbPph: number;
+  ajbTotalBphtbPph: number;
+  ajbSelisihPajakPbb: number;
+  ajbUping: number;
+  rekeningTujuanId: number;
+  notarisId: number | string;
+  biayaNotaris: number;
+}
+
+const initialFormState: KavlingData = {
+  id: '',
+  rekeningTujuanId: 0,
+  perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
+  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
+  hargaDasarKavling: 0, diskonPenjualan: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
+  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaNotarisPpjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
+  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
+  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
+  notarisId: '',
+  biayaNotaris: 0,
+};
+
+const CustomerKavling = () => {
+
+  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 300 });
+  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 300 });
+  const { data: notarisList = [] } = useGetNotaris();
+  const updateMutation = useUpdateCustomerKavling();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+
+  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
+
+  const columns = [
+    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => val },
+    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'No', accessor: 'unit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'Tipe', accessor: 'tipe' },
+    { header: 'Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) }, {
+      header: 'Status Penjualan',
+      accessor: 'status',
+      render: (val: string) => {
+        let style = 'bg-gray-100 text-gray-800';
+        if (val?.toUpperCase() === 'AVAILABLE') style = 'bg-green-100 text-green-800';
+        if (val?.toUpperCase() === 'BOOKED' || val?.toUpperCase() === 'BOOKING') style = 'bg-blue-100 text-blue-800';
+        if (val?.toUpperCase() === 'PROSES') style = 'bg-yellow-100 text-yellow-800';
+        if (val?.toUpperCase() === 'LUNAS' || val?.toUpperCase() === 'TERJUAL') style = 'bg-emerald-100 text-emerald-800';
+
+        return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>{val}</span>;
+      }
+    },
+  ];
+
+  const formatDateForInput = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+  };
+
+  const openModal = (item: any) => {
+    setFormData({
+      ...item,
+      nrBiayaNotarisPpjb: item.nrBiayaNotarisPpjb || 0,
+      hargaDasarKavling: item.hargaDasarKavling || 0,
+      diskonPenjualan: item.diskonPenjualan || 0,
+      totalHargaJual: item.totalHargaJual || 0,
+      tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
+      tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
+      tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
+      tanggalPembayaranBphtb: formatDateForInput(item.tanggalPembayaranBphtb),
+      biayaNotaris: item.biayaNotaris || 0,
+    });
+    setErrors({});
+    setActiveTab('dasar');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
+    const d = { ...currentData };
+
+    // Total Harga Akhir yang dinamis (Harga Jual dari Penjualan + Lebih Tanah + Biaya Strategis)
+    const hargaBase = (Number(d.totalHargaJual) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+
+    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaNotarisPpjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
+    d.nrNilaiPenyerahan = hargaBase - d.nrTotalSubsidi;
+    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
+    d.pjNilaiPenyerahan = hargaBase - d.pjTotalSubsidi;
+    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
+    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
+    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
+    return d;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: parsedValue };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: value };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const getNum = (val: string | number | undefined) => (val === '' || val === undefined) ? undefined : Number(val);
+    const getStr = (val: string | undefined) => val === '' ? undefined : val;
+
+    const payload = {
+      statusKavling: getStr(formData.statusKavling),
+      namaTipe: getStr(formData.tipe),
+      luasBangunan: getNum(formData.luasBangunan),
+      luasTanah: getNum(formData.luasTanah),
+      // hargaDasarKavling TIDAK di lempar karena read-only
+      rekeningTujuanId: getNum(formData.rekeningTujuanId),
+
+      notarisId: getNum(formData.notarisId),
+      biayaNotaris: getNum(formData.biayaNotaris),
+      lantai: getStr(formData.lantai),
+      lokasiStrategis: getStr(formData.lokasiStrategis),
+      tanggalAkadPpjb: getStr(formData.tanggalAkadPpjb),
+      akadPpjb: getStr(formData.akadPpjb),
+      tanggalAkadAjbPpat: getStr(formData.tanggalAkadAjbPpat),
+      tanggalPembayaranPph: getStr(formData.tanggalPembayaranPph),
+      tanggalPembayaranBphtb: getStr(formData.tanggalPembayaranBphtb),
+      pembiayaan: getStr(formData.pembiayaan),
+      sp3r: getStr(formData.sp3r),
+      lebihTanah: getNum(formData.lebihTanah),
+      biayaStrategis: getNum(formData.biayaStrategis),
+      nrBiayaKprAsuransi: getNum(formData.nrBiayaKprAsuransi),
+      nrDiskonAngsuran: getNum(formData.nrDiskonAngsuran),
+      nrDiskonCash: getNum(formData.nrDiskonCash),
+      nrBiayaBbn: getNum(formData.nrBiayaBbn),
+      nrBiayaNotarisAjb: getNum(formData.nrBiayaNotarisAjb),
+      nrBiayaNotarisPpjb: getNum(formData.nrBiayaNotarisPpjb),
+      nrBiayaAppraisal: getNum(formData.nrBiayaAppraisal),
+      nrBiayaBphtb: getNum(formData.nrBiayaBphtb),
+      nrLainLain: getNum(formData.nrLainLain),
+      nrTotalSubsidi: getNum(formData.nrTotalSubsidi),
+      nrNilaiPenyerahan: getNum(formData.nrNilaiPenyerahan),
+      nrPpn: getNum(formData.nrPpn),
+      nrBphtb: getNum(formData.nrBphtb),
+      nrPph: getNum(formData.nrPph),
+      pjBiayaKpr: getNum(formData.pjBiayaKpr),
+      pjBiayaAsuransi: getNum(formData.pjBiayaAsuransi),
+      pjDiskonAngsuran: getNum(formData.pjDiskonAngsuran),
+      pjBiayaBbn: getNum(formData.pjBiayaBbn),
+      pjBiayaAjb: getNum(formData.pjBiayaAjb),
+      pjBiayaAppraisal: getNum(formData.pjBiayaAppraisal),
+      pjBphtb: getNum(formData.pjBphtb),
+      pjLainLain: getNum(formData.pjLainLain),
+      pjTotalSubsidi: getNum(formData.pjTotalSubsidi),
+      pjNilaiPenyerahan: getNum(formData.pjNilaiPenyerahan),
+      pjPpn: getNum(formData.pjPpn),
+      pjBphtbPajak: getNum(formData.pjBphtbPajak),
+      pjPph: getNum(formData.pjPph),
+      pjTotalBphtbPph: getNum(formData.pjTotalBphtbPph),
+      ajbNjopTanahPerMeter: getNum(formData.ajbNjopTanahPerMeter),
+      ajbNjopTanah: getNum(formData.ajbNjopTanah),
+      ajbNjopBangunanPerMeter: getNum(formData.ajbNjopBangunanPerMeter),
+      ajbNjopBangunan: getNum(formData.ajbNjopBangunan),
+      ajbNjopTotal: getNum(formData.ajbNjopTotal),
+      ajbPpn: getNum(formData.ajbPpn),
+      ajbBphtb: getNum(formData.ajbBphtb),
+      ajbPph: getNum(formData.ajbPph),
+      ajbTotalBphtbPph: getNum(formData.ajbTotalBphtbPph),
+      ajbSelisihPajakPbb: getNum(formData.ajbSelisihPajakPbb),
+      ajbUping: getNum(formData.ajbUping),
+    };
+
+    try {
+      await updateMutation.mutateAsync({ id: formData.id, data: payload });
+      closeModal();
+    } catch (error: any) {
+      const { message, errors: backendErrors } = handleApiError(error);
+
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
+    }
+  };
+
+  type TabId = 'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris';
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'dasar', label: 'Info Dasar' },
+    { id: 'harga', label: 'Harga Jual' },
+    { id: 'nilai', label: 'Nilai Rumah' },
+    { id: 'pajak', label: 'Pajak' },
+    { id: 'ajb', label: 'Keperluan AJB' },
+    { id: 'notaris', label: 'Notaris' },
+  ];
+
+  const expandedRowRender = (row: KavlingData) => {
+    const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
+    const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
+    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar;
+
+    return (
+      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+          <h4 className="text-sm font-bold text-slate-800">Riwayat Tagihan & Pembayaran</h4>
+          <div className="flex gap-2 flex-wrap">
+            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
+              Total Terbayar: {formatRupiah(totalTerbayar)}
+            </span>
+            <span className="px-3 py-1 bg-orange-100 text-orange-800 text-xs font-bold rounded-lg border border-orange-200">
+              Sisa Tagihan: {formatRupiah(sisaPembayaran)}
+            </span>
+          </div>
+        </div>
+
+        {history.length > 0 ? (
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
+                  <th className="p-3 font-bold">Keterangan</th>
+                  <th className="p-3 font-bold">Jatuh Tempo</th>
+                  <th className="p-3 font-bold text-right">Nominal Tagihan</th>
+                  <th className="p-3 font-bold text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {history.sort((a: any, b: any) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime()).map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
+                    <td className="p-3 font-semibold text-slate-800">{item.pembayaran}</td>
+                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.jatuhTempo)}</td>
+                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.nominal)}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
+                        {item.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">Belum ada riwayat tagihan atau pembayaran.</p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading || isLoadingTagihan) return;
+
+  return (
+    <div>
+      <DataTable
+        title="Data Kavling Customer"
+        columns={columns}
+        data={apiData}
+        onEdit={(item) => openModal(item)}
+        expandedRowRender={expandedRowRender}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Customer Kavling">
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap py-2 px-4 border-b-2 font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {activeTab === 'dasar' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+
+              <Select
+                label="Status Kavling"
+                name="statusKavling"
+                value={formData.statusKavling}
+                onChange={handleChange}
+                options={[
+                  { value: 'AVAILABLE', label: 'Available' },
+                  { value: 'BOOKING', label: 'Booking' },
+                  { value: 'HOLD', label: 'Hold' },
+                  { value: 'TERJUAL', label: 'Terjual' }
+                ]}
+              />
+
+              <div className="grid grid-cols-2 gap-2">
+                <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+                <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+              </div>
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
+              <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} error={errors.lantai} />
+              <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
+              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
+
+              <Select
+                label="Pembiayaan"
+                name="pembiayaan"
+                value={formData.pembiayaan || ''}
+                onChange={handleChange}
+                options={[
+                  { value: 'KPR', label: 'KPR Bank' },
+                  { value: 'CASH_KERAS', label: 'Cash Keras' },
+                  { value: 'CASH_BERTAHAP', label: 'Cash Bertahap' }
+                ]}
+              />
+
+              <Select label="SP3K" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
+              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
+
+              <Select
+                label="Akad PPJB"
+                name="akadPpjb"
+                value={formData.akadPpjb || ''}
+                onChange={handleChange}
+                options={[
+                  { value: '', label: '-- Pilih --' },
+                  { value: 'NOTARIS', label: 'Notaris' },
+                  { value: 'DEVELOPER', label: 'Developer' }
+                ]}
+              />
+
+              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
+            </div>
+          )}
+
+          {activeTab === 'harga' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <CurrencyInput label="Harga Jual (Sistem Nett)" name="totalHargaJual" value={formData.totalHargaJual} onValueChange={handleCurrencyChange} disabled={true} />
+              <CurrencyInput label="Diskon Penjualan (Sistem)" name="diskonPenjualan" value={formData.diskonPenjualan} onValueChange={handleCurrencyChange} disabled={true} />
+
+              <CurrencyInput label="Lebih Tanah Tambahan" name="lebihTanah" value={formData.lebihTanah} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Strategis Tambahan" name="biayaStrategis" value={formData.biayaStrategis} onValueChange={handleCurrencyChange} />
+
+              <div className="md:col-span-2 mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Kavling</span>
+                <span className="text-2xl font-black text-slate-900">{formatRupiah((formData.totalHargaJual || 0) + (formData.lebihTanah || 0) + (formData.biayaStrategis || 0) - (formData.diskonPenjualan || 0))}</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'nilai' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
+              <CurrencyInput label="Biaya KPR & Asuransi" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Angsuran" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus</span>
+                <span className="font-black text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl flex justify-between items-center border border-blue-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-blue-800 uppercase tracking-widest">Nilai Penyerahan (Setelah Subsidi)</span>
+                <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Pajak Nilai Rumah" />
+              <CurrencyInput label="PPN" name="nrPpn" value={formData.nrPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="nrBphtb" value={formData.nrBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="nrPph" value={formData.nrPph} onValueChange={handleCurrencyChange} />
+            </div>
+          )}
+
+          {activeTab === 'pajak' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Pajak)" />
+              <CurrencyInput label="Biaya KPR" name="pjBiayaKpr" value={formData.pjBiayaKpr} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Asuransi" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Angsuran" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="pjBiayaBbn" value={formData.pjBiayaBbn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Pembuatan AJB" name="pjBiayaAjb" value={formData.pjBiayaAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="pjBphtb" value={formData.pjBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="pjLainLain" value={formData.pjLainLain} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
+                <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-indigo-50 p-5 rounded-xl flex justify-between items-center border border-indigo-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-indigo-800 uppercase tracking-widest">Nilai Penyerahan (Pajak)</span>
+                <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Detail Pajak" />
+              <CurrencyInput label="PPN" name="pjPpn" value={formData.pjPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="pjBphtbPajak" value={formData.pjBphtbPajak} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="pjPph" value={formData.pjPph} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 mt-2 p-4 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
+                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
+                <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ajb' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
+              <CurrencyInput label="NJOP Tanah per Meter" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Total NJOP Tanah" name="ajbNjopTanah" value={formData.ajbNjopTanah} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="NJOP Bangunan per Meter" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Total NJOP Bangunan" name="ajbNjopBangunan" value={formData.ajbNjopBangunan} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 bg-slate-50 p-5 rounded-xl flex justify-between items-center border border-slate-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">NJOP Tanah + Bangunan</span>
+                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.ajbNjopTotal)}</span>
+              </div>
+              <SectionTitle title="Kewajiban Pajak AJB" />
+              <CurrencyInput label="PPN" name="ajbPpn" value={formData.ajbPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="ajbBphtb" value={formData.ajbBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="ajbPph" value={formData.ajbPph} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
+                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">BPHTB + PPh (AJB)</span>
+                <span className="text-xl font-black text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
+              </div>
+              <SectionTitle title="Lain-lain" />
+              <CurrencyInput label="Selisih (BPHTB+PPh) Pajak - PBB" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Uping" name="ajbUping" value={formData.ajbUping} onValueChange={handleCurrencyChange} />
+            </div>
+          )}
+
+          {activeTab === 'notaris' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Pemilihan Notaris & Biaya" />
+
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Notaris"
+                  name="notarisId"
+                  value={formData.notarisId || ''}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: '-- Belum ditentukan --' },
+                    ...notarisList.map(n => ({ value: n.id, label: n.nama }))
+                  ]}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <CurrencyInput
+                  label="Biaya Notaris (Rp)"
+                  name="biayaNotaris"
+                  value={formData.biayaNotaris || 0}
+                  onValueChange={handleCurrencyChange}
+                  placeholder="0"
+                />
+              </div>
+
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-8">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={updateMutation.isPending}
+              className="px-6 py-2.5 text-xs uppercase tracking-widest font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="px-8 py-2.5 text-xs uppercase tracking-widest font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
+            >
+              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div >
+  );
+};
+
+const SectionTitle = ({ title }: { title: string }) => (
+  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-3 md:col-span-2 mt-4">{title}</h4>
+);
+
+export default CustomerKavling;
 </file>
 
 <file path="src/pages/CustomerPortal/PortalDashboard.tsx">
@@ -10423,1456 +11029,6 @@ export const penjualanService = {
     return response.data.data;
   },
 };
-</file>
-
-<file path="src/pages/Customer/Kavling.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import { formatRupiah, formatDate } from "../../utils/formatters";
-import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
-import { useGetNotaris } from '../../hooks/queries/useNotaris';
-import { useGetTagihans } from '../../hooks/queries/useTagihan';
-import CurrencyInput from '../../components/shared/CurrencyInput';
-import { handleApiError } from '../../utils/errorHandler';
-interface KavlingData {
-  id: string;
-  perumahan: string;
-  status: string;
-  statusKavling: string;
-  lantai: string;
-  blok: string;
-  unit: string;
-  tipe: string;
-  luasBangunan: string | number;
-  luasTanah: string | number;
-  lokasiStrategis: string;
-  tanggalAkadPpjb: string;
-  akadPpjb: string;
-  tanggalAkadAjbPpat: string;
-  tanggalPembayaranPph: string;
-  tanggalPembayaranBphtb: string;
-  pembiayaan: string;
-  sp3r: string;
-  hargaDasarKavling: number; // Tambahan Baru dari UseCase
-  diskonPenjualan: number;   // Tambahan Baru dari UseCase
-  lebihTanah: number;
-  biayaStrategis: number;
-  totalHargaJual: number;
-  nrBiayaKprAsuransi: number;
-  nrDiskonAngsuran: number;
-  nrDiskonCash: number;
-  nrBiayaBbn: number;
-  nrBiayaNotarisAjb: number;
-  nrBiayaNotarisPpjb: number;
-  nrBiayaAppraisal: number;
-  nrBiayaBphtb: number;
-  nrLainLain: number;
-  nrTotalSubsidi: number;
-  nrNilaiPenyerahan: number;
-  nrPpn: number;
-  nrBphtb: number;
-  nrPph: number;
-  pjBiayaKpr: number;
-  pjBiayaAsuransi: number;
-  pjDiskonAngsuran: number;
-  pjBiayaBbn: number;
-  pjBiayaAjb: number;
-  pjBiayaAppraisal: number;
-  pjBphtb: number;
-  pjLainLain: number;
-  pjTotalSubsidi: number;
-  pjNilaiPenyerahan: number;
-  pjPpn: number;
-  pjBphtbPajak: number;
-  pjPph: number;
-  pjTotalBphtbPph: number;
-  ajbNjopTanahPerMeter: number;
-  ajbNjopTanah: number;
-  ajbNjopBangunanPerMeter: number;
-  ajbNjopBangunan: number;
-  ajbNjopTotal: number;
-  ajbPpn: number;
-  ajbBphtb: number;
-  ajbPph: number;
-  ajbTotalBphtbPph: number;
-  ajbSelisihPajakPbb: number;
-  ajbUping: number;
-  rekeningTujuanId: number;
-  notarisId: number | string;
-  biayaNotaris: number;
-}
-
-const initialFormState: KavlingData = {
-  id: '',
-  rekeningTujuanId: 0,
-  perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
-  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
-  hargaDasarKavling: 0, diskonPenjualan: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
-  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaNotarisPpjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
-  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
-  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
-  notarisId: '',
-  biayaNotaris: 0,
-};
-
-const CustomerKavling = () => {
-
-  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 300 });
-  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 300 });
-  const { data: notarisList = [] } = useGetNotaris();
-  const updateMutation = useUpdateCustomerKavling();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
-
-  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
-
-  const columns = [
-    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => val },
-    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'No', accessor: 'unit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'Tipe', accessor: 'tipe' },
-    { header: 'Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) }, {
-      header: 'Status Penjualan',
-      accessor: 'status',
-      render: (val: string) => {
-        let style = 'bg-gray-100 text-gray-800';
-        if (val?.toUpperCase() === 'AVAILABLE') style = 'bg-green-100 text-green-800';
-        if (val?.toUpperCase() === 'BOOKED' || val?.toUpperCase() === 'BOOKING') style = 'bg-blue-100 text-blue-800';
-        if (val?.toUpperCase() === 'PROSES') style = 'bg-yellow-100 text-yellow-800';
-        if (val?.toUpperCase() === 'LUNAS' || val?.toUpperCase() === 'TERJUAL') style = 'bg-emerald-100 text-emerald-800';
-
-        return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>{val}</span>;
-      }
-    },
-  ];
-
-  const formatDateForInput = (dateString: string | null | undefined) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
-  };
-
-  const openModal = (item: any) => {
-    setFormData({
-      ...item,
-      nrBiayaNotarisPpjb: item.nrBiayaNotarisPpjb || 0,
-      hargaDasarKavling: item.hargaDasarKavling || 0,
-      diskonPenjualan: item.diskonPenjualan || 0,
-      totalHargaJual: item.totalHargaJual || 0,
-      tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
-      tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
-      tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
-      tanggalPembayaranBphtb: formatDateForInput(item.tanggalPembayaranBphtb),
-      biayaNotaris: item.biayaNotaris || 0,
-    });
-    setErrors({});
-    setActiveTab('dasar');
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
-    const d = { ...currentData };
-
-    // Total Harga Akhir yang dinamis (Harga Jual dari Penjualan + Lebih Tanah + Biaya Strategis)
-    const hargaBase = (Number(d.totalHargaJual) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
-
-    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaNotarisPpjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
-    d.nrNilaiPenyerahan = hargaBase - d.nrTotalSubsidi;
-    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
-    d.pjNilaiPenyerahan = hargaBase - d.pjTotalSubsidi;
-    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
-    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
-    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
-    return d;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-
-    setFormData((prev) => {
-      const updatedData = { ...prev, [name]: parsedValue };
-      return calculateDerivedFields(updatedData);
-    });
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleCurrencyChange = (name: string, value: number) => {
-    setFormData((prev) => {
-      const updatedData = { ...prev, [name]: value };
-      return calculateDerivedFields(updatedData);
-    });
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    const getNum = (val: string | number | undefined) => (val === '' || val === undefined) ? undefined : Number(val);
-    const getStr = (val: string | undefined) => val === '' ? undefined : val;
-
-    const payload = {
-      statusKavling: getStr(formData.statusKavling),
-      namaTipe: getStr(formData.tipe),
-      luasBangunan: getNum(formData.luasBangunan),
-      luasTanah: getNum(formData.luasTanah),
-      // hargaDasarKavling TIDAK di lempar karena read-only
-      rekeningTujuanId: getNum(formData.rekeningTujuanId),
-
-      notarisId: getNum(formData.notarisId),
-      biayaNotaris: getNum(formData.biayaNotaris),
-      lantai: getStr(formData.lantai),
-      lokasiStrategis: getStr(formData.lokasiStrategis),
-      tanggalAkadPpjb: getStr(formData.tanggalAkadPpjb),
-      akadPpjb: getStr(formData.akadPpjb),
-      tanggalAkadAjbPpat: getStr(formData.tanggalAkadAjbPpat),
-      tanggalPembayaranPph: getStr(formData.tanggalPembayaranPph),
-      tanggalPembayaranBphtb: getStr(formData.tanggalPembayaranBphtb),
-      pembiayaan: getStr(formData.pembiayaan),
-      sp3r: getStr(formData.sp3r),
-      lebihTanah: getNum(formData.lebihTanah),
-      biayaStrategis: getNum(formData.biayaStrategis),
-      nrBiayaKprAsuransi: getNum(formData.nrBiayaKprAsuransi),
-      nrDiskonAngsuran: getNum(formData.nrDiskonAngsuran),
-      nrDiskonCash: getNum(formData.nrDiskonCash),
-      nrBiayaBbn: getNum(formData.nrBiayaBbn),
-      nrBiayaNotarisAjb: getNum(formData.nrBiayaNotarisAjb),
-      nrBiayaNotarisPpjb: getNum(formData.nrBiayaNotarisPpjb),
-      nrBiayaAppraisal: getNum(formData.nrBiayaAppraisal),
-      nrBiayaBphtb: getNum(formData.nrBiayaBphtb),
-      nrLainLain: getNum(formData.nrLainLain),
-      nrTotalSubsidi: getNum(formData.nrTotalSubsidi),
-      nrNilaiPenyerahan: getNum(formData.nrNilaiPenyerahan),
-      nrPpn: getNum(formData.nrPpn),
-      nrBphtb: getNum(formData.nrBphtb),
-      nrPph: getNum(formData.nrPph),
-      pjBiayaKpr: getNum(formData.pjBiayaKpr),
-      pjBiayaAsuransi: getNum(formData.pjBiayaAsuransi),
-      pjDiskonAngsuran: getNum(formData.pjDiskonAngsuran),
-      pjBiayaBbn: getNum(formData.pjBiayaBbn),
-      pjBiayaAjb: getNum(formData.pjBiayaAjb),
-      pjBiayaAppraisal: getNum(formData.pjBiayaAppraisal),
-      pjBphtb: getNum(formData.pjBphtb),
-      pjLainLain: getNum(formData.pjLainLain),
-      pjTotalSubsidi: getNum(formData.pjTotalSubsidi),
-      pjNilaiPenyerahan: getNum(formData.pjNilaiPenyerahan),
-      pjPpn: getNum(formData.pjPpn),
-      pjBphtbPajak: getNum(formData.pjBphtbPajak),
-      pjPph: getNum(formData.pjPph),
-      pjTotalBphtbPph: getNum(formData.pjTotalBphtbPph),
-      ajbNjopTanahPerMeter: getNum(formData.ajbNjopTanahPerMeter),
-      ajbNjopTanah: getNum(formData.ajbNjopTanah),
-      ajbNjopBangunanPerMeter: getNum(formData.ajbNjopBangunanPerMeter),
-      ajbNjopBangunan: getNum(formData.ajbNjopBangunan),
-      ajbNjopTotal: getNum(formData.ajbNjopTotal),
-      ajbPpn: getNum(formData.ajbPpn),
-      ajbBphtb: getNum(formData.ajbBphtb),
-      ajbPph: getNum(formData.ajbPph),
-      ajbTotalBphtbPph: getNum(formData.ajbTotalBphtbPph),
-      ajbSelisihPajakPbb: getNum(formData.ajbSelisihPajakPbb),
-      ajbUping: getNum(formData.ajbUping),
-    };
-
-    try {
-      await updateMutation.mutateAsync({ id: formData.id, data: payload });
-      closeModal();
-    } catch (error: any) {
-      const { message, errors: backendErrors } = handleApiError(error);
-
-      if (backendErrors && Array.isArray(backendErrors)) {
-        const fieldErrors: Record<string, string> = {};
-        backendErrors.forEach((err: { field: string; message: string }) => {
-          fieldErrors[err.field] = err.message;
-        });
-        setErrors(fieldErrors);
-      } else {
-        alert(message);
-      }
-    }
-  };
-
-  type TabId = 'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris';
-
-  const tabs: { id: TabId; label: string }[] = [
-    { id: 'dasar', label: 'Info Dasar' },
-    { id: 'harga', label: 'Harga Jual' },
-    { id: 'nilai', label: 'Nilai Rumah' },
-    { id: 'pajak', label: 'Pajak' },
-    { id: 'ajb', label: 'Keperluan AJB' },
-    { id: 'notaris', label: 'Notaris' },
-  ];
-
-  const expandedRowRender = (row: KavlingData) => {
-    const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
-    const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
-    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar;
-
-    return (
-      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-          <h4 className="text-sm font-bold text-slate-800">Riwayat Tagihan & Pembayaran</h4>
-          <div className="flex gap-2 flex-wrap">
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
-              Total Terbayar: {formatRupiah(totalTerbayar)}
-            </span>
-            <span className="px-3 py-1 bg-orange-100 text-orange-800 text-xs font-bold rounded-lg border border-orange-200">
-              Sisa Tagihan: {formatRupiah(sisaPembayaran)}
-            </span>
-          </div>
-        </div>
-
-        {history.length > 0 ? (
-          <div className="overflow-x-auto border border-slate-200 rounded-lg">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead>
-                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
-                  <th className="p-3 font-bold">Keterangan</th>
-                  <th className="p-3 font-bold">Jatuh Tempo</th>
-                  <th className="p-3 font-bold text-right">Nominal Tagihan</th>
-                  <th className="p-3 font-bold text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {history.sort((a: any, b: any) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime()).map((item: any) => (
-                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
-                    <td className="p-3 font-semibold text-slate-800">{item.pembayaran}</td>
-                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.jatuhTempo)}</td>
-                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.nominal)}</td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
-                        {item.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">Belum ada riwayat tagihan atau pembayaran.</p>
-        )}
-      </div>
-    );
-  };
-
-  if (isLoading || isLoadingTagihan) return;
-
-  return (
-    <div>
-      <DataTable
-        title="Data Kavling Customer"
-        columns={columns}
-        data={apiData}
-        onEdit={(item) => openModal(item)}
-        expandedRowRender={expandedRowRender}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Customer Kavling">
-        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap py-2 px-4 border-b-2 font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {activeTab === 'dasar' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-
-              <Select
-                label="Status Kavling"
-                name="statusKavling"
-                value={formData.statusKavling}
-                onChange={handleChange}
-                options={[
-                  { value: 'AVAILABLE', label: 'Available' },
-                  { value: 'BOOKING', label: 'Booking' },
-                  { value: 'HOLD', label: 'Hold' },
-                  { value: 'TERJUAL', label: 'Terjual' }
-                ]}
-              />
-
-              <div className="grid grid-cols-2 gap-2">
-                <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-                <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-              </div>
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
-              <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} error={errors.lantai} />
-              <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
-              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
-
-              <Select
-                label="Pembiayaan"
-                name="pembiayaan"
-                value={formData.pembiayaan || ''}
-                onChange={handleChange}
-                options={[
-                  { value: 'KPR', label: 'KPR Bank' },
-                  { value: 'CASH_KERAS', label: 'Cash Keras' },
-                  { value: 'CASH_BERTAHAP', label: 'Cash Bertahap' }
-                ]}
-              />
-
-              <Select label="SP3K" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
-              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
-
-              <Select
-                label="Akad PPJB"
-                name="akadPpjb"
-                value={formData.akadPpjb || ''}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih --' },
-                  { value: 'NOTARIS', label: 'Notaris' },
-                  { value: 'DEVELOPER', label: 'Developer' }
-                ]}
-              />
-
-              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
-            </div>
-          )}
-
-          {activeTab === 'harga' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <CurrencyInput label="Harga Jual (Sistem Nett)" name="totalHargaJual" value={formData.totalHargaJual} onValueChange={handleCurrencyChange} disabled={true} />
-              <CurrencyInput label="Diskon Penjualan (Sistem)" name="diskonPenjualan" value={formData.diskonPenjualan} onValueChange={handleCurrencyChange} disabled={true} />
-
-              <CurrencyInput label="Lebih Tanah Tambahan" name="lebihTanah" value={formData.lebihTanah} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Strategis Tambahan" name="biayaStrategis" value={formData.biayaStrategis} onValueChange={handleCurrencyChange} />
-
-              <div className="md:col-span-2 mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Kavling</span>
-                <span className="text-2xl font-black text-slate-900">{formatRupiah((formData.totalHargaJual || 0) + (formData.lebihTanah || 0) + (formData.biayaStrategis || 0) - (formData.diskonPenjualan || 0))}</span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'nilai' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
-              <CurrencyInput label="Biaya KPR & Asuransi" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Diskon Angsuran" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus</span>
-                <span className="font-black text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl flex justify-between items-center border border-blue-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-blue-800 uppercase tracking-widest">Nilai Penyerahan (Setelah Subsidi)</span>
-                <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Pajak Nilai Rumah" />
-              <CurrencyInput label="PPN" name="nrPpn" value={formData.nrPpn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="BPHTB" name="nrBphtb" value={formData.nrBphtb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="PPh" name="nrPph" value={formData.nrPph} onValueChange={handleCurrencyChange} />
-            </div>
-          )}
-
-          {activeTab === 'pajak' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Pajak)" />
-              <CurrencyInput label="Biaya KPR" name="pjBiayaKpr" value={formData.pjBiayaKpr} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Asuransi" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Diskon Angsuran" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="pjBiayaBbn" value={formData.pjBiayaBbn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Pembuatan AJB" name="pjBiayaAjb" value={formData.pjBiayaAjb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Appraisal" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="BPHTB" name="pjBphtb" value={formData.pjBphtb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="pjLainLain" value={formData.pjLainLain} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
-                <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-indigo-50 p-5 rounded-xl flex justify-between items-center border border-indigo-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-indigo-800 uppercase tracking-widest">Nilai Penyerahan (Pajak)</span>
-                <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Detail Pajak" />
-              <CurrencyInput label="PPN" name="pjPpn" value={formData.pjPpn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="BPHTB" name="pjBphtbPajak" value={formData.pjBphtbPajak} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="PPh" name="pjPph" value={formData.pjPph} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 mt-2 p-4 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
-                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
-                <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'ajb' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
-              <CurrencyInput label="NJOP Tanah per Meter" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Total NJOP Tanah" name="ajbNjopTanah" value={formData.ajbNjopTanah} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="NJOP Bangunan per Meter" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Total NJOP Bangunan" name="ajbNjopBangunan" value={formData.ajbNjopBangunan} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 bg-slate-50 p-5 rounded-xl flex justify-between items-center border border-slate-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">NJOP Tanah + Bangunan</span>
-                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.ajbNjopTotal)}</span>
-              </div>
-              <SectionTitle title="Kewajiban Pajak AJB" />
-              <CurrencyInput label="PPN" name="ajbPpn" value={formData.ajbPpn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="BPHTB" name="ajbBphtb" value={formData.ajbBphtb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="PPh" name="ajbPph" value={formData.ajbPph} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
-                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">BPHTB + PPh (AJB)</span>
-                <span className="text-xl font-black text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
-              </div>
-              <SectionTitle title="Lain-lain" />
-              <CurrencyInput label="Selisih (BPHTB+PPh) Pajak - PBB" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Uping" name="ajbUping" value={formData.ajbUping} onValueChange={handleCurrencyChange} />
-            </div>
-          )}
-
-          {activeTab === 'notaris' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Pemilihan Notaris & Biaya" />
-
-              <div className="md:col-span-2">
-                <Select
-                  label="Pilih Notaris"
-                  name="notarisId"
-                  value={formData.notarisId || ''}
-                  onChange={handleChange}
-                  options={[
-                    { value: '', label: '-- Belum ditentukan --' },
-                    ...notarisList.map(n => ({ value: n.id, label: n.nama }))
-                  ]}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <CurrencyInput
-                  label="Biaya Notaris (Rp)"
-                  name="biayaNotaris"
-                  value={formData.biayaNotaris || 0}
-                  onValueChange={handleCurrencyChange}
-                  placeholder="0"
-                />
-              </div>
-
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-8">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={updateMutation.isPending}
-              className="px-6 py-2.5 text-xs uppercase tracking-widest font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="px-8 py-2.5 text-xs uppercase tracking-widest font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
-            >
-              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div >
-  );
-};
-
-const SectionTitle = ({ title }: { title: string }) => (
-  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-3 md:col-span-2 mt-4">{title}</h4>
-);
-
-export default CustomerKavling;
-</file>
-
-<file path="src/pages/Marketing/Agents.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import FileInput from "../../components/shared/FileInput";
-import PageLoader from "../PageLoader";
-import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText } from "lucide-react";
-import {
-  useGetAgents,
-  useCreateAgent,
-  useUpdateAgent,
-  useDeleteAgent,
-  useUploadAgentDoc,
-  useGenerateAgentAccount
-} from "../../hooks/queries/useAgent";
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
-import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
-import { handleApiError } from '../../utils/errorHandler';
-
-interface AgentFormState {
-  id: number | '';
-  nik: string;
-  nama: string;
-  alamat: string;
-  noHp: string;
-  email: string;
-  type: string;
-  perusahaanAgentId: number | '';
-  namaBank: string;
-  noRekening: string;
-  atasNamaRekening: string;
-  feeMarketingPct: number | '';
-  potonganPph: number | '';
-  pics: PicAgentData[];
-}
-
-const initialFormState: AgentFormState = {
-  id: '',
-  nik: '',
-  nama: '',
-  alamat: '',
-  noHp: '',
-  email: '',
-  type: 'PRIBADI',
-  perusahaanAgentId: '',
-  namaBank: '',
-  noRekening: '',
-  atasNamaRekening: '',
-  feeMarketingPct: '',
-  potonganPph: '',
-  pics: [{ nama: '', noHp: '', alamat: '' }]
-};
-
-const Agents = () => {
-  const { data: agentData = [], isLoading } = useGetAgents();
-  const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
-  const { data: perusahaanList = [] } = useGetPerusahaanAgents();
-  const penjualanList = penjualanResponse?.items || [];
-
-  const createMutation = useCreateAgent();
-  const updateMutation = useUpdateAgent();
-  const deleteMutation = useDeleteAgent();
-  const uploadDocMutation = useUploadAgentDoc();
-  const generateAccountMutation = useGenerateAgentAccount();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<AgentFormState>(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentData | null>(null);
-
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [selectedUploadAgent, setSelectedUploadAgent] = useState<AgentData | null>(null);
-
-  const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-
-  const handleApprove = async (agent: AgentData) => {
-    if (!agent.fileSuratPernyataan) {
-      alert(`Gagal: Agent ${agent.nama} belum mengunggah Surat Pernyataan Bermaterai. Approval tidak dapat dilakukan.`);
-      return;
-    }
-    if (window.confirm(`Setujui pendaftaran agent ${agent.nama}? Status akan menjadi Aktif.`)) {
-      try {
-        await updateMutation.mutateAsync({ id: agent.id, data: { status: 'AKTIF' } });
-        alert(`Agent ${agent.nama} berhasil disetujui!`);
-      } catch (error: any) {
-        const { message } = handleApiError(error);
-        alert(message);
-      }
-    }
-  };
-
-  const columns = [
-    { header: 'NIK', accessor: 'nik' },
-    { header: 'Nama Agent', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-
-
-    {
-      header: 'Tipe',
-      accessor: 'type',
-      render: (val: string, row: AgentData) => (
-        <div className="flex flex-col gap-1 items-start">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{val}</span>
-          {val === 'PERUSAHAAN' && row.perusahaanAgent && (
-            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded w-fit border border-indigo-100">
-              {row.perusahaanAgent.nama}
-            </span>
-          )}
-        </div>
-      )
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => {
-        if (val === 'PENDING') return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase tracking-wider rounded border border-yellow-200 shadow-sm">Menunggu Approval</span>;
-        if (val === 'AKTIF') return <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded border border-green-200 shadow-sm">Aktif</span>;
-        return <span className="px-2 py-1 bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wider rounded border border-red-200 shadow-sm">{val}</span>;
-      }
-    },
-    {
-      header: 'Aksi',
-      accessor: 'id',
-      render: (_: any, row: AgentData) => (
-        <div className="flex items-center gap-1.5">
-          {/* 👇 TOMBOL APPROVE 👇 */}
-          {row.status === 'PENDING' && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleApprove(row); }}
-              className="p-1.5 text-white bg-green-500 hover:bg-green-600 rounded-md transition-all cursor-pointer shadow-sm"
-              title="Setujui Agent (Approve)"
-            >
-              <CheckCircle size={16} />
-            </button>
-          )}
-
-          <button onClick={(e) => { e.stopPropagation(); openDetailModal(row); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer" title="Detail">
-            <Eye size={16} />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); openModal(row); }} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer" title="Edit">
-            <Edit2 size={16} />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); openUploadModal(row); }} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer" title="Upload Dokumen Agent">
-            <UploadCloud size={16} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); handleGenerateAccount(row); }}
-            className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount
-              ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700'
-              : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
-            title={row.hasAccount ? "Reset Kredensial (Password)" : "Buat Akun Portal Agent"}
-          >
-            <Key size={16} />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); handleDelete(row); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer" title="Hapus">
-            <Trash2 size={16} />
-          </button>
-        </div>
-      )
-    }
-  ];
-
-  const openDetailModal = (item: AgentData) => {
-    setSelectedAgentDetail(item);
-    setIsDetailModalOpen(true);
-  };
-
-  const openUploadModal = (item: AgentData) => {
-    setSelectedUploadAgent(item);
-    setIsUploadModalOpen(true);
-  };
-
-  const openModal = (item?: AgentData) => {
-    if (item) {
-      setFormData({
-        id: item.id,
-        nik: item.nik,
-        nama: item.nama,
-        alamat: item.alamat || '',
-        noHp: item.noHp,
-        email: item.email || '',
-        type: item.type || 'PRIBADI',
-        perusahaanAgentId: item.perusahaanAgent?.id || '',
-        namaBank: item.namaBank || '',
-        noRekening: item.noRekening || '',
-        atasNamaRekening: item.atasNamaRekening || '',
-        feeMarketingPct: item.feeMarketingPct ?? '',
-        potonganPph: item.potonganPph ?? '',
-        pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
-      });
-      setIsEditing(true);
-    } else {
-      setFormData(initialFormState);
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => {
-      const newPics = [...prev.pics];
-      newPics[index] = { ...newPics[index], [name]: value };
-      return { ...prev, pics: newPics };
-    });
-
-    const errorKey = `pics.${index}.${name}`;
-    if (errors[errorKey]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[errorKey];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleAddPIC = () => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
-    }));
-  };
-
-  const handleRemovePIC = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      pics: prev.pics.filter((_, i) => i !== index)
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
-    if (formData.nik.trim().length !== 16 && formData.nik.trim().length !== 15) newErrors.nik = 'NIK tidak valid (minimal 15-16 digit)';
-    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    if (formData.type === 'PERUSAHAAN' && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    const picMapping: number[] = [];
-    const validPics: PicAgentData[] = [];
-
-    formData.pics.forEach((pic, index) => {
-      if (pic.nama.trim() !== '' || pic.noHp.trim() !== '') {
-        picMapping.push(index);
-        validPics.push(pic);
-      }
-    });
-
-    const payload: CreateAgentDTO = {
-      nik: formData.nik,
-      nama: formData.nama,
-      noHp: formData.noHp,
-      email: formData.email || undefined,
-      alamat: formData.alamat || undefined,
-      type: formData.type,
-      perusahaanAgentId: formData.type === 'PERUSAHAAN' ? Number(formData.perusahaanAgentId) : undefined,
-      namaBank: formData.namaBank || null,
-      noRekening: formData.noRekening || null,
-      atasNamaRekening: formData.atasNamaRekening || null,
-      feeMarketingPct: formData.feeMarketingPct !== '' ? Number(formData.feeMarketingPct) : undefined,
-      potonganPph: formData.potonganPph !== '' ? Number(formData.potonganPph) : undefined,
-      pics: validPics.length > 0 ? validPics : undefined,
-    };
-
-    try {
-      if (isEditing && formData.id) {
-        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
-      closeModal();
-    } catch (error: any) {
-      const { message, errors: backendErrors } = handleApiError(error);
-
-      if (backendErrors && Array.isArray(backendErrors)) {
-        const fieldErrors: Record<string, string> = {};
-
-        backendErrors.forEach((err: { field: string; message: string }) => {
-          const fieldName = err.field.replace(/\[(\d+)\]/g, '.$1');
-          const parts = fieldName.split('.');
-
-          if (parts[0] === 'pics' && parts.length >= 3) {
-            const backendIdx = parseInt(parts[1], 10);
-            const frontendIdx = picMapping[backendIdx] !== undefined ? picMapping[backendIdx] : backendIdx;
-            const propName = parts.slice(2).join('.');
-            fieldErrors[`pics.${frontendIdx}.${propName}`] = err.message;
-          } else {
-            fieldErrors[err.field] = err.message;
-          }
-        });
-
-        setErrors(fieldErrors);
-      } else {
-        alert(message);
-      }
-    }
-  };
-
-  const handleDelete = async (item: AgentData) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
-      try {
-        await deleteMutation.mutateAsync(item.id);
-      } catch (error: any) {
-        const { message } = handleApiError(error);
-        alert(message);
-      }
-    }
-  };
-
-  const handleGenerateAccount = async (agent: AgentData) => {
-    if (!agent.email) {
-      alert("Gagal: Email agent masih kosong. Silakan edit dan isi email terlebih dahulu!");
-      return;
-    }
-    const actionText = agent.hasAccount ? 'me-reset password' : 'membuat akun portal';
-    const password = window.prompt(`Masukkan password baru untuk ${actionText} ${agent.nama} (Min. 6 karakter):`);
-
-    if (password === null) return;
-    if (password.length < 6) {
-      alert("Password harus minimal 6 karakter!");
-      return;
-    }
-
-    try {
-      const res = await generateAccountMutation.mutateAsync({ id: agent.id, password });
-      alert(res.message || `Berhasil! Kredensial untuk ${agent.nama} telah disimpan. Silakan login menggunakan email: ${agent.email}`);
-    } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
-    }
-  };
-
-  const handleUploadDoc = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedUploadAgent) return;
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      alert("Hanya format gambar dan PDF yang diperbolehkan!");
-      e.target.value = '';
-      return;
-    }
-    try {
-      await uploadDocMutation.mutateAsync({ id: selectedUploadAgent.id, docType, file });
-      alert(`Dokumen berhasil diunggah!`);
-
-      setSelectedUploadAgent(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
-      if (selectedAgentDetail?.id === selectedUploadAgent.id) {
-        setSelectedAgentDetail(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
-      }
-    } catch (err: any) {
-      const { message } = handleApiError(err);
-      alert(message);
-    } finally {
-      e.target.value = '';
-    }
-  };
-
-  const expandedRowRender = (row: AgentData) => {
-    const relatedSales = row.penjualan || [];
-    return (
-      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
-          Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span>
-        </h4>
-        {relatedSales.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">No. Transaksi</th>
-                  <th className="px-4 py-3 font-bold">Tanggal</th>
-                  <th className="px-4 py-3 font-bold">Customer</th>
-                  <th className="px-4 py-3 font-bold">Kavling</th>
-                  <th className="px-4 py-3 text-right font-bold">Nilai Penjualan (Rp)</th>
-                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {relatedSales.map((sale: PenjualanAgentData) => (
-                  <tr
-                    key={sale.id}
-                    onClick={() => {
-                      const detail = penjualanList.find((p: any) => p.id === sale.noTransaksi);
-                      setSelectedDetailPenjualan(detail || sale);
-                    }}
-                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{sale.noTransaksi}</td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {new Date(sale.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </td>
-                    <td className="px-4 py-3 font-medium">{sale.customer?.nama || '-'}</td>
-                    <td className="px-4 py-3">
-                      {sale.kavling?.perumahan?.nama} ({sale.kavling?.blok}-{sale.kavling?.nomorUnit})
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-700">
-                      {formatRupiah(sale.hargaJual)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${sale.status.toUpperCase() === 'LUNAS' ? 'bg-green-100 text-green-700' : sale.status.toUpperCase() === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {sale.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-            Belum ada riwayat penjualan untuk agent ini.
-          </p>
-        )}
-      </div>
-    );
-  };
-
-  if (isLoading) return <PageLoader />;
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Data Agent Marketing"
-        columns={columns}
-        data={agentData}
-        onAdd={() => openModal()}
-        expandedRowRender={expandedRowRender}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Tipe Agent"
-                name="type"
-                value={formData.type}
-                onChange={(e) => {
-                  setFormData({ ...formData, type: e.target.value, perusahaanAgentId: '' });
-                }}
-                options={[
-                  { value: 'PRIBADI', label: 'Pribadi' },
-                  { value: 'PERUSAHAAN', label: 'Perusahaan' }
-                ]}
-              />
-
-              {/* 👇 FIELD SELECT PERUSAHAAN 👇 */}
-              {formData.type === 'PERUSAHAAN' && (
-                <Select
-                  label="Pilih Perusahaan"
-                  name="perusahaanAgentId"
-                  value={formData.perusahaanAgentId || ''}
-                  onChange={handleChange}
-                  error={errors.perusahaanAgentId}
-                  options={[
-                    { value: '', label: '-- Pilih Perusahaan --' },
-                    ...perusahaanList.map(p => ({ value: p.id, label: p.nama }))
-                  ]}
-                />
-              )}
-
-              <Input label="NIK KTP" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan NIK 16 Digit" />
-              <Input label="Nama Lengkap / Perusahaan" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Sesuai KTP" />
-              <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
-              <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
-              <Input label="Fee Marketing (%)" name="feeMarketingPct" type="number" step="any" value={formData.feeMarketingPct} onChange={handleChange} placeholder="Contoh: 2.5" />
-              <Input label="Potongan PPh (%)" name="potonganPph" type="number" step="any" value={formData.potonganPph} onChange={handleChange} placeholder="Contoh: 2.5" />
-              <div className="md:col-span-2">
-                <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
-              </div>
-              <div className="md:col-span-2 mt-2 pt-4 border-t border-gray-100">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Rekening Bank (Opsional)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input label="Nama Bank" name="namaBank" value={formData.namaBank} onChange={handleChange} error={errors.namaBank} placeholder="Contoh: BCA / BSI" />
-                  <Input label="Nomor Rekening" name="noRekening" value={formData.noRekening} onChange={handleChange} error={errors.noRekening} placeholder="Masukkan No. Rek" />
-                  <Input label="Atas Nama Rekening" name="atasNamaRekening" value={formData.atasNamaRekening} onChange={handleChange} error={errors.atasNamaRekening} placeholder="A/N Rekening" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent (Opsional)</h4>
-                <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk di bawah agent ini</p>
-              </div>
-              <button type="button" onClick={handleAddPIC} className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer shadow-sm">
-                + Tambah PIC
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {formData.pics.map((pic, index) => (
-                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative shadow-sm">
-                  {formData.pics.length > 1 && (
-                    <button type="button" onClick={() => handleRemovePIC(index)} className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Hapus</button>
-                  )}
-                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                      label="Nama PIC"
-                      name="nama"
-                      value={pic.nama}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.nama`]}
-                      placeholder="Masukkan nama PIC"
-                    />
-                    <Input
-                      label="No. Telepon / HP PIC"
-                      name="noHp"
-                      value={pic.noHp}
-                      onChange={(e) => handlePICChange(index, e)}
-                      error={errors[`pics.${index}.noHp`]}
-                      placeholder="08xxxxxxxxxx"
-                    />
-                    <div className="md:col-span-2">
-                      <Input
-                        label="Alamat PIC (Opsional)"
-                        name="alamat"
-                        value={pic.alamat || ''}
-                        onChange={(e) => handlePICChange(index, e)}
-                        error={errors[`pics.${index}.alamat`]}
-                        placeholder="Masukkan alamat lengkap PIC"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors">
-              Batal
-            </button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-6 py-2 text-sm font-bold text-white bg-black rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shadow-md">
-              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* MODAL UPLOAD DOKUMEN AGENT */}
-      <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} title={`Upload Dokumen Agent: ${selectedUploadAgent?.nama}`}>
-        {selectedUploadAgent && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {(selectedUploadAgent.type === 'PRIBADI'
-                ? ['fileSuratPernyataan', 'fileKtp', 'fileNpwp', 'kwitansiBookingFee']
-                : ['fileSuratPernyataan', 'fileSuratKeterangan', 'fileKtpDirektur', 'fileNpwpPerusahaan']
-              ).map((type) => (
-                <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm">
-                  <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 text-center">
-                    {type.replace('file', '').replace(/([A-Z])/g, ' $1').trim()}
-                  </span>
-                  <div
-                    onClick={() => selectedUploadAgent[type as keyof AgentData] && setPreviewImage(selectedUploadAgent[type as keyof AgentData] as string)}
-                    className={`aspect-[4/3] w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedUploadAgent[type as keyof AgentData] ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-300 bg-slate-100'}`}
-                  >
-                    {selectedUploadAgent[type as keyof AgentData] ? (
-                      ((selectedUploadAgent[type as keyof AgentData] as string).split('?')[0].toLowerCase().endsWith('.pdf') || (selectedUploadAgent[type as keyof AgentData] as string).includes('application/pdf')) ? (
-                        <div className="flex flex-col items-center text-red-500 group-hover:scale-105 transition-transform">
-                          <FileText size={32} />
-                          <span className="text-[10px] font-bold mt-1 text-slate-600">PDF</span>
-                        </div>
-                      ) : (
-                        <img src={selectedUploadAgent[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      )
-                    ) : (
-                      <span className="text-[10px] font-bold text-slate-400 italic">KOSONG</span>
-                    )}
-                  </div>
-                  <FileInput
-                    label="Upload / Ganti"
-                    accept="image/*,.pdf"
-                    onChange={(e) => handleUploadDoc(type, e)}
-                    disabled={uploadDocMutation.isPending}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end pt-4 border-t border-slate-200">
-              <button onClick={() => setIsUploadModalOpen(false)} className="px-6 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 cursor-pointer transition-all">
-                Tutup Dokumen
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* MODAL DETAIL AGENT */}
-      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Agent">
-        {selectedAgentDetail && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
-              <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Biodata Agent</h4>
-                <div className="flex gap-2">
-                  <span className={`px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider ${selectedAgentDetail.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{selectedAgentDetail.status}</span>
-                  <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] uppercase font-bold tracking-wider">{selectedAgentDetail.type}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
-                {/* 👇 DETAIL PERUSAHAAN 👇 */}
-                {selectedAgentDetail.type === 'PERUSAHAAN' && selectedAgentDetail.perusahaanAgent && (
-                  <div className="md:col-span-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl mb-2">
-                    <p className="text-[10px] text-indigo-500 uppercase font-bold mb-1">Perusahaan Induk</p>
-                    <p className="text-sm font-black text-indigo-900">{selectedAgentDetail.perusahaanAgent.nama}</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Agent</p>
-                  <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.nama}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">NIK</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.nik}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">No. WhatsApp / Telepon</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.noHp}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Email</p>
-                  <p className="text-sm font-medium text-slate-800">{selectedAgentDetail.email || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Marketing (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeMarketingPct ?? '-'} %</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Potongan PPh (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.potonganPph ?? '-'} %</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Lengkap</p>
-                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedAgentDetail.alamat || '-'}</p>
-                </div>
-                <div className="md:col-span-2 mt-2 p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
-                  <div>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Bank Agent</p>
-                    <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.namaBank || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nomor Rekening</p>
-                    <p className="text-lg font-black text-indigo-600 font-mono tabular-nums">{selectedAgentDetail.noRekening || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Atas Nama (A/N)</p>
-                    <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.atasNamaRekening || '-'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {selectedAgentDetail.type && (
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm mt-4">
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Dokumen / Berkas Agent</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {(selectedAgentDetail.type === 'PRIBADI'
-                    ? ['fileSuratPernyataan', 'fileKtp', 'fileNpwp', 'kwitansiBookingFee']
-                    : ['fileSuratPernyataan', 'fileSuratKeterangan', 'fileKtpDirektur', 'fileNpwpPerusahaan']
-                  ).map((type) => (
-                    <div key={type} className="flex flex-col gap-2">
-                      <span className="text-[9px] font-black uppercase text-slate-400 text-center">
-                        {type.replace('file', '').replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                      <div
-                        onClick={() => selectedAgentDetail[type as keyof AgentData] && setPreviewImage(selectedAgentDetail[type as keyof AgentData] as string)}
-                        className={`aspect-[4/3] rounded-xl border flex items-center justify-center overflow-hidden transition-all ${selectedAgentDetail[type as keyof AgentData] ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-100 bg-slate-50'}`}
-                      >
-                        {selectedAgentDetail[type as keyof AgentData] ? (
-                          ((selectedAgentDetail[type as keyof AgentData] as string).split('?')[0].toLowerCase().endsWith('.pdf') || (selectedAgentDetail[type as keyof AgentData] as string).includes('application/pdf')) ? (
-                            <div className="flex flex-col items-center text-red-500">
-                              <FileText size={24} />
-                              <span className="text-[8px] font-bold mt-1 text-slate-600">PDF</span>
-                            </div>
-                          ) : (
-                            <img src={selectedAgentDetail[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover" />
-                          )
-                        ) : (
-                          <span className="text-[10px] font-bold text-slate-300 italic text-center px-2">Belum Upload</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {selectedAgentDetail.pics && selectedAgentDetail.pics.length > 0 && (
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Kontak Tim / PIC Pendukung</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {selectedAgentDetail.pics.map((pic, idx) => (
-                    <div key={pic.id || idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
-                      <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
-                      <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
-                      <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 👇 MENAMPILKAN TANDA TANGAN PENDAFTARAN AGENT 👇 */}
-            {selectedAgentDetail.ttdData && (
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm mt-4 text-center">
-                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Tanda Tangan Pendaftar</h4>
-                <div className="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2 inline-block">
-                  <img src={selectedAgentDetail.ttdData} alt="Tanda Tangan" className="h-24 object-contain" />
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors cursor-pointer shadow-md"
-              >
-                Tutup Detail
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* MODAL LIGHTBOX PREVIEW GAMBAR */}
-      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
-        <div className="flex flex-col items-center">
-          {previewImage && (
-            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              {previewImage.toLowerCase().endsWith('.pdf') ? (
-                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg border-none" title="PDF Preview" />
-              ) : (
-                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
-              )}
-            </div>
-          )}
-          <div className="mt-6 flex gap-3">
-            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">Buka Tab Baru</a>
-            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">Tutup</button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* MODAL DETAIL PENJUALAN KETIKA ROW DI KLIK */}
-      <Modal isOpen={!!selectedDetailPenjualan} onClose={() => setSelectedDetailPenjualan(null)} title="Informasi Transaksi Penjualan">
-        {selectedDetailPenjualan && (
-          <div className="space-y-5 animate-in fade-in duration-300">
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-              <div className="flex justify-between items-start mb-4 border-b border-slate-200 pb-4">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
-                  <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}</p>
-                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.id || selectedDetailPenjualan.noTransaksi}</p>
-                </div>
-                <div className="text-right">
-                  <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :
-                    selectedDetailPenjualan.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                    {selectedDetailPenjualan.status}
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-y-5 gap-x-4">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kavling</p>
-                  <p className="text-sm font-semibold text-slate-800">
-                    {selectedDetailPenjualan.perumahan || selectedDetailPenjualan.kavling?.perumahan?.nama} - Blok {selectedDetailPenjualan.blok || selectedDetailPenjualan.kavling?.blok} No. {selectedDetailPenjualan.nomorUnit || selectedDetailPenjualan.kavling?.nomorUnit}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
-                  <p className="text-sm font-semibold text-slate-800">
-                    {selectedDetailPenjualan.caraPembayaran?.replace('_', ' ') || '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
-                  <p className="text-sm font-bold text-blue-700">
-                    {selectedDetailPenjualan.hargaJual ? formatRupiah(selectedDetailPenjualan.hargaJual) : '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tanggal Transaksi</p>
-                  <p className="text-sm font-semibold text-slate-800">
-                    {selectedDetailPenjualan.tanggal ? new Date(selectedDetailPenjualan.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end pt-2">
-              <button onClick={() => setSelectedDetailPenjualan(null)} className="px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer shadow-md">
-                Tutup Detail
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-    </div>
-  );
-};
-
-export default Agents;
 </file>
 
 <file path="src/pages/Customer/Administrasi.tsx">
@@ -13306,6 +12462,863 @@ const Kavling = () => {
 };
 
 export default Kavling;
+</file>
+
+<file path="src/pages/Marketing/Agents.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import FileInput from "../../components/shared/FileInput";
+import PageLoader from "../PageLoader";
+import { formatRupiah } from "../../utils/formatters";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText } from "lucide-react";
+import {
+  useGetAgents,
+  useCreateAgent,
+  useUpdateAgent,
+  useDeleteAgent,
+  useUploadAgentDoc,
+  useGenerateAgentAccount
+} from "../../hooks/queries/useAgent";
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
+import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
+import { handleApiError } from '../../utils/errorHandler';
+
+interface AgentFormState {
+  id: number | '';
+  nik: string;
+  nama: string;
+  alamat: string;
+  noHp: string;
+  email: string;
+  type: string;
+  perusahaanAgentId: number | '';
+  namaBank: string;
+  noRekening: string;
+  atasNamaRekening: string;
+  feeMarketingPct: number | '';
+  feeClosingPct: number | '';
+  potonganPph: number | '';
+  pics: PicAgentData[];
+}
+
+const initialFormState: AgentFormState = {
+  id: '',
+  nik: '',
+  nama: '',
+  alamat: '',
+  noHp: '',
+  email: '',
+  type: 'PRIBADI',
+  perusahaanAgentId: '',
+  namaBank: '',
+  noRekening: '',
+  atasNamaRekening: '',
+  feeMarketingPct: '',
+  feeClosingPct: '',
+  potonganPph: '',
+  pics: [{ nama: '', noHp: '', alamat: '' }]
+};
+
+const Agents = () => {
+  const { data: agentData = [], isLoading } = useGetAgents();
+  const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
+  const { data: perusahaanList = [] } = useGetPerusahaanAgents();
+  const penjualanList = penjualanResponse?.items || [];
+
+  const createMutation = useCreateAgent();
+  const updateMutation = useUpdateAgent();
+  const deleteMutation = useDeleteAgent();
+  const uploadDocMutation = useUploadAgentDoc();
+  const generateAccountMutation = useGenerateAgentAccount();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<AgentFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentData | null>(null);
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedUploadAgent, setSelectedUploadAgent] = useState<AgentData | null>(null);
+
+  const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+
+  const handleApprove = async (agent: AgentData) => {
+    if (!agent.fileSuratPernyataan) {
+      alert(`Gagal: Agent ${agent.nama} belum mengunggah Surat Pernyataan Bermaterai. Approval tidak dapat dilakukan.`);
+      return;
+    }
+    if (window.confirm(`Setujui pendaftaran agent ${agent.nama}? Status akan menjadi Aktif.`)) {
+      try {
+        await updateMutation.mutateAsync({ id: agent.id, data: { status: 'AKTIF' } });
+        alert(`Agent ${agent.nama} berhasil disetujui!`);
+      } catch (error: any) {
+        const { message } = handleApiError(error);
+        alert(message);
+      }
+    }
+  };
+
+  const columns = [
+    { header: 'NIK', accessor: 'nik' },
+    { header: 'Nama Agent', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+
+
+    {
+      header: 'Tipe',
+      accessor: 'type',
+      render: (val: string, row: AgentData) => (
+        <div className="flex flex-col gap-1 items-start">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{val}</span>
+          {val === 'PERUSAHAAN' && row.perusahaanAgent && (
+            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded w-fit border border-indigo-100">
+              {row.perusahaanAgent.nama}
+            </span>
+          )}
+        </div>
+      )
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        if (val === 'PENDING') return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase tracking-wider rounded border border-yellow-200 shadow-sm">Menunggu Approval</span>;
+        if (val === 'AKTIF') return <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded border border-green-200 shadow-sm">Aktif</span>;
+        return <span className="px-2 py-1 bg-red-100 text-red-700 text-[10px] font-bold uppercase tracking-wider rounded border border-red-200 shadow-sm">{val}</span>;
+      }
+    },
+    {
+      header: 'Aksi',
+      accessor: 'id',
+      render: (_: any, row: AgentData) => (
+        <div className="flex items-center gap-1.5">
+          {/* 👇 TOMBOL APPROVE 👇 */}
+          {row.status === 'PENDING' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleApprove(row); }}
+              className="p-1.5 text-white bg-green-500 hover:bg-green-600 rounded-md transition-all cursor-pointer shadow-sm"
+              title="Setujui Agent (Approve)"
+            >
+              <CheckCircle size={16} />
+            </button>
+          )}
+
+          <button onClick={(e) => { e.stopPropagation(); openDetailModal(row); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer" title="Detail">
+            <Eye size={16} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); openModal(row); }} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer" title="Edit">
+            <Edit2 size={16} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); openUploadModal(row); }} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer" title="Upload Dokumen Agent">
+            <UploadCloud size={16} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleGenerateAccount(row); }}
+            className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount
+              ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700'
+              : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+            title={row.hasAccount ? "Reset Kredensial (Password)" : "Buat Akun Portal Agent"}
+          >
+            <Key size={16} />
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); handleDelete(row); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer" title="Hapus">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
+  ];
+
+  const openDetailModal = (item: AgentData) => {
+    setSelectedAgentDetail(item);
+    setIsDetailModalOpen(true);
+  };
+
+  const openUploadModal = (item: AgentData) => {
+    setSelectedUploadAgent(item);
+    setIsUploadModalOpen(true);
+  };
+
+  const openModal = (item?: AgentData) => {
+    if (item) {
+      setFormData({
+        id: item.id,
+        nik: item.nik,
+        nama: item.nama,
+        alamat: item.alamat || '',
+        noHp: item.noHp,
+        email: item.email || '',
+        type: item.type || 'PRIBADI',
+        perusahaanAgentId: item.perusahaanAgent?.id || '',
+        namaBank: item.namaBank || '',
+        noRekening: item.noRekening || '',
+        atasNamaRekening: item.atasNamaRekening || '',
+        feeMarketingPct: item.feeMarketingPct ?? '',
+        feeClosingPct: item.feeClosingPct ?? '',
+        potonganPph: item.potonganPph ?? '',
+        pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
+      });
+      setIsEditing(true);
+    } else {
+      setFormData(initialFormState);
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const newPics = [...prev.pics];
+      newPics[index] = { ...newPics[index], [name]: value };
+      return { ...prev, pics: newPics };
+    });
+
+    const errorKey = `pics.${index}.${name}`;
+    if (errors[errorKey]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAddPIC = () => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: [...prev.pics, { nama: '', noHp: '', alamat: '' }]
+    }));
+  };
+
+  const handleRemovePIC = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      pics: prev.pics.filter((_, i) => i !== index)
+    }));
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
+    if (formData.nik.trim().length !== 16 && formData.nik.trim().length !== 15) newErrors.nik = 'NIK tidak valid (minimal 15-16 digit)';
+    if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
+    if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
+    if (formData.type === 'PERUSAHAAN' && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const picMapping: number[] = [];
+    const validPics: PicAgentData[] = [];
+
+    formData.pics.forEach((pic, index) => {
+      if (pic.nama.trim() !== '' || pic.noHp.trim() !== '') {
+        picMapping.push(index);
+        validPics.push(pic);
+      }
+    });
+
+    const payload: CreateAgentDTO = {
+      nik: formData.nik,
+      nama: formData.nama,
+      noHp: formData.noHp,
+      email: formData.email || undefined,
+      alamat: formData.alamat || undefined,
+      type: formData.type,
+      perusahaanAgentId: formData.type === 'PERUSAHAAN' ? Number(formData.perusahaanAgentId) : undefined,
+      namaBank: formData.namaBank || null,
+      noRekening: formData.noRekening || null,
+      atasNamaRekening: formData.atasNamaRekening || null,
+      feeMarketingPct: formData.feeMarketingPct !== '' ? Number(formData.feeMarketingPct) : undefined,
+      feeClosingPct: formData.feeClosingPct !== '' ? Number(formData.feeClosingPct) : undefined,
+      potonganPph: formData.potonganPph !== '' ? Number(formData.potonganPph) : undefined,
+      pics: validPics.length > 0 ? validPics : undefined,
+    };
+
+    try {
+      if (isEditing && formData.id) {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: any) {
+      const { message, errors: backendErrors } = handleApiError(error);
+
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          const fieldName = err.field.replace(/\[(\d+)\]/g, '.$1');
+          const parts = fieldName.split('.');
+
+          if (parts[0] === 'pics' && parts.length >= 3) {
+            const backendIdx = parseInt(parts[1], 10);
+            const frontendIdx = picMapping[backendIdx] !== undefined ? picMapping[backendIdx] : backendIdx;
+            const propName = parts.slice(2).join('.');
+            fieldErrors[`pics.${frontendIdx}.${propName}`] = err.message;
+          } else {
+            fieldErrors[err.field] = err.message;
+          }
+        });
+
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
+    }
+  };
+
+  const handleDelete = async (item: AgentData) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus agen ${item.nama}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: any) {
+        const { message } = handleApiError(error);
+        alert(message);
+      }
+    }
+  };
+
+  const handleGenerateAccount = async (agent: AgentData) => {
+    if (!agent.email) {
+      alert("Gagal: Email agent masih kosong. Silakan edit dan isi email terlebih dahulu!");
+      return;
+    }
+    const actionText = agent.hasAccount ? 'me-reset password' : 'membuat akun portal';
+    const password = window.prompt(`Masukkan password baru untuk ${actionText} ${agent.nama} (Min. 6 karakter):`);
+
+    if (password === null) return;
+    if (password.length < 6) {
+      alert("Password harus minimal 6 karakter!");
+      return;
+    }
+
+    try {
+      const res = await generateAccountMutation.mutateAsync({ id: agent.id, password });
+      alert(res.message || `Berhasil! Kredensial untuk ${agent.nama} telah disimpan. Silakan login menggunakan email: ${agent.email}`);
+    } catch (error: any) {
+      const { message } = handleApiError(error);
+      alert(message);
+    }
+  };
+
+  const handleUploadDoc = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedUploadAgent) return;
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      e.target.value = '';
+      return;
+    }
+    try {
+      await uploadDocMutation.mutateAsync({ id: selectedUploadAgent.id, docType, file });
+      alert(`Dokumen berhasil diunggah!`);
+
+      setSelectedUploadAgent(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
+      if (selectedAgentDetail?.id === selectedUploadAgent.id) {
+        setSelectedAgentDetail(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
+      }
+    } catch (err: any) {
+      const { message } = handleApiError(err);
+      alert(message);
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const expandedRowRender = (row: AgentData) => {
+    const relatedSales = row.penjualan || [];
+    return (
+      <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
+          Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span>
+        </h4>
+        {relatedSales.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 rounded-l-lg font-bold">No. Transaksi</th>
+                  <th className="px-4 py-3 font-bold">Tanggal</th>
+                  <th className="px-4 py-3 font-bold">Customer</th>
+                  <th className="px-4 py-3 font-bold">Kavling</th>
+                  <th className="px-4 py-3 text-right font-bold">Nilai Penjualan (Rp)</th>
+                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {relatedSales.map((sale: PenjualanAgentData) => (
+                  <tr
+                    key={sale.id}
+                    onClick={() => {
+                      const detail = penjualanList.find((p: any) => p.id === sale.noTransaksi);
+                      setSelectedDetailPenjualan(detail || sale);
+                    }}
+                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                  >
+                    <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{sale.noTransaksi}</td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {new Date(sale.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{sale.customer?.nama || '-'}</td>
+                    <td className="px-4 py-3">
+                      {sale.kavling?.perumahan?.nama} ({sale.kavling?.blok}-{sale.kavling?.nomorUnit})
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-700">
+                      {formatRupiah(sale.hargaJual)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${sale.status.toUpperCase() === 'LUNAS' ? 'bg-green-100 text-green-700' : sale.status.toUpperCase() === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {sale.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic py-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+            Belum ada riwayat penjualan untuk agent ini.
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Data Agent Marketing"
+        columns={columns}
+        data={agentData}
+        onAdd={() => openModal()}
+        expandedRowRender={expandedRowRender}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Tipe Agent"
+                name="type"
+                value={formData.type}
+                onChange={(e) => {
+                  setFormData({ ...formData, type: e.target.value, perusahaanAgentId: '' });
+                }}
+                options={[
+                  { value: 'PRIBADI', label: 'Pribadi' },
+                  { value: 'PERUSAHAAN', label: 'Perusahaan' }
+                ]}
+              />
+
+              {/* 👇 FIELD SELECT PERUSAHAAN 👇 */}
+              {formData.type === 'PERUSAHAAN' && (
+                <Select
+                  label="Pilih Perusahaan"
+                  name="perusahaanAgentId"
+                  value={formData.perusahaanAgentId || ''}
+                  onChange={handleChange}
+                  error={errors.perusahaanAgentId}
+                  options={[
+                    { value: '', label: '-- Pilih Perusahaan --' },
+                    ...perusahaanList.map(p => ({ value: p.id, label: p.nama }))
+                  ]}
+                />
+              )}
+
+              <Input label="NIK KTP" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan NIK 16 Digit" />
+              <Input label="Nama Lengkap / Perusahaan" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Sesuai KTP" />
+              <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
+              <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input label="Fee Marketing (%)" name="feeMarketingPct" type="number" step="any" value={formData.feeMarketingPct} onChange={handleChange} placeholder="Contoh: 2.5" />
+                <Input label="Fee Closing (%)" name="feeClosingPct" type="number" step="any" value={formData.feeClosingPct} onChange={handleChange} placeholder="Contoh: 1.5" />
+                <Input label="Potongan PPh (%)" name="potonganPph" type="number" step="any" value={formData.potonganPph} onChange={handleChange} placeholder="Contoh: 2.5" />
+              </div>
+              <div className="md:col-span-2">
+                <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
+              </div>
+              <div className="md:col-span-2 mt-2 pt-4 border-t border-gray-100">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Rekening Bank (Opsional)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Input label="Nama Bank" name="namaBank" value={formData.namaBank} onChange={handleChange} error={errors.namaBank} placeholder="Contoh: BCA / BSI" />
+                  <Input label="Nomor Rekening" name="noRekening" value={formData.noRekening} onChange={handleChange} error={errors.noRekening} placeholder="Masukkan No. Rek" />
+                  <Input label="Atas Nama Rekening" name="atasNamaRekening" value={formData.atasNamaRekening} onChange={handleChange} error={errors.atasNamaRekening} placeholder="A/N Rekening" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800">Daftar PIC Agent (Opsional)</h4>
+                <p className="text-xs text-gray-500">Tambahkan kontak PIC untuk di bawah agent ini</p>
+              </div>
+              <button type="button" onClick={handleAddPIC} className="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-black rounded-lg transition-colors cursor-pointer shadow-sm">
+                + Tambah PIC
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {formData.pics.map((pic, index) => (
+                <div key={index} className="p-4 bg-white border border-gray-200 rounded-lg relative shadow-sm">
+                  {formData.pics.length > 1 && (
+                    <button type="button" onClick={() => handleRemovePIC(index)} className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-xs font-bold cursor-pointer">Hapus</button>
+                  )}
+                  <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">PIC #{index + 1}</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Nama PIC"
+                      name="nama"
+                      value={pic.nama}
+                      onChange={(e) => handlePICChange(index, e)}
+                      error={errors[`pics.${index}.nama`]}
+                      placeholder="Masukkan nama PIC"
+                    />
+                    <Input
+                      label="No. Telepon / HP PIC"
+                      name="noHp"
+                      value={pic.noHp}
+                      onChange={(e) => handlePICChange(index, e)}
+                      error={errors[`pics.${index}.noHp`]}
+                      placeholder="08xxxxxxxxxx"
+                    />
+                    <div className="md:col-span-2">
+                      <Input
+                        label="Alamat PIC (Opsional)"
+                        name="alamat"
+                        value={pic.alamat || ''}
+                        onChange={(e) => handlePICChange(index, e)}
+                        error={errors[`pics.${index}.alamat`]}
+                        placeholder="Masukkan alamat lengkap PIC"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors">
+              Batal
+            </button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-6 py-2 text-sm font-bold text-white bg-black rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shadow-md">
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Data'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL UPLOAD DOKUMEN AGENT */}
+      <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} title={`Upload Dokumen Agent: ${selectedUploadAgent?.nama}`}>
+        {selectedUploadAgent && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {(selectedUploadAgent.type === 'PRIBADI'
+                ? ['fileSuratPernyataan', 'fileKtp', 'fileNpwp', 'kwitansiBookingFee']
+                : ['fileSuratPernyataan', 'fileSuratKeterangan', 'fileKtpDirektur', 'fileNpwpPerusahaan']
+              ).map((type) => (
+                <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm">
+                  <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 text-center">
+                    {type.replace('file', '').replace(/([A-Z])/g, ' $1').trim()}
+                  </span>
+                  <div
+                    onClick={() => selectedUploadAgent[type as keyof AgentData] && setPreviewImage(selectedUploadAgent[type as keyof AgentData] as string)}
+                    className={`aspect-[4/3] w-full rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden relative transition-all ${selectedUploadAgent[type as keyof AgentData] ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-300 bg-slate-100'}`}
+                  >
+                    {selectedUploadAgent[type as keyof AgentData] ? (
+                      ((selectedUploadAgent[type as keyof AgentData] as string).split('?')[0].toLowerCase().endsWith('.pdf') || (selectedUploadAgent[type as keyof AgentData] as string).includes('application/pdf')) ? (
+                        <div className="flex flex-col items-center text-red-500 group-hover:scale-105 transition-transform">
+                          <FileText size={32} />
+                          <span className="text-[10px] font-bold mt-1 text-slate-600">PDF</span>
+                        </div>
+                      ) : (
+                        <img src={selectedUploadAgent[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                      )
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-400 italic">KOSONG</span>
+                    )}
+                  </div>
+                  <FileInput
+                    label="Upload / Ganti"
+                    accept="image/*,.pdf"
+                    onChange={(e) => handleUploadDoc(type, e)}
+                    disabled={uploadDocMutation.isPending}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end pt-4 border-t border-slate-200">
+              <button onClick={() => setIsUploadModalOpen(false)} className="px-6 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 cursor-pointer transition-all">
+                Tutup Dokumen
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL DETAIL AGENT */}
+      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Agent">
+        {selectedAgentDetail && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+              <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Biodata Agent</h4>
+                <div className="flex gap-2">
+                  <span className={`px-2 py-1 rounded-md text-[10px] uppercase font-bold tracking-wider ${selectedAgentDetail.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{selectedAgentDetail.status}</span>
+                  <span className="px-2 py-1 bg-slate-100 rounded-md text-[10px] uppercase font-bold tracking-wider">{selectedAgentDetail.type}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                {/* 👇 DETAIL PERUSAHAAN 👇 */}
+                {selectedAgentDetail.type === 'PERUSAHAAN' && selectedAgentDetail.perusahaanAgent && (
+                  <div className="md:col-span-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl mb-2">
+                    <p className="text-[10px] text-indigo-500 uppercase font-bold mb-1">Perusahaan Induk</p>
+                    <p className="text-sm font-black text-indigo-900">{selectedAgentDetail.perusahaanAgent.nama}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Agent</p>
+                  <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.nama}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">NIK</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.nik}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">No. WhatsApp / Telepon</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.noHp}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Email</p>
+                  <p className="text-sm font-medium text-slate-800">{selectedAgentDetail.email || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Marketing (%)</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeMarketingPct ?? '-'} %</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (%)</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingPct ?? '-'} %</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Potongan PPh (%)</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.potonganPph ?? '-'} %</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Lengkap</p>
+                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedAgentDetail.alamat || '-'}</p>
+                </div>
+                <div className="md:col-span-2 mt-2 p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Bank Agent</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.namaBank || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nomor Rekening</p>
+                    <p className="text-lg font-black text-indigo-600 font-mono tabular-nums">{selectedAgentDetail.noRekening || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Atas Nama (A/N)</p>
+                    <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.atasNamaRekening || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {selectedAgentDetail.type && (
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm mt-4">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Dokumen / Berkas Agent</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {(selectedAgentDetail.type === 'PRIBADI'
+                    ? ['fileSuratPernyataan', 'fileKtp', 'fileNpwp', 'kwitansiBookingFee']
+                    : ['fileSuratPernyataan', 'fileSuratKeterangan', 'fileKtpDirektur', 'fileNpwpPerusahaan']
+                  ).map((type) => (
+                    <div key={type} className="flex flex-col gap-2">
+                      <span className="text-[9px] font-black uppercase text-slate-400 text-center">
+                        {type.replace('file', '').replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <div
+                        onClick={() => selectedAgentDetail[type as keyof AgentData] && setPreviewImage(selectedAgentDetail[type as keyof AgentData] as string)}
+                        className={`aspect-[4/3] rounded-xl border flex items-center justify-center overflow-hidden transition-all ${selectedAgentDetail[type as keyof AgentData] ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-100 bg-slate-50'}`}
+                      >
+                        {selectedAgentDetail[type as keyof AgentData] ? (
+                          ((selectedAgentDetail[type as keyof AgentData] as string).split('?')[0].toLowerCase().endsWith('.pdf') || (selectedAgentDetail[type as keyof AgentData] as string).includes('application/pdf')) ? (
+                            <div className="flex flex-col items-center text-red-500">
+                              <FileText size={24} />
+                              <span className="text-[8px] font-bold mt-1 text-slate-600">PDF</span>
+                            </div>
+                          ) : (
+                            <img src={selectedAgentDetail[type as keyof AgentData] as string} alt={type} className="w-full h-full object-cover" />
+                          )
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-300 italic text-center px-2">Belum Upload</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedAgentDetail.pics && selectedAgentDetail.pics.length > 0 && (
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Kontak Tim / PIC Pendukung</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {selectedAgentDetail.pics.map((pic, idx) => (
+                    <div key={pic.id || idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                      <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
+                      <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
+                      <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 👇 MENAMPILKAN TANDA TANGAN PENDAFTARAN AGENT 👇 */}
+            {selectedAgentDetail.ttdData && (
+              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm mt-4 text-center">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Tanda Tangan Pendaftar</h4>
+                <div className="bg-white border-2 border-dashed border-slate-300 rounded-xl p-2 inline-block">
+                  <img src={selectedAgentDetail.ttdData} alt="Tanda Tangan" className="h-24 object-contain" />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-colors cursor-pointer shadow-md"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL LIGHTBOX PREVIEW GAMBAR */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Dokumen">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              {previewImage.toLowerCase().endsWith('.pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">Buka Tab Baru</a>
+            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">Tutup</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL DETAIL PENJUALAN KETIKA ROW DI KLIK */}
+      <Modal isOpen={!!selectedDetailPenjualan} onClose={() => setSelectedDetailPenjualan(null)} title="Informasi Transaksi Penjualan">
+        {selectedDetailPenjualan && (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+              <div className="flex justify-between items-start mb-4 border-b border-slate-200 pb-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
+                  <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}</p>
+                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.id || selectedDetailPenjualan.noTransaksi}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :
+                    selectedDetailPenjualan.status === 'BATAL' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                    {selectedDetailPenjualan.status}
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-y-5 gap-x-4">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Kavling</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.perumahan || selectedDetailPenjualan.kavling?.perumahan?.nama} - Blok {selectedDetailPenjualan.blok || selectedDetailPenjualan.kavling?.blok} No. {selectedDetailPenjualan.nomorUnit || selectedDetailPenjualan.kavling?.nomorUnit}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.caraPembayaran?.replace('_', ' ') || '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
+                  <p className="text-sm font-bold text-blue-700">
+                    {selectedDetailPenjualan.hargaJual ? formatRupiah(selectedDetailPenjualan.hargaJual) : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tanggal Transaksi</p>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {selectedDetailPenjualan.tanggal ? new Date(selectedDetailPenjualan.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setSelectedDetailPenjualan(null)} className="px-6 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer shadow-md">
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+    </div>
+  );
+};
+
+export default Agents;
 </file>
 
 <file path="src/components/Sidebar.tsx">
@@ -15174,7 +15187,8 @@ const Tagihan = () => {
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <FileText size={16} className="text-blue-600" /> Detail Cicilan & Tagihan
+            {targetPenjualan?.pembiayaan?.replace(/_/g, ' ') || '-'}
+
           </h4>
 
           <div className="flex flex-wrap items-center gap-4 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
@@ -15196,7 +15210,7 @@ const Tagihan = () => {
             onClick={() => openModal(undefined, row)}
             className="flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer shadow-sm w-full md:w-auto"
           >
-            + Tambah Tagihan
+            +
           </button>
         </div>
 
@@ -15219,7 +15233,20 @@ const Tagihan = () => {
                   <tr key={c.id} className="hover:bg-blue-50/30 transition-colors group">
 
                     <td className="p-3 font-bold text-slate-800 text-xs">{c.pembayaran}</td>
-                    <td className="p-3 text-slate-600 text-xs font-medium">{formatDate(c.jatuhTempo.toString())}</td>
+                    <td className="p-3 text-slate-600 text-xs font-medium">
+                      <input
+                        type="date"
+                        defaultValue={c.jatuhTempo.toString().split('T')[0]}
+                        onBlur={(e) => {
+                          if (e.target.value && e.target.value !== c.jatuhTempo.toString().split('T')[0]) {
+                            updateMutation.mutate({ id: c.id, data: { jatuhTempo: e.target.value } });
+                          }
+                        }}
+                        className="px-2 py-1 border border-slate-200 rounded-md text-xs outline-none focus:border-blue-500 bg-transparent transition-all"
+                        disabled={updateMutation.isPending}
+                        title="Edit Jatuh Tempo"
+                      />
+                    </td>
                     <td className="p-3 text-slate-900 font-bold text-right tabular-nums text-xs">
                       {formatRupiah(c.nominal)}
                     </td>
@@ -15498,16 +15525,33 @@ const Tagihan = () => {
             <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
               <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
 
-              <FileInput label="Upload Bukti Transfer" accept="image/*,application/pdf" onChange={handleFileChange} />
-              {formData.fileBukti && typeof formData.fileBukti === 'string' && (
-                <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
-                  <FileText size={14} /> File saat ini sudah diupload
-                </p>
-              )}
-              {formData.fileBukti instanceof File && (
-                <p className="text-xs text-blue-600 mt-2 truncate flex items-center gap-1 font-medium bg-blue-50 p-2 rounded border border-blue-100">
-                  <UploadCloud size={14} /> File siap diupload: {formData.fileBukti.name}
-                </p>
+              <FileInput
+                label={formData.fileBukti ? "Ganti Bukti Transfer" : "Upload Bukti Transfer"}
+                accept="image/*,application/pdf"
+                onChange={handleFileChange}
+              />
+
+              {formData.fileBukti && (
+                <div className="mt-4 border border-blue-200 rounded-lg overflow-hidden bg-white relative">
+                  <p className="text-[10px] font-bold text-slate-500 bg-slate-50 px-3 py-1.5 border-b border-slate-200 uppercase tracking-widest">
+                    Pratinjau File
+                  </p>
+                  <div className="p-2 flex justify-center">
+                    {formData.fileBukti instanceof File ? (
+                      formData.fileBukti.type === 'application/pdf' ? (
+                        <iframe src={URL.createObjectURL(formData.fileBukti)} className="w-full h-48 rounded border-none" />
+                      ) : (
+                        <img src={URL.createObjectURL(formData.fileBukti)} alt="Preview Baru" className="max-h-48 object-contain rounded" />
+                      )
+                    ) : (
+                      typeof formData.fileBukti === 'string' && formData.fileBukti.includes('.pdf') ? (
+                        <iframe src={formData.fileBukti} className="w-full h-48 rounded border-none" />
+                      ) : (
+                        <img src={formData.fileBukti as string} alt="Preview Lama" className="max-h-48 object-contain rounded" />
+                      )
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}

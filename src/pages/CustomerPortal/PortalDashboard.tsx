@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import {
   useGetCustomerDashboard,
@@ -27,9 +28,11 @@ const PortalDashboard = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [newDocName, setNewDocName] = useState("");
 
-  // 1. TAMBAHKAN USERNAME DI STATE FORM
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [accountForm, setAccountForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
+
+  // ✅ PERBAIKAN TS ERROR: Tambahkan state error handling
+  const [accountErrors, setAccountErrors] = useState<Record<string, string | undefined>>({});
 
   if (isLoading) return <PageLoader />;
   if (!data) return <div className="p-8 text-center">Gagal memuat data portal.</div>;
@@ -63,6 +66,7 @@ const PortalDashboard = () => {
       e.target.value = '';
     }
   };
+
   const handleUploadLainnya = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -88,13 +92,12 @@ const PortalDashboard = () => {
     }
   };
 
-  // 2. SET STATE AWAL SAAT MODAL DIBUKA
   const openAccountModal = () => {
     setAccountForm({ username: '', email: profil.email || '', password: '', confirmPassword: '' });
+    setAccountErrors({});
     setIsAccountModalOpen(true);
   };
 
-  // 3. PROSES PAYLOAD
   const handleAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (accountForm.password && accountForm.password.length < 6) {
@@ -130,8 +133,17 @@ const PortalDashboard = () => {
       setIsAccountModalOpen(false);
       logout();
     } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
+      // ✅ KODE YANG DIUBAH: Tambahkan mapping error UI
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setAccountErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
     }
   };
 
@@ -424,8 +436,12 @@ const PortalDashboard = () => {
             label="Username Baru (Opsional)"
             name="username"
             type="text"
+            error={accountErrors.username}
             value={accountForm.username}
-            onChange={(e) => setAccountForm({ ...accountForm, username: e.target.value })}
+            onChange={(e) => {
+              setAccountForm({ ...accountForm, username: e.target.value });
+              if (accountErrors.username) setAccountErrors(prev => ({ ...prev, username: undefined }));
+            }}
             placeholder="Masukkan username baru..."
           />
 
@@ -433,8 +449,12 @@ const PortalDashboard = () => {
             label="Email Baru (Opsional)"
             name="email"
             type="email"
+            error={accountErrors.email}
             value={accountForm.email}
-            onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+            onChange={(e) => {
+              setAccountForm({ ...accountForm, email: e.target.value });
+              if (accountErrors.email) setAccountErrors(prev => ({ ...prev, email: undefined }));
+            }}
             placeholder="email@example.com"
           />
 
@@ -443,8 +463,12 @@ const PortalDashboard = () => {
               label="Password Baru"
               name="password"
               type="password"
+              error={accountErrors.password}
               value={accountForm.password}
-              onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+              onChange={(e) => {
+                setAccountForm({ ...accountForm, password: e.target.value });
+                if (accountErrors.password) setAccountErrors(prev => ({ ...prev, password: undefined }));
+              }}
               placeholder="Minimal 6 karakter"
             />
             <Input

@@ -24,6 +24,9 @@ const AgentPortalDashboard = () => {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [accountForm, setAccountForm] = useState({ email: '', password: '', confirmPassword: '' });
 
+  // ✅ PERBAIKAN TS ERROR: Tambahkan "| undefined"
+  const [accountErrors, setAccountErrors] = useState<Record<string, string | undefined>>({});
+
   if (isLoading) return <PageLoader />;
   if (!agentData) return <div className="p-8 text-center font-bold text-slate-500">Gagal memuat profil Agent.</div>;
 
@@ -50,6 +53,7 @@ const AgentPortalDashboard = () => {
 
   const openAccountModal = () => {
     setAccountForm({ email: agentData.email || '', password: '', confirmPassword: '' });
+    setAccountErrors({});
     setIsAccountModalOpen(true);
   };
 
@@ -80,10 +84,19 @@ const AgentPortalDashboard = () => {
       setIsAccountModalOpen(false);
       logout();
     } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setAccountErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
     }
   };
+
   const baseDocs = [
     { key: 'fileSuratPernyataan', label: 'Surat Pernyataan (TTD & Materai)' }
   ];
@@ -301,8 +314,12 @@ const AgentPortalDashboard = () => {
             label="Email Login Baru"
             name="email"
             type="email"
+            error={accountErrors.email}
             value={accountForm.email}
-            onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+            onChange={(e) => {
+              setAccountForm({ ...accountForm, email: e.target.value });
+              if (accountErrors.email) setAccountErrors(prev => ({ ...prev, email: undefined }));
+            }}
             placeholder="Masukkan email baru..."
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -310,8 +327,12 @@ const AgentPortalDashboard = () => {
               label="Password Baru"
               name="password"
               type="password"
+              error={accountErrors.password}
               value={accountForm.password}
-              onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+              onChange={(e) => {
+                setAccountForm({ ...accountForm, password: e.target.value });
+                if (accountErrors.password) setAccountErrors(prev => ({ ...prev, password: undefined }));
+              }}
               placeholder="Minimal 6 karakter"
             />
             <Input
