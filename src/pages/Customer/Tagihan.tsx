@@ -62,7 +62,8 @@ const Tagihan = () => {
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
   const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 100 });
   const { data: bankList = [] } = useGetBankRekening();
-  const { selectedPerumahan } = useAuth();
+  const { selectedPerumahan, user } = useAuth();
+  const canApprovePayment = user?.role === 'SUPERADMIN' || user?.role === 'FINANCE';
 
   const createMutation = useCreateTagihan();
   const updateMutation = useUpdateTagihan();
@@ -568,20 +569,28 @@ const Tagihan = () => {
                         {/* 👇 1. JIKA STATUS MENUNGGU KONFIRMASI (Tampilkan Tombol Approve) 👇 */}
                         {c.status === 'MENUNGGU_KONFIRMASI' ? (
                           <>
-                            <button
-                              onClick={() => handleApproveBukti(c.id, true)}
-                              className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition shadow-sm cursor-pointer"
-                              title="Setujui Bukti"
-                            >
-                              <Check size={12} /> Setujui
-                            </button>
-                            <button
-                              onClick={() => handleApproveBukti(c.id, false)}
-                              className="flex items-center gap-1 px-2 py-1.5 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition shadow-sm cursor-pointer"
-                              title="Tolak Bukti"
-                            >
-                              <X size={12} /> Tolak
-                            </button>
+                            {canApprovePayment ? (
+                              <>
+                                <button
+                                  onClick={() => handleApproveBukti(c.id, true)}
+                                  className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition shadow-sm cursor-pointer"
+                                  title="Setujui Bukti"
+                                >
+                                  <Check size={12} /> Setujui
+                                </button>
+                                <button
+                                  onClick={() => handleApproveBukti(c.id, false)}
+                                  className="flex items-center gap-1 px-2 py-1.5 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700 transition shadow-sm cursor-pointer"
+                                  title="Tolak Bukti"
+                                >
+                                  <X size={12} /> Tolak
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-yellow-600 font-medium italic bg-yellow-50 px-2 py-1 rounded">
+                                Menunggu Verifikasi Finance
+                              </span>
+                            )}
                           </>
                         ) : (
                           /* 👇 2. JIKA LUNAS ATAU BELUM BAYAR 👇 */
@@ -806,9 +815,7 @@ const Tagihan = () => {
           {isEditing && (
             <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
               <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
-              <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
-                Upload bukti transfer dari pihak pelanggan di sini. Sistem otomatis mengubah status menjadi <strong className="text-green-700">LUNAS</strong>.
-              </p>
+
               <FileInput label="Upload Bukti Transfer" accept="image/*,application/pdf" onChange={handleFileChange} />
               {formData.fileBukti && typeof formData.fileBukti === 'string' && (
                 <p className="text-xs text-green-600 mt-2 truncate flex items-center gap-1 font-medium bg-green-50 p-2 rounded border border-green-100">
