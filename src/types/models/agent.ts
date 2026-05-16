@@ -40,6 +40,7 @@ export interface AgentData {
   fileKtp: string | null;
   fileNpwp: string | null;
   kwitansiBookingFee: string | null;
+  fileSuratPernyataan: string | null;
   fileSuratKeterangan: string | null;
   fileKtpDirektur: string | null;
   fileNpwpPerusahaan: string | null;

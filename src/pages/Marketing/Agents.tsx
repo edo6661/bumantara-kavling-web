@@ -7,7 +7,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText } from "lucide-react"; // <-- Tambah CheckCircle
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText } from "lucide-react";
 import {
   useGetAgents,
   useCreateAgent,
@@ -17,7 +17,7 @@ import {
   useGenerateAgentAccount
 } from "../../hooks/queries/useAgent";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent"; // <-- Tambah Hooks Perusahaan
+import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
 
@@ -29,7 +29,7 @@ interface AgentFormState {
   noHp: string;
   email: string;
   type: string;
-  perusahaanAgentId: number | ''; // <-- Tambahan State
+  perusahaanAgentId: number | '';
   namaBank: string;
   noRekening: string;
   atasNamaRekening: string;
@@ -46,7 +46,7 @@ const initialFormState: AgentFormState = {
   noHp: '',
   email: '',
   type: 'PRIBADI',
-  perusahaanAgentId: '', // <-- Tambahan State
+  perusahaanAgentId: '',
   namaBank: '',
   noRekening: '',
   atasNamaRekening: '',
@@ -58,7 +58,7 @@ const initialFormState: AgentFormState = {
 const Agents = () => {
   const { data: agentData = [], isLoading } = useGetAgents();
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
-  const { data: perusahaanList = [] } = useGetPerusahaanAgents(); // <-- Ambil Data Perusahaan
+  const { data: perusahaanList = [] } = useGetPerusahaanAgents();
   const penjualanList = penjualanResponse?.items || [];
 
   const createMutation = useCreateAgent();
@@ -81,8 +81,12 @@ const Agents = () => {
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // 👇 FUNGSI APPROVE AGENT 👇
+
   const handleApprove = async (agent: AgentData) => {
+    if (!agent.fileSuratPernyataan) {
+      alert(`Gagal: Agent ${agent.nama} belum mengunggah Surat Pernyataan Bermaterai. Approval tidak dapat dilakukan.`);
+      return;
+    }
     if (window.confirm(`Setujui pendaftaran agent ${agent.nama}? Status akan menjadi Aktif.`)) {
       try {
         await updateMutation.mutateAsync({ id: agent.id, data: { status: 'AKTIF' } });
@@ -98,7 +102,7 @@ const Agents = () => {
     { header: 'NIK', accessor: 'nik' },
     { header: 'Nama Agent', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
 
-    // 👇 KOLOM TIPE & NAMA PERUSAHAAN 👇
+
     {
       header: 'Tipe',
       accessor: 'type',
@@ -184,7 +188,7 @@ const Agents = () => {
         noHp: item.noHp,
         email: item.email || '',
         type: item.type || 'PRIBADI',
-        perusahaanAgentId: item.perusahaanAgent?.id || '', // <-- Tambahan State
+        perusahaanAgentId: item.perusahaanAgent?.id || '',
         namaBank: item.namaBank || '',
         noRekening: item.noRekening || '',
         atasNamaRekening: item.atasNamaRekening || '',
@@ -284,7 +288,7 @@ const Agents = () => {
       email: formData.email || undefined,
       alamat: formData.alamat || undefined,
       type: formData.type,
-      perusahaanAgentId: formData.type === 'PERUSAHAAN' ? Number(formData.perusahaanAgentId) : undefined, // <-- Tambahan payload
+      perusahaanAgentId: formData.type === 'PERUSAHAAN' ? Number(formData.perusahaanAgentId) : undefined,
       namaBank: formData.namaBank || null,
       noRekening: formData.noRekening || null,
       atasNamaRekening: formData.atasNamaRekening || null,
@@ -579,8 +583,8 @@ const Agents = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {(selectedUploadAgent.type === 'PRIBADI'
-                ? ['fileKtp', 'fileNpwp', 'kwitansiBookingFee']
-                : ['fileSuratKeterangan', 'fileKtpDirektur', 'fileNpwpPerusahaan']
+                ? ['fileSuratPernyataan', 'fileKtp', 'fileNpwp', 'kwitansiBookingFee']
+                : ['fileSuratPernyataan', 'fileSuratKeterangan', 'fileKtpDirektur', 'fileNpwpPerusahaan']
               ).map((type) => (
                 <div key={type} className="flex flex-col gap-3 p-4 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all group shadow-sm">
                   <span className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-500 text-center">
@@ -691,8 +695,8 @@ const Agents = () => {
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Dokumen / Berkas Agent</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {(selectedAgentDetail.type === 'PRIBADI'
-                    ? ['fileKtp', 'fileNpwp', 'kwitansiBookingFee']
-                    : ['fileSuratKeterangan', 'fileKtpDirektur', 'fileNpwpPerusahaan']
+                    ? ['fileSuratPernyataan', 'fileKtp', 'fileNpwp', 'kwitansiBookingFee']
+                    : ['fileSuratPernyataan', 'fileSuratKeterangan', 'fileKtpDirektur', 'fileNpwpPerusahaan']
                   ).map((type) => (
                     <div key={type} className="flex flex-col gap-2">
                       <span className="text-[9px] font-black uppercase text-slate-400 text-center">

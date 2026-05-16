@@ -84,13 +84,18 @@ const AgentPortalDashboard = () => {
       alert(message);
     }
   };
+  const baseDocs = [
+    { key: 'fileSuratPernyataan', label: 'Surat Pernyataan (TTD & Materai)' }
+  ];
 
   const documentFields = agentData.type === 'PRIBADI'
     ? [
+      ...baseDocs,
       { key: 'fileKtp', label: 'Foto KTP' },
       { key: 'fileNpwp', label: 'Foto NPWP' },
     ]
     : [
+      ...baseDocs,
       { key: 'fileSuratKeterangan', label: 'Surat Keterangan' },
       { key: 'fileKtpDirektur', label: 'KTP Direktur' },
       { key: 'fileNpwpPerusahaan', label: 'NPWP Perusahaan' }
