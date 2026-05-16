@@ -375,7 +375,8 @@ const Penjualan = () => {
           const sisaPembayaran = Math.max(0, base - diskon - bf - dp);
           const termin = merged.termin !== undefined ? Number(merged.termin) : 3;
           updates.termin = termin;
-          updates.cicilanPerBulan = termin > 0 ? sisaPembayaran / termin : 0;
+          updates.cicilanPerBulan = termin > 0 ? Math.round(sisaPembayaran / termin) : 0;
+
 
         } else {
           updates.dp = 0;
@@ -602,7 +603,7 @@ const Penjualan = () => {
         }
 
         const sisa = Math.max(0, hargaPokok - bf - Number(item.dp || 0));
-        calculatedCicilan = sisa / termin;
+        calculatedCicilan = Math.round(sisa / termin);
       }
 
 
@@ -837,10 +838,9 @@ const Penjualan = () => {
       alert(error.response?.data?.message || "Gagal menyimpan tanda tangan");
     }
   };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const finalValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+    const finalValue = type === 'number' ? (value === '' ? 0 : Math.round(Number(value))) : value;
 
     setFormData((prev) => {
       let updates = handleRecalculateDependencies(name, finalValue, prev);
@@ -854,10 +854,11 @@ const Penjualan = () => {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
-
   const handleCurrencyChange = (name: string, value: number) => {
+    const roundedValue = Math.round(value);
+
     setFormData((prev) => {
-      const updates = handleRecalculateDependencies(name, value, prev);
+      const updates = handleRecalculateDependencies(name, roundedValue, prev);
       return { ...prev, ...updates };
     });
 
@@ -1286,7 +1287,6 @@ const Penjualan = () => {
               </div>
             )}
           </div>
-
           {(row.caraPembayaran === 'KPR' || row.caraPembayaran === 'CASH BERTAHAP') && (
             <div className="space-y-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
               <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">2. Down Payment</h5>
@@ -1314,17 +1314,6 @@ const Penjualan = () => {
                     >
                       <Receipt size={14} /> Kwitansi DP
                     </button>
-                    <div
-                      onClick={() => setPreviewImage(row.fileBuktiDp as string)}
-                      className="relative w-10 h-8 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 flex justify-center items-center"
-                      title="Lihat Bukti DP"
-                    >
-                      {row.fileBuktiDp.split('?')[0].toLowerCase().endsWith('.pdf') || row.fileBuktiDp.includes('application/pdf') ? (
-                        <div className="text-red-500"><FileText size={16} /></div>
-                      ) : (
-                        <img src={row.fileBuktiDp} alt="Bukti DP" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                      )}
-                    </div>
                   </>
                 ) : (
                   <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
@@ -1333,8 +1322,47 @@ const Penjualan = () => {
                   </label>
                 )}
               </div>
+
+              {row.fileBuktiDp && (
+                <div className="mt-4 border-t border-slate-200 pt-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bukti Transfer DP</p>
+
+                    <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                      {uploadBuktiMutation.isPending ? 'Mengunggah...' : 'Ganti Bukti'}
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) => handleUploadBukti(row.id!, 'dp', e)}
+                        disabled={uploadBuktiMutation.isPending}
+                      />
+                    </label>
+                  </div>
+
+                  <div
+                    onClick={() => setPreviewImage(row.fileBuktiDp as string)}
+                    className="relative w-24 h-16 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 ring-1 ring-slate-900/5 flex justify-center items-center"
+                    title="Klik untuk perbesar"
+                  >
+                    {row.fileBuktiDp.split('?')[0].toLowerCase().endsWith('.pdf') || row.fileBuktiDp.includes('application/pdf') ? (
+                      <div className="text-red-500"><FileText size={24} /></div>
+                    ) : (
+                      <img
+                        src={`${row.fileBuktiDp}?t=${new Date(row.updatedAt!).getTime()}`}
+                        alt="Bukti DP"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <ZoomIn size={14} className="text-white" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
         </div>
       </div>
     );
