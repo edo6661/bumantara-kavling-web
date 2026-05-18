@@ -1,287 +1,4 @@
-This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
-
-<file_summary>
-This section contains a summary of this file.
-
-<purpose>
-This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
-It is designed to be easily consumable by AI systems for analysis, code review,
-or other automated processes.
-</purpose>
-
-<file_format>
-The content is organized as follows:
-1. This summary section
-2. Repository information
-3. Directory structure
-4. Repository files (if enabled)
-5. Multiple file entries, each consisting of:
-  - File path as an attribute
-  - Full contents of the file
-</file_format>
-
-<usage_guidelines>
-- This file should be treated as read-only. Any changes should be made to the
-  original repository files, not this packed version.
-- When processing this file, use the file path to distinguish
-  between different files in the repository.
-- Be aware that this file may contain sensitive information. Handle it with
-  the same level of security as you would the original repository.
-</usage_guidelines>
-
-<notes>
-- Some files may have been excluded based on .gitignore rules and Repomix's configuration
-- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Only files matching these patterns are included: src/**/*, package.json, vite.config.ts, tsconfig.json, prisma/schema.prisma, *.ts, *.js, *, vite.config.ts, vitest.config.ts, eslint.config.js, vite.config.ts, commitlint.config.ts, .release-it.json
-- Files matching these patterns are excluded: **/*.test.ts, dist/, **/*.js, /node_modules/*, node_modules/*, **/*.svg, .env
-- Files matching patterns in .gitignore are excluded
-- Files matching default ignore patterns are excluded
-- Files are sorted by Git change count (files with more changes are at the bottom)
-</notes>
-
-</file_summary>
-
-<directory_structure>
-.gitignore
-Detil_Pembelian_Unit.xls
-docker-compose.yml
-Dockerfile
-index.html
-nginx.conf
-package.json
-README.md
-src/App.tsx
-src/components/layouts/PermissionGuard.tsx
-src/components/layouts/RootLayout.tsx
-src/components/Navbar.tsx
-src/components/shared/CurrencyInput.tsx
-src/components/shared/DataTable.tsx
-src/components/shared/FileInput.tsx
-src/components/shared/Input.tsx
-src/components/shared/Modal.tsx
-src/components/shared/Select.tsx
-src/components/Sidebar.tsx
-src/context/AuthContext.tsx
-src/hooks/queries/useAgent.ts
-src/hooks/queries/useAgentPortal.ts
-src/hooks/queries/useAuditLog.ts
-src/hooks/queries/useBankRekening.ts
-src/hooks/queries/useCustomer.ts
-src/hooks/queries/useCustomerKavling.ts
-src/hooks/queries/useCustomerPortal.ts
-src/hooks/queries/useDashboard.ts
-src/hooks/queries/useFeeAgent.ts
-src/hooks/queries/useKavling.ts
-src/hooks/queries/useNotaris.ts
-src/hooks/queries/usePenjualan.ts
-src/hooks/queries/usePerumahan.ts
-src/hooks/queries/usePerusahaanAgent.ts
-src/hooks/queries/useProgressPenjualan.ts
-src/hooks/queries/useRolePermission.ts
-src/hooks/queries/useTagihan.ts
-src/hooks/queries/useUser.ts
-src/hooks/queries/useVerify.ts
-src/hooks/useAdminSocket.ts
-src/hooks/useCrud.ts
-src/hooks/useForm.ts
-src/hooks/usePermission.ts
-src/index.css
-src/lib/axios.ts
-src/main.tsx
-src/pages/AgentPortal/PortalDashboard.tsx
-src/pages/Bank/CustomerDetail.tsx
-src/pages/Customer/Administrasi.tsx
-src/pages/Customer/Kavling.tsx
-src/pages/Customer/OldKavling.tsx
-src/pages/Customer/Tagihan.tsx
-src/pages/CustomerPortal/PortalDashboard.tsx
-src/pages/Dashboard.tsx
-src/pages/Home.tsx
-src/pages/Login.tsx
-src/pages/Management/AuditLog.tsx
-src/pages/Management/Bank.tsx
-src/pages/Management/BatalTransaksi.tsx
-src/pages/Management/GantiKavling.tsx
-src/pages/Management/Kavling.tsx
-src/pages/Management/Notaris.tsx
-src/pages/Management/Penjualan.tsx
-src/pages/Management/ProgressPenjualan.tsx
-src/pages/Management/RolePermission.tsx
-src/pages/Management/User.tsx
-src/pages/Marketing/Agents.tsx
-src/pages/Marketing/FeeAgent.tsx
-src/pages/Marketing/OldFeeAgent.tsx
-src/pages/Marketing/PerusahaanAgent.tsx
-src/pages/PageLoader.tsx
-src/pages/Proyek/Progress.tsx
-src/pages/Proyek/SPK.tsx
-src/pages/Public/AgentLogin.tsx
-src/pages/Public/AgentRegister.tsx
-src/pages/Public/AgentRegisterSuccess.tsx
-src/pages/Public/CustomerLogin.tsx
-src/pages/Public/NotFound.tsx
-src/pages/Public/VerifyDocument.tsx
-src/pages/TimMarketing/TimMarketing.tsx
-src/providers/AuthProvider.tsx
-src/providers/QueryProvider.tsx
-src/services/agent.service.ts
-src/services/agentPortal.service.ts
-src/services/auditLog.service.ts
-src/services/auth.service.ts
-src/services/bankRekening.service.ts
-src/services/customer.service.ts
-src/services/customerKavling.service.ts
-src/services/customerPortal.service.ts
-src/services/dashboard.service.ts
-src/services/feeAgent.service.ts
-src/services/kavling.service.ts
-src/services/notaris.service.ts
-src/services/penjualan.service.ts
-src/services/perumahan.service.ts
-src/services/perusahaanAgent.service.ts
-src/services/progressPenjualan.service.ts
-src/services/rolePermission.service.ts
-src/services/tagihan.service.ts
-src/services/user.service.ts
-src/services/verify.service.ts
-src/types/api_response.ts
-src/types/common.ts
-src/types/models/agent.ts
-src/types/models/perumahan.ts
-src/types/models/user.ts
-src/utils/errorHandler.ts
-src/utils/formatters.ts
-src/utils/storage.ts
-tsconfig.app.json
-tsconfig.json
-tsconfig.node.json
-vite.config.ts
-</directory_structure>
-
-<files>
-This section contains the contents of the repository's files.
-
-<file path="docker-compose.yml">
-services:
-  kavling-app:
-    build: .
-    container_name: kavling-app
-    restart: unless-stopped
-    networks:
-      - proxy-network
-
-networks:
-  proxy-network:
-    external: true
-</file>
-
-<file path="Dockerfile">
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-COPY package.json package-lock.json* ./
-RUN npm install
-
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-</file>
-
-<file path="nginx.conf">
-server {
-    listen 80;
-    server_name localhost;
-
-    root /usr/share/nginx/html;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-</file>
-
-<file path="README.md">
-# React + TypeScript + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-</file>
+tolong ingat kode frontendnya:
 
 <file path="src/components/shared/FileInput.tsx">
 import type { InputHTMLAttributes } from 'react';
@@ -2282,6 +1999,83 @@ export const useGetAuditLogs = (params?: Record<string, unknown>) => {
 };
 </file>
 
+<file path="src/hooks/queries/useKavling.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  kavlingService,
+  type CreateKavlingDTO,
+  type GetKavlingParams,
+} from "../../services/kavling.service";
+
+export const KAVLING_KEYS = {
+  all: ["kavlings"] as const,
+  list: (params: GetKavlingParams) => ["kavlings", params] as const,
+};
+
+export const useGetKavlings = (params: GetKavlingParams = {}) => {
+  return useQuery({
+    queryKey: KAVLING_KEYS.list(params),
+    queryFn: () => kavlingService.getAll(params),
+  });
+};
+
+export const useCreateKavling = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (newData: CreateKavlingDTO) => kavlingService.create(newData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useUpdateKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Partial<CreateKavlingDTO>;
+    }) => kavlingService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteKavling = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => kavlingService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useUploadKavlingDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      docType,
+      file,
+    }: {
+      id: number;
+      docType: string;
+      file: File;
+    }) => kavlingService.uploadDocument(id, docType, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+</file>
+
 <file path="src/hooks/queries/usePerusahaanAgent.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -3557,90 +3351,6 @@ export interface LoginData {
 }
 </file>
 
-<file path="src/utils/errorHandler.ts">
-import { isAxiosError } from "axios";
-import type { ActionResult } from "../types/common";
-
-export const handleApiError = (error: unknown): ActionResult => {
-  if (import.meta.env.DEV) {
-    console.error("API Request failed:", error);
-  }
-
-  if (isAxiosError(error)) {
-    if (!error.response) {
-      if (error.code === "ERR_NETWORK") {
-        return {
-          success: false,
-          message:
-            "Gagal terhubung. Pastikan internet Anda stabil dan server backend sedang aktif.",
-        };
-      }
-      if (error.code === "ECONNABORTED") {
-        return {
-          success: false,
-          message:
-            "Waktu permintaan habis (Timeout). Server terlalu lama merespons.",
-        };
-      }
-      return {
-        success: false,
-        message: "Terjadi gangguan jaringan yang tidak diketahui.",
-      };
-    }
-
-    const status = error.response.status;
-    const serverMessage = error.response.data?.message;
-    let defaultMessage = "Terjadi kesalahan pada server.";
-
-    switch (status) {
-      case 400:
-        defaultMessage =
-          "Data yang dikirim tidak valid. Periksa kembali isian Anda.";
-        break;
-      case 401:
-        defaultMessage =
-          "Sesi Anda tidak valid atau telah habis. Silakan login kembali.";
-        break;
-      case 403:
-        defaultMessage =
-          "Anda tidak memiliki izin (akses ditolak) untuk melakukan tindakan ini.";
-        break;
-      case 404:
-        defaultMessage = "Data atau endpoint tidak ditemukan di server.";
-        break;
-      case 409:
-        defaultMessage =
-          "Terjadi konflik data (misalnya data sudah terdaftar sebelumnya).";
-        break;
-      case 500:
-        defaultMessage =
-          "Terjadi masalah internal pada server. Tim kami sedang menanganinya.";
-        break;
-      case 502:
-      case 503:
-      case 504:
-        defaultMessage =
-          "Server sedang sibuk atau dalam pemeliharaan. Cobalah beberapa saat lagi.";
-        break;
-    }
-
-    return {
-      success: false,
-      message: serverMessage || defaultMessage,
-      errors: error.response.data?.error,
-    };
-  }
-
-  return {
-    success: false,
-    message:
-      error instanceof Error
-        ? error.message
-        : "Terjadi kesalahan sistem yang tidak terduga.",
-  };
-};
-</file>
-
 <file path="src/hooks/queries/useCustomerPortal.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customerPortalService } from "../../services/customerPortal.service";
@@ -3699,83 +3409,6 @@ export const useUpdateMyAccount = () => {
       queryClient.invalidateQueries({
         queryKey: CUSTOMER_PORTAL_KEYS.dashboard,
       });
-    },
-  });
-};
-</file>
-
-<file path="src/hooks/queries/useKavling.ts">
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  kavlingService,
-  type CreateKavlingDTO,
-  type GetKavlingParams,
-} from "../../services/kavling.service";
-
-export const KAVLING_KEYS = {
-  all: ["kavlings"] as const,
-  list: (params: GetKavlingParams) => ["kavlings", params] as const,
-};
-
-export const useGetKavlings = (params: GetKavlingParams = {}) => {
-  return useQuery({
-    queryKey: KAVLING_KEYS.list(params),
-    queryFn: () => kavlingService.getAll(params),
-  });
-};
-
-export const useCreateKavling = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (newData: CreateKavlingDTO) => kavlingService.create(newData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
-    },
-  });
-};
-
-export const useUpdateKavling = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: Partial<CreateKavlingDTO>;
-    }) => kavlingService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
-    },
-  });
-};
-
-export const useDeleteKavling = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => kavlingService.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
-    },
-  });
-};
-
-export const useUploadKavlingDocument = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      docType,
-      file,
-    }: {
-      id: number;
-      docType: string;
-      file: File;
-    }) => kavlingService.uploadDocument(id, docType, file),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
     },
   });
 };
@@ -4681,6 +4314,115 @@ export const agentService = {
 };
 </file>
 
+<file path="src/services/kavling.service.ts">
+import api from "../lib/axios";
+
+export interface KavlingData {
+  id: number;
+  perumahanId: number;
+  perumahan?: { id: number; nama: string };
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  hargaDasar: number;
+  status: string;
+  rekeningTujuanId: number | null;
+  rekeningTujuan?: {
+    namaBank: string;
+    noRekening: string;
+    atasNama: string;
+  } | null;
+  filePbg: string | null;
+  fileSertifikatTanah: string | null;
+  fileNopPbb: string | null;
+  penjualan?: {
+    customer?: {
+      nama: string;
+      noHp: string;
+    };
+  }[];
+}
+
+export interface CreateKavlingDTO {
+  perumahanId: number;
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  hargaDasar: number;
+  status?: string;
+  rekeningTujuanId?: number;
+
+  filePbg?: string;
+  fileSertifikatTanah?: string;
+  fileNopPbb?: string;
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  summary?: Record<string, number>;
+}
+
+export interface KavlingResponse {
+  items: KavlingData[];
+  meta: PaginationMeta;
+}
+
+export interface GetKavlingParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  perumahanId?: number;
+  status?: string;
+  orderBy?: string;
+}
+
+export const kavlingService = {
+  getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {
+    const response = await api.get("/kavling", {
+      params: { limit: 10, page: 1, ...params },
+    });
+    return response.data.data;
+  },
+
+  create: async (data: CreateKavlingDTO) => {
+    const response = await api.post("/kavling", data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: Partial<CreateKavlingDTO>) => {
+    const response = await api.patch(`/kavling/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/kavling/${id}`);
+    return response.data;
+  },
+
+  uploadDocument: async (id: number, docType: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.patch(
+      `/kavling/${id}/upload/${docType}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data.data;
+  },
+};
+</file>
+
 <file path="src/services/notaris.service.ts">
 import api from "../lib/axios";
 
@@ -4740,6 +4482,89 @@ export const notarisService = {
     const response = await api.delete(`/notaris/${id}`);
     return response.data;
   },
+};
+</file>
+
+<file path="src/utils/errorHandler.ts">
+import { isAxiosError } from "axios";
+import type { ActionResult } from "../types/common";
+
+export const handleApiError = (error: unknown): ActionResult => {
+  if (import.meta.env.DEV) {
+    console.error("API Request failed:", error);
+  }
+
+  if (isAxiosError(error)) {
+    if (!error.response) {
+      if (error.code === "ERR_NETWORK") {
+        return {
+          success: false,
+          message: "Gagal terhubung. Pastikan internet Anda stabil",
+        };
+      }
+      if (error.code === "ECONNABORTED") {
+        return {
+          success: false,
+          message:
+            "Waktu permintaan habis (Timeout). Server terlalu lama merespons.",
+        };
+      }
+      return {
+        success: false,
+        message: "Terjadi gangguan jaringan yang tidak diketahui.",
+      };
+    }
+
+    const status = error.response.status;
+    const serverMessage = error.response.data?.message;
+    let defaultMessage = "Terjadi kesalahan pada server.";
+
+    switch (status) {
+      case 400:
+        defaultMessage =
+          "Data yang dikirim tidak valid. Periksa kembali isian Anda.";
+        break;
+      case 401:
+        defaultMessage =
+          "Sesi Anda tidak valid atau telah habis. Silakan login kembali.";
+        break;
+      case 403:
+        defaultMessage =
+          "Anda tidak memiliki izin (akses ditolak) untuk melakukan tindakan ini.";
+        break;
+      case 404:
+        defaultMessage = "Data atau endpoint tidak ditemukan di server.";
+        break;
+      case 409:
+        defaultMessage =
+          "Terjadi konflik data (misalnya data sudah terdaftar sebelumnya).";
+        break;
+      case 500:
+        defaultMessage =
+          "Terjadi masalah internal pada server. Tim kami sedang menanganinya.";
+        break;
+      case 502:
+      case 503:
+      case 504:
+        defaultMessage =
+          "Server sedang sibuk atau dalam pemeliharaan. Cobalah beberapa saat lagi.";
+        break;
+    }
+
+    return {
+      success: false,
+      message: serverMessage || defaultMessage,
+      errors: error.response.data?.error,
+    };
+  }
+
+  return {
+    success: false,
+    message:
+      error instanceof Error
+        ? error.message
+        : "Terjadi kesalahan sistem yang tidak terduga.",
+  };
 };
 </file>
 
@@ -7879,115 +7704,6 @@ export const customerService = {
 };
 </file>
 
-<file path="src/services/kavling.service.ts">
-import api from "../lib/axios";
-
-export interface KavlingData {
-  id: number;
-  perumahanId: number;
-  perumahan?: { id: number; nama: string };
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaDasar: number;
-  status: string;
-  rekeningTujuanId: number | null;
-  rekeningTujuan?: {
-    namaBank: string;
-    noRekening: string;
-    atasNama: string;
-  } | null;
-  filePbg: string | null;
-  fileSertifikatTanah: string | null;
-  fileNopPbb: string | null;
-  penjualan?: {
-    customer?: {
-      nama: string;
-      noHp: string;
-    };
-  }[];
-}
-
-export interface CreateKavlingDTO {
-  perumahanId: number;
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  hargaDasar: number;
-  status?: string;
-  rekeningTujuanId?: number;
-
-  filePbg?: string;
-  fileSertifikatTanah?: string;
-  fileNopPbb?: string;
-}
-
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  summary?: Record<string, number>;
-}
-
-export interface KavlingResponse {
-  items: KavlingData[];
-  meta: PaginationMeta;
-}
-
-export interface GetKavlingParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  perumahanId?: number;
-  status?: string;
-  orderBy?: string;
-}
-
-export const kavlingService = {
-  getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {
-    const response = await api.get("/kavling", {
-      params: { limit: 10, page: 1, ...params },
-    });
-    return response.data.data;
-  },
-
-  create: async (data: CreateKavlingDTO) => {
-    const response = await api.post("/kavling", data);
-    return response.data.data;
-  },
-
-  update: async (id: number, data: Partial<CreateKavlingDTO>) => {
-    const response = await api.patch(`/kavling/${id}`, data);
-    return response.data.data;
-  },
-
-  delete: async (id: number) => {
-    const response = await api.delete(`/kavling/${id}`);
-    return response.data;
-  },
-
-  uploadDocument: async (id: number, docType: string, file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    const response = await api.patch(
-      `/kavling/${id}/upload/${docType}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
-    );
-    return response.data.data;
-  },
-};
-</file>
-
 <file path="src/services/verify.service.ts">
 import api from "../lib/axios";
 
@@ -8126,6 +7842,274 @@ const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: C
   );
 };
 export default CurrencyInput;
+</file>
+
+<file path="src/components/shared/DataTable.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo, useEffect } from 'react';
+import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft, Eye } from 'lucide-react';
+
+interface Column {
+  header: string;
+  accessor: string;
+  render?: (value: any, row: any) => React.ReactNode;
+}
+
+interface DataTableProps {
+  title: string;
+  columns: Column[];
+  data: any[];
+  onAdd?: () => void;
+  onDetail?: (item: any) => void;
+  onEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
+  expandedRowRender?: (row: any) => React.ReactNode;
+  serverSide?: boolean;
+  searchTerm?: string;
+  onSearchChange?: (val: string) => void;
+  page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+}
+
+const DataTable = ({
+  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
+  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
+}: DataTableProps) => {
+
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (serverSide && onSearchChange) {
+      const timeoutId = setTimeout(() => {
+        if (localSearchTerm !== searchTerm) {
+          onSearchChange(localSearchTerm);
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
+
+  const toggleRow = (rowIndex: number) => {
+    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+  };
+
+  const filteredData = useMemo(() => {
+    if (serverSide) return data;
+    if (!localSearchTerm) return data;
+    const lowercasedTerm = localSearchTerm.toLowerCase();
+    return data.filter((row) => {
+      return columns.some((col) => {
+        const value = row[col.accessor];
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(lowercasedTerm);
+      });
+    });
+  }, [data, localSearchTerm, columns, serverSide]);
+
+  const hasActions = !!(onDetail || onEdit || onDelete);
+  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (hasActions ? 1 : 0);
+
+  const getPageNumbers = () => {
+    const delta = 1;
+    const range = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift("...");
+    if (page + delta < totalPages - 1) range.push("...");
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
+      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-30 bg-white">
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+            {/* {!serverSide && (
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
+                {filteredData.length} Data
+              </span>
+            )} */}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-72 group">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+            <input
+              type="text"
+              placeholder="Cari data..."
+              value={localSearchTerm}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
+            />
+          </div>
+
+          {onAdd && (
+            <button
+              onClick={onAdd}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Tambah Data
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="overflow-auto custom-scrollbar max-h-[65vh]">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead className="sticky top-0 z-20 shadow-sm ring-1 ring-slate-200">
+            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider">
+              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center bg-slate-50"></th>}
+              {columns.map((col, index) => (
+                <th key={index} className="px-6 py-3.5 whitespace-nowrap bg-slate-50">
+                  {col.header}
+                </th>
+              ))}
+              {hasActions && (
+                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24 bg-slate-50">Aksi</th>
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredData.length > 0 ? (
+              filteredData.map((row, rowIndex) => {
+                const isExpanded = !!expandedRows[rowIndex];
+                return (
+                  <React.Fragment key={rowIndex}>
+                    <tr
+                      onClick={() => {
+                        if (expandedRowRender) toggleRow(rowIndex);
+                      }}
+                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
+                    >
+                      {expandedRowRender && (
+                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
+                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                        </td>
+                      )}
+                      {columns.map((col, colIndex) => (
+                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
+                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
+                        </td>
+                      ))}
+                      {hasActions && (
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            {onDetail && (
+                              <button
+                                onClick={() => onDetail(row)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
+                                title="Detail"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            )}
+                            {onEdit && (
+                              <button
+                                onClick={() => onEdit(row)}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                onClick={() => onDelete(row)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                                title="Hapus"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                    {isExpanded && expandedRowRender && (
+                      <tr className="bg-slate-50/30 border-t-0">
+                        <td colSpan={totalCols} className="px-6 py-5 border-b border-slate-100">
+                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            {expandedRowRender(row)}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={totalCols} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center max-w-xs mx-auto">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-slate-50/50">
+                      <FileX2 size={24} className="text-slate-300" />
+                    </div>
+                    <h3 className="text-slate-900 font-semibold mb-1">Data tidak ditemukan</h3>
+                    <p className="text-slate-500 text-sm">
+                      Kami tidak dapat menemukan data yang Anda cari.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {serverSide && totalPages > 1 && (
+        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-0 bg-white z-20">
+          <span className="text-xs font-semibold text-slate-500">
+            Halaman {page} dari {totalPages}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onPageChange?.(page - 1)}
+              disabled={page === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {getPageNumbers().map((num, idx) => (
+              num === "..." ? (
+                <span key={idx} className="px-2 text-slate-400 font-bold">...</span>
+              ) : (
+                <button
+                  key={idx}
+                  onClick={() => onPageChange?.(num as number)}
+                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${page === num
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                >
+                  {num}
+                </button>
+              )
+            ))}
+
+            <button
+              onClick={() => onPageChange?.(page + 1)}
+              disabled={page === totalPages}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DataTable;
 </file>
 
 <file path="src/pages/Management/BatalTransaksi.tsx">
@@ -8916,274 +8900,6 @@ const FeeAgent = () => {
 };
 
 export default FeeAgent;
-</file>
-
-<file path="src/components/shared/DataTable.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, FileX2, ChevronRight, ChevronDown, ChevronLeft, Eye } from 'lucide-react';
-
-interface Column {
-  header: string;
-  accessor: string;
-  render?: (value: any, row: any) => React.ReactNode;
-}
-
-interface DataTableProps {
-  title: string;
-  columns: Column[];
-  data: any[];
-  onAdd?: () => void;
-  onDetail?: (item: any) => void;
-  onEdit?: (item: any) => void;
-  onDelete?: (item: any) => void;
-  expandedRowRender?: (row: any) => React.ReactNode;
-  serverSide?: boolean;
-  searchTerm?: string;
-  onSearchChange?: (val: string) => void;
-  page?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
-}
-
-const DataTable = ({
-  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
-  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
-}: DataTableProps) => {
-
-  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-
-  useEffect(() => {
-    if (serverSide && onSearchChange) {
-      const timeoutId = setTimeout(() => {
-        if (localSearchTerm !== searchTerm) {
-          onSearchChange(localSearchTerm);
-        }
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
-
-  const toggleRow = (rowIndex: number) => {
-    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
-  };
-
-  const filteredData = useMemo(() => {
-    if (serverSide) return data;
-    if (!localSearchTerm) return data;
-    const lowercasedTerm = localSearchTerm.toLowerCase();
-    return data.filter((row) => {
-      return columns.some((col) => {
-        const value = row[col.accessor];
-        if (value == null) return false;
-        return String(value).toLowerCase().includes(lowercasedTerm);
-      });
-    });
-  }, [data, localSearchTerm, columns, serverSide]);
-
-  const hasActions = !!(onDetail || onEdit || onDelete);
-  const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (hasActions ? 1 : 0);
-
-  const getPageNumbers = () => {
-    const delta = 1;
-    const range = [];
-    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
-      range.push(i);
-    }
-    if (page - delta > 2) range.unshift("...");
-    if (page + delta < totalPages - 1) range.push("...");
-    range.unshift(1);
-    if (totalPages > 1) range.push(totalPages);
-    return range;
-  };
-
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col transition-all duration-300">
-      <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sticky top-0 z-30 bg-white">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-            {/* {!serverSide && (
-              <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-md">
-                {filteredData.length} Data
-              </span>
-            )} */}
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-72 group">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
-            <input
-              type="text"
-              placeholder="Cari data..."
-              value={localSearchTerm}
-              onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
-            />
-          </div>
-
-          {onAdd && (
-            <button
-              onClick={onAdd}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              Tambah Data
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="overflow-auto custom-scrollbar max-h-[65vh]">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead className="sticky top-0 z-20 shadow-sm ring-1 ring-slate-200">
-            <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider">
-              {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center bg-slate-50"></th>}
-              {columns.map((col, index) => (
-                <th key={index} className="px-6 py-3.5 whitespace-nowrap bg-slate-50">
-                  {col.header}
-                </th>
-              ))}
-              {hasActions && (
-                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24 bg-slate-50">Aksi</th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredData.length > 0 ? (
-              filteredData.map((row, rowIndex) => {
-                const isExpanded = !!expandedRows[rowIndex];
-                return (
-                  <React.Fragment key={rowIndex}>
-                    <tr
-                      onClick={() => {
-                        if (expandedRowRender) toggleRow(rowIndex);
-                      }}
-                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
-                    >
-                      {expandedRowRender && (
-                        <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
-                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                        </td>
-                      )}
-                      {columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
-                          {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
-                        </td>
-                      ))}
-                      {hasActions && (
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            {onDetail && (
-                              <button
-                                onClick={() => onDetail(row)}
-                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
-                                title="Detail"
-                              >
-                                <Eye size={16} />
-                              </button>
-                            )}
-                            {onEdit && (
-                              <button
-                                onClick={() => onEdit(row)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
-                                title="Edit"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                            )}
-                            {onDelete && (
-                              <button
-                                onClick={() => onDelete(row)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
-                                title="Hapus"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                    {isExpanded && expandedRowRender && (
-                      <tr className="bg-slate-50/30 border-t-0">
-                        <td colSpan={totalCols} className="px-6 py-5 border-b border-slate-100">
-                          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                            {expandedRowRender(row)}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={totalCols} className="px-6 py-16 text-center">
-                  <div className="flex flex-col items-center max-w-xs mx-auto">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 ring-4 ring-slate-50/50">
-                      <FileX2 size={24} className="text-slate-300" />
-                    </div>
-                    <h3 className="text-slate-900 font-semibold mb-1">Data tidak ditemukan</h3>
-                    <p className="text-slate-500 text-sm">
-                      Kami tidak dapat menemukan data yang Anda cari.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {serverSide && totalPages > 1 && (
-        <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-0 bg-white z-20">
-          <span className="text-xs font-semibold text-slate-500">
-            Halaman {page} dari {totalPages}
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => onPageChange?.(page - 1)}
-              disabled={page === 1}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {getPageNumbers().map((num, idx) => (
-              num === "..." ? (
-                <span key={idx} className="px-2 text-slate-400 font-bold">...</span>
-              ) : (
-                <button
-                  key={idx}
-                  onClick={() => onPageChange?.(num as number)}
-                  className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${page === num
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                >
-                  {num}
-                </button>
-              )
-            ))}
-
-            <button
-              onClick={() => onPageChange?.(page + 1)}
-              disabled={page === totalPages}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default DataTable;
 </file>
 
 <file path="src/pages/AgentPortal/PortalDashboard.tsx">
@@ -10507,6 +10223,477 @@ const GantiKavling = () => {
 };
 
 export default GantiKavling;
+</file>
+
+<file path="src/pages/Management/Kavling.tsx">
+import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  UserCircle, ChevronDown, ChevronUp, Filter, ArrowUpDown,
+  PieChart, CheckCircle2, Clock, Ban, Building2, FileText,
+  Map, ScrollText, UploadCloud
+} from "lucide-react";
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import { formatRupiah } from "../../utils/formatters";
+import { useAuth } from "../../context/AuthContext";
+import {
+  useGetKavlings, useCreateKavling, useUpdateKavling,
+  useDeleteKavling, useUploadKavlingDocument
+} from "../../hooks/queries/useKavling";
+import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
+import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
+import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
+import CurrencyInput from '../../components/shared/CurrencyInput';
+import { handleApiError } from '../../utils/errorHandler';
+
+interface KavlingFormState {
+  id: number | '';
+  perumahanId: number | '';
+  blok: string;
+  nomorUnit: string;
+  namaTipe: string;
+  luasBangunan: number | '';
+  luasTanah: number | '';
+  hargaDasar: number | '';
+  status: string;
+  rekeningTujuanId: number | '';
+}
+
+const initialFormState: KavlingFormState = {
+  id: '', perumahanId: '', blok: '', nomorUnit: '', namaTipe: '',
+  luasBangunan: '', luasTanah: '', hargaDasar: '', status: 'AVAILABLE', rekeningTujuanId: '',
+};
+
+const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
+  Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
+  Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
+  Aruna: { lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
+  Ansara: { lb: 36, lt: [60, 103, 120, 122, 132, 143] }
+};
+
+const Kavling = () => {
+  const { selectedPerumahan } = useAuth();
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') || '';
+  const orderBy = searchParams.get('orderBy') || '';
+  const limit = 10;
+
+  const { data: perumahanList = [] } = useGetPerumahan();
+  const { data: bankList = [] } = useGetBankRekening();
+  const { data: kavlingResponse, isLoading } = useGetKavlings({
+    page, limit, search,
+    perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
+    status: statusFilter !== '' ? statusFilter : undefined,
+    orderBy: orderBy !== '' ? orderBy : undefined
+  });
+
+  const kavlingData = kavlingResponse?.items || [];
+  const meta = kavlingResponse?.meta;
+  const summary = meta?.summary || {};
+
+  const createMutation = useCreateKavling();
+  const updateMutation = useUpdateKavling();
+  const deleteMutation = useDeleteKavling();
+  const uploadDocMutation = useUploadKavlingDocument();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [selectedDocKavling, setSelectedDocKavling] = useState<KavlingData | null>(null);
+  const [docModalStep, setDocModalStep] = useState<string | null>(null);
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('status', e.target.value); else prev.delete('status');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const DokumenIcons = ({ row }: { row: KavlingData }) => {
+
+    const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
+      <button
+        type="button"
+        title={title}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedDocKavling(row);
+          setDocModalStep(step);
+        }}
+        className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 ${active
+          ? 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+          : 'bg-slate-50 border-slate-200 text-slate-400 grayscale hover:grayscale-0 hover:bg-slate-100'
+          }`}
+      >
+        <Icon size={14} strokeWidth={active ? 2.5 : 1.5} />
+      </button>
+    );
+
+    return (
+      <div className="flex items-center gap-1">
+        <IconNode active={!!row.filePbg} icon={FileText} title="Dokumen PBG" step="PBG" />
+        <div className={`w-2 h-0.5 rounded-full ${row.filePbg && row.fileSertifikatTanah ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+        <IconNode active={!!row.fileSertifikatTanah} icon={ScrollText} title="Sertifikat Tanah" step="SERTIFIKAT" />
+        <div className={`w-2 h-0.5 rounded-full ${row.fileSertifikatTanah && row.fileNopPbb ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+        <IconNode active={!!row.fileNopPbb} icon={Map} title="NOP PBB" step="NOP" />
+      </div>
+    );
+  };
+
+  const columns = [
+    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'Tipe Rumah', accessor: 'namaTipe' },
+    { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
+    { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) }, {
+      header: 'Dokumen', accessor: 'id', render: (_: unknown, row: KavlingData) => <DokumenIcons row={row} />
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        const statusStr = val?.toUpperCase();
+        let bgClass = 'bg-gray-100 text-gray-800 border-gray-200';
+        if (statusStr === 'AVAILABLE') bgClass = 'bg-green-100 text-green-800 border-green-200';
+        if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
+        if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        return <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>{val}</span>;
+      }
+    },
+  ];
+
+  const expandedRowRender = (row: KavlingData) => {
+    const activeSale = row.penjualan?.[0];
+    const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
+    return (
+      <div className="p-4 bg-slate-50/50 border-t border-slate-100 shadow-inner">
+        {isBookedOrSold && activeSale ? (
+          <div className="flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-4 rounded-xl max-w-lg">
+            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+              <UserCircle size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Informasi Pemesan / Pembeli</p>
+              <p className="text-base font-black text-blue-900">{activeSale.customer?.nama || 'Tidak diketahui'}</p>
+              <p className="text-sm font-medium text-blue-700 mt-0.5">No. HP: {activeSale.customer?.noHp || '-'}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-4 bg-white border border-slate-200 rounded-xl max-w-lg">
+            <p className="text-sm text-slate-500 italic">Belum ada data pemesan aktif untuk kavling ini.</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const openModal = (item?: KavlingData) => {
+    if (item) {
+      setFormData({
+        id: item.id, perumahanId: item.perumahanId, blok: item.blok, nomorUnit: item.nomorUnit,
+        namaTipe: item.namaTipe, luasBangunan: item.luasBangunan, luasTanah: item.luasTanah,
+        hargaDasar: item.hargaDasar, status: item.status, rekeningTujuanId: item.rekeningTujuanId || '',
+      });
+      setIsEditing(true);
+    } else {
+      setFormData({ ...initialFormState, perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '' });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
+    setFormData((prev) => {
+      const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
+      if (name === 'namaTipe') {
+        const selectedKavling = KAVLING_DATA[value];
+        updates.luasBangunan = selectedKavling ? selectedKavling.lb : '';
+        updates.luasTanah = '';
+      }
+      return { ...prev, ...updates };
+    });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.perumahanId) newErrors.perumahanId = 'Perumahan wajib dipilih';
+    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
+    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
+    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe Rumah wajib diisi';
+    if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
+    if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
+    if (formData.hargaDasar === '' || formData.hargaDasar <= 0) newErrors.hargaDasar = 'Harga Dasar tidak valid';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    const payload: CreateKavlingDTO = {
+      perumahanId: Number(formData.perumahanId), blok: formData.blok, nomorUnit: formData.nomorUnit,
+      namaTipe: formData.namaTipe, luasBangunan: Number(formData.luasBangunan), luasTanah: Number(formData.luasTanah),
+      hargaDasar: Number(formData.hargaDasar), status: formData.status,
+      rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
+    };
+    try {
+      if (isEditing && formData.id !== '') {
+        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: unknown) {
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
+    }
+  };
+
+  const handleDelete = async (item: KavlingData) => {
+    if (window.confirm(`Hapus data kavling Blok ${item.blok} - ${item.nomorUnit}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error: any) {
+        const { message } = handleApiError(error);
+        alert(message);
+      }
+    }
+  };
+
+  const handleUploadDoc = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedDocKavling) return;
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      await uploadDocMutation.mutateAsync({ id: selectedDocKavling.id, docType, file });
+      alert(`Dokumen berhasil diunggah!`);
+      setSelectedDocKavling(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
+
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Gagal mengunggah dokumen kavling");
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+
+  const renderFileBox = (title: string, docType: string, url: string | null | undefined) => {
+    const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf')) : false;
+    return (
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200">
+        <div className="flex justify-between items-center">
+          <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${uploadDocMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+            <UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadDoc(docType, e)} disabled={uploadDocMutation.isPending} />
+          </label>
+        </div>
+
+        {url ? (
+          <div className="w-full h-64 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden relative group">
+            {isPdf ? (
+              <iframe src={url} className="w-full h-full border-none" title={title} />
+            ) : (
+              <img src={url} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            )}
+            {/* Tombol hover untuk buka full screen di tab baru */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+              <a href={url} target="_blank" rel="noopener noreferrer" className="pointer-events-auto px-4 py-2 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md hover:bg-slate-50 transition-colors">
+                Buka di Tab Baru
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full h-24 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
+            <span className="text-[10px] font-medium italic">Belum ada dokumen yang diunggah</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
+
+  if (isLoading && !kavlingData.length) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors" onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}>
+          <div className="flex items-center gap-2"><PieChart size={18} className="text-slate-600" /><h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Unit Kavling</h3></div>
+          {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </div>
+        {isSummaryExpanded && (
+          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Building2 size={16} className="text-slate-600" /></div><p className="text-xs font-bold text-slate-500 uppercase">Total Unit</p></div><p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p></div>
+            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div><p className="text-xs font-bold text-green-700 uppercase">Available</p></div><p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p></div>
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div><p className="text-xs font-bold text-blue-700 uppercase">Booking</p></div><p className="text-2xl font-black text-blue-800">{summary['BOOKING'] || 0}</p></div>
+            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center"><Ban size={16} className="text-yellow-600" /></div><p className="text-xs font-bold text-yellow-700 uppercase">Hold / Terjual</p></div><p className="text-2xl font-black text-yellow-800">{(summary['HOLD'] || 0) + (summary['TERJUAL'] || 0)}</p></div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors" onClick={() => setIsFilterExpanded(!isFilterExpanded)}>
+          <div className="flex items-center gap-2"><Filter size={18} className="text-slate-600" /><h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3></div>
+          {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </div>
+        {isFilterExpanded && (
+          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Status</label>
+              <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={statusFilter} onChange={handleStatusFilterChange}>
+                <option value="">Semua Status</option><option value="AVAILABLE">Tersedia (Available)</option><option value="BOOKING">Booking</option><option value="TERJUAL">Terjual</option><option value="HOLD">Ditahan (Hold)</option>
+              </select>
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
+              <select className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={orderBy} onChange={handleSortChange}>
+                <option value="">Terbaru (Default)</option><option value="hargaDasar:asc">Harga: Rendah ke Tinggi</option><option value="hargaDasar:desc">Harga: Tinggi ke Rendah</option><option value="luasBangunan:desc">Luas Bangunan: Terbesar</option><option value="blok:asc">Blok: A - Z</option>
+              </select>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <DataTable title={`Manajemen Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`} columns={columns} data={kavlingData} onAdd={() => openModal()} onEdit={(item) => openModal(item as KavlingData)} onDelete={(item) => handleDelete(item as KavlingData)} expandedRowRender={expandedRowRender} serverSide={true} searchTerm={search} onSearchChange={handleSearchChange} page={page} totalPages={meta?.totalPages || 1} onPageChange={handlePageChange} />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Kavling</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select label="Perumahan" name="perumahanId" value={formData.perumahanId} onChange={handleChange} options={[{ value: '', label: '-- Pilih Perumahan --' }, ...perumahanList.map(p => ({ value: p.id, label: p.nama }))]} error={errors.perumahanId} disabled={isEditing} />
+              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'HOLD', label: 'Hold' }, { value: 'BOOKING', label: 'Booking' }, { value: 'TERJUAL', label: 'Terjual' }]} />
+              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
+              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
+              <div className="md:col-span-2">
+                <Select label="Tipe Rumah" name="namaTipe" value={formData.namaTipe} onChange={handleChange} options={[{ value: '', label: '-- Pilih Tipe --' }, ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))]} error={errors.namaTipe} />
+              </div>
+              <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
+              <Select label="Luas Tanah (m²)" name="luasTanah" value={formData.luasTanah} onChange={handleChange} error={errors.luasTanah} options={[{ value: '', label: '-- Pilih LT --' }, ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe] ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) })) : [])]} />
+              <CurrencyInput
+                label="Harga Dasar (Rp)"
+                name="hargaDasar"
+                value={Number(formData.hargaDasar) || 0}
+                onValueChange={handleCurrencyChange}
+                error={errors.hargaDasar}
+                placeholder="0"
+              />
+              <div className="md:col-span-2">
+                <Select label="Transfer ke Rekening" name="rekeningTujuanId" value={formData.rekeningTujuanId} onChange={handleChange} options={[{ value: '', label: 'Pilih Rekening Pembayaran (Opsional)...' }, ...filteredBanks.map(b => ({ value: b.id, label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}` }))]} error={errors.rekeningTujuanId} />
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50">Batal</button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50">{createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Kavling'}</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!docModalStep} onClose={() => { setDocModalStep(null); setSelectedDocKavling(null); }} title="Kelola Dokumen Fisik Kavling">
+        {selectedDocKavling && (
+          <div className="space-y-6">
+            <div className="p-4 bg-slate-900 rounded-xl text-white shadow-md flex justify-between items-center mb-6">
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Blok - Unit</p>
+                <p className="text-xl font-black">{selectedDocKavling.blok}-{selectedDocKavling.nomorUnit}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tipe Rumah</p>
+                <p className="text-sm font-bold text-white">{selectedDocKavling.namaTipe}</p>
+              </div>
+            </div>
+
+            {docModalStep === 'PBG' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Persetujuan Bangunan Gedung (PBG)", "filePbg", selectedDocKavling.filePbg)}</div>}
+            {docModalStep === 'SERTIFIKAT' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Sertifikat Tanah / SHM / HGB", "fileSertifikatTanah", selectedDocKavling.fileSertifikatTanah)}</div>}
+            {docModalStep === 'NOP' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Nomor Objek Pajak (NOP PBB)", "fileNopPbb", selectedDocKavling.fileNopPbb)}</div>}
+
+            <div className="flex justify-end pt-4 sticky bottom-0 bg-white border-t border-slate-100 mt-6 -mx-4 -mb-4 px-4 py-4 z-20">
+              <button onClick={() => { setDocModalStep(null); setSelectedDocKavling(null); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-md cursor-pointer">
+                Tutup Dokumen
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default Kavling;
 </file>
 
 <file path="src/pages/Public/VerifyDocument.tsx">
@@ -12406,477 +12593,6 @@ const Administrasi = () => {
 export default Administrasi;
 </file>
 
-<file path="src/pages/Management/Kavling.tsx">
-import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import {
-  UserCircle, ChevronDown, ChevronUp, Filter, ArrowUpDown,
-  PieChart, CheckCircle2, Clock, Ban, Building2, FileText,
-  Map, ScrollText, UploadCloud
-} from "lucide-react";
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import { formatRupiah } from "../../utils/formatters";
-import { useAuth } from "../../context/AuthContext";
-import {
-  useGetKavlings, useCreateKavling, useUpdateKavling,
-  useDeleteKavling, useUploadKavlingDocument
-} from "../../hooks/queries/useKavling";
-import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
-import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
-import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
-import CurrencyInput from '../../components/shared/CurrencyInput';
-import { handleApiError } from '../../utils/errorHandler';
-
-interface KavlingFormState {
-  id: number | '';
-  perumahanId: number | '';
-  blok: string;
-  nomorUnit: string;
-  namaTipe: string;
-  luasBangunan: number | '';
-  luasTanah: number | '';
-  hargaDasar: number | '';
-  status: string;
-  rekeningTujuanId: number | '';
-}
-
-const initialFormState: KavlingFormState = {
-  id: '', perumahanId: '', blok: '', nomorUnit: '', namaTipe: '',
-  luasBangunan: '', luasTanah: '', hargaDasar: '', status: 'AVAILABLE', rekeningTujuanId: '',
-};
-
-const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
-  Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
-  Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
-  Aruna: { lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
-  Ansara: { lb: 36, lt: [60, 103, 120, 122, 132, 143] }
-};
-
-const Kavling = () => {
-  const { selectedPerumahan } = useAuth();
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
-  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
-
-  const [searchParams, setSearchParams] = useSearchParams();
-  const page = Number(searchParams.get('page')) || 1;
-  const search = searchParams.get('search') || '';
-  const statusFilter = searchParams.get('status') || '';
-  const orderBy = searchParams.get('orderBy') || '';
-  const limit = 10;
-
-  const { data: perumahanList = [] } = useGetPerumahan();
-  const { data: bankList = [] } = useGetBankRekening();
-  const { data: kavlingResponse, isLoading } = useGetKavlings({
-    page, limit, search,
-    perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
-    status: statusFilter !== '' ? statusFilter : undefined,
-    orderBy: orderBy !== '' ? orderBy : undefined
-  });
-
-  const kavlingData = kavlingResponse?.items || [];
-  const meta = kavlingResponse?.meta;
-  const summary = meta?.summary || {};
-
-  const createMutation = useCreateKavling();
-  const updateMutation = useUpdateKavling();
-  const deleteMutation = useDeleteKavling();
-  const uploadDocMutation = useUploadKavlingDocument();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [selectedDocKavling, setSelectedDocKavling] = useState<KavlingData | null>(null);
-  const [docModalStep, setDocModalStep] = useState<string | null>(null);
-
-  const handlePageChange = (newPage: number) => {
-    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
-  };
-  const handleCurrencyChange = (name: string, value: number) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleSearchChange = (newSearch: string) => {
-    setSearchParams(prev => {
-      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
-      prev.set('page', '1'); return prev;
-    });
-  };
-
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSearchParams(prev => {
-      if (e.target.value) prev.set('status', e.target.value); else prev.delete('status');
-      prev.set('page', '1'); return prev;
-    });
-  };
-
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSearchParams(prev => {
-      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
-      prev.set('page', '1'); return prev;
-    });
-  };
-
-  const DokumenIcons = ({ row }: { row: KavlingData }) => {
-
-    const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
-      <button
-        type="button"
-        title={title}
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedDocKavling(row);
-          setDocModalStep(step);
-        }}
-        className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 ${active
-          ? 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
-          : 'bg-slate-50 border-slate-200 text-slate-400 grayscale hover:grayscale-0 hover:bg-slate-100'
-          }`}
-      >
-        <Icon size={14} strokeWidth={active ? 2.5 : 1.5} />
-      </button>
-    );
-
-    return (
-      <div className="flex items-center gap-1">
-        <IconNode active={!!row.filePbg} icon={FileText} title="Dokumen PBG" step="PBG" />
-        <div className={`w-2 h-0.5 rounded-full ${row.filePbg && row.fileSertifikatTanah ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
-        <IconNode active={!!row.fileSertifikatTanah} icon={ScrollText} title="Sertifikat Tanah" step="SERTIFIKAT" />
-        <div className={`w-2 h-0.5 rounded-full ${row.fileSertifikatTanah && row.fileNopPbb ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
-        <IconNode active={!!row.fileNopPbb} icon={Map} title="NOP PBB" step="NOP" />
-      </div>
-    );
-  };
-
-  const columns = [
-    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'Tipe Rumah', accessor: 'namaTipe' },
-    { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
-    { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) }, {
-      header: 'Dokumen', accessor: 'id', render: (_: unknown, row: KavlingData) => <DokumenIcons row={row} />
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) => {
-        const statusStr = val?.toUpperCase();
-        let bgClass = 'bg-gray-100 text-gray-800 border-gray-200';
-        if (statusStr === 'AVAILABLE') bgClass = 'bg-green-100 text-green-800 border-green-200';
-        if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-        if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
-        if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        return <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>{val}</span>;
-      }
-    },
-  ];
-
-  const expandedRowRender = (row: KavlingData) => {
-    const activeSale = row.penjualan?.[0];
-    const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
-    return (
-      <div className="p-4 bg-slate-50/50 border-t border-slate-100 shadow-inner">
-        {isBookedOrSold && activeSale ? (
-          <div className="flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-4 rounded-xl max-w-lg">
-            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-              <UserCircle size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Informasi Pemesan / Pembeli</p>
-              <p className="text-base font-black text-blue-900">{activeSale.customer?.nama || 'Tidak diketahui'}</p>
-              <p className="text-sm font-medium text-blue-700 mt-0.5">No. HP: {activeSale.customer?.noHp || '-'}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center p-4 bg-white border border-slate-200 rounded-xl max-w-lg">
-            <p className="text-sm text-slate-500 italic">Belum ada data pemesan aktif untuk kavling ini.</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const openModal = (item?: KavlingData) => {
-    if (item) {
-      setFormData({
-        id: item.id, perumahanId: item.perumahanId, blok: item.blok, nomorUnit: item.nomorUnit,
-        namaTipe: item.namaTipe, luasBangunan: item.luasBangunan, luasTanah: item.luasTanah,
-        hargaDasar: item.hargaDasar, status: item.status, rekeningTujuanId: item.rekeningTujuanId || '',
-      });
-      setIsEditing(true);
-    } else {
-      setFormData({ ...initialFormState, perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : '' });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
-    setFormData((prev) => {
-      const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
-      if (name === 'namaTipe') {
-        const selectedKavling = KAVLING_DATA[value];
-        updates.luasBangunan = selectedKavling ? selectedKavling.lb : '';
-        updates.luasTanah = '';
-      }
-      return { ...prev, ...updates };
-    });
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.perumahanId) newErrors.perumahanId = 'Perumahan wajib dipilih';
-    if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
-    if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe Rumah wajib diisi';
-    if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
-    if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
-    if (formData.hargaDasar === '' || formData.hargaDasar <= 0) newErrors.hargaDasar = 'Harga Dasar tidak valid';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    const payload: CreateKavlingDTO = {
-      perumahanId: Number(formData.perumahanId), blok: formData.blok, nomorUnit: formData.nomorUnit,
-      namaTipe: formData.namaTipe, luasBangunan: Number(formData.luasBangunan), luasTanah: Number(formData.luasTanah),
-      hargaDasar: Number(formData.hargaDasar), status: formData.status,
-      rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
-    };
-    try {
-      if (isEditing && formData.id !== '') {
-        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
-      closeModal();
-    } catch (error: unknown) {
-      const { message, errors: backendErrors } = handleApiError(error);
-      if (backendErrors && Array.isArray(backendErrors)) {
-        const fieldErrors: Record<string, string> = {};
-        backendErrors.forEach((err: { field: string; message: string }) => {
-          fieldErrors[err.field] = err.message;
-        });
-        setErrors(fieldErrors);
-      } else {
-        alert(message);
-      }
-    }
-  };
-
-  const handleDelete = async (item: KavlingData) => {
-    if (window.confirm(`Hapus data kavling Blok ${item.blok} - ${item.nomorUnit}?`)) {
-      try {
-        await deleteMutation.mutateAsync(item.id);
-      } catch (error: any) {
-        const { message } = handleApiError(error);
-        alert(message);
-      }
-    }
-  };
-
-  const handleUploadDoc = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedDocKavling) return;
-
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      alert("Hanya format gambar dan PDF yang diperbolehkan!");
-      e.target.value = '';
-      return;
-    }
-
-    try {
-      await uploadDocMutation.mutateAsync({ id: selectedDocKavling.id, docType, file });
-      alert(`Dokumen berhasil diunggah!`);
-      setSelectedDocKavling(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
-
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal mengunggah dokumen kavling");
-    } finally {
-      e.target.value = '';
-    }
-  };
-
-
-  const renderFileBox = (title: string, docType: string, url: string | null | undefined) => {
-    const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf')) : false;
-    return (
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200">
-        <div className="flex justify-between items-center">
-          <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
-          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${uploadDocMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
-            <UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}
-            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadDoc(docType, e)} disabled={uploadDocMutation.isPending} />
-          </label>
-        </div>
-
-        {url ? (
-          <div className="w-full h-64 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden relative group">
-            {isPdf ? (
-              <iframe src={url} className="w-full h-full border-none" title={title} />
-            ) : (
-              <img src={url} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            )}
-            {/* Tombol hover untuk buka full screen di tab baru */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-              <a href={url} target="_blank" rel="noopener noreferrer" className="pointer-events-auto px-4 py-2 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md hover:bg-slate-50 transition-colors">
-                Buka di Tab Baru
-              </a>
-            </div>
-          </div>
-        ) : (
-          <div className="w-full h-24 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-2">
-            <span className="text-[10px] font-medium italic">Belum ada dokumen yang diunggah</span>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const filteredBanks = bankList.filter(b => formData.perumahanId ? b.perumahanId === Number(formData.perumahanId) : true);
-
-  if (isLoading && !kavlingData.length) return <div className="p-4 text-slate-500 font-medium flex justify-center items-center h-40">Memuat data kavling...</div>;
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors" onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}>
-          <div className="flex items-center gap-2"><PieChart size={18} className="text-slate-600" /><h3 className="font-bold text-slate-800 tracking-tight">Ringkasan Unit Kavling</h3></div>
-          {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
-        </div>
-        {isSummaryExpanded && (
-          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
-            <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Building2 size={16} className="text-slate-600" /></div><p className="text-xs font-bold text-slate-500 uppercase">Total Unit</p></div><p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p></div>
-            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div><p className="text-xs font-bold text-green-700 uppercase">Available</p></div><p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p></div>
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div><p className="text-xs font-bold text-blue-700 uppercase">Booking</p></div><p className="text-2xl font-black text-blue-800">{summary['BOOKING'] || 0}</p></div>
-            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center"><Ban size={16} className="text-yellow-600" /></div><p className="text-xs font-bold text-yellow-700 uppercase">Hold / Terjual</p></div><p className="text-2xl font-black text-yellow-800">{(summary['HOLD'] || 0) + (summary['TERJUAL'] || 0)}</p></div>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors" onClick={() => setIsFilterExpanded(!isFilterExpanded)}>
-          <div className="flex items-center gap-2"><Filter size={18} className="text-slate-600" /><h3 className="font-bold text-slate-800 tracking-tight">Filter & Urutkan</h3></div>
-          {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
-        </div>
-        {isFilterExpanded && (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
-            <div className="relative">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Status</label>
-              <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={statusFilter} onChange={handleStatusFilterChange}>
-                <option value="">Semua Status</option><option value="AVAILABLE">Tersedia (Available)</option><option value="BOOKING">Booking</option><option value="TERJUAL">Terjual</option><option value="HOLD">Ditahan (Hold)</option>
-              </select>
-              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
-            </div>
-            <div className="relative">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Urutkan Berdasarkan</label>
-              <select className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={orderBy} onChange={handleSortChange}>
-                <option value="">Terbaru (Default)</option><option value="hargaDasar:asc">Harga: Rendah ke Tinggi</option><option value="hargaDasar:desc">Harga: Tinggi ke Rendah</option><option value="luasBangunan:desc">Luas Bangunan: Terbesar</option><option value="blok:asc">Blok: A - Z</option>
-              </select>
-              <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
-              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <DataTable title={`Manajemen Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`} columns={columns} data={kavlingData} onAdd={() => openModal()} onEdit={(item) => openModal(item as KavlingData)} onDelete={(item) => handleDelete(item as KavlingData)} expandedRowRender={expandedRowRender} serverSide={true} searchTerm={search} onSearchChange={handleSearchChange} page={page} totalPages={meta?.totalPages || 1} onPageChange={handlePageChange} />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Kavling</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select label="Perumahan" name="perumahanId" value={formData.perumahanId} onChange={handleChange} options={[{ value: '', label: '-- Pilih Perumahan --' }, ...perumahanList.map(p => ({ value: p.id, label: p.nama }))]} error={errors.perumahanId} disabled={isEditing} />
-              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'HOLD', label: 'Hold' }, { value: 'BOOKING', label: 'Booking' }, { value: 'TERJUAL', label: 'Terjual' }]} />
-              <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
-              <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
-              <div className="md:col-span-2">
-                <Select label="Tipe Rumah" name="namaTipe" value={formData.namaTipe} onChange={handleChange} options={[{ value: '', label: '-- Pilih Tipe --' }, ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))]} error={errors.namaTipe} />
-              </div>
-              <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
-              <Select label="Luas Tanah (m²)" name="luasTanah" value={formData.luasTanah} onChange={handleChange} error={errors.luasTanah} options={[{ value: '', label: '-- Pilih LT --' }, ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe] ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) })) : [])]} />
-              <CurrencyInput
-                label="Harga Dasar (Rp)"
-                name="hargaDasar"
-                value={Number(formData.hargaDasar) || 0}
-                onValueChange={handleCurrencyChange}
-                error={errors.hargaDasar}
-                placeholder="0"
-              />
-              <div className="md:col-span-2">
-                <Select label="Transfer ke Rekening" name="rekeningTujuanId" value={formData.rekeningTujuanId} onChange={handleChange} options={[{ value: '', label: 'Pilih Rekening Pembayaran (Opsional)...' }, ...filteredBanks.map(b => ({ value: b.id, label: `${b.namaBank} - ${b.noRekening} a/n ${b.atasNama}` }))]} error={errors.rekeningTujuanId} />
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-            <button type="button" onClick={closeModal} disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50">Batal</button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50">{createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan Kavling'}</button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal isOpen={!!docModalStep} onClose={() => { setDocModalStep(null); setSelectedDocKavling(null); }} title="Kelola Dokumen Fisik Kavling">
-        {selectedDocKavling && (
-          <div className="space-y-6">
-            <div className="p-4 bg-slate-900 rounded-xl text-white shadow-md flex justify-between items-center mb-6">
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Blok - Unit</p>
-                <p className="text-xl font-black">{selectedDocKavling.blok}-{selectedDocKavling.nomorUnit}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tipe Rumah</p>
-                <p className="text-sm font-bold text-white">{selectedDocKavling.namaTipe}</p>
-              </div>
-            </div>
-
-            {docModalStep === 'PBG' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Persetujuan Bangunan Gedung (PBG)", "filePbg", selectedDocKavling.filePbg)}</div>}
-            {docModalStep === 'SERTIFIKAT' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Sertifikat Tanah / SHM / HGB", "fileSertifikatTanah", selectedDocKavling.fileSertifikatTanah)}</div>}
-            {docModalStep === 'NOP' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Nomor Objek Pajak (NOP PBB)", "fileNopPbb", selectedDocKavling.fileNopPbb)}</div>}
-
-            <div className="flex justify-end pt-4 sticky bottom-0 bg-white border-t border-slate-100 mt-6 -mx-4 -mb-4 px-4 py-4 z-20">
-              <button onClick={() => { setDocModalStep(null); setSelectedDocKavling(null); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-md cursor-pointer">
-                Tutup Dokumen
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
-    </div>
-  );
-};
-
-export default Kavling;
-</file>
-
 <file path="src/pages/Marketing/Agents.tsx">
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
@@ -14332,21 +14048,24 @@ const ProgressPenjualan = () => {
     if (skema === 'CASH BERTAHAP') {
       return (
         <div className="flex items-center gap-1">
-          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="1. PPJB" step="PPJB" />
+          <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={!!safeProgress.filePpjb} />
+          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="2. PPJB" step="PPJB" />
           <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="2. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="3. BAST" step="BAST" />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />
         </div>
       );
     }
     if (skema === 'CASH KERAS') {
       return (
         <div className="flex items-center gap-1">
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="1. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={!!safeProgress.fileAjb} />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="2. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="2. BAST" step="BAST" />
-        </div>
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="3. BAST" step="BAST" />        </div>
       );
     }
     return <span className="text-xs text-slate-400 italic">-</span>;
@@ -16342,6 +16061,7 @@ interface PenjualanData {
   perusahaan: string;
   plafonKredit?: number;
   dpTidakDibayar?: number;
+  dpDibayar?: number;
   alamatKoresponden: string;
   perumahan: string;
   blok: string;
@@ -16409,6 +16129,7 @@ const initialFormState: PenjualanData = {
   biayaKpr: 0,
   plafonKredit: 0,
   dpTidakDibayar: 0,
+  dpDibayar: 0,
   nilaiPengajuanKpr: 0,
   hargaJual: 0,
   dp: 0,
@@ -16575,6 +16296,10 @@ const Penjualan = () => {
       const diskon = Number(merged.diskonPenjualan) || 0;
       const bf = Number(merged.bookingFee) || 5000000;
 
+      let dpDibayar = merged.dpDibayar;
+      if (name === 'dpDibayar') {
+        dpDibayar = Number(value);
+      }
 
       const totalTambahanBaru = currentBiayaTambahanList.reduce((sum, b) => sum + (Number(b.nominal) || 0), 0);
       const totalTambahanLama = historyBiayaTambahan.reduce((sum, b) => sum + b.nominal, 0);
@@ -16636,8 +16361,9 @@ const Penjualan = () => {
         updates.biayaKpr = biayaKpr;
         updates.plafonKredit = plafonKredit;
         updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
-        updates.dp = dpTidakDibayar;
         updates.dpTidakDibayar = dpTidakDibayar;
+        updates.dpDibayar = dpDibayar;
+        updates.dp = (dpDibayar && dpDibayar > 0) ? dpDibayar : dpTidakDibayar;
         updates.hargaJual = hargaJual;
 
       } else {
@@ -17242,6 +16968,7 @@ const Penjualan = () => {
         biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
         plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
         dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
+        dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP')
           ? formData.dp
@@ -17319,6 +17046,7 @@ const Penjualan = () => {
           biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
           plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
           dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
+          dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
           nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
           dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP') ? formData.dp : undefined,
           termin: formData.caraPembayaran === 'CASH BERTAHAP' ? Number(formData.termin) : undefined,
@@ -18315,6 +18043,20 @@ const Penjualan = () => {
 
                         <div className="pt-3 border-t border-slate-200">
                           <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-blue-600 w-full">DP Dibayar (Opsional)</span>
+                            <div className="w-40 sm:w-44 shrink-0">
+                              <CurrencyInput
+                                name="dpDibayar"
+                                value={formData.dpDibayar || 0}
+                                onValueChange={handleCurrencyChange}
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-mono mt-1">
+                            <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini.
+                          </p>
+                          <div className="flex items-center justify-between">
                             <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
                             <div className="w-40 sm:w-44 shrink-0">
                               <CurrencyInput
@@ -18759,6 +18501,20 @@ const Penjualan = () => {
                     </div>
 
                     <div className="pt-3 border-t border-slate-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-blue-600 w-full">DP Dibayar (Opsional)</span>
+                        <div className="w-40 sm:w-44 shrink-0">
+                          <CurrencyInput
+                            name="dpDibayar"
+                            value={formData.dpDibayar || 0}
+                            onValueChange={handleCurrencyChange}
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono mt-1">
+                        <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini.
+                      </p>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
                         <div className="w-40 sm:w-44 shrink-0">
@@ -19396,6 +19152,21 @@ const Penjualan = () => {
                           <strong className="text-slate-400">Kalkulasi:</strong> ((Harga Jual - Diskon) × 10%) - Booking Fee
                         </p>
                       </div>
+
+                      {detailData.dpDibayar && detailData.dpDibayar > 0 ? (
+                        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-4 shadow-md">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-bold text-emerald-400">DP Dibayar</span>
+                            <span className="text-sm font-bold text-emerald-400 tabular-nums">{formatTanpaDesimal(detailData.dpDibayar)}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-mono">
+                            <strong className="text-slate-400">Info:</strong> Nilai DP manual yang disepakati untuk dibayarkan.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mb-4"></div> /* Spacer pengganti mb-4 jika tidak ada DP Dibayar */
+                      )}
+
                     </>
                   )}
 

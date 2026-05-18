@@ -17,12 +17,15 @@ import {
 import {
   Trash2, Plus, UploadCloud,
   UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle,
-  Loader2
+  Loader2,
+  Map
 } from 'lucide-react';
 import Input from '../../components/shared/Input';
 import { handleApiError } from '../../utils/errorHandler';
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
 import Select from '../../components/shared/Select';
+import { useUploadKavlingDocument } from '../../hooks/queries/useKavling';
+import { useQueryClient } from '@tanstack/react-query';
 
 const ProgressPenjualan = () => {
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
@@ -34,6 +37,9 @@ const ProgressPenjualan = () => {
   const uploadMutation = useUploadProgressDocument();
   const uploadCustomerDocMutation = useUploadCustomerDoc();
   const updateCustomerMutation = useUpdateCustomer();
+  const uploadKavlingDocMutation = useUploadKavlingDocument();
+  const queryClient = useQueryClient();
+  const [uploadingKavlingDoc, setUploadingKavlingDoc] = useState<string | null>(null);
 
   const [selectedPenjualan, setSelectedPenjualan] = useState<Record<string, any> | null>(null);
   const [modalStep, setModalStep] = useState<string | null>(null);
@@ -127,9 +133,101 @@ const ProgressPenjualan = () => {
     }
   };
 
+  const handleUploadKavlingDoc = async (docType: string, file: File) => {
+    if (!selectedPenjualan) return;
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      return;
+    }
+    setUploadingKavlingDoc(docType);
+    try {
+      await uploadKavlingDocMutation.mutateAsync({ id: selectedPenjualan.kavlingId, docType, file });
+      alert(`Dokumen kavling berhasil diunggah!`);
+
+      const fileUrl = URL.createObjectURL(file);
+      setSelectedPenjualan((prev: any) => prev ? { ...prev, [docType]: fileUrl } : prev);
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    } catch (err: any) {
+      alert(handleApiError(err).message);
+    } finally {
+      setUploadingKavlingDoc(null);
+    }
+  };
+
+  const renderKavlingFileBox = (title: string, docType: string, url: string | null) => {
+    const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf') || url.startsWith('blob:')) : false;
+    const isUploading = uploadKavlingDocMutation.isPending && uploadingKavlingDoc === docType;
+    const isDrag = dragActive === docType;
+
+    return (
+      <div
+        className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-indigo-400
+          ${isDrag ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-200'}
+        `}
+        tabIndex={0}
+        onDragEnter={(e) => handleDrag(e, docType)}
+        onDragLeave={(e) => handleDrag(e, docType)}
+        onDragOver={(e) => handleDrag(e, docType)}
+        onDrop={(e) => {
+          e.preventDefault(); e.stopPropagation(); setDragActive(null);
+          const file = e.dataTransfer.files?.[0];
+          if (file) handleUploadKavlingDoc(docType, file);
+        }}
+        onPaste={(e) => handlePaste(e, (files) => handleUploadKavlingDoc(docType, files[0]))}
+      >
+        <div className="flex justify-between items-center relative z-10">
+          <div className="flex flex-col">
+            <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+            <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
+          </div>
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+            {isUploading ? (
+              <><Loader2 size={14} className="animate-spin text-indigo-600" /> Mengunggah...</>
+            ) : (
+              <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
+            )}
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUploadKavlingDoc(docType, file);
+              e.target.value = '';
+            }} disabled={uploadKavlingDocMutation.isPending} />
+          </label>
+        </div>
+
+        <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-indigo-400 border-dashed' : 'border-slate-200'}`}>
+          {isUploading && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+              <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
+              <span className="text-xs font-bold text-indigo-600 animate-pulse">Sedang mengunggah...</span>
+            </div>
+          )}
+          {url ? (
+            <>
+              {isPdf ? (
+                <iframe src={url} className="w-full h-full border-none" title={title} />
+              ) : (
+                <img src={url} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="pointer-events-auto px-4 py-2 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md hover:bg-slate-50 transition-colors">
+                  Buka di Tab Baru
+                </a>
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2 pointer-events-none">
+              <span className="text-[10px] font-medium italic text-center px-4">Area Upload<br />Klik / Drag & Drop / Paste</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
   const ProgressIcons = ({ row }: { row: Record<string, any> }) => {
     const safeProgress = row.progressPenjualan || {};
     const skema = row.caraPembayaran?.toUpperCase() || '';
+    const hasSertifikat = !!(row.filePbg && row.fileSertifikatTanah && row.fileNopPbb);
+    const hasAnySertifikat = !!(row.filePbg || row.fileSertifikatTanah || row.fileNopPbb);
 
     const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
       <button
@@ -157,12 +255,14 @@ const ProgressPenjualan = () => {
       return (
         <div className="flex items-center gap-1">
           <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={hasAnySertifikat} />
+          <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
           <LineNode active={!!safeProgress.fileSp3k} />
-          <IconNode active={!!safeProgress.fileSp3k} icon={Landmark} title="2. SP3K" step="SP3K" />
+          <IconNode active={!!safeProgress.fileSp3k} icon={Landmark} title="3. SP3K" step="SP3K" />
           <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="4. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="5. BAST" step="BAST" />
         </div>
       );
     }
@@ -170,12 +270,14 @@ const ProgressPenjualan = () => {
       return (
         <div className="flex items-center gap-1">
           <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={hasAnySertifikat} />
+          <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
           <LineNode active={!!safeProgress.filePpjb} />
-          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="2. PPJB" step="PPJB" />
+          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="3. PPJB" step="PPJB" />
           <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="4. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="5. BAST" step="BAST" />
         </div>
       );
     }
@@ -183,10 +285,12 @@ const ProgressPenjualan = () => {
       return (
         <div className="flex items-center gap-1">
           <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={hasAnySertifikat} />
+          <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
           <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="2. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="3. BAST" step="BAST" />        </div>
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />        </div>
       );
     }
     return <span className="text-xs text-slate-400 italic">-</span>;
@@ -713,6 +817,18 @@ const ProgressPenjualan = () => {
                             />
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {modalStep === 'SERTIFIKAT_KAVLING' && (
+                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap 2: Sertifikat Kavling</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {renderKavlingFileBox("PBG", "filePbg", selectedPenjualan.filePbg)}
+                        {renderKavlingFileBox("Tanah", "fileSertifikatTanah", selectedPenjualan.fileSertifikatTanah)}
+                        {renderKavlingFileBox("PBB", "fileNopPbb", selectedPenjualan.fileNopPbb)}
                       </div>
                     </div>
                   </div>
