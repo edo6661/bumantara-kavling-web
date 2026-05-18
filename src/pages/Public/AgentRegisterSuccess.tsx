@@ -53,15 +53,7 @@ const AgentRegisterSuccess = () => {
         {/* DOKUMEN YANG AKAN DI-PRINT (SUPER COMPACT) */}
         <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-xl print:shadow-none print:p-4 border border-slate-200 print:border-none text-black">
 
-          {/* Logo lebih kecil */}
-          <div className="flex justify-center mb-3">
-            <img
-              src="https://res.cloudinary.com/dbxzxfyw3/image/upload/v1776221608/LOGO_PURI_SAFANA-01_qq4lnw.png"
-              alt="Logo Puri Safana"
-              className="h-10 object-contain"
-              crossOrigin="anonymous"
-            />
-          </div>
+
 
           <div className="text-center mb-4">
             <h2 className="font-bold text-base uppercase tracking-widest underline underline-offset-2">
@@ -90,32 +82,32 @@ const AgentRegisterSuccess = () => {
             </table>
           </div>
 
-          <p className="text-[12px] mb-2 font-medium">Dengan ini menyatakan dan menyetujui hal-hal sebagai berikut:</p>
+          <p className="text-[12px] mb-2 font-medium">Saya bersedia untuk menjadi agent Perumahan Puri Safana Cikeas dan menyatakan menyetujui hal-hal sebagai berikut:</p>
 
           {/* List spasi sangat rapat */}
           <ol className="list-decimal pl-4 space-y-1 text-[11px] text-justify mb-4 leading-tight">
-            <li>Bahwa saya akan menjalankan kegiatan pemasaran dan penjualan unit perumahan sesuai dengan ketentuan, SOP, kebijakan perusahaan, serta arahan manajemen developer.</li>
-            <li>Bahwa saya tidak akan memberikan informasi yang tidak benar, menyesatkan, dimanipulasi, atau berbeda dari data resmi perusahaan kepada calon konsumen.</li>
+            <li>Bahwa saya akan menjalankan kegiatan pemasaran dan penjualan unit perumahan sesuai dengan ketentuan, SOP, kebijakan Puri Safana Cikeas, serta arahan manajemen developer.</li>
+            <li>Bahwa saya tidak akan memberikan informasi yang tidak benar, menyesatkan, dimanipulasi, atau berbeda dari data resmi Puri Safana Cikeas kepada calon konsumen.</li>
             <li>
               Bahwa saya dilarang melakukan:
               <ul className="list-disc pl-5 mt-0.5">
                 <li>Mark up harga unit; Pengambilan keuntungan pribadi; Double booking unit;</li>
                 <li>Penahanan booking fee; Manipulasi data penjualan; Penjualan unit fiktif;</li>
-                <li>Pengalihan konsumen secara tidak sah; Tindakan merugikan perusahaan/konsumen.</li>
+                <li>Pengalihan konsumen secara tidak sah; Tindakan merugikan Puri Safana Cikeas/konsumen.</li>
               </ul>
             </li>
-            <li>Bahwa seluruh pembayaran konsumen wajib dilakukan langsung ke rekening resmi perusahaan/developer dan saya dilarang menguasai dana konsumen dalam bentuk apa pun.</li>
-            <li>Bahwa saya dilarang menyebarluaskan atau memperjualbelikan data identitas, nomor telepon, dan dokumen pribadi konsumen tanpa izin tertulis dari perusahaan.</li>
-            <li>Bahwa saya dilarang bekerja sama dengan pihak internal maupun ketiga yang dapat menimbulkan konflik kepentingan atau kerugian bagi perusahaan.</li>
-            <li>Bahwa saya wajib menjaga nama baik perusahaan, kerahasiaan data, serta menjalankan etika profesi dalam kegiatan pemasaran dan penjualan.</li>
+            <li>Bahwa seluruh pembayaran konsumen wajib dilakukan langsung ke rekening resmi Puri Safana Cikeas dan saya dilarang menguasai dana konsumen dalam bentuk apa pun.</li>
+            <li>Bahwa saya dilarang menyebarluaskan atau memperjualbelikan data identitas, nomor telepon, dan dokumen pribadi konsumen tanpa izin tertulis dari Puri Safana Cikeas.</li>
+            <li>Bahwa saya dilarang bekerja sama dengan pihak internal maupun ketiga yang dapat menimbulkan konflik kepentingan atau kerugian bagi Puri Safana Cikeas.</li>
+            <li>Bahwa saya wajib menjaga nama baik Puri Safana Cikeas, kerahasiaan data, serta menjalankan etika profesi dalam kegiatan pemasaran dan penjualan.</li>
             <li>
-              Bahwa apabila terjadi pelanggaran, perusahaan berhak:
+              Bahwa apabila terjadi pelanggaran, Puri Safana Cikeas berhak:
               <ul className="list-disc pl-5 mt-0.5">
                 <li>Memberikan sanksi; Membatalkan komisi; Menonaktifkan akses kerja;</li>
                 <li>Memberhentikan secara sepihak; Menempuh jalur hukum (pidana/perdata).</li>
               </ul>
             </li>
-            <li>Bahwa saya membuat pernyataan ini dalam keadaan sadar, sehat jasmani dan rohani, tanpa paksaan, serta bersedia mematuhi seluruh ketentuan perusahaan.</li>
+            <li>Bahwa saya membuat pernyataan ini dalam keadaan sadar, sehat jasmani dan rohani, tanpa paksaan, serta bersedia mematuhi seluruh ketentuan Puri Safana Cikeas.</li>
           </ol>
 
           <p className="text-[11px] text-justify mb-6">
