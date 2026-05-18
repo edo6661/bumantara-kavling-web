@@ -28,6 +28,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import jsPDF from 'jspdf';
 import { handleApiError } from '../../utils/errorHandler';
+import { useSearchParams } from 'react-router-dom';
 
 interface TagihanFormState {
   id: number | '';
@@ -58,9 +59,17 @@ const initialFormState: TagihanFormState = {
 };
 
 const Tagihan = () => {
-  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const limit = 10;
+
+  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({ limit, page, search });
+  const tagihans = tagihansResponse?.items || [];
+  const meta = tagihansResponse?.meta;
+
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
-  const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 100 });
+  const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 500 });
   const { data: bankList = [] } = useGetBankRekening();
   const { selectedPerumahan, user } = useAuth();
   const canApprovePayment = user?.role === 'SUPERADMIN' || user?.role === 'FINANCE';
@@ -88,6 +97,17 @@ const Tagihan = () => {
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<any>(null);
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
 
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
@@ -501,14 +521,14 @@ const Tagihan = () => {
               <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Total Tagihan Cicilan</p>
               <p className="text-sm font-bold text-slate-700">{formatRupiah(piutangCicilan)}</p>
             </div>
-            <div className="px-3 border-r border-slate-100">
+            {/* <div className="px-3 border-r border-slate-100">
               <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Total Terbayar (Cicilan)</p>
               <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayarCicilan)}</p>
             </div>
             <div className="px-3">
               <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Sisa Pembayaran</p>
               <p className="text-sm font-black text-orange-600">{formatRupiah(sisaPembayaran)}</p>
-            </div>
+            </div> */}
           </div>
 
           <button
@@ -773,6 +793,13 @@ const Tagihan = () => {
         data={groupedData}
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
+        // 👇 TAMBAHKAN PROPERTI DI BAWAH INI 👇
+        serverSide={true}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
       />
 
       {/* MODAL KELOLA TAGIHAN */}

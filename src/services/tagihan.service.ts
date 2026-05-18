@@ -42,14 +42,28 @@ export interface UpdateTagihanDTO {
   status?: string;
   reminderBerikutnya?: string | null;
 }
+export interface TagihanResponse {
+  items: TagihanData[];
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
 
 export const tagihanService = {
-  getAll: async (params?: Record<string, unknown>): Promise<TagihanData[]> => {
-    // Menggunakan limit besar untuk sementara agar semua data terambil
+  getAll: async (
+    params?: Record<string, unknown>,
+  ): Promise<TagihanResponse> => {
     const response = await api.get("/tagihan", {
-      params: { limit: 100, ...params },
+      // Ubah default limit menjadi 10 dan page 1
+      params: { limit: 10, page: 1, ...params },
     });
-    return response.data.data.items;
+    // Hapus .items di ujungnya agar mengembalikan objek lengkap
+    return response.data.data;
   },
 
   getById: async (id: number): Promise<TagihanData> => {

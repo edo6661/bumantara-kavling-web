@@ -10,7 +10,8 @@ import {
   X,
   ChevronRight,
   ShoppingCart,
-  LogOut // <-- Tambah icon LogOut
+  LogOut, // <-- Tambah icon LogOut
+  Banknote
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -58,6 +59,13 @@ const menuItems = [
       { title: 'Agents', path: '/marketing/agents', resource: 'AGENT' },
       { title: 'Fee Agent', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
       { title: 'Perusahaan Agent', path: '/marketing/perusahaan', resource: 'AGENT' },
+    ],
+  },
+  {
+    title: 'Finance',
+    icon: <Banknote size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Approve Pembayaran', path: '/finance/approve-pembayaran', resource: 'TAGIHAN' },
     ],
   },
   {

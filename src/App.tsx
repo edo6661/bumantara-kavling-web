@@ -38,6 +38,7 @@ const CustomerDetail = lazy(() => import('./pages/Bank/CustomerDetail'));
 const AgentLogin = lazy(() => import('./pages/Public/AgentLogin'));
 const AgentRegister = lazy(() => import('./pages/Public/AgentRegister'));
 const AgentPortalDashboard = lazy(() => import('./pages/AgentPortal/PortalDashboard'));
+const ApprovePembayaran = lazy(() => import('./pages/Finance/ApprovePembayaran'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
@@ -94,6 +95,7 @@ const App = () => {
 
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
+                <Route path="finance/approve-pembayaran" element={<PermissionGuard resource="TAGIHAN"><ApprovePembayaran /></PermissionGuard>} />
                 <Route path="management/penjualan" element={<PermissionGuard resource="PENJUALAN"><Penjualan /></PermissionGuard>} />
                 <Route path="management/progress-penjualan" element={<PermissionGuard resource="PROGRESS_PENJUALAN"><ProgressPenjualan /></PermissionGuard>} />
                 <Route path="management/ganti-kavling" element={<PermissionGuard resource="GANTI_KAVLING"><GantiKavling /></PermissionGuard>} />
