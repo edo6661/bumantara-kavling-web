@@ -62,7 +62,7 @@ const Tagihan = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
-  const limit = 10;
+  const limit = 20;
 
   const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({ limit, page, search });
   const tagihans = tagihansResponse?.items || [];
