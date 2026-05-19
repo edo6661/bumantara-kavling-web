@@ -1,4 +1,9 @@
-kode frontend:
+kenapaa ya suka error gini:
+ailed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html". Strict MIME type checking is enforced for module scripts per HTML spec.Pahami error ini
+index-CbS-T2r-.js:9 Uncaught TypeError: Failed to fetch dynamically imported module: https://kavling.globalindo.tech/assets/PerusahaanAgent-CXbWMBpk.jsPahami error ini
+usePerusahaanAgent-DvrnSDL5.js:1 Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html". Strict MIME type checking is enforced for module scripts per HTML spec.
+
+tapi setelah itu di refresh aman lagi.
 
 <file path="docker-compose.yml">
 services:
@@ -3612,59 +3617,6 @@ export const customerPortalService = {
 };
 </file>
 
-<file path="src/services/perusahaanAgent.service.ts">
-import api from "../lib/axios";
-
-export interface PerusahaanAgentData {
-  id: number;
-  nama: string;
-  akte: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreatePerusahaanAgentDTO {
-  nama: string;
-}
-
-export const perusahaanAgentService = {
-  getAll: async (
-    params?: Record<string, unknown>,
-  ): Promise<PerusahaanAgentData[]> => {
-    const response = await api.get("/perusahaan-agents", {
-      params: { limit: 100, ...params },
-    });
-    return response.data.data.items;
-  },
-
-  create: async (data: CreatePerusahaanAgentDTO) => {
-    const response = await api.post("/perusahaan-agents", data);
-    return response.data.data;
-  },
-
-  update: async (id: number, data: Partial<CreatePerusahaanAgentDTO>) => {
-    const response = await api.patch(`/perusahaan-agents/${id}`, data);
-    return response.data.data;
-  },
-
-  delete: async (id: number) => {
-    const response = await api.delete(`/perusahaan-agents/${id}`);
-    return response.data;
-  },
-
-  uploadAkte: async (id: number, file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    const response = await api.patch(
-      `/perusahaan-agents/${id}/upload-akte`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } },
-    );
-    return response.data.data;
-  },
-};
-</file>
-
 <file path="src/services/rolePermission.service.ts">
 import api from "../lib/axios";
 
@@ -3829,6 +3781,107 @@ export interface LoginData {
     "vite": "^7.3.1"
   }
 }
+</file>
+
+<file path="src/components/shared/Input.tsx">
+import type { InputHTMLAttributes } from 'react';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+
+const Input = ({ label, error, ...props }: InputProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      {label && (
+        <label
+          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
+        >
+          {label}
+        </label>
+      )}
+      <input
+        className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
+          disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+          ${error
+            ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+            : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
+          }`}
+        {...props}
+      />
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Input;
+</file>
+
+<file path="src/components/shared/Select.tsx">
+import type { SelectHTMLAttributes } from 'react';
+
+interface Option {
+  value: string | number;
+  label: string;
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  options: Option[];
+  error?: string;
+}
+
+const Select = ({ label, options, error, ...props }: SelectProps) => {
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      {label && (
+        <label
+          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
+        >
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <select
+          className={`peer w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none appearance-none
+            disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+            ${props.disabled ? '' : 'cursor-pointer'}
+            ${error
+              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
+            }`}
+          {...props}
+        >
+          <option value="" disabled>Pilih {label || 'Opsi'}...</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value} className="py-2">
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400 peer-focus:text-indigo-500 peer-disabled:opacity-40 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default Select;
 </file>
 
 <file path="src/hooks/queries/useCustomerPortal.ts">
@@ -4817,6 +4870,67 @@ export const notarisService = {
 };
 </file>
 
+<file path="src/services/perusahaanAgent.service.ts">
+import api from "../lib/axios";
+
+export interface PerusahaanAgentData {
+  id: number;
+  nama: string;
+  npwp?: string | null;
+  namaBank?: string | null;
+  noRekening?: string | null;
+  atasNamaRekening?: string | null;
+  akte: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePerusahaanAgentDTO {
+  nama: string;
+  npwp?: string;
+  namaBank?: string;
+  noRekening?: string;
+  atasNamaRekening?: string;
+}
+
+export const perusahaanAgentService = {
+  getAll: async (
+    params?: Record<string, unknown>,
+  ): Promise<PerusahaanAgentData[]> => {
+    const response = await api.get("/perusahaan-agents", {
+      params: { limit: 100, ...params },
+    });
+    return response.data.data.items;
+  },
+
+  create: async (data: CreatePerusahaanAgentDTO) => {
+    const response = await api.post("/perusahaan-agents", data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: Partial<CreatePerusahaanAgentDTO>) => {
+    const response = await api.patch(`/perusahaan-agents/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/perusahaan-agents/${id}`);
+    return response.data;
+  },
+
+  uploadAkte: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.patch(
+      `/perusahaan-agents/${id}/upload-akte`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data.data;
+  },
+};
+</file>
+
 <file path="src/utils/errorHandler.ts">
 import { isAxiosError } from "axios";
 import type { ActionResult } from "../types/common";
@@ -5112,107 +5226,6 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
 export default Navbar;
 </file>
 
-<file path="src/components/shared/Input.tsx">
-import type { InputHTMLAttributes } from 'react';
-
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-}
-
-const Input = ({ label, error, ...props }: InputProps) => {
-  return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      {label && (
-        <label
-          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
-            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
-        >
-          {label}
-        </label>
-      )}
-      <input
-        className={`w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
-          disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
-          ${error
-            ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-            : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
-          }`}
-        {...props}
-      />
-      {error && (
-        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
-    </div>
-  );
-};
-
-export default Input;
-</file>
-
-<file path="src/components/shared/Select.tsx">
-import type { SelectHTMLAttributes } from 'react';
-
-interface Option {
-  value: string | number;
-  label: string;
-}
-
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
-  options: Option[];
-  error?: string;
-}
-
-const Select = ({ label, options, error, ...props }: SelectProps) => {
-  return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      {label && (
-        <label
-          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
-            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
-        >
-          {label}
-        </label>
-      )}
-      <div className="relative">
-        <select
-          className={`peer w-full px-4 py-2.5 text-sm rounded-xl border transition-all duration-200 outline-none appearance-none
-            disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
-            ${props.disabled ? '' : 'cursor-pointer'}
-            ${error
-              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
-            }`}
-          {...props}
-        >
-          <option value="" disabled>Pilih {label || 'Opsi'}...</option>
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="py-2">
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400 peer-focus:text-indigo-500 peer-disabled:opacity-40 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-      {error && (
-        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
-    </div>
-  );
-};
-
-export default Select;
-</file>
-
 <file path="src/context/AuthContext.tsx">
 import { createContext, useContext } from 'react';
 import type { Perumahan } from '../types/models/perumahan';
@@ -5238,6 +5251,181 @@ export const useAuth = () => {
     throw new Error('useAuth harus digunakan di dalam AuthProvider');
   }
   return context;
+};
+</file>
+
+<file path="src/hooks/queries/usePenjualan.ts">
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  penjualanService,
+  type CreatePenjualanDTO,
+} from "../../services/penjualan.service";
+
+export const PENJUALAN_KEYS = {
+  all: ["penjualan"] as const,
+  pengajuanBatal: ["pengajuan-batal"] as const,
+  pengajuanGantiKavling: ["pengajuan-ganti-kavling"] as const,
+};
+export const useGetPenjualan = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: [...PENJUALAN_KEYS.all, params],
+    queryFn: () => penjualanService.getAll(params),
+  });
+};
+
+export const useCreatePenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreatePenjualanDTO) => penjualanService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+    },
+  });
+};
+
+export const useCancelPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, alasanBatal }: { id: string; alasanBatal: string }) =>
+      penjualanService.cancel(id, alasanBatal),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+    },
+  });
+};
+
+export const useUploadBuktiPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      type,
+      file,
+    }: {
+      id: string;
+      type: "booking" | "dp";
+      file: File;
+    }) => penjualanService.uploadBukti(id, type, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+    },
+  });
+};
+
+export const useUploadSignature = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      noTransaksi: string;
+      signatureBase64: string;
+      nama: string;
+      peran: string;
+      tanggal: string;
+    }) => penjualanService.uploadSignature(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
+};
+
+export const useUpdatePenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<CreatePenjualanDTO>;
+    }) => penjualanService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+    },
+  });
+};
+
+export const useGantiKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { kavlingBaruId: number; alasan: string };
+    }) => penjualanService.gantiKavling(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    },
+  });
+};
+
+export const useGetPengajuanBatal = (status?: string) => {
+  return useQuery({
+    queryKey: [...PENJUALAN_KEYS.pengajuanBatal, status],
+    queryFn: () => penjualanService.getPengajuanBatal(status),
+  });
+};
+
+export const useGetPengajuanGantiKavling = (status?: string) => {
+  return useQuery({
+    queryKey: [...PENJUALAN_KEYS.pengajuanGantiKavling, status],
+    queryFn: () => penjualanService.getPengajuanGantiKavling(status),
+  });
+};
+
+export const useApproveBatal = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isApproved }: { id: number; isApproved: boolean }) =>
+      penjualanService.approveBatal(id, isApproved),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: PENJUALAN_KEYS.pengajuanBatal,
+      });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+    },
+  });
+};
+
+export const useApproveGantiKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isApproved }: { id: number; isApproved: boolean }) =>
+      penjualanService.approveGantiKavling(id, isApproved),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: PENJUALAN_KEYS.pengajuanGantiKavling,
+      });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
+    },
+  });
+};
+
+export const useRegenerateSpr = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => penjualanService.regenerateSpr(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
 };
 </file>
 
@@ -6352,6 +6540,67 @@ export const verifyService = {
 };
 </file>
 
+<file path="src/components/shared/CurrencyInput.tsx">
+import React from 'react';
+interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
+  label?: string;
+  error?: string;
+  value: number | string;
+  onValueChange: (name: string, value: number) => void;
+  name: string;
+}
+const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
+  const numericValue = Number(value);
+  const isValidNumber = !Number.isNaN(numericValue) && value !== null && value !== undefined && value !== '';
+  const displayValue = isValidNumber && numericValue !== 0 ? new Intl.NumberFormat('id-ID').format(numericValue) : '';
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const newNumericValue = rawValue ? Number(rawValue) : 0;
+    onValueChange(name, newNumericValue);
+  };
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      {label && (
+        <label
+          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
+        >
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <span className={`font-medium text-sm transition-colors ${props.disabled ? 'text-slate-400 opacity-60' : 'text-slate-400 group-focus-within:text-indigo-500'}`}>
+            Rp
+          </span>
+        </div>
+        <input
+          type="text"
+          name={name}
+          value={displayValue}
+          onChange={handleChange}
+          autoComplete="off"
+          /* Ditambahkan tabular-nums agar lebar angka konsisten (tidak bergeser) */
+          className={`w-full pl-11 pr-4 py-2.5 text-sm tabular-nums rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
+            disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+            ${error
+              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
+            }`}
+          {...props}
+        />
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
+};
+export default CurrencyInput;
+</file>
+
 <file path="src/components/shared/Modal.tsx">
 import { type ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -6526,181 +6775,6 @@ export const useGenerateCustomerAccount = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
-    },
-  });
-};
-</file>
-
-<file path="src/hooks/queries/usePenjualan.ts">
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  penjualanService,
-  type CreatePenjualanDTO,
-} from "../../services/penjualan.service";
-
-export const PENJUALAN_KEYS = {
-  all: ["penjualan"] as const,
-  pengajuanBatal: ["pengajuan-batal"] as const,
-  pengajuanGantiKavling: ["pengajuan-ganti-kavling"] as const,
-};
-export const useGetPenjualan = (params?: Record<string, unknown>) => {
-  return useQuery({
-    queryKey: [...PENJUALAN_KEYS.all, params],
-    queryFn: () => penjualanService.getAll(params),
-  });
-};
-
-export const useCreatePenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreatePenjualanDTO) => penjualanService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-    },
-  });
-};
-
-export const useCancelPenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, alasanBatal }: { id: string; alasanBatal: string }) =>
-      penjualanService.cancel(id, alasanBatal),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-    },
-  });
-};
-
-export const useUploadBuktiPenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      type,
-      file,
-    }: {
-      id: string;
-      type: "booking" | "dp";
-      file: File;
-    }) => penjualanService.uploadBukti(id, type, file),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-    },
-  });
-};
-
-export const useUploadSignature = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: {
-      noTransaksi: string;
-      signatureBase64: string;
-      nama: string;
-      peran: string;
-      tanggal: string;
-    }) => penjualanService.uploadSignature(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-    },
-  });
-};
-
-export const useUpdatePenjualan = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: Partial<CreatePenjualanDTO>;
-    }) => penjualanService.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
-      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-    },
-  });
-};
-
-export const useGantiKavling = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: { kavlingBaruId: number; alasan: string };
-    }) => penjualanService.gantiKavling(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
-    },
-  });
-};
-
-export const useGetPengajuanBatal = (status?: string) => {
-  return useQuery({
-    queryKey: [...PENJUALAN_KEYS.pengajuanBatal, status],
-    queryFn: () => penjualanService.getPengajuanBatal(status),
-  });
-};
-
-export const useGetPengajuanGantiKavling = (status?: string) => {
-  return useQuery({
-    queryKey: [...PENJUALAN_KEYS.pengajuanGantiKavling, status],
-    queryFn: () => penjualanService.getPengajuanGantiKavling(status),
-  });
-};
-
-export const useApproveBatal = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, isApproved }: { id: number; isApproved: boolean }) =>
-      penjualanService.approveBatal(id, isApproved),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: PENJUALAN_KEYS.pengajuanBatal,
-      });
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
-    },
-  });
-};
-
-export const useApproveGantiKavling = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, isApproved }: { id: number; isApproved: boolean }) =>
-      penjualanService.approveGantiKavling(id, isApproved),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: PENJUALAN_KEYS.pengajuanGantiKavling,
-      });
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
-      queryClient.invalidateQueries({ queryKey: ["kavlings"] });
-    },
-  });
-};
-
-export const useRegenerateSpr = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => penjualanService.regenerateSpr(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
     },
   });
 };
@@ -7195,209 +7269,6 @@ const Notaris = () => {
 export default Notaris;
 </file>
 
-<file path="src/pages/Marketing/PerusahaanAgent.tsx">
-import React, { useState } from "react";
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import PageLoader from "../PageLoader";
-import { Edit2, Trash2, UploadCloud, Eye } from "lucide-react";
-import {
-  useGetPerusahaanAgents,
-  useCreatePerusahaanAgent,
-  useUpdatePerusahaanAgent,
-  useDeletePerusahaanAgent,
-  useUploadAktePerusahaan,
-} from "../../hooks/queries/usePerusahaanAgent";
-import type { PerusahaanAgentData } from "../../services/perusahaanAgent.service";
-import { handleApiError } from "../../utils/errorHandler";
-
-const PerusahaanAgent = () => {
-  const { data: perusahaanData = [], isLoading } = useGetPerusahaanAgents();
-  const createMutation = useCreatePerusahaanAgent();
-  const updateMutation = useUpdatePerusahaanAgent();
-  const deleteMutation = useDeletePerusahaanAgent();
-  const uploadAkteMutation = useUploadAktePerusahaan();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ id: "", nama: "" });
-  const [isEditing, setIsEditing] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  const columns = [
-    { header: "Nama Perusahaan", accessor: "nama", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-    {
-      header: "Akte Perusahaan",
-      accessor: "akte",
-      render: (val: string | null) => (
-        val ? (
-          <button
-            onClick={(e) => { e.stopPropagation(); setPreviewImage(val); }}
-            className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
-          >
-            <Eye size={12} /> Lihat Akte
-          </button>
-        ) : (
-          <span className="text-xs text-slate-400 italic">Belum Ada Akte</span>
-        )
-      )
-    },
-    {
-      header: "Aksi",
-      accessor: "id",
-      render: (_: unknown, row: PerusahaanAgentData) => (
-        <div className="flex items-center gap-1.5">
-          <button onClick={() => openModal(row)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer" title="Edit">
-            <Edit2 size={16} />
-          </button>
-          <label className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer" title="Upload Akte">
-            <UploadCloud size={16} />
-            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUpload(row.id, e)} />
-          </label>
-          <button onClick={() => handleDelete(row)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer" title="Hapus">
-            <Trash2 size={16} />
-          </button>
-        </div>
-      )
-    }
-  ];
-
-  const openModal = (item?: PerusahaanAgentData) => {
-    if (item) {
-      setFormData({ id: item.id.toString(), nama: item.nama });
-      setIsEditing(true);
-    } else {
-      setFormData({ id: "", nama: "" });
-      setIsEditing(false);
-    }
-    setErrors({});
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData({ id: "", nama: "" });
-    setErrors({});
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.nama.trim()) {
-      setErrors({ nama: "Nama perusahaan wajib diisi" });
-      return;
-    }
-
-    try {
-      if (isEditing && formData.id) {
-        await updateMutation.mutateAsync({ id: Number(formData.id), data: { nama: formData.nama } });
-      } else {
-        await createMutation.mutateAsync({ nama: formData.nama });
-      }
-      closeModal();
-    } catch (error: any) {
-      const { message, errors: backendErrors } = handleApiError(error);
-      if (backendErrors && Array.isArray(backendErrors)) {
-        const fieldErrors: Record<string, string> = {};
-        backendErrors.forEach((err: { field: string; message: string }) => {
-          fieldErrors[err.field] = err.message;
-        });
-        setErrors(fieldErrors);
-      } else {
-        alert(message);
-      }
-    }
-  };
-
-  const handleDelete = async (item: PerusahaanAgentData) => {
-    if (window.confirm(`Yakin ingin menghapus perusahaan ${item.nama}?`)) {
-      try {
-        await deleteMutation.mutateAsync(item.id);
-      } catch (error) {
-        const { message } = handleApiError(error);
-        alert(message);
-      }
-    }
-  };
-
-  const handleUpload = async (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      alert("Hanya format gambar dan PDF yang diperbolehkan!");
-      e.target.value = '';
-      return;
-    }
-
-    try {
-      await uploadAkteMutation.mutateAsync({ id, file });
-      alert("Akte berhasil diunggah!");
-    } catch (error) {
-      const { message } = handleApiError(error);
-      alert(message);
-    } finally {
-      e.target.value = '';
-    }
-  };
-
-  if (isLoading) return <PageLoader />;
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Daftar Perusahaan Agent"
-        columns={columns}
-        data={perusahaanData}
-        onAdd={() => openModal()}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Perusahaan" : "Tambah Perusahaan"}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Nama Perusahaan"
-            value={formData.nama}
-            onChange={(e) => {
-              setFormData({ ...formData, nama: e.target.value });
-              if (errors.nama) setErrors({});
-            }}
-            error={errors.nama}
-            placeholder="Contoh: PT. Maju Jaya"
-          />
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button type="button" onClick={closeModal} className="px-4 py-2 bg-white border text-sm font-bold rounded-lg cursor-pointer">Batal</button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-6 py-2 bg-slate-900 text-white text-sm fFont-bold rounded-lg cursor-pointer">
-              {createMutation.isPending || updateMutation.isPending ? "Menyimpan..." : "Simpan"}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* MODAL LIGHTBOX PREVIEW DOKUMEN */}
-      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Akte Perusahaan">
-        <div className="flex flex-col items-center">
-          {previewImage && (
-            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
-                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg border-none" title="PDF Akte" />
-              ) : (
-                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
-              )}
-            </div>
-          )}
-          <div className="mt-6 flex gap-3">
-            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer">Buka Tab Baru</a>
-            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer">Tutup</button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
-};
-
-export default PerusahaanAgent;
-</file>
-
 <file path="src/providers/AuthProvider.tsx">
 import { useState, useEffect, type ReactNode, useCallback } from 'react';
 import { AuthContext } from '../context/AuthContext';
@@ -7577,65 +7448,274 @@ export const progressPenjualanService = {
 };
 </file>
 
-<file path="src/components/shared/CurrencyInput.tsx">
-import React from 'react';
-interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
-  label?: string;
-  error?: string;
-  value: number | string;
-  onValueChange: (name: string, value: number) => void;
-  name: string;
-}
-const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
-  const numericValue = Number(value);
-  const isValidNumber = !Number.isNaN(numericValue) && value !== null && value !== undefined && value !== '';
-  const displayValue = isValidNumber && numericValue !== 0 ? new Intl.NumberFormat('id-ID').format(numericValue) : '';
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/[^0-9]/g, '');
-    const newNumericValue = rawValue ? Number(rawValue) : 0;
-    onValueChange(name, newNumericValue);
-  };
-  return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      {label && (
-        <label
-          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
-            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
-        >
-          {label}
-        </label>
-      )}
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className={`font-medium text-sm transition-colors ${props.disabled ? 'text-slate-400 opacity-60' : 'text-slate-400 group-focus-within:text-indigo-500'}`}>
-            Rp
-          </span>
+<file path="src/pages/Marketing/PerusahaanAgent.tsx">
+import React, { useState } from "react";
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import PageLoader from "../PageLoader";
+import { Edit2, Trash2, UploadCloud, Eye } from "lucide-react";
+import {
+  useGetPerusahaanAgents,
+  useCreatePerusahaanAgent,
+  useUpdatePerusahaanAgent,
+  useDeletePerusahaanAgent,
+  useUploadAktePerusahaan,
+} from "../../hooks/queries/usePerusahaanAgent";
+import type { PerusahaanAgentData } from "../../services/perusahaanAgent.service";
+import { handleApiError } from "../../utils/errorHandler";
+
+const PerusahaanAgent = () => {
+  const { data: perusahaanData = [], isLoading } = useGetPerusahaanAgents();
+  const createMutation = useCreatePerusahaanAgent();
+  const updateMutation = useUpdatePerusahaanAgent();
+  const deleteMutation = useDeletePerusahaanAgent();
+  const uploadAkteMutation = useUploadAktePerusahaan();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    id: "",
+    nama: "",
+    npwp: "",
+    namaBank: "",
+    noRekening: "",
+    atasNamaRekening: ""
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const columns = [
+    { header: "Nama Perusahaan", accessor: "nama", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    // 👇 KOLOM BARU DITAMBAHKAN 👇
+    { header: "NPWP", accessor: "npwp", render: (val: string) => <span className="font-mono text-xs">{val || '-'}</span> },
+    {
+      header: "Bank Detail",
+      accessor: "namaBank",
+      render: (_: unknown, row: PerusahaanAgentData) => (
+        row.namaBank ? (
+          <div className="text-xs">
+            <p className="font-bold">{row.namaBank}</p>
+            <p className="font-mono">{row.noRekening}</p>
+            <p className="text-slate-500 italic">a/n {row.atasNamaRekening}</p>
+          </div>
+        ) : <span className="text-xs text-slate-400 italic">-</span>
+      )
+    },
+    // 👆 SAMPAI SINI 👆
+    {
+      header: "Akte Perusahaan",
+      accessor: "akte",
+      render: (val: string | null) => (
+        val ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); setPreviewImage(val); }}
+            className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+          >
+            <Eye size={12} /> Lihat Akte
+          </button>
+        ) : (
+          <span className="text-xs text-slate-400 italic">Belum Ada Akte</span>
+        )
+      )
+    },
+    {
+      header: "Aksi",
+      accessor: "id",
+      render: (_: unknown, row: PerusahaanAgentData) => (
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => openModal(row)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer" title="Edit">
+            <Edit2 size={16} />
+          </button>
+          <label className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer" title="Upload Akte">
+            <UploadCloud size={16} />
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUpload(row.id, e)} />
+          </label>
+          <button onClick={() => handleDelete(row)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer" title="Hapus">
+            <Trash2 size={16} />
+          </button>
         </div>
-        <input
-          type="text"
-          name={name}
-          value={displayValue}
-          onChange={handleChange}
-          autoComplete="off"
-          /* Ditambahkan tabular-nums agar lebar angka konsisten (tidak bergeser) */
-          className={`w-full pl-11 pr-4 py-2.5 text-sm tabular-nums rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
-            disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
-            ${error
-              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
-            }`}
-          {...props}
-        />
-      </div>
-      {error && (
-        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
+      )
+    }
+  ];
+
+  const openModal = (item?: PerusahaanAgentData) => {
+    if (item) {
+      setFormData({
+        id: item.id.toString(),
+        nama: item.nama,
+        npwp: item.npwp || "",
+        namaBank: item.namaBank || "",
+        noRekening: item.noRekening || "",
+        atasNamaRekening: item.atasNamaRekening || ""
+      });
+      setIsEditing(true);
+    } else {
+      setFormData({ id: "", nama: "", npwp: "", namaBank: "", noRekening: "", atasNamaRekening: "" });
+      setIsEditing(false);
+    }
+    setErrors({});
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData({ id: "", nama: "", npwp: "", namaBank: "", noRekening: "", atasNamaRekening: "" });
+    setErrors({});
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.nama.trim()) {
+      setErrors({ nama: "Nama perusahaan wajib diisi" });
+      return;
+    }
+
+    try {
+      const payload = {
+        nama: formData.nama,
+        npwp: formData.npwp,
+        namaBank: formData.namaBank,
+        noRekening: formData.noRekening,
+        atasNamaRekening: formData.atasNamaRekening
+      };
+      if (isEditing && formData.id) {
+        await updateMutation.mutateAsync({ id: Number(formData.id), data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      closeModal();
+    } catch (error: any) {
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
+    }
+  };
+
+  const handleDelete = async (item: PerusahaanAgentData) => {
+    if (window.confirm(`Yakin ingin menghapus perusahaan ${item.nama}?`)) {
+      try {
+        await deleteMutation.mutateAsync(item.id);
+      } catch (error) {
+        const { message } = handleApiError(error);
+        alert(message);
+      }
+    }
+  };
+
+  const handleUpload = async (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      await uploadAkteMutation.mutateAsync({ id, file });
+      alert("Akte berhasil diunggah!");
+    } catch (error) {
+      const { message } = handleApiError(error);
+      alert(message);
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <DataTable
+        title="Daftar Perusahaan Agent"
+        columns={columns}
+        data={perusahaanData}
+        onAdd={() => openModal()}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Perusahaan" : "Tambah Perusahaan"}>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Nama Perusahaan"
+            value={formData.nama}
+            onChange={(e) => {
+              setFormData({ ...formData, nama: e.target.value });
+              if (errors.nama) setErrors({});
+            }}
+            error={errors.nama}
+            placeholder="Contoh: PT. Maju Jaya"
+          />
+
+          <Input
+            label="NPWP Perusahaan (Opsional)"
+            value={formData.npwp}
+            onChange={(e) => setFormData({ ...formData, npwp: e.target.value })}
+            placeholder="Masukkan NPWP"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Nama Bank (Opsional)"
+              value={formData.namaBank}
+              onChange={(e) => setFormData({ ...formData, namaBank: e.target.value })}
+              placeholder="Contoh: BCA / BSI"
+            />
+            <Input
+              label="No Rekening (Opsional)"
+              value={formData.noRekening}
+              onChange={(e) => setFormData({ ...formData, noRekening: e.target.value })}
+              placeholder="Nomor Rekening"
+            />
+            <Input
+              label="Atas Nama (A/N) (Opsional)"
+              value={formData.atasNamaRekening}
+              onChange={(e) => setFormData({ ...formData, atasNamaRekening: e.target.value })}
+              placeholder="A/N Rekening"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
+            <button type="button" onClick={closeModal} className="px-4 py-2 bg-white border text-sm font-bold rounded-lg cursor-pointer transition-colors hover:bg-slate-50 text-black">
+              Batal
+            </button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-6 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg cursor-pointer shadow-md hover:bg-black transition-colors disabled:opacity-50">
+              {createMutation.isPending || updateMutation.isPending ? "Menyimpan..." : "Simpan"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL LIGHTBOX PREVIEW DOKUMEN */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Akte Perusahaan">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg border-none" title="PDF Akte" />
+              ) : (
+                <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />
+              )}
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer">Buka Tab Baru</a>
+            <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer">Tutup</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
-export default CurrencyInput;
+
+export default PerusahaanAgent;
 </file>
 
 <file path="src/pages/Public/AgentRegister.tsx">
@@ -10006,6 +10086,137 @@ const VerifyDocument = () => {
 export default VerifyDocument;
 </file>
 
+<file path="src/services/penjualan.service.ts">
+import api from "../lib/axios";
+
+export interface CreatePenjualanDTO {
+  noIdentitas: string;
+  nama: string;
+  noTelepon: string;
+  alamat: string;
+  perusahaan?: string;
+  alamatKoresponden?: string;
+  perumahan: string;
+  blok: string;
+  nomorUnit: string;
+  tipe: string;
+  luasBangunan: number;
+  luasTanah: number;
+  tanggal: string;
+  hargaDasar: number;
+  plafonAwal?: number;
+  biayaKpr?: number;
+  plafonKredit?: number;
+  dpTidakDibayar?: number;
+  hargaJual: number;
+  hargaPromosi?: number;
+  diskonPenjualan?: number;
+  dp?: number;
+  bookingFee?: number;
+  caraPembayaran: string;
+  bank?: string;
+  nilaiPengajuanKpr?: number;
+  agent: string;
+  rekeningTujuanId?: number;
+  keteranganUpdateSpr?: string;
+}
+
+export const penjualanService = {
+  getAll: async (params?: Record<string, unknown>) => {
+    const response = await api.get("/penjualan", {
+      params: { ...params },
+    });
+
+    return response.data.data;
+  },
+
+  create: async (data: CreatePenjualanDTO) => {
+    const response = await api.post("/penjualan", data);
+    return response.data.data;
+  },
+  cancel: async (noTransaksi: string, alasanBatal: string) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
+      alasanBatal,
+    });
+    return response.data.data;
+  },
+  uploadBukti: async (
+    noTransaksi: string,
+    type: "booking" | "dp",
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("fileBukti", file);
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/upload/${type}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+
+    return response.data.data;
+  },
+  uploadSignature: async (data: {
+    noTransaksi: string;
+    signatureBase64: string;
+    nama: string;
+    peran: string;
+    tanggal: string;
+  }) => {
+    const response = await api.post(
+      `/penjualan/${data.noTransaksi}/signature`,
+      data,
+    );
+    return response.data.data;
+  },
+  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
+    return response.data.data;
+  },
+  gantiKavling: async (
+    noTransaksi: string,
+    data: { kavlingBaruId: number; alasan: string },
+  ) => {
+    const response = await api.patch(
+      `/penjualan/${noTransaksi}/ganti-kavling`,
+      data,
+    );
+    return response.data.data;
+  },
+  getPengajuanBatal: async (status?: string) => {
+    const response = await api.get("/penjualan/pengajuan-batal", {
+      params: { status },
+    });
+    return response.data.data;
+  },
+  getPengajuanGantiKavling: async (status?: string) => {
+    const response = await api.get("/penjualan/pengajuan-ganti-kavling", {
+      params: { status },
+    });
+    return response.data.data;
+  },
+  approveBatal: async (id: number, isApproved: boolean) => {
+    const response = await api.post(
+      `/penjualan/pengajuan-batal/${id}/approve`,
+      { isApproved },
+    );
+    return response.data.data;
+  },
+  approveGantiKavling: async (id: number, isApproved: boolean) => {
+    const response = await api.post(
+      `/penjualan/pengajuan-ganti-kavling/${id}/approve`,
+      { isApproved },
+    );
+    return response.data.data;
+  },
+  regenerateSpr: async (noTransaksi: string) => {
+    const response = await api.post(`/penjualan/${noTransaksi}/generate-spr`);
+    return response.data.data;
+  },
+};
+</file>
+
 <file path="src/types/models/agent.ts">
 export interface PicAgentData {
   id?: number;
@@ -10045,7 +10256,7 @@ export interface AgentData {
   noRekening: string | null;
   atasNamaRekening: string | null;
   feeMarketingPct: number | null;
-  feeClosingPct: number | null;
+  feeClosingNominal: number | null;
   potonganPph: number | null;
   fileKtp: string | null;
   fileNpwp: string | null;
@@ -10073,7 +10284,7 @@ export interface CreateAgentDTO {
   noRekening: string | null;
   atasNamaRekening: string | null;
   feeMarketingPct?: number;
-  feeClosingPct?: number;
+  feeClosingNominal?: number;
   potonganPph?: number;
   pics?: PicAgentData[];
 }
@@ -10801,137 +11012,6 @@ const Kavling = () => {
 };
 
 export default Kavling;
-</file>
-
-<file path="src/services/penjualan.service.ts">
-import api from "../lib/axios";
-
-export interface CreatePenjualanDTO {
-  noIdentitas: string;
-  nama: string;
-  noTelepon: string;
-  alamat: string;
-  perusahaan?: string;
-  alamatKoresponden?: string;
-  perumahan: string;
-  blok: string;
-  nomorUnit: string;
-  tipe: string;
-  luasBangunan: number;
-  luasTanah: number;
-  tanggal: string;
-  hargaDasar: number;
-  plafonAwal?: number;
-  biayaKpr?: number;
-  plafonKredit?: number;
-  dpTidakDibayar?: number;
-  hargaJual: number;
-  hargaPromosi?: number;
-  diskonPenjualan?: number;
-  dp?: number;
-  bookingFee?: number;
-  caraPembayaran: string;
-  bank?: string;
-  nilaiPengajuanKpr?: number;
-  agent: string;
-  rekeningTujuanId?: number;
-  keteranganUpdateSpr?: string;
-}
-
-export const penjualanService = {
-  getAll: async (params?: Record<string, unknown>) => {
-    const response = await api.get("/penjualan", {
-      params: { ...params },
-    });
-
-    return response.data.data;
-  },
-
-  create: async (data: CreatePenjualanDTO) => {
-    const response = await api.post("/penjualan", data);
-    return response.data.data;
-  },
-  cancel: async (noTransaksi: string, alasanBatal: string) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}/cancel`, {
-      alasanBatal,
-    });
-    return response.data.data;
-  },
-  uploadBukti: async (
-    noTransaksi: string,
-    type: "booking" | "dp",
-    file: File,
-  ) => {
-    const formData = new FormData();
-    formData.append("fileBukti", file);
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/upload/${type}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      },
-    );
-
-    return response.data.data;
-  },
-  uploadSignature: async (data: {
-    noTransaksi: string;
-    signatureBase64: string;
-    nama: string;
-    peran: string;
-    tanggal: string;
-  }) => {
-    const response = await api.post(
-      `/penjualan/${data.noTransaksi}/signature`,
-      data,
-    );
-    return response.data.data;
-  },
-  update: async (noTransaksi: string, data: Partial<CreatePenjualanDTO>) => {
-    const response = await api.patch(`/penjualan/${noTransaksi}`, data);
-    return response.data.data;
-  },
-  gantiKavling: async (
-    noTransaksi: string,
-    data: { kavlingBaruId: number; alasan: string },
-  ) => {
-    const response = await api.patch(
-      `/penjualan/${noTransaksi}/ganti-kavling`,
-      data,
-    );
-    return response.data.data;
-  },
-  getPengajuanBatal: async (status?: string) => {
-    const response = await api.get("/penjualan/pengajuan-batal", {
-      params: { status },
-    });
-    return response.data.data;
-  },
-  getPengajuanGantiKavling: async (status?: string) => {
-    const response = await api.get("/penjualan/pengajuan-ganti-kavling", {
-      params: { status },
-    });
-    return response.data.data;
-  },
-  approveBatal: async (id: number, isApproved: boolean) => {
-    const response = await api.post(
-      `/penjualan/pengajuan-batal/${id}/approve`,
-      { isApproved },
-    );
-    return response.data.data;
-  },
-  approveGantiKavling: async (id: number, isApproved: boolean) => {
-    const response = await api.post(
-      `/penjualan/pengajuan-ganti-kavling/${id}/approve`,
-      { isApproved },
-    );
-    return response.data.data;
-  },
-  regenerateSpr: async (noTransaksi: string) => {
-    const response = await api.post(`/penjualan/${noTransaksi}/generate-spr`);
-    return response.data.data;
-  },
-};
 </file>
 
 <file path="src/pages/Customer/Kavling.tsx">
@@ -13053,6 +13133,7 @@ import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
+import CurrencyInput from '../../components/shared/CurrencyInput';
 
 interface AgentFormState {
   id: number | '';
@@ -13067,7 +13148,7 @@ interface AgentFormState {
   noRekening: string;
   atasNamaRekening: string;
   feeMarketingPct: number | '';
-  feeClosingPct: number | '';
+  feeClosingNominal: number | '';
   potonganPph: number | '';
   pics: PicAgentData[];
 }
@@ -13085,7 +13166,7 @@ const initialFormState: AgentFormState = {
   noRekening: '',
   atasNamaRekening: '',
   feeMarketingPct: '',
-  feeClosingPct: '',
+  feeClosingNominal: '',
   potonganPph: '',
   pics: [{ nama: '', noHp: '', alamat: '' }]
 };
@@ -13228,7 +13309,7 @@ const Agents = () => {
         noRekening: item.noRekening || '',
         atasNamaRekening: item.atasNamaRekening || '',
         feeMarketingPct: item.feeMarketingPct ?? '',
-        feeClosingPct: item.feeClosingPct ?? '',
+        feeClosingNominal: item.feeClosingNominal ?? '',
         potonganPph: item.potonganPph ?? '',
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
@@ -13257,6 +13338,10 @@ const Agents = () => {
         return newErrors;
       });
     }
+  };
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => { const newErrors = { ...prev }; delete newErrors[name]; return newErrors; });
   };
 
   const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -13329,7 +13414,7 @@ const Agents = () => {
       noRekening: formData.noRekening || null,
       atasNamaRekening: formData.atasNamaRekening || null,
       feeMarketingPct: formData.feeMarketingPct !== '' ? Number(formData.feeMarketingPct) : undefined,
-      feeClosingPct: formData.feeClosingPct !== '' ? Number(formData.feeClosingPct) : undefined,
+      feeClosingNominal: formData.feeClosingNominal !== '' ? Number(formData.feeClosingNominal) : undefined,
       potonganPph: formData.potonganPph !== '' ? Number(formData.potonganPph) : undefined,
       pics: validPics.length > 0 ? validPics : undefined,
     };
@@ -13536,9 +13621,33 @@ const Agents = () => {
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
               <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input label="Fee Marketing (%)" name="feeMarketingPct" type="number" step="any" value={formData.feeMarketingPct} onChange={handleChange} placeholder="Contoh: 2.5" />
-                <Input label="Fee Closing (%)" name="feeClosingPct" type="number" step="any" value={formData.feeClosingPct} onChange={handleChange} placeholder="Contoh: 1.5" />
-                <Input label="Potongan PPh (%)" name="potonganPph" type="number" step="any" value={formData.potonganPph} onChange={handleChange} placeholder="Contoh: 2.5" />
+                <Input
+                  label="Fee Marketing (%)"
+                  name="feeMarketingPct"
+                  type="number"
+                  step="any"
+                  value={formData.feeMarketingPct}
+                  onChange={handleChange}
+                  placeholder="Contoh: 2.5"
+                />
+                <div className="w-full">
+                  <CurrencyInput
+                    label="Fee Closing (Rp)"
+                    name="feeClosingNominal"
+                    value={Number(formData.feeClosingNominal) || 0}
+                    onValueChange={(_, val) => handleCurrencyChange('feeClosingNominal', val)}
+                    placeholder="0"
+                  />
+                </div>
+                <Input
+                  label="Potongan PPh (%)"
+                  name="potonganPph"
+                  type="number"
+                  step="any"
+                  value={formData.potonganPph}
+                  onChange={handleChange}
+                  placeholder="Contoh: 2.5"
+                />
               </div>
               <div className="md:col-span-2">
                 <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
@@ -13707,7 +13816,7 @@ const Agents = () => {
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingPct ?? '-'} %</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingNominal ?? '-'} %</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Potongan PPh (%)</p>
