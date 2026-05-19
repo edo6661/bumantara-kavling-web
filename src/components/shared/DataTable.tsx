@@ -31,7 +31,7 @@ const DataTable = ({
 }: DataTableProps) => {
 
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
-  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (serverSide && onSearchChange) {
@@ -44,8 +44,8 @@ const DataTable = ({
     }
   }, [localSearchTerm, serverSide, onSearchChange, searchTerm]);
 
-  const toggleRow = (rowIndex: number) => {
-    setExpandedRows((prev) => ({ ...prev, [rowIndex]: !prev[rowIndex] }));
+  const toggleRow = (rowId: string) => {
+    setExpandedRows((prev) => ({ ...prev, [rowId]: !prev[rowId] }));
   };
 
   const filteredData = useMemo(() => {
@@ -133,13 +133,14 @@ const DataTable = ({
           <tbody className="divide-y divide-slate-100">
             {filteredData.length > 0 ? (
               filteredData.map((row, rowIndex) => {
-                const isExpanded = !!expandedRows[rowIndex];
+                const rowId = String(row.id ?? rowIndex);
+                const isExpanded = !!expandedRows[rowId];
+
                 return (
                   <React.Fragment key={rowIndex}>
                     <tr
-                      onClick={() => {
-                        if (expandedRowRender) toggleRow(rowIndex);
-                      }}
+                      onClick={() => { if (expandedRowRender) toggleRow(rowId); }}
+
                       className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
