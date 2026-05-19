@@ -20,6 +20,7 @@ import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
+import CurrencyInput from '../../components/shared/CurrencyInput';
 
 interface AgentFormState {
   id: number | '';
@@ -34,7 +35,7 @@ interface AgentFormState {
   noRekening: string;
   atasNamaRekening: string;
   feeMarketingPct: number | '';
-  feeClosingPct: number | '';
+  feeClosingNominal: number | '';
   potonganPph: number | '';
   pics: PicAgentData[];
 }
@@ -52,7 +53,7 @@ const initialFormState: AgentFormState = {
   noRekening: '',
   atasNamaRekening: '',
   feeMarketingPct: '',
-  feeClosingPct: '',
+  feeClosingNominal: '',
   potonganPph: '',
   pics: [{ nama: '', noHp: '', alamat: '' }]
 };
@@ -195,7 +196,7 @@ const Agents = () => {
         noRekening: item.noRekening || '',
         atasNamaRekening: item.atasNamaRekening || '',
         feeMarketingPct: item.feeMarketingPct ?? '',
-        feeClosingPct: item.feeClosingPct ?? '',
+        feeClosingNominal: item.feeClosingNominal ?? '',
         potonganPph: item.potonganPph ?? '',
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
@@ -224,6 +225,10 @@ const Agents = () => {
         return newErrors;
       });
     }
+  };
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => { const newErrors = { ...prev }; delete newErrors[name]; return newErrors; });
   };
 
   const handlePICChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,7 +301,7 @@ const Agents = () => {
       noRekening: formData.noRekening || null,
       atasNamaRekening: formData.atasNamaRekening || null,
       feeMarketingPct: formData.feeMarketingPct !== '' ? Number(formData.feeMarketingPct) : undefined,
-      feeClosingPct: formData.feeClosingPct !== '' ? Number(formData.feeClosingPct) : undefined,
+      feeClosingNominal: formData.feeClosingNominal !== '' ? Number(formData.feeClosingNominal) : undefined,
       potonganPph: formData.potonganPph !== '' ? Number(formData.potonganPph) : undefined,
       pics: validPics.length > 0 ? validPics : undefined,
     };
@@ -503,9 +508,33 @@ const Agents = () => {
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
               <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input label="Fee Marketing (%)" name="feeMarketingPct" type="number" step="any" value={formData.feeMarketingPct} onChange={handleChange} placeholder="Contoh: 2.5" />
-                <Input label="Fee Closing (%)" name="feeClosingPct" type="number" step="any" value={formData.feeClosingPct} onChange={handleChange} placeholder="Contoh: 1.5" />
-                <Input label="Potongan PPh (%)" name="potonganPph" type="number" step="any" value={formData.potonganPph} onChange={handleChange} placeholder="Contoh: 2.5" />
+                <Input
+                  label="Fee Marketing (%)"
+                  name="feeMarketingPct"
+                  type="number"
+                  step="any"
+                  value={formData.feeMarketingPct}
+                  onChange={handleChange}
+                  placeholder="Contoh: 2.5"
+                />
+                <div className="w-full">
+                  <CurrencyInput
+                    label="Fee Closing (Rp)"
+                    name="feeClosingNominal"
+                    value={Number(formData.feeClosingNominal) || 0}
+                    onValueChange={(_, val) => handleCurrencyChange('feeClosingNominal', val)}
+                    placeholder="0"
+                  />
+                </div>
+                <Input
+                  label="Potongan PPh (%)"
+                  name="potonganPph"
+                  type="number"
+                  step="any"
+                  value={formData.potonganPph}
+                  onChange={handleChange}
+                  placeholder="Contoh: 2.5"
+                />
               </div>
               <div className="md:col-span-2">
                 <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
@@ -674,7 +703,7 @@ const Agents = () => {
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingPct ?? '-'} %</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingNominal ?? '-'} %</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Potongan PPh (%)</p>

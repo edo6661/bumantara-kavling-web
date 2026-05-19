@@ -1,4 +1,126 @@
-tolong ingat kode frontendnya:
+kode frontend:
+
+<file path="docker-compose.yml">
+services:
+  kavling-app:
+    build: .
+    container_name: kavling-app
+    restart: unless-stopped
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
+</file>
+
+<file path="Dockerfile">
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+</file>
+
+<file path="nginx.conf">
+server {
+    listen 80;
+    server_name localhost;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+</file>
+
+<file path="README.md">
+# React + TypeScript + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## React Compiler
+
+The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
+
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
+</file>
 
 <file path="src/components/shared/FileInput.tsx">
 import type { InputHTMLAttributes } from 'react';
@@ -273,6 +395,25 @@ export const useGetPerumahan = () => {
   return useQuery({
     queryKey: PERUMAHAN_KEYS.all,
     queryFn: perumahanService.getAll,
+  });
+};
+</file>
+
+<file path="src/hooks/queries/useVerify.ts">
+import { useQuery } from "@tanstack/react-query";
+import { verifyService } from "../../services/verify.service";
+
+export const VERIFY_KEYS = {
+  detail: (id: string) => ["verify-document", id] as const,
+};
+
+export const useVerifyDocument = (id: string) => {
+  return useQuery({
+    queryKey: VERIFY_KEYS.detail(id),
+    queryFn: () => verifyService.verifyDocument(id),
+    enabled: !!id,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 };
 </file>
@@ -2296,25 +2437,6 @@ export const useDeleteUser = () => {
 };
 </file>
 
-<file path="src/hooks/queries/useVerify.ts">
-import { useQuery } from "@tanstack/react-query";
-import { verifyService } from "../../services/verify.service";
-
-export const VERIFY_KEYS = {
-  detail: (id: string) => ["verify-document", id] as const,
-};
-
-export const useVerifyDocument = (id: string) => {
-  return useQuery({
-    queryKey: VERIFY_KEYS.detail(id),
-    queryFn: () => verifyService.verifyDocument(id),
-    enabled: !!id,
-    retry: 1,
-    refetchOnWindowFocus: false,
-  });
-};
-</file>
-
 <file path="src/hooks/usePermission.ts">
 import { useAuth } from "../context/AuthContext";
 
@@ -2445,6 +2567,312 @@ h6 {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+</file>
+
+<file path="src/pages/Finance/ApprovePembayaran.tsx">
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import DataTable from "../../components/shared/DataTable";
+import PageLoader from "../PageLoader";
+import Modal from "../../components/shared/Modal";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import {
+  Check, X, FileText, ZoomIn, Clock, CheckCircle2, AlertCircle,
+  Filter, ChevronDown, ChevronUp, Calendar, ArrowUpDown
+} from 'lucide-react';
+import { useGetTagihans, useApproveTagihan } from "../../hooks/queries/useTagihan";
+import { handleApiError } from '../../utils/errorHandler';
+
+const ApprovePembayaran = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+
+
+
+  const statusFilter = searchParams.get('status') ?? 'MENUNGGU_KONFIRMASI';
+  const dateFilter = searchParams.get('date') || '';
+  const orderBy = searchParams.get('orderBy') || 'updatedAt:desc';
+  const limit = 10;
+
+
+
+  const { data: tagihanResponse, isLoading } = useGetTagihans({
+    page,
+    limit,
+    search,
+    status: statusFilter === 'ALL' ? undefined : statusFilter,
+    startDate: dateFilter !== '' ? dateFilter : undefined,
+    endDate: dateFilter !== '' ? dateFilter : undefined,
+    orderBy
+  });
+
+
+  const tagihans = tagihanResponse?.items || [];
+  const meta = tagihanResponse?.meta;
+
+  const approveMutation = useApproveTagihan();
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      prev.set('status', e.target.value);
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const handleDateFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('date', e.target.value); else prev.delete('date');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+
+  const handleApproveReject = async (id: number, isApproved: boolean) => {
+    const tindakan = isApproved ? "menyetujui" : "menolak";
+    if (window.confirm(`Apakah Anda yakin ingin ${tindakan} bukti pembayaran ini?`)) {
+      try {
+        await approveMutation.mutateAsync({ id, isApproved });
+        alert(isApproved ? "Bukti disetujui! Status menjadi LUNAS." : "Bukti ditolak! Status dikembalikan ke BELUM BAYAR.");
+      } catch (error) {
+        const { message } = handleApiError(error);
+        alert(message);
+      }
+    }
+  };
+
+  const columns = [
+    {
+      header: 'Customer & Kavling',
+      accessor: 'namaCustomer',
+      render: (_: any, row: any) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-slate-900">{row.namaCustomer}</span>
+          <span className="text-[10px] text-slate-500"> {row.perumahan} Blok {row.blok}-{row.nomorUnit}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Jenis Pembayaran',
+      accessor: 'pembayaran',
+      render: (val: string) => <span className="font-semibold text-slate-700">{val}</span>
+    },
+    {
+      header: 'Nominal',
+      accessor: 'nominal',
+      render: (val: number) => <span className="font-black text-slate-900">{formatRupiah(val)}</span>
+    },
+    {
+      header: 'Tanggal',
+      accessor: 'updatedAt',
+      render: (val: string) => <span className="text-xs font-medium text-slate-600">{formatDate(val)}</span>
+    },
+    {
+      header: 'Status',
+      accessor: 'status',
+      render: (val: string) => {
+        if (val === 'MENUNGGU_KONFIRMASI') return <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-yellow-100 text-yellow-700 rounded-md w-fit"><Clock size={12} /> Menunggu</span>;
+        if (val === 'LUNAS') return <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 rounded-md w-fit"><CheckCircle2 size={12} /> Lunas</span>;
+        return <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 rounded-md w-fit"><AlertCircle size={12} /> Belum Bayar</span>;
+      }
+    },
+    {
+      header: 'Bukti',
+      accessor: 'fileBukti',
+      render: (val: string | null) => val ? (
+        <div
+          onClick={(e) => { e.stopPropagation(); setPreviewImage(val); }}
+          className="relative w-12 h-8 rounded border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 flex justify-center items-center hover:border-blue-400 transition-colors"
+          title="Lihat Bukti Transfer"
+        >
+          {val.split('?')[0].toLowerCase().endsWith('.pdf') || val.includes('application/pdf') ? (
+            <div className="text-red-500"><FileText size={16} /></div>
+          ) : (
+            <img src={val} alt="Bukti" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+          )}
+          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+            <ZoomIn className="text-white" size={14} />
+          </div>
+        </div>
+      ) : (
+        <span className="text-[10px] text-slate-400 italic">-</span>
+      )
+    },
+    {
+      header: 'Aksi',
+      accessor: 'id',
+      render: (_: any, row: any) => {
+        if (row.status === 'MENUNGGU_KONFIRMASI') {
+          return (
+            <div className="flex items-center gap-2">
+              <button onClick={() => handleApproveReject(row.id, true)} disabled={approveMutation.isPending} className="p-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer shadow-sm" title="Setujui (Lunas)">
+                <Check size={16} />
+              </button>
+              <button onClick={() => handleApproveReject(row.id, false)} disabled={approveMutation.isPending} className="p-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition cursor-pointer shadow-sm" title="Tolak Bukti">
+                <X size={16} />
+              </button>
+            </div>
+          );
+        }
+        return <span className="text-slate-300 text-xs italic">-</span>;
+      }
+    }
+  ];
+
+  if (isLoading && tagihans.length === 0) return <PageLoader />;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+
+      {/* KOTAK FILTER & SORTING */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
+        <div
+          className="p-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
+          onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg ring-1 ring-indigo-200">
+              <Filter size={18} strokeWidth={2.5} />
+            </div>
+            <h3 className="font-bold text-slate-900 tracking-tight">Filter & Urutkan Pembayaran</h3>
+          </div>
+          <button className="text-slate-400 hover:text-slate-600 transition-colors">
+            {isFilterExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
+        </div>
+
+        {isFilterExpanded && (
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+
+            {/* Filter Status */}
+            <div className="relative group">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-indigo-600 transition-colors">
+                Status Pembayaran
+              </label>
+              <select
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer"
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+              >
+                <option value="ALL">Semua Status</option>
+                <option value="MENUNGGU_KONFIRMASI">Menunggu Konfirmasi</option>
+                <option value="LUNAS">Lunas (Disetujui)</option>
+                <option value="BELUM_BAYAR">Belum Bayar</option>
+              </select>
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500">
+                <ChevronDown size={16} />
+              </div>
+            </div>
+
+            {/* Filter Tanggal */}
+            <div className="relative group">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-indigo-600 transition-colors">
+                Tanggal Pembayaran / Upload
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm cursor-pointer"
+                  value={dateFilter}
+                  onChange={handleDateFilterChange}
+                />
+                <Calendar size={16} className="absolute left-3.5 top-[11px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+              </div>
+            </div>
+
+            {/* Sorting */}
+            <div className="relative group">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-indigo-600 transition-colors">
+                Urutkan Waktu
+              </label>
+              <select
+                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer"
+                value={orderBy}
+                onChange={handleSortChange}
+              >
+                <option value="updatedAt:desc">Terbaru (Paling Atas)</option>
+                <option value="updatedAt:asc">Terlama (Paling Atas)</option>
+              </select>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500">
+                <ChevronDown size={16} />
+              </div>
+            </div>
+
+          </div>
+        )}
+      </div>
+
+      <DataTable
+        title="Persetujuan Pembayaran (Finance)"
+        columns={columns}
+        data={tagihans}
+        serverSide={true}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
+      />
+
+      {/* MODAL LIGHTBOX PREVIEW BUKTI */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Bukti Transfer">
+        <div className="flex flex-col items-center">
+          {previewImage && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+                <iframe src={previewImage} className="w-full h-[60vh] rounded-lg border-none" title="PDF Preview" />
+              ) : (
+                <img src={previewImage} alt="Preview Bukti" className="max-w-full max-h-[60vh] rounded-lg shadow-xl object-contain" />
+              )}
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a
+              href={previewImage || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all cursor-pointer"
+            >
+              Buka Layar Penuh
+            </a>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-md"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default ApprovePembayaran;
 </file>
 
 <file path="src/pages/Management/Bank.tsx">
@@ -3351,6 +3779,58 @@ export interface LoginData {
 }
 </file>
 
+<file path="package.json">
+{
+  "name": "bumantara-kavling",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.0",
+    "@tanstack/react-query": "^5.96.2",
+    "axios": "^1.15.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "html-to-image": "^1.11.13",
+    "i18next": "^25.8.11",
+    "jspdf": "^4.2.1",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.575.0",
+    "motion": "^12.34.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-qr-code": "^2.0.18",
+    "react-router-dom": "^7.13.2",
+    "react-signature-canvas": "^1.1.0-alpha.2",
+    "socket.io-client": "^4.8.3",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tanstack/react-query-devtools": "^5.96.2",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-signature-canvas": "^1.0.7",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.3.1"
+  }
+}
+</file>
+
 <file path="src/hooks/queries/useCustomerPortal.ts">
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customerPortalService } from "../../services/customerPortal.service";
@@ -4045,154 +4525,6 @@ const AuditLog = () => {
 export default AuditLog;
 </file>
 
-<file path="src/pages/Public/AgentRegisterSuccess.tsx">
-// Lokasi: src/pages/Public/AgentRegisterSuccess.tsx
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Printer, CheckCircle2, ArrowRight } from 'lucide-react';
-
-const AgentRegisterSuccess = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const state = location.state as { nama?: string; alamat?: string; perusahaan?: string } | null;
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 font-sans print:bg-white print:py-0">
-
-      {/* Mengurangi padding cetak agar tersedia lebih banyak ruang vertikal */}
-      <style>
-        {`
-          @media print {
-            @page {
-              margin: 0.5cm; 
-            }
-            body {
-              padding: 0; 
-              -webkit-print-color-adjust: exact;
-            }
-          }
-        `}
-      </style>
-
-      <div className="max-w-3xl mx-auto space-y-6 print:space-y-0">
-
-        {/* Banner Sukses (Disembunyikan saat di-print) */}
-        <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl text-center print:hidden shadow-sm">
-          <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
-            <CheckCircle2 size={32} />
-          </div>
-          <h1 className="text-2xl font-black text-emerald-900 tracking-tight">Registrasi Berhasil!</h1>
-          <p className="text-sm font-medium text-emerald-700 mt-2 max-w-lg mx-auto leading-relaxed">
-            Akun portal Anda telah dibuat. Silakan <strong>Print / Cetak dokumen ini (PDF)</strong>, beri Materai dan tanda tangan basah, lalu upload kembali di dalam Portal Agent.
-          </p>
-          <div className="flex justify-center gap-4 mt-6">
-            <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-2.5 bg-black text-white font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-md">
-              <Printer size={18} /> Print Dokumen PDF
-            </button>
-            <button onClick={() => navigate('/agent-login', { replace: true })} className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition cursor-pointer shadow-sm">
-              Lanjut ke Portal Login <ArrowRight size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* DOKUMEN YANG AKAN DI-PRINT (SUPER COMPACT) */}
-        <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-xl print:shadow-none print:p-4 border border-slate-200 print:border-none text-black">
-
-          {/* Logo lebih kecil */}
-          <div className="flex justify-center mb-3">
-            <img
-              src="https://res.cloudinary.com/dbxzxfyw3/image/upload/v1776221608/LOGO_PURI_SAFANA-01_qq4lnw.png"
-              alt="Logo Puri Safana"
-              className="h-10 object-contain"
-              crossOrigin="anonymous"
-            />
-          </div>
-
-          <div className="text-center mb-4">
-            <h2 className="font-bold text-base uppercase tracking-widest underline underline-offset-2">
-              Surat Pernyataan
-            </h2>
-          </div>
-
-          {/* Bagian Biodata yang diperkecil gap-nya */}
-          <div className="text-[12px] leading-tight mb-2">
-            <p className="mb-1">Yang bertanda tangan di bawah ini:</p>
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="w-24 py-0.5 font-medium">Nama</td>
-                  <td>: {state?.nama || '____________________________'}</td>
-                </tr>
-                <tr>
-                  <td className="py-0.5 font-medium">Perusahaan</td>
-                  <td>: {state?.perusahaan || 'Independen / Pribadi'}</td>
-                </tr>
-                <tr>
-                  <td className="py-0.5 font-medium align-top">Alamat</td>
-                  <td>: {state?.alamat || '____________________________'}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <p className="text-[12px] mb-2 font-medium">Dengan ini menyatakan dan menyetujui hal-hal sebagai berikut:</p>
-
-          {/* List spasi sangat rapat */}
-          <ol className="list-decimal pl-4 space-y-1 text-[11px] text-justify mb-4 leading-tight">
-            <li>Bahwa saya akan menjalankan kegiatan pemasaran dan penjualan unit perumahan sesuai dengan ketentuan, SOP, kebijakan perusahaan, serta arahan manajemen developer.</li>
-            <li>Bahwa saya tidak akan memberikan informasi yang tidak benar, menyesatkan, dimanipulasi, atau berbeda dari data resmi perusahaan kepada calon konsumen.</li>
-            <li>
-              Bahwa saya dilarang melakukan:
-              <ul className="list-disc pl-5 mt-0.5">
-                <li>Mark up harga unit; Pengambilan keuntungan pribadi; Double booking unit;</li>
-                <li>Penahanan booking fee; Manipulasi data penjualan; Penjualan unit fiktif;</li>
-                <li>Pengalihan konsumen secara tidak sah; Tindakan merugikan perusahaan/konsumen.</li>
-              </ul>
-            </li>
-            <li>Bahwa seluruh pembayaran konsumen wajib dilakukan langsung ke rekening resmi perusahaan/developer dan saya dilarang menguasai dana konsumen dalam bentuk apa pun.</li>
-            <li>Bahwa saya dilarang menyebarluaskan atau memperjualbelikan data identitas, nomor telepon, dan dokumen pribadi konsumen tanpa izin tertulis dari perusahaan.</li>
-            <li>Bahwa saya dilarang bekerja sama dengan pihak internal maupun ketiga yang dapat menimbulkan konflik kepentingan atau kerugian bagi perusahaan.</li>
-            <li>Bahwa saya wajib menjaga nama baik perusahaan, kerahasiaan data, serta menjalankan etika profesi dalam kegiatan pemasaran dan penjualan.</li>
-            <li>
-              Bahwa apabila terjadi pelanggaran, perusahaan berhak:
-              <ul className="list-disc pl-5 mt-0.5">
-                <li>Memberikan sanksi; Membatalkan komisi; Menonaktifkan akses kerja;</li>
-                <li>Memberhentikan secara sepihak; Menempuh jalur hukum (pidana/perdata).</li>
-              </ul>
-            </li>
-            <li>Bahwa saya membuat pernyataan ini dalam keadaan sadar, sehat jasmani dan rohani, tanpa paksaan, serta bersedia mematuhi seluruh ketentuan perusahaan.</li>
-          </ol>
-
-          <p className="text-[11px] text-justify mb-6">
-            Demikian surat pernyataan ini dibuat untuk dipergunakan sebagaimana mestinya.
-          </p>
-
-          {/* Area Tanda Tangan Kompak */}
-          <div className="flex justify-end pr-4">
-            <div className="text-center w-44">
-              <p className="text-[12px] mb-8">Yang Membuat Pernyataan,</p>
-
-              <div className="relative flex justify-center items-center w-full">
-                {/* Kotak Materai Kecil */}
-                <div className="w-16 h-8 border border-dashed border-slate-400 absolute"></div>
-              </div>
-
-              <p className="font-bold text-[12px] underline mt-12">{state?.nama || '( Nama Lengkap )'}</p>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default AgentRegisterSuccess;
-</file>
-
 <file path="src/pages/Public/CustomerLogin.tsx">
 // src/pages/Public/CustomerLogin.tsx
 import React, { useState } from 'react';
@@ -4604,58 +4936,6 @@ export const formatTanpaDesimal = (angka: number) => {
     maximumFractionDigits: 0,
   }).format(Math.round(angka || 0));
 };
-</file>
-
-<file path="package.json">
-{
-  "name": "bumantara-kavling",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.2.0",
-    "@tanstack/react-query": "^5.96.2",
-    "axios": "^1.15.0",
-    "clsx": "^2.1.1",
-    "framer-motion": "^12.38.0",
-    "html-to-image": "^1.11.13",
-    "i18next": "^25.8.11",
-    "jspdf": "^4.2.1",
-    "jszip": "^3.10.1",
-    "lucide-react": "^0.575.0",
-    "motion": "^12.34.2",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-qr-code": "^2.0.18",
-    "react-router-dom": "^7.13.2",
-    "react-signature-canvas": "^1.1.0-alpha.2",
-    "socket.io-client": "^4.8.3",
-    "tailwind-merge": "^3.5.0",
-    "tailwindcss": "^4.2.0"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@tanstack/react-query-devtools": "^5.96.2",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
-    "@types/react-signature-canvas": "^1.0.7",
-    "@vitejs/plugin-react-swc": "^4.2.2",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "globals": "^16.5.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.1"
-  }
-}
 </file>
 
 <file path="src/components/Navbar.tsx">
@@ -5851,6 +6131,225 @@ const UserManagement = () => {
 };
 
 export default UserManagement;
+</file>
+
+<file path="src/pages/Public/AgentRegisterSuccess.tsx">
+// Lokasi: src/pages/Public/AgentRegisterSuccess.tsx
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Printer, CheckCircle2, ArrowRight } from 'lucide-react';
+
+const AgentRegisterSuccess = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const state = location.state as { nama?: string; alamat?: string; perusahaan?: string } | null;
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 py-12 px-4 font-sans print:bg-white print:py-0">
+
+      {/* Mengurangi padding cetak agar tersedia lebih banyak ruang vertikal */}
+      <style>
+        {`
+          @media print {
+            @page {
+              margin: 0.5cm; 
+            }
+            body {
+              padding: 0; 
+              -webkit-print-color-adjust: exact;
+            }
+          }
+        `}
+      </style>
+
+      <div className="max-w-3xl mx-auto space-y-6 print:space-y-0">
+
+        {/* Banner Sukses (Disembunyikan saat di-print) */}
+        <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl text-center print:hidden shadow-sm">
+          <div className="w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30">
+            <CheckCircle2 size={32} />
+          </div>
+          <h1 className="text-2xl font-black text-emerald-900 tracking-tight">Registrasi Berhasil!</h1>
+          <p className="text-sm font-medium text-emerald-700 mt-2 max-w-lg mx-auto leading-relaxed">
+            Akun portal Anda telah dibuat. Silakan <strong>Print / Cetak dokumen ini (PDF)</strong>, beri Materai dan tanda tangan basah, lalu upload kembali di dalam Portal Agent.
+          </p>
+          <div className="flex justify-center gap-4 mt-6">
+            <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-2.5 bg-black text-white font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-md">
+              <Printer size={18} /> Print Dokumen PDF
+            </button>
+            <button onClick={() => navigate('/agent-login', { replace: true })} className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition cursor-pointer shadow-sm">
+              Lanjut ke Portal Login <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* DOKUMEN YANG AKAN DI-PRINT (SUPER COMPACT) */}
+        <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-xl print:shadow-none print:p-4 border border-slate-200 print:border-none text-black">
+
+
+
+          <div className="text-center mb-4">
+            <h2 className="font-bold text-base uppercase tracking-widest underline underline-offset-2">
+              Surat Pernyataan
+            </h2>
+          </div>
+
+          {/* Bagian Biodata yang diperkecil gap-nya */}
+          <div className="text-[12px] leading-tight mb-2">
+            <p className="mb-1">Yang bertanda tangan di bawah ini:</p>
+            <table className="w-full">
+              <tbody>
+                <tr>
+                  <td className="w-24 py-0.5 font-medium">Nama</td>
+                  <td>: {state?.nama || '____________________________'}</td>
+                </tr>
+                <tr>
+                  <td className="py-0.5 font-medium">Perusahaan</td>
+                  <td>: {state?.perusahaan || 'Independen / Pribadi'}</td>
+                </tr>
+                <tr>
+                  <td className="py-0.5 font-medium align-top">Alamat</td>
+                  <td>: {state?.alamat || '____________________________'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-[12px] mb-2 font-medium">Saya bersedia untuk menjadi agent Perumahan Puri Safana Cikeas dan menyatakan menyetujui hal-hal sebagai berikut:</p>
+
+          {/* List spasi sangat rapat */}
+          <ol className="list-decimal pl-4 space-y-1 text-[11px] text-justify mb-4 leading-tight">
+            <li>Bahwa saya akan menjalankan kegiatan pemasaran dan penjualan unit perumahan sesuai dengan ketentuan, SOP, kebijakan Puri Safana Cikeas, serta arahan manajemen developer.</li>
+            <li>Bahwa saya tidak akan memberikan informasi yang tidak benar, menyesatkan, dimanipulasi, atau berbeda dari data resmi Puri Safana Cikeas kepada calon konsumen.</li>
+            <li>
+              Bahwa saya dilarang melakukan:
+              <ul className="list-disc pl-5 mt-0.5">
+                <li>Mark up harga unit; Pengambilan keuntungan pribadi; Double booking unit;</li>
+                <li>Penahanan booking fee; Manipulasi data penjualan; Penjualan unit fiktif;</li>
+                <li>Pengalihan konsumen secara tidak sah; Tindakan merugikan Puri Safana Cikeas/konsumen.</li>
+              </ul>
+            </li>
+            <li>Bahwa seluruh pembayaran konsumen wajib dilakukan langsung ke rekening resmi Puri Safana Cikeas dan saya dilarang menguasai dana konsumen dalam bentuk apa pun.</li>
+            <li>Bahwa saya dilarang menyebarluaskan atau memperjualbelikan data identitas, nomor telepon, dan dokumen pribadi konsumen tanpa izin tertulis dari Puri Safana Cikeas.</li>
+            <li>Bahwa saya dilarang bekerja sama dengan pihak internal maupun ketiga yang dapat menimbulkan konflik kepentingan atau kerugian bagi Puri Safana Cikeas.</li>
+            <li>Bahwa saya wajib menjaga nama baik Puri Safana Cikeas, kerahasiaan data, serta menjalankan etika profesi dalam kegiatan pemasaran dan penjualan.</li>
+            <li>
+              Bahwa apabila terjadi pelanggaran, Puri Safana Cikeas berhak:
+              <ul className="list-disc pl-5 mt-0.5">
+                <li>Memberikan sanksi; Membatalkan komisi; Menonaktifkan akses kerja;</li>
+                <li>Memberhentikan secara sepihak; Menempuh jalur hukum (pidana/perdata).</li>
+              </ul>
+            </li>
+            <li>Bahwa saya membuat pernyataan ini dalam keadaan sadar, sehat jasmani dan rohani, tanpa paksaan, serta bersedia mematuhi seluruh ketentuan Puri Safana Cikeas.</li>
+          </ol>
+
+          <p className="text-[11px] text-justify mb-6">
+            Demikian surat pernyataan ini dibuat untuk dipergunakan sebagaimana mestinya.
+          </p>
+
+          {/* Area Tanda Tangan Kompak */}
+          <div className="flex justify-end pr-4">
+            <div className="text-center w-44">
+              <p className="text-[12px] mb-8">Yang Membuat Pernyataan,</p>
+
+              <div className="relative flex justify-center items-center w-full">
+                {/* Kotak Materai Kecil */}
+                <div className="w-16 h-8 border border-dashed border-slate-400 absolute"></div>
+              </div>
+
+              <p className="font-bold text-[12px] underline mt-12">{state?.nama || '( Nama Lengkap )'}</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AgentRegisterSuccess;
+</file>
+
+<file path="src/services/verify.service.ts">
+import api from "../lib/axios";
+
+export interface VerifyInvoiceData {
+  noDokumen: string;
+  pembayaran: string;
+  nominal: number;
+  jatuhTempo: string;
+  status: string;
+  tanggalDibuat: string;
+  pembuat: string;
+  customer: {
+    nama: string;
+    noHp: string;
+    alamat: string;
+  };
+  kavling: {
+    perumahan: string;
+    blok: string;
+    nomorUnit: string;
+    tipe: string;
+    logoPerumahan: string;
+    rekeningTujuan?: {
+      namaBank: string;
+      noRekening: string;
+      atasNama: string;
+    } | null;
+  };
+  transaksi: {
+    caraPembayaran: string;
+    bank: string;
+    hargaJual: number;
+    sisaBelumDibayar: number;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ttdData?: any;
+}
+
+export interface VerifySprData {
+  noDokumen: string;
+  tanggalTransaksi: string;
+  status: string;
+  hargaJual: number;
+  dp: number;
+  bookingFee: number;
+  caraPembayaran: string;
+  bank: string;
+  pembuat: string;
+  customer: {
+    nama: string;
+    noHp: string;
+    alamat: string;
+  };
+  kavling: {
+    perumahan: string;
+    blokUnit: string;
+    logoPerumahan: string;
+    tipe: string;
+    rekeningTujuan?: {
+      namaBank: string;
+      noRekening: string;
+      atasNama: string;
+    } | null;
+  };
+}
+
+export interface VerifyDocumentResponse {
+  type: "INVOICE" | "KWITANSI" | "SPR";
+  data: VerifyInvoiceData | VerifySprData;
+}
+
+export const verifyService = {
+  verifyDocument: async (id: string): Promise<VerifyDocumentResponse> => {
+    const response = await api.get(`/verify/${id}`);
+    return response.data.data;
+  },
+};
 </file>
 
 <file path="src/components/shared/Modal.tsx">
@@ -7078,117 +7577,65 @@ export const progressPenjualanService = {
 };
 </file>
 
-<file path="src/services/tagihan.service.ts">
-import api from "../lib/axios";
-
-export interface TagihanData {
-  id: number;
-  noTagihan: string;
-  customerId: number;
-  namaCustomer: string;
-  penjualanId: number;
-  perumahan: string;
-  blok: string;
-  nomorUnit: string;
-  pembayaran: string;
-  nominal: number;
-  jatuhTempo: string;
-  status: string;
-  fileBukti: string | null;
-  reminderBerikutnya: string | null;
-  rekeningTujuan?: {
-    namaBank: string;
-    noRekening: string;
-    atasNama: string;
-  } | null;
-  isRefunded?: boolean;
-  fileBuktiRefund?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+<file path="src/components/shared/CurrencyInput.tsx">
+import React from 'react';
+interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
+  label?: string;
+  error?: string;
+  value: number | string;
+  onValueChange: (name: string, value: number) => void;
+  name: string;
 }
-
-export interface CreateTagihanDTO {
-  customerId: number;
-  penjualanId: number;
-  pembayaran: string;
-  nominal: number;
-  jatuhTempo: string;
-  reminderBerikutnya?: string | null;
-}
-
-export interface UpdateTagihanDTO {
-  pembayaran?: string;
-  nominal?: number;
-  jatuhTempo?: string;
-  status?: string;
-  reminderBerikutnya?: string | null;
-}
-
-export const tagihanService = {
-  getAll: async (params?: Record<string, unknown>): Promise<TagihanData[]> => {
-    // Menggunakan limit besar untuk sementara agar semua data terambil
-    const response = await api.get("/tagihan", {
-      params: { limit: 100, ...params },
-    });
-    return response.data.data.items;
-  },
-
-  getById: async (id: number): Promise<TagihanData> => {
-    const response = await api.get(`/tagihan/${id}`);
-    return response.data.data;
-  },
-
-  create: async (data: CreateTagihanDTO) => {
-    const response = await api.post("/tagihan", data);
-    return response.data.data;
-  },
-
-  update: async (id: number, data: UpdateTagihanDTO) => {
-    const response = await api.patch(`/tagihan/${id}`, data);
-    return response.data.data;
-  },
-
-  delete: async (id: number) => {
-    const response = await api.delete(`/tagihan/${id}`);
-    return response.data;
-  },
-
-  uploadBukti: async (id: number, file: File) => {
-    const formData = new FormData();
-    formData.append("fileBukti", file);
-    const response = await api.patch(`/tagihan/${id}/upload-bukti`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return response.data.data;
-  },
-  uploadRefund: async (id: number, file: File) => {
-    const formData = new FormData();
-    formData.append("fileBuktiRefund", file);
-    const response = await api.patch(`/tagihan/${id}/refund`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return response.data.data;
-  },
-  uploadSignature: async (data: {
-    noTagihanId: number;
-    signatureBase64: string;
-    nama: string;
-    peran: string;
-    tanggal: string;
-  }) => {
-    const response = await api.post(`/tagihan/${data.noTagihanId}/signature`, {
-      signatureBase64: data.signatureBase64,
-      nama: data.nama,
-      peran: data.peran,
-      tanggal: data.tanggal,
-    });
-    return response.data.data;
-  },
-  approveBukti: async (id: number, isApproved: boolean) => {
-    const response = await api.post(`/tagihan/${id}/approve`, { isApproved });
-    return response.data.data;
-  },
+const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
+  const numericValue = Number(value);
+  const isValidNumber = !Number.isNaN(numericValue) && value !== null && value !== undefined && value !== '';
+  const displayValue = isValidNumber && numericValue !== 0 ? new Intl.NumberFormat('id-ID').format(numericValue) : '';
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    const newNumericValue = rawValue ? Number(rawValue) : 0;
+    onValueChange(name, newNumericValue);
+  };
+  return (
+    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+      {label && (
+        <label
+          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
+        >
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <span className={`font-medium text-sm transition-colors ${props.disabled ? 'text-slate-400 opacity-60' : 'text-slate-400 group-focus-within:text-indigo-500'}`}>
+            Rp
+          </span>
+        </div>
+        <input
+          type="text"
+          name={name}
+          value={displayValue}
+          onChange={handleChange}
+          autoComplete="off"
+          /* Ditambahkan tabular-nums agar lebar angka konsisten (tidak bergeser) */
+          className={`w-full pl-11 pr-4 py-2.5 text-sm tabular-nums rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
+            disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
+            ${error
+              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
+            }`}
+          {...props}
+        />
+      </div>
+      {error && (
+        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
+          {error}
+        </span>
+      )}
+    </div>
+  );
 };
+export default CurrencyInput;
 </file>
 
 <file path="src/pages/Public/AgentRegister.tsx">
@@ -7704,144 +8151,131 @@ export const customerService = {
 };
 </file>
 
-<file path="src/services/verify.service.ts">
+<file path="src/services/tagihan.service.ts">
 import api from "../lib/axios";
 
-export interface VerifyInvoiceData {
-  noDokumen: string;
+export interface TagihanData {
+  id: number;
+  noTagihan: string;
+  customerId: number;
+  namaCustomer: string;
+  penjualanId: number;
+  perumahan: string;
+  blok: string;
+  nomorUnit: string;
   pembayaran: string;
   nominal: number;
   jatuhTempo: string;
   status: string;
-  tanggalDibuat: string;
-  pembuat: string;
-  customer: {
+  fileBukti: string | null;
+  reminderBerikutnya: string | null;
+  rekeningTujuan?: {
+    namaBank: string;
+    noRekening: string;
+    atasNama: string;
+  } | null;
+  isRefunded?: boolean;
+  fileBuktiRefund?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateTagihanDTO {
+  customerId: number;
+  penjualanId: number;
+  pembayaran: string;
+  nominal: number;
+  jatuhTempo: string;
+  reminderBerikutnya?: string | null;
+}
+
+export interface UpdateTagihanDTO {
+  pembayaran?: string;
+  nominal?: number;
+  jatuhTempo?: string;
+  status?: string;
+  reminderBerikutnya?: string | null;
+}
+export interface TagihanResponse {
+  items: TagihanData[];
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
+export const tagihanService = {
+  getAll: async (
+    params?: Record<string, unknown>,
+  ): Promise<TagihanResponse> => {
+    const response = await api.get("/tagihan", {
+      // Ubah default limit menjadi 10 dan page 1
+      params: { limit: 10, page: 1, ...params },
+    });
+    // Hapus .items di ujungnya agar mengembalikan objek lengkap
+    return response.data.data;
+  },
+
+  getById: async (id: number): Promise<TagihanData> => {
+    const response = await api.get(`/tagihan/${id}`);
+    return response.data.data;
+  },
+
+  create: async (data: CreateTagihanDTO) => {
+    const response = await api.post("/tagihan", data);
+    return response.data.data;
+  },
+
+  update: async (id: number, data: UpdateTagihanDTO) => {
+    const response = await api.patch(`/tagihan/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: number) => {
+    const response = await api.delete(`/tagihan/${id}`);
+    return response.data;
+  },
+
+  uploadBukti: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("fileBukti", file);
+    const response = await api.patch(`/tagihan/${id}/upload-bukti`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data.data;
+  },
+  uploadRefund: async (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("fileBuktiRefund", file);
+    const response = await api.patch(`/tagihan/${id}/refund`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data.data;
+  },
+  uploadSignature: async (data: {
+    noTagihanId: number;
+    signatureBase64: string;
     nama: string;
-    noHp: string;
-    alamat: string;
-  };
-  kavling: {
-    perumahan: string;
-    blok: string;
-    nomorUnit: string;
-    tipe: string;
-    logoPerumahan: string;
-    rekeningTujuan?: {
-      namaBank: string;
-      noRekening: string;
-      atasNama: string;
-    } | null;
-  };
-  transaksi: {
-    caraPembayaran: string;
-    bank: string;
-    hargaJual: number;
-    sisaBelumDibayar: number;
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ttdData?: any;
-}
-
-export interface VerifySprData {
-  noDokumen: string;
-  tanggalTransaksi: string;
-  status: string;
-  hargaJual: number;
-  dp: number;
-  bookingFee: number;
-  caraPembayaran: string;
-  bank: string;
-  pembuat: string;
-  customer: {
-    nama: string;
-    noHp: string;
-    alamat: string;
-  };
-  kavling: {
-    perumahan: string;
-    blokUnit: string;
-    logoPerumahan: string;
-    tipe: string;
-    rekeningTujuan?: {
-      namaBank: string;
-      noRekening: string;
-      atasNama: string;
-    } | null;
-  };
-}
-
-export interface VerifyDocumentResponse {
-  type: "INVOICE" | "KWITANSI" | "SPR";
-  data: VerifyInvoiceData | VerifySprData;
-}
-
-export const verifyService = {
-  verifyDocument: async (id: string): Promise<VerifyDocumentResponse> => {
-    const response = await api.get(`/verify/${id}`);
+    peran: string;
+    tanggal: string;
+  }) => {
+    const response = await api.post(`/tagihan/${data.noTagihanId}/signature`, {
+      signatureBase64: data.signatureBase64,
+      nama: data.nama,
+      peran: data.peran,
+      tanggal: data.tanggal,
+    });
+    return response.data.data;
+  },
+  approveBukti: async (id: number, isApproved: boolean) => {
+    const response = await api.post(`/tagihan/${id}/approve`, { isApproved });
     return response.data.data;
   },
 };
-</file>
-
-<file path="src/components/shared/CurrencyInput.tsx">
-import React from 'react';
-interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value'> {
-  label?: string;
-  error?: string;
-  value: number | string;
-  onValueChange: (name: string, value: number) => void;
-  name: string;
-}
-const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
-  const numericValue = Number(value);
-  const isValidNumber = !Number.isNaN(numericValue) && value !== null && value !== undefined && value !== '';
-  const displayValue = isValidNumber && numericValue !== 0 ? new Intl.NumberFormat('id-ID').format(numericValue) : '';
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/[^0-9]/g, '');
-    const newNumericValue = rawValue ? Number(rawValue) : 0;
-    onValueChange(name, newNumericValue);
-  };
-  return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
-      {label && (
-        <label
-          className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
-            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
-        >
-          {label}
-        </label>
-      )}
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className={`font-medium text-sm transition-colors ${props.disabled ? 'text-slate-400 opacity-60' : 'text-slate-400 group-focus-within:text-indigo-500'}`}>
-            Rp
-          </span>
-        </div>
-        <input
-          type="text"
-          name={name}
-          value={displayValue}
-          onChange={handleChange}
-          autoComplete="off"
-          /* Ditambahkan tabular-nums agar lebar angka konsisten (tidak bergeser) */
-          className={`w-full pl-11 pr-4 py-2.5 text-sm tabular-nums rounded-xl border transition-all duration-200 outline-none placeholder:text-slate-400 
-            disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:cursor-not-allowed disabled:shadow-none
-            ${error
-              ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
-            }`}
-          {...props}
-        />
-      </div>
-      {error && (
-        <span className="text-xs font-medium text-red-500 mt-1 ml-1 animate-in fade-in slide-in-from-top-1">
-          {error}
-        </span>
-      )}
-    </div>
-  );
-};
-export default CurrencyInput;
 </file>
 
 <file path="src/components/shared/DataTable.tsx">
@@ -9295,6 +9729,283 @@ const AgentPortalDashboard = () => {
 export default AgentPortalDashboard;
 </file>
 
+<file path="src/pages/Public/VerifyDocument.tsx">
+import { useParams } from 'react-router-dom';
+import { AlertCircle, ShieldCheck, Printer } from 'lucide-react';
+import { useVerifyDocument } from '../../hooks/queries/useVerify';
+import type { VerifyInvoiceData, VerifySprData } from '../../services/verify.service';
+import { formatDate, formatRupiah } from '../../utils/formatters';
+import { jsPDF } from "jspdf";
+import * as htmlToImage from 'html-to-image';
+import QRCode from "react-qr-code";
+
+const VerifyDocument = () => {
+  const { id } = useParams<{ id: string }>();
+  const { data: documentData, isLoading, isError } = useVerifyDocument(id || '');
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
+        <div className="relative w-16 h-16 mb-4">
+          <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <p className="text-slate-500 font-bold animate-pulse tracking-widest uppercase text-sm">Memverifikasi Dokumen...</p>
+      </div>
+    );
+  }
+
+  if (isError || !documentData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-slate-50">
+        <div className="bg-red-50 p-6 rounded-full mb-4">
+          <AlertCircle size={64} className="text-red-500" />
+        </div>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dokumen Tidak Valid</h2>
+        <p className="text-base text-slate-500 max-w-md mt-3 font-medium">
+          Maaf, kami tidak dapat menemukan data dokumen dengan nomor registrasi tersebut di dalam sistem resmi.
+        </p>
+      </div>
+    );
+  }
+
+  const { type, data } = documentData;
+  const isSpr = type === 'SPR';
+  const isKwitansi = type === 'KWITANSI';
+  const isInvoice = type === 'INVOICE';
+
+  const invData = data as VerifyInvoiceData;
+  const sprData = data as VerifySprData;
+
+  // Setup variable data menyesuaikan jenis dokumen agar rapi
+  const docTitle = isSpr ? 'SURAT PESANAN (SPR)' : isKwitansi ? 'BUKTI PEMBAYARAN' : 'TAGIHAN';
+  const cleanNoDoc = data.noDokumen.toString().replace(/INV-BF-|INV-DP-|KWT-BF-|KWT-DP-/g, '');
+  const tanggalDoc = isSpr ? sprData.tanggalTransaksi : invData.tanggalDibuat;
+  const logo = data.kavling.logoPerumahan;
+  const perumahanName = data.kavling.perumahan;
+
+  // Fungsi untuk Download PDF (Sama persis mekanismenya)
+  const handlePrintPDF = async () => {
+    const element = document.getElementById('print-area');
+    if (!element) return;
+
+    try {
+      // Jeda sejenak agar font & layout render sempurna
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      const scrollWidth = element.scrollWidth;
+      const scrollHeight = element.scrollHeight;
+
+      const dataUrl = await htmlToImage.toPng(element, {
+        quality: 1.0,
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+        width: scrollWidth,
+        height: scrollHeight,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+        }
+      });
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (scrollHeight * pdfWidth) / scrollWidth;
+
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      const fileName = `${docTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Gagal membuat PDF:', error);
+      alert('Terjadi kesalahan saat memproses file PDF.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100/50 py-12 px-4 font-sans flex flex-col items-center justify-start">
+
+      <div className="w-full max-w-3xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-emerald-50 border border-emerald-200 p-5 rounded-t-2xl sm:rounded-2xl mb-4 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0 shadow-inner shadow-emerald-700/20">
+            <ShieldCheck size={28} className="text-white" strokeWidth={2.5} />
+          </div>
+          <div className="text-center sm:text-left">
+            <h2 className="text-sm font-black text-emerald-900 tracking-widest uppercase mb-1">DOKUMEN VALID & TERVERIFIKASI</h2>
+            <p className="text-xs text-emerald-700 font-medium">Dokumen ini sah dan dilindungi oleh sistem portal.</p>
+          </div>
+        </div>
+        <button
+          onClick={handlePrintPDF}
+          className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer w-full sm:w-auto shrink-0"
+        >
+          <Printer size={16} /> Download PDF
+        </button>
+      </div>
+
+      <div className="w-full max-w-3xl shadow-2xl relative bg-white">
+        <div
+          id="print-area"
+          className="bg-white"
+          style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}
+        >
+          <div className="p-6 flex flex-col min-h-[800px]">
+
+            <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
+                  {docTitle}
+                </h2>
+                <div className="mt-2 space-y-0.5">
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">NO DOC</span>: {cleanNoDoc} / {new Date(tanggalDoc).getFullYear()}
+                  </p>
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">NO INVOICE</span>: {cleanNoDoc}
+                  </p>
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="w-20 inline-block">TANGGAL</span>: {formatDate(tanggalDoc)}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right flex flex-col items-end">
+                {logo ? (
+                  <img src={logo} alt="Logo" className="h-12 object-contain mb-2" crossOrigin="anonymous" />
+                ) : (
+                  <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">{perumahanName}</h3>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
+                {isKwitansi ? 'Telah Diterima Dari:' : isSpr ? 'Pihak Pemesan:' : 'Ditagihkan Kepada:'}
+              </p>
+              <p className="font-black text-lg text-slate-900 m-0 mb-0.5">{data.customer.nama}</p>
+              <p className="text-xs m-0 mb-0.5 font-bold text-slate-500">{data.customer.noHp || '-'}</p>
+              <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{data.customer.alamat || '-'}</p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 overflow-hidden mb-6">
+              <table className="w-full border-collapse bg-white">
+                <thead>
+                  <tr className="bg-slate-900 text-white">
+                    <th className="py-2.5 px-4 text-left text-[10px] uppercase tracking-widest font-bold">Deskripsi</th>
+                    <th className="py-2.5 px-4 text-right text-[10px] uppercase tracking-widest font-bold w-1/3">Jumlah</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="py-4 px-4 border-b border-slate-100 align-top">
+                      <p className="text-base font-black text-slate-900 m-0 mb-2">
+                        {isSpr ? 'Pemesanan Unit Kavling (SPR)' : invData.pembayaran}
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{perumahanName}</strong></p>
+                      <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">
+                        Kavling: <strong>{isSpr ? sprData.kavling.blokUnit : `Blok ${invData.kavling.blok} - No. ${invData.kavling.nomorUnit}`}</strong> {data.kavling.tipe ? `(Tipe ${data.kavling.tipe})` : ''}
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium m-0">
+                        Skema Pembayaran: <strong>{isSpr ? sprData.caraPembayaran : invData.transaksi.caraPembayaran?.replace('_', ' ')}</strong>
+                      </p>
+                    </td>
+                    <td className="py-4 px-4 border-b border-slate-100 text-right align-top text-lg font-black text-slate-900">
+                      {formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-row justify-between items-start gap-6 mb-6">
+
+              <div className="flex-1">
+                {(isInvoice || isKwitansi) && invData.kavling.rekeningTujuan && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
+                      {isKwitansi ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
+                    </span>
+                    <p className="text-xs font-bold text-slate-900 uppercase">Bank {invData.kavling.rekeningTujuan.namaBank}</p>
+                    <p className="text-lg font-black text-slate-900 my-0.5 font-mono tracking-tight">{invData.kavling.rekeningTujuan.noRekening}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">A/N: {invData.kavling.rekeningTujuan.atasNama}</p>
+                  </div>
+                )}
+                {isSpr && (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block w-full">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
+                      Status Kesepakatan Penjualan:
+                    </span>
+                    <p className={`text-sm font-black uppercase tracking-widest ${sprData.status === 'BATAL' ? 'text-red-600' : 'text-blue-600'}`}>
+                      {sprData.status}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="w-[280px] space-y-3">
+
+
+                {isSpr && (
+                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Booking Fee</span>
+                      <span className="text-slate-800 text-xs">{formatRupiah(sprData.bookingFee || 0)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <span>Down Payment (DP)</span>
+                      <span className="text-slate-800 text-xs">{formatRupiah(sprData.dp || 0)}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className={`flex justify-between items-center p-4 rounded-xl border-2 ${isKwitansi ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
+                  <span className="text-xs font-black uppercase tracking-[0.2em]">{isSpr ? 'Harga Jual' : 'Total'}</span>
+                  <span className="text-xl font-black">{formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl text-[9px] text-slate-600 leading-relaxed text-left">
+              <p className="font-bold text-slate-800 mb-1 uppercase tracking-widest">Catatan:</p>
+              <ul className="list-disc pl-4 space-y-0.5">
+                <li>Harga jual pembelian unit rumah sudah termasuk biaya AJB, Sertipikat, IMB, Listrik, BPHTB, Biaya Proses KPR dan Notaris.</li>
+                <li>Harga jual khusus pembelian kavling belum termasuk biaya BPHTB, PPJB, AJB, Sertipikat dan Biaya Mutasi PBB.</li>
+                <li>Apabila terjadi pembatalan, uang tanda jadi (Booking Fee) tidak dapat dikembalikan / hangus.</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
+              <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
+                <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
+                  <QRCode
+                    value={`${window.location.origin}/verify/${data.noDokumen}`}
+                    size={60}
+                    level="H"
+                  />
+                </div>
+                <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
+                <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
+                <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Hormat Kami,</span>
+                <span className="text-[10px] text-slate-900 font-black mt-0.5 tracking-wide uppercase">
+                  {data.pembuat}
+                </span>
+              </div>
+
+
+            </div>
+
+
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default VerifyDocument;
+</file>
+
 <file path="src/types/models/agent.ts">
 export interface PicAgentData {
   id?: number;
@@ -9366,610 +10077,6 @@ export interface CreateAgentDTO {
   potonganPph?: number;
   pics?: PicAgentData[];
 }
-</file>
-
-<file path="src/pages/Customer/Kavling.tsx">
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import DataTable from "../../components/shared/DataTable";
-import Modal from "../../components/shared/Modal";
-import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
-import { formatRupiah, formatDate } from "../../utils/formatters";
-import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
-import { useGetNotaris } from '../../hooks/queries/useNotaris';
-import { useGetTagihans } from '../../hooks/queries/useTagihan';
-import CurrencyInput from '../../components/shared/CurrencyInput';
-import { handleApiError } from '../../utils/errorHandler';
-interface KavlingData {
-  id: string;
-  perumahan: string;
-  status: string;
-  statusKavling: string;
-  lantai: string;
-  blok: string;
-  unit: string;
-  tipe: string;
-  luasBangunan: string | number;
-  luasTanah: string | number;
-  lokasiStrategis: string;
-  tanggalAkadPpjb: string;
-  akadPpjb: string;
-  tanggalAkadAjbPpat: string;
-  tanggalPembayaranPph: string;
-  tanggalPembayaranBphtb: string;
-  pembiayaan: string;
-  sp3r: string;
-  hargaDasarKavling: number; // Tambahan Baru dari UseCase
-  diskonPenjualan: number;   // Tambahan Baru dari UseCase
-  lebihTanah: number;
-  biayaStrategis: number;
-  totalHargaJual: number;
-  nrBiayaKprAsuransi: number;
-  nrDiskonAngsuran: number;
-  nrDiskonCash: number;
-  nrBiayaBbn: number;
-  nrBiayaNotarisAjb: number;
-  nrBiayaNotarisPpjb: number;
-  nrBiayaAppraisal: number;
-  nrBiayaBphtb: number;
-  nrLainLain: number;
-  nrTotalSubsidi: number;
-  nrNilaiPenyerahan: number;
-  nrPpn: number;
-  nrBphtb: number;
-  nrPph: number;
-  pjBiayaKpr: number;
-  pjBiayaAsuransi: number;
-  pjDiskonAngsuran: number;
-  pjBiayaBbn: number;
-  pjBiayaAjb: number;
-  pjBiayaAppraisal: number;
-  pjBphtb: number;
-  pjLainLain: number;
-  pjTotalSubsidi: number;
-  pjNilaiPenyerahan: number;
-  pjPpn: number;
-  pjBphtbPajak: number;
-  pjPph: number;
-  pjTotalBphtbPph: number;
-  ajbNjopTanahPerMeter: number;
-  ajbNjopTanah: number;
-  ajbNjopBangunanPerMeter: number;
-  ajbNjopBangunan: number;
-  ajbNjopTotal: number;
-  ajbPpn: number;
-  ajbBphtb: number;
-  ajbPph: number;
-  ajbTotalBphtbPph: number;
-  ajbSelisihPajakPbb: number;
-  ajbUping: number;
-  rekeningTujuanId: number;
-  notarisId: number | string;
-  biayaNotaris: number;
-}
-
-const initialFormState: KavlingData = {
-  id: '',
-  rekeningTujuanId: 0,
-  perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
-  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
-  hargaDasarKavling: 0, diskonPenjualan: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
-  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaNotarisPpjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
-  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
-  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
-  notarisId: '',
-  biayaNotaris: 0,
-};
-
-const CustomerKavling = () => {
-
-  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 300 });
-  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 300 });
-  const { data: notarisList = [] } = useGetNotaris();
-  const updateMutation = useUpdateCustomerKavling();
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState(initialFormState);
-  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
-
-  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
-
-  const columns = [
-    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => val },
-    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'No', accessor: 'unit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'Tipe', accessor: 'tipe' },
-    { header: 'Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) }, {
-      header: 'Status Penjualan',
-      accessor: 'status',
-      render: (val: string) => {
-        let style = 'bg-gray-100 text-gray-800';
-        if (val?.toUpperCase() === 'AVAILABLE') style = 'bg-green-100 text-green-800';
-        if (val?.toUpperCase() === 'BOOKED' || val?.toUpperCase() === 'BOOKING') style = 'bg-blue-100 text-blue-800';
-        if (val?.toUpperCase() === 'PROSES') style = 'bg-yellow-100 text-yellow-800';
-        if (val?.toUpperCase() === 'LUNAS' || val?.toUpperCase() === 'TERJUAL') style = 'bg-emerald-100 text-emerald-800';
-
-        return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>{val}</span>;
-      }
-    },
-  ];
-
-  const formatDateForInput = (dateString: string | null | undefined) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
-  };
-
-  const openModal = (item: any) => {
-    setFormData({
-      ...item,
-      nrBiayaNotarisPpjb: item.nrBiayaNotarisPpjb || 0,
-      hargaDasarKavling: item.hargaDasarKavling || 0,
-      diskonPenjualan: item.diskonPenjualan || 0,
-      totalHargaJual: item.totalHargaJual || 0,
-      tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
-      tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
-      tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
-      tanggalPembayaranBphtb: formatDateForInput(item.tanggalPembayaranBphtb),
-      biayaNotaris: item.biayaNotaris || 0,
-    });
-    setErrors({});
-    setActiveTab('dasar');
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-  };
-
-  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
-    const d = { ...currentData };
-
-    // Total Harga Akhir yang dinamis (Harga Jual dari Penjualan + Lebih Tanah + Biaya Strategis)
-    const hargaBase = (Number(d.totalHargaJual) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
-
-    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaNotarisPpjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
-    d.nrNilaiPenyerahan = hargaBase - d.nrTotalSubsidi;
-    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
-    d.pjNilaiPenyerahan = hargaBase - d.pjTotalSubsidi;
-    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
-    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
-    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
-    return d;
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
-
-    setFormData((prev) => {
-      const updatedData = { ...prev, [name]: parsedValue };
-      return calculateDerivedFields(updatedData);
-    });
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleCurrencyChange = (name: string, value: number) => {
-    setFormData((prev) => {
-      const updatedData = { ...prev, [name]: value };
-      return calculateDerivedFields(updatedData);
-    });
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    const getNum = (val: string | number | undefined) => (val === '' || val === undefined) ? undefined : Number(val);
-    const getStr = (val: string | undefined) => val === '' ? undefined : val;
-
-    const payload = {
-      statusKavling: getStr(formData.statusKavling),
-      namaTipe: getStr(formData.tipe),
-      luasBangunan: getNum(formData.luasBangunan),
-      luasTanah: getNum(formData.luasTanah),
-      // hargaDasarKavling TIDAK di lempar karena read-only
-      rekeningTujuanId: getNum(formData.rekeningTujuanId),
-
-      notarisId: getNum(formData.notarisId),
-      biayaNotaris: getNum(formData.biayaNotaris),
-      lantai: getStr(formData.lantai),
-      lokasiStrategis: getStr(formData.lokasiStrategis),
-      tanggalAkadPpjb: getStr(formData.tanggalAkadPpjb),
-      akadPpjb: getStr(formData.akadPpjb),
-      tanggalAkadAjbPpat: getStr(formData.tanggalAkadAjbPpat),
-      tanggalPembayaranPph: getStr(formData.tanggalPembayaranPph),
-      tanggalPembayaranBphtb: getStr(formData.tanggalPembayaranBphtb),
-      pembiayaan: getStr(formData.pembiayaan),
-      sp3r: getStr(formData.sp3r),
-      lebihTanah: getNum(formData.lebihTanah),
-      biayaStrategis: getNum(formData.biayaStrategis),
-      nrBiayaKprAsuransi: getNum(formData.nrBiayaKprAsuransi),
-      nrDiskonAngsuran: getNum(formData.nrDiskonAngsuran),
-      nrDiskonCash: getNum(formData.nrDiskonCash),
-      nrBiayaBbn: getNum(formData.nrBiayaBbn),
-      nrBiayaNotarisAjb: getNum(formData.nrBiayaNotarisAjb),
-      nrBiayaNotarisPpjb: getNum(formData.nrBiayaNotarisPpjb),
-      nrBiayaAppraisal: getNum(formData.nrBiayaAppraisal),
-      nrBiayaBphtb: getNum(formData.nrBiayaBphtb),
-      nrLainLain: getNum(formData.nrLainLain),
-      nrTotalSubsidi: getNum(formData.nrTotalSubsidi),
-      nrNilaiPenyerahan: getNum(formData.nrNilaiPenyerahan),
-      nrPpn: getNum(formData.nrPpn),
-      nrBphtb: getNum(formData.nrBphtb),
-      nrPph: getNum(formData.nrPph),
-      pjBiayaKpr: getNum(formData.pjBiayaKpr),
-      pjBiayaAsuransi: getNum(formData.pjBiayaAsuransi),
-      pjDiskonAngsuran: getNum(formData.pjDiskonAngsuran),
-      pjBiayaBbn: getNum(formData.pjBiayaBbn),
-      pjBiayaAjb: getNum(formData.pjBiayaAjb),
-      pjBiayaAppraisal: getNum(formData.pjBiayaAppraisal),
-      pjBphtb: getNum(formData.pjBphtb),
-      pjLainLain: getNum(formData.pjLainLain),
-      pjTotalSubsidi: getNum(formData.pjTotalSubsidi),
-      pjNilaiPenyerahan: getNum(formData.pjNilaiPenyerahan),
-      pjPpn: getNum(formData.pjPpn),
-      pjBphtbPajak: getNum(formData.pjBphtbPajak),
-      pjPph: getNum(formData.pjPph),
-      pjTotalBphtbPph: getNum(formData.pjTotalBphtbPph),
-      ajbNjopTanahPerMeter: getNum(formData.ajbNjopTanahPerMeter),
-      ajbNjopTanah: getNum(formData.ajbNjopTanah),
-      ajbNjopBangunanPerMeter: getNum(formData.ajbNjopBangunanPerMeter),
-      ajbNjopBangunan: getNum(formData.ajbNjopBangunan),
-      ajbNjopTotal: getNum(formData.ajbNjopTotal),
-      ajbPpn: getNum(formData.ajbPpn),
-      ajbBphtb: getNum(formData.ajbBphtb),
-      ajbPph: getNum(formData.ajbPph),
-      ajbTotalBphtbPph: getNum(formData.ajbTotalBphtbPph),
-      ajbSelisihPajakPbb: getNum(formData.ajbSelisihPajakPbb),
-      ajbUping: getNum(formData.ajbUping),
-    };
-
-    try {
-      await updateMutation.mutateAsync({ id: formData.id, data: payload });
-      closeModal();
-    } catch (error: any) {
-      const { message, errors: backendErrors } = handleApiError(error);
-
-      if (backendErrors && Array.isArray(backendErrors)) {
-        const fieldErrors: Record<string, string> = {};
-        backendErrors.forEach((err: { field: string; message: string }) => {
-          fieldErrors[err.field] = err.message;
-        });
-        setErrors(fieldErrors);
-      } else {
-        alert(message);
-      }
-    }
-  };
-
-  type TabId = 'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris';
-
-  const tabs: { id: TabId; label: string }[] = [
-    { id: 'dasar', label: 'Info Dasar' },
-    { id: 'harga', label: 'Harga Jual' },
-    { id: 'nilai', label: 'Nilai Rumah' },
-    { id: 'pajak', label: 'Pajak' },
-    { id: 'ajb', label: 'Keperluan AJB' },
-    { id: 'notaris', label: 'Notaris' },
-  ];
-
-  const expandedRowRender = (row: KavlingData) => {
-    const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
-    const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
-    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar;
-
-    return (
-      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-          <h4 className="text-sm font-bold text-slate-800">Riwayat Tagihan & Pembayaran</h4>
-          <div className="flex gap-2 flex-wrap">
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
-              Total Terbayar: {formatRupiah(totalTerbayar)}
-            </span>
-            <span className="px-3 py-1 bg-orange-100 text-orange-800 text-xs font-bold rounded-lg border border-orange-200">
-              Sisa Tagihan: {formatRupiah(sisaPembayaran)}
-            </span>
-          </div>
-        </div>
-
-        {history.length > 0 ? (
-          <div className="overflow-x-auto border border-slate-200 rounded-lg">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead>
-                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
-                  <th className="p-3 font-bold">Keterangan</th>
-                  <th className="p-3 font-bold">Jatuh Tempo</th>
-                  <th className="p-3 font-bold text-right">Nominal Tagihan</th>
-                  <th className="p-3 font-bold text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {history.sort((a: any, b: any) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime()).map((item: any) => (
-                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
-                    <td className="p-3 font-semibold text-slate-800">{item.pembayaran}</td>
-                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.jatuhTempo)}</td>
-                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.nominal)}</td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
-                        {item.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">Belum ada riwayat tagihan atau pembayaran.</p>
-        )}
-      </div>
-    );
-  };
-
-  if (isLoading || isLoadingTagihan) return;
-
-  return (
-    <div>
-      <DataTable
-        title="Data Kavling Customer"
-        columns={columns}
-        data={apiData}
-        onEdit={(item) => openModal(item)}
-        expandedRowRender={expandedRowRender}
-      />
-
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Customer Kavling">
-        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap py-2 px-4 border-b-2 font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300'
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {activeTab === 'dasar' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-
-              <Select
-                label="Status Kavling"
-                name="statusKavling"
-                value={formData.statusKavling}
-                onChange={handleChange}
-                options={[
-                  { value: 'AVAILABLE', label: 'Available' },
-                  { value: 'BOOKING', label: 'Booking' },
-                  { value: 'HOLD', label: 'Hold' },
-                  { value: 'TERJUAL', label: 'Terjual' }
-                ]}
-              />
-
-              <div className="grid grid-cols-2 gap-2">
-                <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-                <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
-              </div>
-              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
-              <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} error={errors.lantai} />
-              <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
-              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
-
-              <Select
-                label="Pembiayaan"
-                name="pembiayaan"
-                value={formData.pembiayaan || ''}
-                onChange={handleChange}
-                options={[
-                  { value: 'KPR', label: 'KPR Bank' },
-                  { value: 'CASH_KERAS', label: 'Cash Keras' },
-                  { value: 'CASH_BERTAHAP', label: 'Cash Bertahap' }
-                ]}
-              />
-
-              <Select label="SP3K" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
-              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
-
-              <Select
-                label="Akad PPJB"
-                name="akadPpjb"
-                value={formData.akadPpjb || ''}
-                onChange={handleChange}
-                options={[
-                  { value: '', label: '-- Pilih --' },
-                  { value: 'NOTARIS', label: 'Notaris' },
-                  { value: 'DEVELOPER', label: 'Developer' }
-                ]}
-              />
-
-              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
-              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
-            </div>
-          )}
-
-          {activeTab === 'harga' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <CurrencyInput label="Harga Jual (Sistem Nett)" name="totalHargaJual" value={formData.totalHargaJual} onValueChange={handleCurrencyChange} disabled={true} />
-              <CurrencyInput label="Diskon Penjualan (Sistem)" name="diskonPenjualan" value={formData.diskonPenjualan} onValueChange={handleCurrencyChange} disabled={true} />
-
-              <CurrencyInput label="Lebih Tanah Tambahan" name="lebihTanah" value={formData.lebihTanah} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Strategis Tambahan" name="biayaStrategis" value={formData.biayaStrategis} onValueChange={handleCurrencyChange} />
-
-              <div className="md:col-span-2 mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Kavling</span>
-                <span className="text-2xl font-black text-slate-900">{formatRupiah((formData.totalHargaJual || 0) + (formData.lebihTanah || 0) + (formData.biayaStrategis || 0) - (formData.diskonPenjualan || 0))}</span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'nilai' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
-              <CurrencyInput label="Biaya KPR & Asuransi" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Diskon Angsuran" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus</span>
-                <span className="font-black text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl flex justify-between items-center border border-blue-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-blue-800 uppercase tracking-widest">Nilai Penyerahan (Setelah Subsidi)</span>
-                <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Pajak Nilai Rumah" />
-              <CurrencyInput label="PPN" name="nrPpn" value={formData.nrPpn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="BPHTB" name="nrBphtb" value={formData.nrBphtb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="PPh" name="nrPph" value={formData.nrPph} onValueChange={handleCurrencyChange} />
-            </div>
-          )}
-
-          {activeTab === 'pajak' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Subsidi & Bonus (Pajak)" />
-              <CurrencyInput label="Biaya KPR" name="pjBiayaKpr" value={formData.pjBiayaKpr} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Asuransi" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Diskon Angsuran" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="pjBiayaBbn" value={formData.pjBiayaBbn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Pembuatan AJB" name="pjBiayaAjb" value={formData.pjBiayaAjb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Appraisal" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="BPHTB" name="pjBphtb" value={formData.pjBphtb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="pjLainLain" value={formData.pjLainLain} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
-                <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
-              </div>
-              <div className="md:col-span-2 bg-indigo-50 p-5 rounded-xl flex justify-between items-center border border-indigo-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-indigo-800 uppercase tracking-widest">Nilai Penyerahan (Pajak)</span>
-                <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
-              </div>
-              <SectionTitle title="Detail Pajak" />
-              <CurrencyInput label="PPN" name="pjPpn" value={formData.pjPpn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="BPHTB" name="pjBphtbPajak" value={formData.pjBphtbPajak} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="PPh" name="pjPph" value={formData.pjPph} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 mt-2 p-4 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
-                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
-                <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'ajb' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
-              <CurrencyInput label="NJOP Tanah per Meter" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Total NJOP Tanah" name="ajbNjopTanah" value={formData.ajbNjopTanah} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="NJOP Bangunan per Meter" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Total NJOP Bangunan" name="ajbNjopBangunan" value={formData.ajbNjopBangunan} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 bg-slate-50 p-5 rounded-xl flex justify-between items-center border border-slate-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">NJOP Tanah + Bangunan</span>
-                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.ajbNjopTotal)}</span>
-              </div>
-              <SectionTitle title="Kewajiban Pajak AJB" />
-              <CurrencyInput label="PPN" name="ajbPpn" value={formData.ajbPpn} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="BPHTB" name="ajbBphtb" value={formData.ajbBphtb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="PPh" name="ajbPph" value={formData.ajbPph} onValueChange={handleCurrencyChange} />
-              <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
-                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">BPHTB + PPh (AJB)</span>
-                <span className="text-xl font-black text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
-              </div>
-              <SectionTitle title="Lain-lain" />
-              <CurrencyInput label="Selisih (BPHTB+PPh) Pajak - PBB" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Uping" name="ajbUping" value={formData.ajbUping} onValueChange={handleCurrencyChange} />
-            </div>
-          )}
-
-          {activeTab === 'notaris' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <SectionTitle title="Pemilihan Notaris & Biaya" />
-
-              <div className="md:col-span-2">
-                <Select
-                  label="Pilih Notaris"
-                  name="notarisId"
-                  value={formData.notarisId || ''}
-                  onChange={handleChange}
-                  options={[
-                    { value: '', label: '-- Belum ditentukan --' },
-                    ...notarisList.map(n => ({ value: n.id, label: n.nama }))
-                  ]}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <CurrencyInput
-                  label="Biaya Notaris (Rp)"
-                  name="biayaNotaris"
-                  value={formData.biayaNotaris || 0}
-                  onValueChange={handleCurrencyChange}
-                  placeholder="0"
-                />
-              </div>
-
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-8">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={updateMutation.isPending}
-              className="px-6 py-2.5 text-xs uppercase tracking-widest font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="px-8 py-2.5 text-xs uppercase tracking-widest font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
-            >
-              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div >
-  );
-};
-
-const SectionTitle = ({ title }: { title: string }) => (
-  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-3 md:col-span-2 mt-4">{title}</h4>
-);
-
-export default CustomerKavling;
 </file>
 
 <file path="src/pages/Management/GantiKavling.tsx">
@@ -10696,283 +10803,6 @@ const Kavling = () => {
 export default Kavling;
 </file>
 
-<file path="src/pages/Public/VerifyDocument.tsx">
-import { useParams } from 'react-router-dom';
-import { AlertCircle, ShieldCheck, Printer } from 'lucide-react';
-import { useVerifyDocument } from '../../hooks/queries/useVerify';
-import type { VerifyInvoiceData, VerifySprData } from '../../services/verify.service';
-import { formatDate, formatRupiah } from '../../utils/formatters';
-import { jsPDF } from "jspdf";
-import * as htmlToImage from 'html-to-image';
-import QRCode from "react-qr-code";
-
-const VerifyDocument = () => {
-  const { id } = useParams<{ id: string }>();
-  const { data: documentData, isLoading, isError } = useVerifyDocument(id || '');
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
-        <div className="relative w-16 h-16 mb-4">
-          <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
-          <div className="absolute inset-0 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-        </div>
-        <p className="text-slate-500 font-bold animate-pulse tracking-widest uppercase text-sm">Memverifikasi Dokumen...</p>
-      </div>
-    );
-  }
-
-  if (isError || !documentData) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-slate-50">
-        <div className="bg-red-50 p-6 rounded-full mb-4">
-          <AlertCircle size={64} className="text-red-500" />
-        </div>
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dokumen Tidak Valid</h2>
-        <p className="text-base text-slate-500 max-w-md mt-3 font-medium">
-          Maaf, kami tidak dapat menemukan data dokumen dengan nomor registrasi tersebut di dalam sistem resmi.
-        </p>
-      </div>
-    );
-  }
-
-  const { type, data } = documentData;
-  const isSpr = type === 'SPR';
-  const isKwitansi = type === 'KWITANSI';
-  const isInvoice = type === 'INVOICE';
-
-  const invData = data as VerifyInvoiceData;
-  const sprData = data as VerifySprData;
-
-  // Setup variable data menyesuaikan jenis dokumen agar rapi
-  const docTitle = isSpr ? 'SURAT PESANAN (SPR)' : isKwitansi ? 'BUKTI PEMBAYARAN' : 'TAGIHAN';
-  const cleanNoDoc = data.noDokumen.toString().replace(/INV-BF-|INV-DP-|KWT-BF-|KWT-DP-/g, '');
-  const tanggalDoc = isSpr ? sprData.tanggalTransaksi : invData.tanggalDibuat;
-  const logo = data.kavling.logoPerumahan;
-  const perumahanName = data.kavling.perumahan;
-
-  // Fungsi untuk Download PDF (Sama persis mekanismenya)
-  const handlePrintPDF = async () => {
-    const element = document.getElementById('print-area');
-    if (!element) return;
-
-    try {
-      // Jeda sejenak agar font & layout render sempurna
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      const scrollWidth = element.scrollWidth;
-      const scrollHeight = element.scrollHeight;
-
-      const dataUrl = await htmlToImage.toPng(element, {
-        quality: 1.0,
-        pixelRatio: 2,
-        backgroundColor: '#ffffff',
-        width: scrollWidth,
-        height: scrollHeight,
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left',
-        }
-      });
-
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (scrollHeight * pdfWidth) / scrollWidth;
-
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-      const fileName = `${docTitle.replace(/\s+/g, '_')}_${cleanNoDoc}.pdf`;
-      pdf.save(fileName);
-    } catch (error) {
-      console.error('Gagal membuat PDF:', error);
-      alert('Terjadi kesalahan saat memproses file PDF.');
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-100/50 py-12 px-4 font-sans flex flex-col items-center justify-start">
-
-      <div className="w-full max-w-3xl flex flex-col sm:flex-row items-center justify-between gap-4 bg-emerald-50 border border-emerald-200 p-5 rounded-t-2xl sm:rounded-2xl mb-4 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center shrink-0 shadow-inner shadow-emerald-700/20">
-            <ShieldCheck size={28} className="text-white" strokeWidth={2.5} />
-          </div>
-          <div className="text-center sm:text-left">
-            <h2 className="text-sm font-black text-emerald-900 tracking-widest uppercase mb-1">DOKUMEN VALID & TERVERIFIKASI</h2>
-            <p className="text-xs text-emerald-700 font-medium">Dokumen ini sah dan dilindungi oleh sistem portal.</p>
-          </div>
-        </div>
-        <button
-          onClick={handlePrintPDF}
-          className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black flex items-center justify-center gap-2 transition-colors shadow-lg cursor-pointer w-full sm:w-auto shrink-0"
-        >
-          <Printer size={16} /> Download PDF
-        </button>
-      </div>
-
-      <div className="w-full max-w-3xl shadow-2xl relative bg-white">
-        <div
-          id="print-area"
-          className="bg-white"
-          style={{ width: '100%', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', borderTop: '8px solid #0f172a' }}
-        >
-          <div className="p-6 flex flex-col min-h-[800px]">
-
-            <div className="flex justify-between items-start border-b-[2px] border-slate-900 pb-4 mb-4 mt-1">
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-[0.2em] text-slate-900 m-0">
-                  {docTitle}
-                </h2>
-                <div className="mt-2 space-y-0.5">
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                    <span className="w-20 inline-block">NO DOC</span>: {cleanNoDoc} / {new Date(tanggalDoc).getFullYear()}
-                  </p>
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                    <span className="w-20 inline-block">NO INVOICE</span>: {cleanNoDoc}
-                  </p>
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                    <span className="w-20 inline-block">TANGGAL</span>: {formatDate(tanggalDoc)}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right flex flex-col items-end">
-                {logo ? (
-                  <img src={logo} alt="Logo" className="h-12 object-contain mb-2" crossOrigin="anonymous" />
-                ) : (
-                  <h3 className="m-0 text-xl font-black text-slate-900 tracking-tight mb-1">{perumahanName}</h3>
-                )}
-              </div>
-            </div>
-
-            <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <p className="text-[9px] text-slate-400 font-black mb-1.5 uppercase tracking-[0.2em]">
-                {isKwitansi ? 'Telah Diterima Dari:' : isSpr ? 'Pihak Pemesan:' : 'Ditagihkan Kepada:'}
-              </p>
-              <p className="font-black text-lg text-slate-900 m-0 mb-0.5">{data.customer.nama}</p>
-              <p className="text-xs m-0 mb-0.5 font-bold text-slate-500">{data.customer.noHp || '-'}</p>
-              <p className="text-xs m-0 leading-relaxed font-medium text-slate-600 max-w-md">{data.customer.alamat || '-'}</p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 overflow-hidden mb-6">
-              <table className="w-full border-collapse bg-white">
-                <thead>
-                  <tr className="bg-slate-900 text-white">
-                    <th className="py-2.5 px-4 text-left text-[10px] uppercase tracking-widest font-bold">Deskripsi</th>
-                    <th className="py-2.5 px-4 text-right text-[10px] uppercase tracking-widest font-bold w-1/3">Jumlah</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="py-4 px-4 border-b border-slate-100 align-top">
-                      <p className="text-base font-black text-slate-900 m-0 mb-2">
-                        {isSpr ? 'Pemesanan Unit Kavling (SPR)' : invData.pembayaran}
-                      </p>
-                      <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">Perumahan: <strong>{perumahanName}</strong></p>
-                      <p className="text-xs text-slate-600 font-medium m-0 mb-0.5">
-                        Kavling: <strong>{isSpr ? sprData.kavling.blokUnit : `Blok ${invData.kavling.blok} - No. ${invData.kavling.nomorUnit}`}</strong> {data.kavling.tipe ? `(Tipe ${data.kavling.tipe})` : ''}
-                      </p>
-                      <p className="text-xs text-slate-600 font-medium m-0">
-                        Skema Pembayaran: <strong>{isSpr ? sprData.caraPembayaran : invData.transaksi.caraPembayaran?.replace('_', ' ')}</strong>
-                      </p>
-                    </td>
-                    <td className="py-4 px-4 border-b border-slate-100 text-right align-top text-lg font-black text-slate-900">
-                      {formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex flex-row justify-between items-start gap-6 mb-6">
-
-              <div className="flex-1">
-                {(isInvoice || isKwitansi) && invData.kavling.rekeningTujuan && (
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
-                      {isKwitansi ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
-                    </span>
-                    <p className="text-xs font-bold text-slate-900 uppercase">Bank {invData.kavling.rekeningTujuan.namaBank}</p>
-                    <p className="text-lg font-black text-slate-900 my-0.5 font-mono tracking-tight">{invData.kavling.rekeningTujuan.noRekening}</p>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">A/N: {invData.kavling.rekeningTujuan.atasNama}</p>
-                  </div>
-                )}
-                {isSpr && (
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 inline-block w-full">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-2">
-                      Status Kesepakatan Penjualan:
-                    </span>
-                    <p className={`text-sm font-black uppercase tracking-widest ${sprData.status === 'BATAL' ? 'text-red-600' : 'text-blue-600'}`}>
-                      {sprData.status}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="w-[280px] space-y-3">
-
-
-                {isSpr && (
-                  <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                      <span>Booking Fee</span>
-                      <span className="text-slate-800 text-xs">{formatRupiah(sprData.bookingFee || 0)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                      <span>Down Payment (DP)</span>
-                      <span className="text-slate-800 text-xs">{formatRupiah(sprData.dp || 0)}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className={`flex justify-between items-center p-4 rounded-xl border-2 ${isKwitansi ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-900 border-slate-900 text-white'}`}>
-                  <span className="text-xs font-black uppercase tracking-[0.2em]">{isSpr ? 'Harga Jual' : 'Total'}</span>
-                  <span className="text-xl font-black">{formatRupiah(isSpr ? sprData.hargaJual : invData.nominal)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-xl text-[9px] text-slate-600 leading-relaxed text-left">
-              <p className="font-bold text-slate-800 mb-1 uppercase tracking-widest">Catatan:</p>
-              <ul className="list-disc pl-4 space-y-0.5">
-                <li>Harga jual pembelian unit rumah sudah termasuk biaya AJB, Sertipikat, IMB, Listrik, BPHTB, Biaya Proses KPR dan Notaris.</li>
-                <li>Harga jual khusus pembelian kavling belum termasuk biaya BPHTB, PPJB, AJB, Sertipikat dan Biaya Mutasi PBB.</li>
-                <li>Apabila terjadi pembatalan, uang tanda jadi (Booking Fee) tidak dapat dikembalikan / hangus.</li>
-              </ul>
-            </div>
-
-            <div className="flex justify-between items-end pt-4 border-t border-slate-100 mt-auto">
-              <div className="flex flex-col items-center p-2 border border-slate-200 rounded-xl bg-slate-50 shadow-sm">
-                <div style={{ background: 'white', padding: '3px', borderRadius: '6px' }}>
-                  <QRCode
-                    value={`${window.location.origin}/verify/${data.noDokumen}`}
-                    size={60}
-                    level="H"
-                  />
-                </div>
-                <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
-                <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">www.purisafana.com</span>
-                <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Hormat Kami,</span>
-                <span className="text-[10px] text-slate-900 font-black mt-0.5 tracking-wide uppercase">
-                  {data.pembuat}
-                </span>
-              </div>
-
-
-            </div>
-
-
-
-
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default VerifyDocument;
-</file>
-
 <file path="src/services/penjualan.service.ts">
 import api from "../lib/axios";
 
@@ -11102,6 +10932,613 @@ export const penjualanService = {
     return response.data.data;
   },
 };
+</file>
+
+<file path="src/pages/Customer/Kavling.tsx">
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState } from 'react';
+import DataTable from "../../components/shared/DataTable";
+import Modal from "../../components/shared/Modal";
+import Input from "../../components/shared/Input";
+import Select from "../../components/shared/Select";
+import { formatRupiah, formatDate } from "../../utils/formatters";
+import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
+import { useGetNotaris } from '../../hooks/queries/useNotaris';
+import { useGetTagihans } from '../../hooks/queries/useTagihan';
+import CurrencyInput from '../../components/shared/CurrencyInput';
+import { handleApiError } from '../../utils/errorHandler';
+interface KavlingData {
+  id: string;
+  perumahan: string;
+  status: string;
+  statusKavling: string;
+  lantai: string;
+  blok: string;
+  unit: string;
+  tipe: string;
+  luasBangunan: string | number;
+  luasTanah: string | number;
+  lokasiStrategis: string;
+  tanggalAkadPpjb: string;
+  akadPpjb: string;
+  tanggalAkadAjbPpat: string;
+  tanggalPembayaranPph: string;
+  tanggalPembayaranBphtb: string;
+  pembiayaan: string;
+  sp3r: string;
+  hargaDasarKavling: number; // Tambahan Baru dari UseCase
+  diskonPenjualan: number;   // Tambahan Baru dari UseCase
+  lebihTanah: number;
+  biayaStrategis: number;
+  totalHargaJual: number;
+  nrBiayaKprAsuransi: number;
+  nrDiskonAngsuran: number;
+  nrDiskonCash: number;
+  nrBiayaBbn: number;
+  nrBiayaNotarisAjb: number;
+  nrBiayaNotarisPpjb: number;
+  nrBiayaAppraisal: number;
+  nrBiayaBphtb: number;
+  nrLainLain: number;
+  nrTotalSubsidi: number;
+  nrNilaiPenyerahan: number;
+  nrPpn: number;
+  nrBphtb: number;
+  nrPph: number;
+  pjBiayaKpr: number;
+  pjBiayaAsuransi: number;
+  pjDiskonAngsuran: number;
+  pjBiayaBbn: number;
+  pjBiayaAjb: number;
+  pjBiayaAppraisal: number;
+  pjBphtb: number;
+  pjLainLain: number;
+  pjTotalSubsidi: number;
+  pjNilaiPenyerahan: number;
+  pjPpn: number;
+  pjBphtbPajak: number;
+  pjPph: number;
+  pjTotalBphtbPph: number;
+  ajbNjopTanahPerMeter: number;
+  ajbNjopTanah: number;
+  ajbNjopBangunanPerMeter: number;
+  ajbNjopBangunan: number;
+  ajbNjopTotal: number;
+  ajbPpn: number;
+  ajbBphtb: number;
+  ajbPph: number;
+  ajbTotalBphtbPph: number;
+  ajbSelisihPajakPbb: number;
+  ajbUping: number;
+  rekeningTujuanId: number;
+  notarisId: number | string;
+  biayaNotaris: number;
+}
+
+const initialFormState: KavlingData = {
+  id: '',
+  rekeningTujuanId: 0,
+  perumahan: '', status: '', statusKavling: 'AVAILABLE', lantai: '', blok: '', unit: '', tipe: '', luasBangunan: '', luasTanah: '', lokasiStrategis: '',
+  tanggalAkadPpjb: '', akadPpjb: '', tanggalAkadAjbPpat: '', tanggalPembayaranPph: '', tanggalPembayaranBphtb: '', pembiayaan: '', sp3r: '',
+  hargaDasarKavling: 0, diskonPenjualan: 0, lebihTanah: 0, biayaStrategis: 0, totalHargaJual: 0,
+  nrBiayaKprAsuransi: 0, nrDiskonAngsuran: 0, nrDiskonCash: 0, nrBiayaBbn: 0, nrBiayaNotarisAjb: 0, nrBiayaNotarisPpjb: 0, nrBiayaAppraisal: 0, nrBiayaBphtb: 0, nrLainLain: 0, nrTotalSubsidi: 0, nrNilaiPenyerahan: 0, nrPpn: 0, nrBphtb: 0, nrPph: 0,
+  pjBiayaKpr: 0, pjBiayaAsuransi: 0, pjDiskonAngsuran: 0, pjBiayaBbn: 0, pjBiayaAjb: 0, pjBiayaAppraisal: 0, pjBphtb: 0, pjLainLain: 0, pjTotalSubsidi: 0, pjNilaiPenyerahan: 0, pjPpn: 0, pjBphtbPajak: 0, pjPph: 0, pjTotalBphtbPph: 0,
+  ajbNjopTanahPerMeter: 0, ajbNjopTanah: 0, ajbNjopBangunanPerMeter: 0, ajbNjopBangunan: 0, ajbNjopTotal: 0, ajbPpn: 0, ajbBphtb: 0, ajbPph: 0, ajbTotalBphtbPph: 0, ajbSelisihPajakPbb: 0, ajbUping: 0,
+  notarisId: '',
+  biayaNotaris: 0,
+};
+
+const CustomerKavling = () => {
+
+  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 300 });
+  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({ limit: 300 });
+  const tagihans = tagihansResponse?.items || [];
+
+
+  const { data: notarisList = [] } = useGetNotaris();
+  const updateMutation = useUpdateCustomerKavling();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState(initialFormState);
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+
+  const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
+
+  const columns = [
+    { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => val },
+    { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'No', accessor: 'unit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    { header: 'Tipe', accessor: 'tipe' },
+    { header: 'Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) }, {
+      header: 'Status Penjualan',
+      accessor: 'status',
+      render: (val: string) => {
+        let style = 'bg-gray-100 text-gray-800';
+        if (val?.toUpperCase() === 'AVAILABLE') style = 'bg-green-100 text-green-800';
+        if (val?.toUpperCase() === 'BOOKED' || val?.toUpperCase() === 'BOOKING') style = 'bg-blue-100 text-blue-800';
+        if (val?.toUpperCase() === 'PROSES') style = 'bg-yellow-100 text-yellow-800';
+        if (val?.toUpperCase() === 'LUNAS' || val?.toUpperCase() === 'TERJUAL') style = 'bg-emerald-100 text-emerald-800';
+
+        return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>{val}</span>;
+      }
+    },
+  ];
+
+  const formatDateForInput = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+  };
+
+  const openModal = (item: any) => {
+    setFormData({
+      ...item,
+      nrBiayaNotarisPpjb: item.nrBiayaNotarisPpjb || 0,
+      hargaDasarKavling: item.hargaDasarKavling || 0,
+      diskonPenjualan: item.diskonPenjualan || 0,
+      totalHargaJual: item.totalHargaJual || 0,
+      tanggalAkadPpjb: formatDateForInput(item.tanggalAkadPpjb),
+      tanggalAkadAjbPpat: formatDateForInput(item.tanggalAkadAjbPpat),
+      tanggalPembayaranPph: formatDateForInput(item.tanggalPembayaranPph),
+      tanggalPembayaranBphtb: formatDateForInput(item.tanggalPembayaranBphtb),
+      biayaNotaris: item.biayaNotaris || 0,
+    });
+    setErrors({});
+    setActiveTab('dasar');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData(initialFormState);
+  };
+
+  const calculateDerivedFields = (currentData: KavlingData): KavlingData => {
+    const d = { ...currentData };
+
+    // Total Harga Akhir yang dinamis (Harga Jual dari Penjualan + Lebih Tanah + Biaya Strategis)
+    const hargaBase = (Number(d.totalHargaJual) || 0) + (Number(d.lebihTanah) || 0) + (Number(d.biayaStrategis) || 0);
+
+    d.nrTotalSubsidi = (Number(d.nrBiayaKprAsuransi) || 0) + (Number(d.nrDiskonAngsuran) || 0) + (Number(d.nrDiskonCash) || 0) + (Number(d.nrBiayaBbn) || 0) + (Number(d.nrBiayaNotarisAjb) || 0) + (Number(d.nrBiayaNotarisPpjb) || 0) + (Number(d.nrBiayaAppraisal) || 0) + (Number(d.nrBiayaBphtb) || 0) + (Number(d.nrLainLain) || 0);
+    d.nrNilaiPenyerahan = hargaBase - d.nrTotalSubsidi;
+    d.pjTotalSubsidi = (Number(d.pjBiayaKpr) || 0) + (Number(d.pjBiayaAsuransi) || 0) + (Number(d.pjDiskonAngsuran) || 0) + (Number(d.pjBiayaBbn) || 0) + (Number(d.pjBiayaAjb) || 0) + (Number(d.pjBiayaAppraisal) || 0) + (Number(d.pjBphtb) || 0) + (Number(d.pjLainLain) || 0);
+    d.pjNilaiPenyerahan = hargaBase - d.pjTotalSubsidi;
+    d.pjTotalBphtbPph = (Number(d.pjBphtbPajak) || 0) + (Number(d.pjPph) || 0);
+    d.ajbNjopTotal = (Number(d.ajbNjopTanah) || 0) + (Number(d.ajbNjopBangunan) || 0);
+    d.ajbTotalBphtbPph = (Number(d.ajbBphtb) || 0) + (Number(d.ajbPph) || 0);
+    return d;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    const parsedValue = type === 'number' ? (value === '' ? 0 : Number(value)) : value;
+
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: parsedValue };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: value };
+      return calculateDerivedFields(updatedData);
+    });
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const getNum = (val: string | number | undefined) => (val === '' || val === undefined) ? undefined : Number(val);
+    const getStr = (val: string | undefined) => val === '' ? undefined : val;
+
+    const payload = {
+      statusKavling: getStr(formData.statusKavling),
+      namaTipe: getStr(formData.tipe),
+      luasBangunan: getNum(formData.luasBangunan),
+      luasTanah: getNum(formData.luasTanah),
+      // hargaDasarKavling TIDAK di lempar karena read-only
+      rekeningTujuanId: getNum(formData.rekeningTujuanId),
+
+      notarisId: getNum(formData.notarisId),
+      biayaNotaris: getNum(formData.biayaNotaris),
+      lantai: getStr(formData.lantai),
+      lokasiStrategis: getStr(formData.lokasiStrategis),
+      tanggalAkadPpjb: getStr(formData.tanggalAkadPpjb),
+      akadPpjb: getStr(formData.akadPpjb),
+      tanggalAkadAjbPpat: getStr(formData.tanggalAkadAjbPpat),
+      tanggalPembayaranPph: getStr(formData.tanggalPembayaranPph),
+      tanggalPembayaranBphtb: getStr(formData.tanggalPembayaranBphtb),
+      pembiayaan: getStr(formData.pembiayaan),
+      sp3r: getStr(formData.sp3r),
+      lebihTanah: getNum(formData.lebihTanah),
+      biayaStrategis: getNum(formData.biayaStrategis),
+      nrBiayaKprAsuransi: getNum(formData.nrBiayaKprAsuransi),
+      nrDiskonAngsuran: getNum(formData.nrDiskonAngsuran),
+      nrDiskonCash: getNum(formData.nrDiskonCash),
+      nrBiayaBbn: getNum(formData.nrBiayaBbn),
+      nrBiayaNotarisAjb: getNum(formData.nrBiayaNotarisAjb),
+      nrBiayaNotarisPpjb: getNum(formData.nrBiayaNotarisPpjb),
+      nrBiayaAppraisal: getNum(formData.nrBiayaAppraisal),
+      nrBiayaBphtb: getNum(formData.nrBiayaBphtb),
+      nrLainLain: getNum(formData.nrLainLain),
+      nrTotalSubsidi: getNum(formData.nrTotalSubsidi),
+      nrNilaiPenyerahan: getNum(formData.nrNilaiPenyerahan),
+      nrPpn: getNum(formData.nrPpn),
+      nrBphtb: getNum(formData.nrBphtb),
+      nrPph: getNum(formData.nrPph),
+      pjBiayaKpr: getNum(formData.pjBiayaKpr),
+      pjBiayaAsuransi: getNum(formData.pjBiayaAsuransi),
+      pjDiskonAngsuran: getNum(formData.pjDiskonAngsuran),
+      pjBiayaBbn: getNum(formData.pjBiayaBbn),
+      pjBiayaAjb: getNum(formData.pjBiayaAjb),
+      pjBiayaAppraisal: getNum(formData.pjBiayaAppraisal),
+      pjBphtb: getNum(formData.pjBphtb),
+      pjLainLain: getNum(formData.pjLainLain),
+      pjTotalSubsidi: getNum(formData.pjTotalSubsidi),
+      pjNilaiPenyerahan: getNum(formData.pjNilaiPenyerahan),
+      pjPpn: getNum(formData.pjPpn),
+      pjBphtbPajak: getNum(formData.pjBphtbPajak),
+      pjPph: getNum(formData.pjPph),
+      pjTotalBphtbPph: getNum(formData.pjTotalBphtbPph),
+      ajbNjopTanahPerMeter: getNum(formData.ajbNjopTanahPerMeter),
+      ajbNjopTanah: getNum(formData.ajbNjopTanah),
+      ajbNjopBangunanPerMeter: getNum(formData.ajbNjopBangunanPerMeter),
+      ajbNjopBangunan: getNum(formData.ajbNjopBangunan),
+      ajbNjopTotal: getNum(formData.ajbNjopTotal),
+      ajbPpn: getNum(formData.ajbPpn),
+      ajbBphtb: getNum(formData.ajbBphtb),
+      ajbPph: getNum(formData.ajbPph),
+      ajbTotalBphtbPph: getNum(formData.ajbTotalBphtbPph),
+      ajbSelisihPajakPbb: getNum(formData.ajbSelisihPajakPbb),
+      ajbUping: getNum(formData.ajbUping),
+    };
+
+    try {
+      await updateMutation.mutateAsync({ id: formData.id, data: payload });
+      closeModal();
+    } catch (error: any) {
+      const { message, errors: backendErrors } = handleApiError(error);
+
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
+    }
+  };
+
+  type TabId = 'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris';
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'dasar', label: 'Info Dasar' },
+    { id: 'harga', label: 'Harga Jual' },
+    { id: 'nilai', label: 'Nilai Rumah' },
+    { id: 'pajak', label: 'Pajak' },
+    { id: 'ajb', label: 'Keperluan AJB' },
+    { id: 'notaris', label: 'Notaris' },
+  ];
+
+  const expandedRowRender = (row: KavlingData) => {
+    const history = tagihans.filter((t: any) => String(t.penjualanId) === String(row.id));
+    const totalTerbayar = history.filter((t: any) => t.status === 'LUNAS').reduce((acc: number, curr: any) => acc + Number(curr.nominal), 0);
+    const sisaPembayaran = (row.totalHargaJual || 0) - totalTerbayar;
+
+    return (
+      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200 shadow-inner">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+          <h4 className="text-sm font-bold text-slate-800">Riwayat Tagihan & Pembayaran</h4>
+          <div className="flex gap-2 flex-wrap">
+            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-200">
+              Total Terbayar: {formatRupiah(totalTerbayar)}
+            </span>
+            <span className="px-3 py-1 bg-orange-100 text-orange-800 text-xs font-bold rounded-lg border border-orange-200">
+              Sisa Tagihan: {formatRupiah(sisaPembayaran)}
+            </span>
+          </div>
+        </div>
+
+        {history.length > 0 ? (
+          <div className="overflow-x-auto border border-slate-200 rounded-lg">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="bg-white border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
+                  <th className="p-3 font-bold">Keterangan</th>
+                  <th className="p-3 font-bold">Jatuh Tempo</th>
+                  <th className="p-3 font-bold text-right">Nominal Tagihan</th>
+                  <th className="p-3 font-bold text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {history.sort((a: any, b: any) => new Date(a.jatuhTempo).getTime() - new Date(b.jatuhTempo).getTime()).map((item: any) => (
+                  <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
+                    <td className="p-3 font-semibold text-slate-800">{item.pembayaran}</td>
+                    <td className="p-3 text-slate-600 font-medium">{formatDate(item.jatuhTempo)}</td>
+                    <td className="p-3 text-slate-900 font-bold text-right">{formatRupiah(item.nominal)}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md ${item.status === 'LUNAS' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-orange-100 text-orange-700 border border-orange-200'}`}>
+                        {item.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500 italic text-center py-4 bg-white rounded-lg border border-slate-100">Belum ada riwayat tagihan atau pembayaran.</p>
+        )}
+      </div>
+    );
+  };
+
+  if (isLoading || isLoadingTagihan) return;
+
+  return (
+    <div>
+      <DataTable
+        title="Data Kavling Customer"
+        columns={columns}
+        data={apiData}
+        onEdit={(item) => openModal(item)}
+        expandedRowRender={expandedRowRender}
+      />
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Customer Kavling">
+        <div className="flex border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap py-2 px-4 border-b-2 font-bold text-xs uppercase tracking-widest transition-colors cursor-pointer ${activeTab === tab.id ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {activeTab === 'dasar' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Input label="Perumahan" name="perumahan" value={formData.perumahan} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+
+              <Select
+                label="Status Kavling"
+                name="statusKavling"
+                value={formData.statusKavling}
+                onChange={handleChange}
+                options={[
+                  { value: 'AVAILABLE', label: 'Available' },
+                  { value: 'BOOKING', label: 'Booking' },
+                  { value: 'HOLD', label: 'Hold' },
+                  { value: 'TERJUAL', label: 'Terjual' }
+                ]}
+              />
+
+              <div className="grid grid-cols-2 gap-2">
+                <Input label="Blok" name="blok" value={formData.blok} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+                <Input label="Unit" name="unit" value={formData.unit} readOnly className="bg-gray-100 text-gray-600 px-4 py-2.5 text-sm rounded-xl border border-slate-200 w-full" />
+              </div>
+              <Input label="Tipe" name="tipe" value={formData.tipe} onChange={handleChange} error={errors.tipe} placeholder="Contoh: 45/90" />
+              <Input label="Lantai" name="lantai" value={formData.lantai || ''} onChange={handleChange} error={errors.lantai} />
+              <Input label="Luas Bangunan (m²)" name="luasBangunan" type="number" value={formData.luasBangunan === 0 ? '' : formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} />
+              <Select label="Lokasi Strategis" name="lokasiStrategis" value={formData.lokasiStrategis || ''} onChange={handleChange} options={[{ value: 'Ya', label: 'Ya (Hook)' }, { value: 'Tidak', label: 'Tidak' }]} error={errors.lokasiStrategis} />
+
+              <Select
+                label="Pembiayaan"
+                name="pembiayaan"
+                value={formData.pembiayaan || ''}
+                onChange={handleChange}
+                options={[
+                  { value: 'KPR', label: 'KPR Bank' },
+                  { value: 'CASH_KERAS', label: 'Cash Keras' },
+                  { value: 'CASH_BERTAHAP', label: 'Cash Bertahap' }
+                ]}
+              />
+
+              <Select label="SP3K" name="sp3r" value={formData.sp3r || ''} onChange={handleChange} options={[{ value: 'BANK', label: 'Bank' }, { value: 'CASH', label: 'Cash' }]} />
+              <Input label="Tanggal Akad PPJB" type="date" name="tanggalAkadPpjb" value={formData.tanggalAkadPpjb} onChange={handleChange} />
+
+              <Select
+                label="Akad PPJB"
+                name="akadPpjb"
+                value={formData.akadPpjb || ''}
+                onChange={handleChange}
+                options={[
+                  { value: '', label: '-- Pilih --' },
+                  { value: 'NOTARIS', label: 'Notaris' },
+                  { value: 'DEVELOPER', label: 'Developer' }
+                ]}
+              />
+
+              <Input label="Tanggal Akad AJB PPAT" type="date" name="tanggalAkadAjbPpat" value={formData.tanggalAkadAjbPpat} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran PPh" type="date" name="tanggalPembayaranPph" value={formData.tanggalPembayaranPph} onChange={handleChange} />
+              <Input label="Tanggal Pembayaran BPHTB" type="date" name="tanggalPembayaranBphtb" value={formData.tanggalPembayaranBphtb} onChange={handleChange} />
+            </div>
+          )}
+
+          {activeTab === 'harga' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <CurrencyInput label="Harga Jual (Sistem Nett)" name="totalHargaJual" value={formData.totalHargaJual} onValueChange={handleCurrencyChange} disabled={true} />
+              <CurrencyInput label="Diskon Penjualan (Sistem)" name="diskonPenjualan" value={formData.diskonPenjualan} onValueChange={handleCurrencyChange} disabled={true} />
+
+              <CurrencyInput label="Lebih Tanah Tambahan" name="lebihTanah" value={formData.lebihTanah} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Strategis Tambahan" name="biayaStrategis" value={formData.biayaStrategis} onValueChange={handleCurrencyChange} />
+
+              <div className="md:col-span-2 mt-4 p-5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center shadow-sm">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Harga Kavling</span>
+                <span className="text-2xl font-black text-slate-900">{formatRupiah((formData.totalHargaJual || 0) + (formData.lebihTanah || 0) + (formData.biayaStrategis || 0) - (formData.diskonPenjualan || 0))}</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'nilai' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Nilai Rumah)" />
+              <CurrencyInput label="Biaya KPR & Asuransi" name="nrBiayaKprAsuransi" value={formData.nrBiayaKprAsuransi} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Angsuran" name="nrDiskonAngsuran" value={formData.nrDiskonAngsuran} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus</span>
+                <span className="font-black text-red-600">- {formatRupiah(formData.nrTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl flex justify-between items-center border border-blue-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-blue-800 uppercase tracking-widest">Nilai Penyerahan (Setelah Subsidi)</span>
+                <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.nrNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Pajak Nilai Rumah" />
+              <CurrencyInput label="PPN" name="nrPpn" value={formData.nrPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="nrBphtb" value={formData.nrBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="nrPph" value={formData.nrPph} onValueChange={handleCurrencyChange} />
+            </div>
+          )}
+
+          {activeTab === 'pajak' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Subsidi & Bonus (Pajak)" />
+              <CurrencyInput label="Biaya KPR" name="pjBiayaKpr" value={formData.pjBiayaKpr} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Asuransi" name="pjBiayaAsuransi" value={formData.pjBiayaAsuransi} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Diskon Angsuran" name="pjDiskonAngsuran" value={formData.pjDiskonAngsuran} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Balik Nama Sertifikat" name="pjBiayaBbn" value={formData.pjBiayaBbn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Pembuatan AJB" name="pjBiayaAjb" value={formData.pjBiayaAjb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal" name="pjBiayaAppraisal" value={formData.pjBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="pjBphtb" value={formData.pjBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="pjLainLain" value={formData.pjLainLain} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
+                <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
+              </div>
+              <div className="md:col-span-2 bg-indigo-50 p-5 rounded-xl flex justify-between items-center border border-indigo-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-indigo-800 uppercase tracking-widest">Nilai Penyerahan (Pajak)</span>
+                <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
+              </div>
+              <SectionTitle title="Detail Pajak" />
+              <CurrencyInput label="PPN" name="pjPpn" value={formData.pjPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="pjBphtbPajak" value={formData.pjBphtbPajak} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="pjPph" value={formData.pjPph} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 mt-2 p-4 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
+                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">Total BPHTB + PPh</span>
+                <span className="text-xl font-black text-white">{formatRupiah(formData.pjTotalBphtbPph)}</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'ajb' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Nilai Jual Objek Pajak (NJOP)" />
+              <CurrencyInput label="NJOP Tanah per Meter" name="ajbNjopTanahPerMeter" value={formData.ajbNjopTanahPerMeter} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Total NJOP Tanah" name="ajbNjopTanah" value={formData.ajbNjopTanah} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="NJOP Bangunan per Meter" name="ajbNjopBangunanPerMeter" value={formData.ajbNjopBangunanPerMeter} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Total NJOP Bangunan" name="ajbNjopBangunan" value={formData.ajbNjopBangunan} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 bg-slate-50 p-5 rounded-xl flex justify-between items-center border border-slate-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">NJOP Tanah + Bangunan</span>
+                <span className="text-2xl font-black text-slate-900">{formatRupiah(formData.ajbNjopTotal)}</span>
+              </div>
+              <SectionTitle title="Kewajiban Pajak AJB" />
+              <CurrencyInput label="PPN" name="ajbPpn" value={formData.ajbPpn} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="BPHTB" name="ajbBphtb" value={formData.ajbBphtb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="PPh" name="ajbPph" value={formData.ajbPph} onValueChange={handleCurrencyChange} />
+              <div className="md:col-span-2 mt-2 p-5 bg-slate-800 rounded-xl flex justify-between items-center shadow-lg">
+                <span className="text-sm font-bold text-slate-300 uppercase tracking-widest">BPHTB + PPh (AJB)</span>
+                <span className="text-xl font-black text-white">{formatRupiah(formData.ajbTotalBphtbPph)}</span>
+              </div>
+              <SectionTitle title="Lain-lain" />
+              <CurrencyInput label="Selisih (BPHTB+PPh) Pajak - PBB" name="ajbSelisihPajakPbb" value={formData.ajbSelisihPajakPbb} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Uping" name="ajbUping" value={formData.ajbUping} onValueChange={handleCurrencyChange} />
+            </div>
+          )}
+
+          {activeTab === 'notaris' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <SectionTitle title="Pemilihan Notaris & Biaya" />
+
+              <div className="md:col-span-2">
+                <Select
+                  label="Pilih Notaris"
+                  name="notarisId"
+                  value={formData.notarisId || ''}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: '-- Belum ditentukan --' },
+                    ...notarisList.map(n => ({ value: n.id, label: n.nama }))
+                  ]}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <CurrencyInput
+                  label="Biaya Notaris (Rp)"
+                  name="biayaNotaris"
+                  value={formData.biayaNotaris || 0}
+                  onValueChange={handleCurrencyChange}
+                  placeholder="0"
+                />
+              </div>
+
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 mt-8">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={updateMutation.isPending}
+              className="px-6 py-2.5 text-xs uppercase tracking-widest font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="px-8 py-2.5 text-xs uppercase tracking-widest font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/10 disabled:opacity-50"
+            >
+              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div >
+  );
+};
+
+const SectionTitle = ({ title }: { title: string }) => (
+  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-3 md:col-span-2 mt-4">{title}</h4>
+);
+
+export default CustomerKavling;
 </file>
 
 <file path="src/pages/CustomerPortal/PortalDashboard.tsx">
@@ -13463,7 +13900,8 @@ import {
   X,
   ChevronRight,
   ShoppingCart,
-  LogOut // <-- Tambah icon LogOut
+  LogOut, // <-- Tambah icon LogOut
+  Banknote
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -13511,6 +13949,13 @@ const menuItems = [
       { title: 'Agents', path: '/marketing/agents', resource: 'AGENT' },
       { title: 'Fee Agent', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
       { title: 'Perusahaan Agent', path: '/marketing/perusahaan', resource: 'AGENT' },
+    ],
+  },
+  {
+    title: 'Finance',
+    icon: <Banknote size={20} strokeWidth={1.5} />,
+    submenus: [
+      { title: 'Approve Pembayaran', path: '/finance/approve-pembayaran', resource: 'TAGIHAN' },
     ],
   },
   {
@@ -13784,6 +14229,7 @@ const CustomerDetail = lazy(() => import('./pages/Bank/CustomerDetail'));
 const AgentLogin = lazy(() => import('./pages/Public/AgentLogin'));
 const AgentRegister = lazy(() => import('./pages/Public/AgentRegister'));
 const AgentPortalDashboard = lazy(() => import('./pages/AgentPortal/PortalDashboard'));
+const ApprovePembayaran = lazy(() => import('./pages/Finance/ApprovePembayaran'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
@@ -13840,6 +14286,7 @@ const App = () => {
 
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
+                <Route path="finance/approve-pembayaran" element={<PermissionGuard resource="TAGIHAN"><ApprovePembayaran /></PermissionGuard>} />
                 <Route path="management/penjualan" element={<PermissionGuard resource="PENJUALAN"><Penjualan /></PermissionGuard>} />
                 <Route path="management/progress-penjualan" element={<PermissionGuard resource="PROGRESS_PENJUALAN"><ProgressPenjualan /></PermissionGuard>} />
                 <Route path="management/ganti-kavling" element={<PermissionGuard resource="GANTI_KAVLING"><GantiKavling /></PermissionGuard>} />
@@ -13896,12 +14343,15 @@ import {
 import {
   Trash2, Plus, UploadCloud,
   UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle,
-  Loader2
+  Loader2,
+  Map
 } from 'lucide-react';
 import Input from '../../components/shared/Input';
 import { handleApiError } from '../../utils/errorHandler';
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
 import Select from '../../components/shared/Select';
+import { useUploadKavlingDocument } from '../../hooks/queries/useKavling';
+import { useQueryClient } from '@tanstack/react-query';
 
 const ProgressPenjualan = () => {
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
@@ -13913,6 +14363,9 @@ const ProgressPenjualan = () => {
   const uploadMutation = useUploadProgressDocument();
   const uploadCustomerDocMutation = useUploadCustomerDoc();
   const updateCustomerMutation = useUpdateCustomer();
+  const uploadKavlingDocMutation = useUploadKavlingDocument();
+  const queryClient = useQueryClient();
+  const [uploadingKavlingDoc, setUploadingKavlingDoc] = useState<string | null>(null);
 
   const [selectedPenjualan, setSelectedPenjualan] = useState<Record<string, any> | null>(null);
   const [modalStep, setModalStep] = useState<string | null>(null);
@@ -14006,9 +14459,101 @@ const ProgressPenjualan = () => {
     }
   };
 
+  const handleUploadKavlingDoc = async (docType: string, file: File) => {
+    if (!selectedPenjualan) return;
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      return;
+    }
+    setUploadingKavlingDoc(docType);
+    try {
+      await uploadKavlingDocMutation.mutateAsync({ id: selectedPenjualan.kavlingId, docType, file });
+      alert(`Dokumen kavling berhasil diunggah!`);
+
+      const fileUrl = URL.createObjectURL(file);
+      setSelectedPenjualan((prev: any) => prev ? { ...prev, [docType]: fileUrl } : prev);
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    } catch (err: any) {
+      alert(handleApiError(err).message);
+    } finally {
+      setUploadingKavlingDoc(null);
+    }
+  };
+
+  const renderKavlingFileBox = (title: string, docType: string, url: string | null) => {
+    const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf') || url.startsWith('blob:')) : false;
+    const isUploading = uploadKavlingDocMutation.isPending && uploadingKavlingDoc === docType;
+    const isDrag = dragActive === docType;
+
+    return (
+      <div
+        className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-indigo-400
+          ${isDrag ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-200'}
+        `}
+        tabIndex={0}
+        onDragEnter={(e) => handleDrag(e, docType)}
+        onDragLeave={(e) => handleDrag(e, docType)}
+        onDragOver={(e) => handleDrag(e, docType)}
+        onDrop={(e) => {
+          e.preventDefault(); e.stopPropagation(); setDragActive(null);
+          const file = e.dataTransfer.files?.[0];
+          if (file) handleUploadKavlingDoc(docType, file);
+        }}
+        onPaste={(e) => handlePaste(e, (files) => handleUploadKavlingDoc(docType, files[0]))}
+      >
+        <div className="flex justify-between items-center relative z-10">
+          <div className="flex flex-col">
+            <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+            <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
+          </div>
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+            {isUploading ? (
+              <><Loader2 size={14} className="animate-spin text-indigo-600" /> Mengunggah...</>
+            ) : (
+              <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
+            )}
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleUploadKavlingDoc(docType, file);
+              e.target.value = '';
+            }} disabled={uploadKavlingDocMutation.isPending} />
+          </label>
+        </div>
+
+        <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-indigo-400 border-dashed' : 'border-slate-200'}`}>
+          {isUploading && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+              <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
+              <span className="text-xs font-bold text-indigo-600 animate-pulse">Sedang mengunggah...</span>
+            </div>
+          )}
+          {url ? (
+            <>
+              {isPdf ? (
+                <iframe src={url} className="w-full h-full border-none" title={title} />
+              ) : (
+                <img src={url} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="pointer-events-auto px-4 py-2 bg-white text-slate-800 text-xs font-bold rounded-lg shadow-md hover:bg-slate-50 transition-colors">
+                  Buka di Tab Baru
+                </a>
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2 pointer-events-none">
+              <span className="text-[10px] font-medium italic text-center px-4">Area Upload<br />Klik / Drag & Drop / Paste</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
   const ProgressIcons = ({ row }: { row: Record<string, any> }) => {
     const safeProgress = row.progressPenjualan || {};
     const skema = row.caraPembayaran?.toUpperCase() || '';
+    const hasSertifikat = !!(row.filePbg && row.fileSertifikatTanah && row.fileNopPbb);
+    const hasAnySertifikat = !!(row.filePbg || row.fileSertifikatTanah || row.fileNopPbb);
 
     const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
       <button
@@ -14036,12 +14581,14 @@ const ProgressPenjualan = () => {
       return (
         <div className="flex items-center gap-1">
           <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={hasAnySertifikat} />
+          <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
           <LineNode active={!!safeProgress.fileSp3k} />
-          <IconNode active={!!safeProgress.fileSp3k} icon={Landmark} title="2. SP3K" step="SP3K" />
+          <IconNode active={!!safeProgress.fileSp3k} icon={Landmark} title="3. SP3K" step="SP3K" />
           <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="4. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="5. BAST" step="BAST" />
         </div>
       );
     }
@@ -14049,12 +14596,14 @@ const ProgressPenjualan = () => {
       return (
         <div className="flex items-center gap-1">
           <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={hasAnySertifikat} />
+          <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
           <LineNode active={!!safeProgress.filePpjb} />
-          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="2. PPJB" step="PPJB" />
+          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="3. PPJB" step="PPJB" />
           <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="4. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="5. BAST" step="BAST" />
         </div>
       );
     }
@@ -14062,10 +14611,12 @@ const ProgressPenjualan = () => {
       return (
         <div className="flex items-center gap-1">
           <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
+          <LineNode active={hasAnySertifikat} />
+          <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
           <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="2. AJB" step="AJB" />
+          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
-          <IconNode active={!!safeProgress.fileBast} icon={Key} title="3. BAST" step="BAST" />        </div>
+          <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />        </div>
       );
     }
     return <span className="text-xs text-slate-400 italic">-</span>;
@@ -14596,6 +15147,18 @@ const ProgressPenjualan = () => {
                     </div>
                   </div>
                 )}
+                {modalStep === 'SERTIFIKAT_KAVLING' && (
+                  <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                    <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap 2: Sertifikat Kavling</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {renderKavlingFileBox("PBG", "filePbg", selectedPenjualan.filePbg)}
+                        {renderKavlingFileBox("Tanah", "fileSertifikatTanah", selectedPenjualan.fileSertifikatTanah)}
+                        {renderKavlingFileBox("PBB", "fileNopPbb", selectedPenjualan.fileNopPbb)}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {modalStep === 'SP3K' && (
                   <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
@@ -14855,6 +15418,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import jsPDF from 'jspdf';
 import { handleApiError } from '../../utils/errorHandler';
+import { useSearchParams } from 'react-router-dom';
 
 interface TagihanFormState {
   id: number | '';
@@ -14885,9 +15449,17 @@ const initialFormState: TagihanFormState = {
 };
 
 const Tagihan = () => {
-  const { data: tagihans = [], isLoading: isLoadingTagihan } = useGetTagihans({ limit: 100 });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const limit = 20;
+
+  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({ limit, page, search });
+  const tagihans = tagihansResponse?.items || [];
+  const meta = tagihansResponse?.meta;
+
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
-  const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 100 });
+  const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 500 });
   const { data: bankList = [] } = useGetBankRekening();
   const { selectedPerumahan, user } = useAuth();
   const canApprovePayment = user?.role === 'SUPERADMIN' || user?.role === 'FINANCE';
@@ -14915,6 +15487,17 @@ const Tagihan = () => {
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<any>(null);
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
 
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
@@ -15328,14 +15911,14 @@ const Tagihan = () => {
               <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Total Tagihan Cicilan</p>
               <p className="text-sm font-bold text-slate-700">{formatRupiah(piutangCicilan)}</p>
             </div>
-            <div className="px-3 border-r border-slate-100">
+            {/* <div className="px-3 border-r border-slate-100">
               <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Total Terbayar (Cicilan)</p>
               <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayarCicilan)}</p>
             </div>
             <div className="px-3">
               <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Sisa Pembayaran</p>
               <p className="text-sm font-black text-orange-600">{formatRupiah(sisaPembayaran)}</p>
-            </div>
+            </div> */}
           </div>
 
           <button
@@ -15600,6 +16183,13 @@ const Tagihan = () => {
         data={groupedData}
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
+        // 👇 TAMBAHKAN PROPERTI DI BAWAH INI 👇
+        serverSide={true}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
       />
 
       {/* MODAL KELOLA TAGIHAN */}

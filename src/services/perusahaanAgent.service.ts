@@ -3,6 +3,10 @@ import api from "../lib/axios";
 export interface PerusahaanAgentData {
   id: number;
   nama: string;
+  npwp?: string | null;
+  namaBank?: string | null;
+  noRekening?: string | null;
+  atasNamaRekening?: string | null;
   akte: string | null;
   createdAt: string;
   updatedAt: string;
@@ -10,6 +14,10 @@ export interface PerusahaanAgentData {
 
 export interface CreatePerusahaanAgentDTO {
   nama: string;
+  npwp?: string;
+  namaBank?: string;
+  noRekening?: string;
+  atasNamaRekening?: string;
 }
 
 export const perusahaanAgentService = {

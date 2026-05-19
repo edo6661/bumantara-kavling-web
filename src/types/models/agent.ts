@@ -36,7 +36,7 @@ export interface AgentData {
   noRekening: string | null;
   atasNamaRekening: string | null;
   feeMarketingPct: number | null;
-  feeClosingPct: number | null;
+  feeClosingNominal: number | null;
   potonganPph: number | null;
   fileKtp: string | null;
   fileNpwp: string | null;
@@ -64,7 +64,7 @@ export interface CreateAgentDTO {
   noRekening: string | null;
   atasNamaRekening: string | null;
   feeMarketingPct?: number;
-  feeClosingPct?: number;
+  feeClosingNominal?: number;
   potonganPph?: number;
   pics?: PicAgentData[];
 }

@@ -22,14 +22,36 @@ const PerusahaanAgent = () => {
   const uploadAkteMutation = useUploadAktePerusahaan();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ id: "", nama: "" });
+  const [formData, setFormData] = useState({
+    id: "",
+    nama: "",
+    npwp: "",
+    namaBank: "",
+    noRekening: "",
+    atasNamaRekening: ""
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-
   const columns = [
     { header: "Nama Perusahaan", accessor: "nama", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    // 👇 KOLOM BARU DITAMBAHKAN 👇
+    { header: "NPWP", accessor: "npwp", render: (val: string) => <span className="font-mono text-xs">{val || '-'}</span> },
+    {
+      header: "Bank Detail",
+      accessor: "namaBank",
+      render: (_: unknown, row: PerusahaanAgentData) => (
+        row.namaBank ? (
+          <div className="text-xs">
+            <p className="font-bold">{row.namaBank}</p>
+            <p className="font-mono">{row.noRekening}</p>
+            <p className="text-slate-500 italic">a/n {row.atasNamaRekening}</p>
+          </div>
+        ) : <span className="text-xs text-slate-400 italic">-</span>
+      )
+    },
+    // 👆 SAMPAI SINI 👆
     {
       header: "Akte Perusahaan",
       accessor: "akte",
@@ -68,10 +90,17 @@ const PerusahaanAgent = () => {
 
   const openModal = (item?: PerusahaanAgentData) => {
     if (item) {
-      setFormData({ id: item.id.toString(), nama: item.nama });
+      setFormData({
+        id: item.id.toString(),
+        nama: item.nama,
+        npwp: item.npwp || "",
+        namaBank: item.namaBank || "",
+        noRekening: item.noRekening || "",
+        atasNamaRekening: item.atasNamaRekening || ""
+      });
       setIsEditing(true);
     } else {
-      setFormData({ id: "", nama: "" });
+      setFormData({ id: "", nama: "", npwp: "", namaBank: "", noRekening: "", atasNamaRekening: "" });
       setIsEditing(false);
     }
     setErrors({});
@@ -80,7 +109,7 @@ const PerusahaanAgent = () => {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setFormData({ id: "", nama: "" });
+    setFormData({ id: "", nama: "", npwp: "", namaBank: "", noRekening: "", atasNamaRekening: "" });
     setErrors({});
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,10 +120,17 @@ const PerusahaanAgent = () => {
     }
 
     try {
+      const payload = {
+        nama: formData.nama,
+        npwp: formData.npwp,
+        namaBank: formData.namaBank,
+        noRekening: formData.noRekening,
+        atasNamaRekening: formData.atasNamaRekening
+      };
       if (isEditing && formData.id) {
-        await updateMutation.mutateAsync({ id: Number(formData.id), data: { nama: formData.nama } });
+        await updateMutation.mutateAsync({ id: Number(formData.id), data: payload });
       } else {
-        await createMutation.mutateAsync({ nama: formData.nama });
+        await createMutation.mutateAsync(payload);
       }
       closeModal();
     } catch (error: any) {
@@ -166,9 +202,40 @@ const PerusahaanAgent = () => {
             error={errors.nama}
             placeholder="Contoh: PT. Maju Jaya"
           />
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button type="button" onClick={closeModal} className="px-4 py-2 bg-white border text-sm font-bold rounded-lg cursor-pointer">Batal</button>
-            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-6 py-2 bg-slate-900 text-white text-sm fFont-bold rounded-lg cursor-pointer">
+
+          <Input
+            label="NPWP Perusahaan (Opsional)"
+            value={formData.npwp}
+            onChange={(e) => setFormData({ ...formData, npwp: e.target.value })}
+            placeholder="Masukkan NPWP"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Nama Bank (Opsional)"
+              value={formData.namaBank}
+              onChange={(e) => setFormData({ ...formData, namaBank: e.target.value })}
+              placeholder="Contoh: BCA / BSI"
+            />
+            <Input
+              label="No Rekening (Opsional)"
+              value={formData.noRekening}
+              onChange={(e) => setFormData({ ...formData, noRekening: e.target.value })}
+              placeholder="Nomor Rekening"
+            />
+            <Input
+              label="Atas Nama (A/N) (Opsional)"
+              value={formData.atasNamaRekening}
+              onChange={(e) => setFormData({ ...formData, atasNamaRekening: e.target.value })}
+              placeholder="A/N Rekening"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
+            <button type="button" onClick={closeModal} className="px-4 py-2 bg-white border text-sm font-bold rounded-lg cursor-pointer transition-colors hover:bg-slate-50 text-black">
+              Batal
+            </button>
+            <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-6 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg cursor-pointer shadow-md hover:bg-black transition-colors disabled:opacity-50">
               {createMutation.isPending || updateMutation.isPending ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
