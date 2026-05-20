@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -12,9 +12,9 @@ import {
 } from "../../hooks/queries/useProgressProyek";
 import { handleApiError } from '../../utils/errorHandler';
 import {
-  HardHat, UploadCloud, Save, Loader2, Trash2, Edit2, CheckCircle2, Image as ImageIcon
+  HardHat, UploadCloud, Loader2, Trash2, Edit2
 } from 'lucide-react';
-import type { TahapanProyekData } from '../../services/progressProyek.service';
+import type { ProgressProyekData, TahapanProyekData } from '../../services/progressProyek.service';
 import { formatDate } from '../../utils/formatters';
 
 
@@ -123,6 +123,7 @@ const Progress = () => {
 
       {selectedPenjualan && (
         <ProgressDetailModal
+          key={selectedPenjualan.dbId}
           isOpen={!!selectedPenjualan}
           onClose={() => setSelectedPenjualan(null)}
           penjualan={selectedPenjualan}
@@ -145,14 +146,9 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
   const { data: progressData, isLoading } = useGetProgressProyek(penjualan.dbId);
   const updateMutation = useUpdateProgressProyek();
 
-  const [pelaksana, setPelaksana] = useState<string>('');
+  const [pelaksanaDraft, setPelaksanaDraft] = useState<string | null>(null);
+  const pelaksana = pelaksanaDraft ?? progressData?.pelaksana ?? '';
   const [selectedTahapanToEdit, setSelectedTahapanToEdit] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (progressData) {
-      setPelaksana(progressData.pelaksana || '');
-    }
-  }, [progressData]);
 
   const handleSavePelaksana = async () => {
     try {
@@ -160,6 +156,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
         id: penjualan.dbId,
         data: { pelaksana }
       });
+      setPelaksanaDraft(null);
       alert('Nama pelaksana berhasil disimpan!');
     } catch (err: unknown) {
       alert(handleApiError(err).message);
@@ -195,7 +192,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
                   label="Nama Pelaksana / Kontraktor"
                   name="pelaksana"
                   value={pelaksana}
-                  onChange={(e) => setPelaksana(e.target.value)}
+                  onChange={(e) => setPelaksanaDraft(e.target.value)}
                   placeholder="Masukkan nama kontraktor/mandor..."
                 />
               </div>
@@ -297,14 +294,14 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
         )}
       </Modal>
 
-      {selectedTahapanToEdit && (
+      {selectedTahapanToEdit && progressData && (
         <EditTahapanModal
+          key={`${penjualan.dbId}-${selectedTahapanToEdit}`}
           isOpen={!!selectedTahapanToEdit}
           onClose={() => setSelectedTahapanToEdit(null)}
           penjualanDbId={penjualan.dbId}
           namaTahapan={selectedTahapanToEdit}
-          tahapanData={progressData?.tahapan.find((t) => t.namaTahapan === selectedTahapanToEdit)}
-          progressData={progressData} // <--- Tambahkan properti ini
+          progressData={progressData}
         />
       )}
     </>
@@ -314,13 +311,31 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
 
 
 
+const getLatestTahapanLog = (tahapan: TahapanProyekData[], namaTahapan: string) =>
+  tahapan
+    .filter((t) => t.namaTahapan === namaTahapan)
+    .sort((a, b) => {
+      const dateDiff = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return (b.id || 0) - (a.id || 0);
+    })[0];
+
+const getEditTahapanFormDefaults = (progressData: ProgressProyekData, namaTahapan: string) => {
+  const today = new Date().toISOString().split('T')[0]!;
+  const logTerbaru = getLatestTahapanLog(progressData.tahapan, namaTahapan);
+  return {
+    persentase: logTerbaru ? Number(logTerbaru.persentase) : 0,
+    deskripsi: '',
+    tanggal: today,
+  };
+};
+
 interface EditTahapanModalProps {
   isOpen: boolean;
   onClose: () => void;
   penjualanDbId: number;
   namaTahapan: string;
-  tahapanData?: TahapanProyekData;
-  progressData: any;
+  progressData: ProgressProyekData;
 }
 
 const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
@@ -328,42 +343,18 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
   onClose,
   penjualanDbId,
   namaTahapan,
-  tahapanData, progressData
+  progressData
 }) => {
   const updateMutation = useUpdateProgressProyek();
   const uploadPhotoMutation = useUploadTahapanPhotos();
-  const addLogMutation = useAddTahapanLog(); // Gunakan hook baru
+  const addLogMutation = useAddTahapanLog();
 
-
-  const [formData, setFormData] = useState({
-    persentase: 0,
-    deskripsi: '',
-    tanggal: new Date().toISOString().split('T')[0]!,
-  });
+  const [formData, setFormData] = useState(() =>
+    getEditTahapanFormDefaults(progressData, namaTahapan)
+  );
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
-
-  useEffect(() => {
-    if (progressData?.tahapan) {
-      // 🔥 Perbaiki cara cari log terbaru
-      const logTerbaru = progressData.tahapan
-        .filter((t: any) => t.namaTahapan === namaTahapan)
-        .sort((a: any, b: any) => {
-          const dateDiff = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          return (b.id || 0) - (a.id || 0); // Gunakan ID sebagai penentu terakhir
-        })[0];
-
-      if (logTerbaru) {
-        setFormData({
-          persentase: Number(logTerbaru.persentase),
-          deskripsi: '', // Kosongkan deskripsi untuk log baru
-          tanggal: new Date().toISOString().split('T')[0]!,
-        });
-      }
-    }
-  }, [progressData, namaTahapan, isOpen]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -551,15 +542,14 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {progressData?.tahapan
-                .filter((t: any) => t.namaTahapan === namaTahapan)
-                .sort((a: any, b: any) => {
-                  // 🔥 Perbaiki logika sort
+              {progressData.tahapan
+                .filter((t) => t.namaTahapan === namaTahapan)
+                .sort((a, b) => {
                   const dateDiff = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime();
                   if (dateDiff !== 0) return dateDiff;
                   return (b.id || 0) - (a.id || 0);
                 })
-                .map((log: any, idx: number) => (
+                .map((log, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 text-xs font-bold text-slate-700 whitespace-nowrap">
                       {formatDate(log.tanggal)}
@@ -574,7 +564,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-center -space-x-2">
-                        {log.foto.map((url, fIdx) => (
+                        {log.foto.map((url: string, fIdx: number) => (
                           <a
                             key={fIdx}
                             href={url}
@@ -590,7 +580,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
                     </td>
                   </tr>
                 ))}
-              {(!progressData?.tahapan.find(t => t.namaTahapan === namaTahapan)) && (
+              {!progressData.tahapan.some((t) => t.namaTahapan === namaTahapan) && (
                 <tr>
                   <td colSpan={4} className="py-6 text-center text-xs text-slate-400 italic">
                     Belum ada riwayat progres untuk tahapan ini.
