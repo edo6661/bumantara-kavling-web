@@ -66,7 +66,7 @@ const DataTable = ({
 
   const getPageNumbers = () => {
     const delta = 1;
-    const range = [];
+    const range: (number | string)[] = [];
     for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
       range.push(i);
     }

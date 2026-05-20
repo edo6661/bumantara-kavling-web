@@ -1,10 +1,19 @@
 import { useParams } from 'react-router-dom';
 import { useGetCustomerById } from '../../hooks/queries/useCustomer';
+import type { CustomerData } from '../../services/customer.service';
 import PageLoader from '../PageLoader';
 import { User, FileText, Download, Building2, Briefcase, Phone, Mail, MapPin } from 'lucide-react';
 import Modal from '../../components/shared/Modal';
 import { useState } from 'react';
 import JSZip from 'jszip';
+
+type DokumenLainnyaItem = NonNullable<CustomerData['dokumenLainnya']>[number];
+type DownloadDocItem = { url: string; name: string };
+
+const fileUrlsList = (fileUrl: DokumenLainnyaItem['fileUrl']): string[] => {
+  if (Array.isArray(fileUrl)) return fileUrl.filter(Boolean);
+  return fileUrl ? [fileUrl] : [];
+};
 
 const CustomerDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,14 +38,18 @@ const CustomerDetail = () => {
     return url;
   };
   const handleDownloadAll = async () => {
-    const docs = [];
+    const docs: DownloadDocItem[] = [];
     if (customer.fileKtp) docs.push({ url: customer.fileKtp, name: 'KTP' });
     if (customer.fileKk) docs.push({ url: customer.fileKk, name: 'KK' });
     if (customer.fileNpwp) docs.push({ url: customer.fileNpwp, name: 'NPWP' });
     if (customer.dokumenLainnya) {
-      customer.dokumenLainnya.forEach((doc: any) =>
-        docs.push({ url: doc.fileUrl, name: doc.nama })
-      );
+      customer.dokumenLainnya.forEach((doc) => {
+        const urls = fileUrlsList(doc.fileUrl);
+        urls.forEach((url, i) => {
+          const suffix = urls.length > 1 ? `_${i + 1}` : '';
+          docs.push({ url, name: `${doc.nama}${suffix}` });
+        });
+      });
     }
 
     if (docs.length === 0) {
@@ -145,7 +158,7 @@ const CustomerDetail = () => {
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">{doc.label}</p>
                 <div
                   onClick={() => doc.url && setPreviewImage(doc.url)}
-                  className={`w-full aspect-[4/3] rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed transition-all ${doc.url ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-200 bg-slate-100'}`}
+                  className={`w-full aspect-4/3 rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed transition-all ${doc.url ? 'border-slate-200 cursor-zoom-in bg-white' : 'border-slate-200 bg-slate-100'}`}
                 >
                   {doc.url ? (
                     (doc.url.split('?')[0].toLowerCase().endsWith('.pdf') || doc.url.includes('application/pdf')) ? (
@@ -167,23 +180,25 @@ const CustomerDetail = () => {
                 )}
               </div>
             ))}
-            {customer.dokumenLainnya && customer.dokumenLainnya.map((doc: any, idx: number) => (
-              <div key={idx} className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex flex-col group relative">
+            {customer.dokumenLainnya?.flatMap((doc) =>
+              fileUrlsList(doc.fileUrl).map((fileUrl, i) => ({ doc, fileUrl, key: `${doc.id}-${i}` }))
+            ).map(({ doc, fileUrl, key }) => (
+              <div key={key} className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex flex-col group relative">
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2 truncate" title={doc.nama}>{doc.nama}</p>
                 <div
-                  onClick={() => setPreviewImage(doc.fileUrl)}
-                  className="w-full aspect-[4/3] rounded-lg overflow-hidden flex items-center justify-center border border-slate-200 bg-white cursor-zoom-in"
+                  onClick={() => setPreviewImage(fileUrl)}
+                  className="w-full aspect-4/3 rounded-lg overflow-hidden flex items-center justify-center border border-slate-200 bg-white cursor-zoom-in"
                 >
-                  {doc.fileUrl.split('?')[0].toLowerCase().endsWith('.pdf') || doc.fileUrl.includes('application/pdf') ? (
+                  {fileUrl.split('?')[0].toLowerCase().endsWith('.pdf') || fileUrl.includes('application/pdf') ? (
                     <div className="flex flex-col items-center text-red-500 group-hover:scale-105 transition-transform duration-300">
                       <FileText size={32} />
                       <span className="text-[10px] font-bold mt-1 text-slate-600">PDF</span>
                     </div>
                   ) : (
-                    <img src={doc.fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img src={fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   )}
                 </div>
-                <a href={getDownloadUrl(doc.fileUrl)} download className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-indigo-100">
+                <a href={getDownloadUrl(fileUrl)} download className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-indigo-100">
                   Unduh File
                 </a>
               </div>

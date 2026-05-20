@@ -171,7 +171,7 @@ const FeeAgent = () => {
         },
       });
 
-      const uploadPromises = [];
+      const uploadPromises: Promise<unknown>[] = [];
 
 
 
