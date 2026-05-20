@@ -23,6 +23,8 @@ import {
 } from "../../hooks/queries/useTagihan";
 import { useGetCustomers } from "../../hooks/queries/useCustomer";
 import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
+import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import PenjualanDetailModal from "../../components/penjualan/PenjualanDetailModal";
 import type { TagihanData } from "../../services/tagihan.service";
 import { useAuth } from '../../context/AuthContext';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
@@ -70,6 +72,8 @@ const Tagihan = () => {
 
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
   const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 500 });
+  const { data: penjualanFullResponse, isLoading: isLoadingPenjualanDetail } = useGetPenjualan({ limit: 500, page: 1 });
+  const penjualanFullList = penjualanFullResponse?.items || [];
   const { data: bankList = [] } = useGetBankRekening();
   const { selectedPerumahan, user } = useAuth();
   const canApprovePayment = user?.role === 'SUPERADMIN' || user?.role === 'FINANCE';
@@ -215,44 +219,11 @@ const Tagihan = () => {
   const detailPenjualanData = useMemo(() => {
     if (!selectedDetailRow) return null;
 
-    if (!penjualanList || penjualanList.length === 0) {
-      return {
-        tipe: 'Memuat...',
-        pembiayaan: 'Memuat...',
-        harga: 0,
-        lebihTanah: 0,
-        biayaStrategis: 0,
-        totalHargaJual: 0,
-        status: 'SEDANG SINKRONISASI DATA...'
-      };
-    }
-
     const targetPenjualanId = selectedDetailRow.penjualanId || selectedDetailRow.cicilan?.[0]?.penjualanId;
-    const found = penjualanList.find((p: any) => String(p.id) === String(targetPenjualanId));
+    const found = penjualanFullList.find((p: any) => Number(p.dbId) === Number(targetPenjualanId));
 
-    if (found) {
-      return {
-        ...found,
-        tipe: found.tipe || '-',
-        pembiayaan: found.pembiayaan?.replace(/_/g, ' ') || '-',
-        status: found.status || 'TIDAK DIKETAHUI',
-        harga: Number(found.totalHargaJual) || 0,
-        lebihTanah: Number(found.lebihTanah) || 0,
-        biayaStrategis: Number(found.biayaStrategis) || 0,
-        totalHargaJual: Number(found.totalHargaJual) || 0,
-      };
-    }
-
-    return {
-      tipe: '-',
-      pembiayaan: '-',
-      harga: 0,
-      lebihTanah: 0,
-      biayaStrategis: 0,
-      totalHargaJual: 0,
-      status: 'DATA TERBATAS (PENJUALAN BATAL)'
-    };
-  }, [selectedDetailRow, penjualanList]);
+    return found || null;
+  }, [selectedDetailRow, penjualanFullList]);
 
   const openModal = (item?: TagihanData, parentGroup?: any) => {
     if (item) {
@@ -507,6 +478,7 @@ const Tagihan = () => {
     const totalTerbayarCicilan = row.totalTerbayarKeseluruhan;
     const sisaPembayaran = Math.max(0, piutangCicilan - totalTerbayarCicilan);
     const rekeningTujuanId = targetPenjualan?.rekeningTujuanId;
+
 
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
@@ -1159,57 +1131,12 @@ const Tagihan = () => {
         </div>
       </Modal>
 
-      {/* MODAL DETAIL PENJUALAN */}
-      <Modal isOpen={!!selectedDetailRow} onClose={() => setSelectedDetailRow(null)} title="Informasi Penjualan Kavling">
-        {selectedDetailRow && (
-          <div className="space-y-5 animate-in fade-in duration-300">
-            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer</p>
-                  <p className="text-lg font-black text-slate-900">{selectedDetailRow.namaCustomer}</p>
-                </div>
-                <div className="text-right">
-                  <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${detailPenjualanData?.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
-                    detailPenjualanData?.status === 'BOOKED' ? 'bg-blue-100 text-blue-800' :
-                      detailPenjualanData?.status === 'PROSES' ? 'bg-yellow-100 text-yellow-800' :
-                        detailPenjualanData?.status === 'TERJUAL' || detailPenjualanData?.status === 'LUNAS' ? 'bg-emerald-100 text-emerald-800' :
-                          'bg-slate-200 text-slate-700'
-                    }`}>
-                    {detailPenjualanData?.status || 'DATA TERBATAS'}
-                  </span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase">Kavling</p>
-                  <p className="text-sm font-semibold text-slate-800">{selectedDetailRow.kavling}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase">Tipe Unit</p>
-                  <p className="text-sm font-semibold text-slate-800">{detailPenjualanData?.tipe || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase">Metode Pembayaran</p>
-                  <p className="text-sm font-semibold text-slate-800">{detailPenjualanData?.pembiayaan?.replace('_', ' ') || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-[11px] font-bold text-slate-400 uppercase">Harga Jual</p>
-                  <p className="text-sm font-bold text-blue-700">{detailPenjualanData ? formatRupiah(detailPenjualanData.harga) : '-'}</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setSelectedDetailRow(null)}
-                className="px-6 py-2 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-colors cursor-pointer"
-              >
-                Tutup Detail
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <PenjualanDetailModal
+        isOpen={!!selectedDetailRow}
+        onClose={() => setSelectedDetailRow(null)}
+        detailData={detailPenjualanData}
+        isLoading={isLoadingPenjualanDetail && !!selectedDetailRow}
+      />
 
     </div>
   );
