@@ -1992,19 +1992,7 @@ const Penjualan = () => {
                             </div>
                           )}
 
-                          <div className="pt-3 border-t border-slate-200">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-bold text-indigo-700 w-full">Plafon ACC Bank</span>
-                              <div className="w-40 sm:w-44 shrink-0">
-                                <CurrencyInput
-                                  name="plafonAcc"
-                                  value={formData.plafonAcc || 0}
-                                  onValueChange={handleCurrencyChange}
-                                  placeholder="0"
-                                />
-                              </div>
-                            </div>
-                          </div>
+
 
                           <div className="flex items-center justify-between mt-3">
                             <span className="text-sm font-bold text-blue-700 w-full">Total Nilai Pengajuan KPR</span>
@@ -2018,6 +2006,20 @@ const Penjualan = () => {
                             </div>
                           </div>
 
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-200">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-indigo-700 w-full">Plafon ACC Bank</span>
+                            <div className="w-40 sm:w-44 shrink-0">
+                              <CurrencyInput
+                                name="plafonAcc"
+                                value={formData.plafonAcc || 0}
+                                onValueChange={handleCurrencyChange}
+                                placeholder="0"
+                              />
+                            </div>
+                          </div>
                         </div>
 
                         <div className="pt-3 border-t border-slate-200">
@@ -3089,15 +3091,7 @@ const Penjualan = () => {
                           <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal + Biaya KPR
                         </p>
                       </div>
-                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm font-bold text-indigo-400">Plafon ACC Bank</span>
-                          <span className="text-sm font-bold text-indigo-400 tabular-nums">{formatRupiah(detailData.plafonAcc || 0)}</span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 font-mono">
-                          <strong className="text-slate-400">Info:</strong> Nilai ACC yang disetujui pihak Bank KPR
-                        </p>
-                      </div>
+
 
                       {detailData.tambahanKpr && detailData.tambahanKpr.length > 0 && (
                         <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
@@ -3119,6 +3113,15 @@ const Penjualan = () => {
                         </div>
                         <p className="text-[10px] text-slate-500 font-mono">
                           <strong className="text-slate-400">Kalkulasi:</strong> Plafon Kredit - Total Biaya Tambahan + Tambahan Nilai KPR
+                        </p>
+                      </div>
+                      <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-bold text-indigo-400">Plafon ACC Bank</span>
+                          <span className="text-sm font-bold text-indigo-400 tabular-nums">{formatRupiah(detailData.plafonAcc || 0)}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-mono">
+                          <strong className="text-slate-400">Info:</strong> Nilai ACC yang disetujui pihak Bank KPR
                         </p>
                       </div>
 
