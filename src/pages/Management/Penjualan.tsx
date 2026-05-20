@@ -87,6 +87,28 @@ interface PenjualanData {
   updatedAt?: string;
 }
 
+/** API / Prisma pakai enum `CASH_BERTAHAP`, opsi form pakai label dengan spasi */
+function paymentMethodKey(cara: string | undefined | null): string {
+  if (!cara) return '';
+  return cara.toUpperCase().replace(/\s+/g, '_');
+}
+
+function isCashBertahap(cara: string | undefined | null): boolean {
+  return paymentMethodKey(cara) === 'CASH_BERTAHAP';
+}
+
+function isKpr(cara: string | undefined | null): boolean {
+  return paymentMethodKey(cara) === 'KPR';
+}
+
+function caraPembayaranToFormValue(cara: string | undefined | null): string {
+  const k = paymentMethodKey(cara);
+  if (k === 'CASH_BERTAHAP') return 'CASH BERTAHAP';
+  if (k === 'CASH_KERAS') return 'CASH KERAS';
+  if (k === 'KPR') return 'KPR';
+  return cara ?? '';
+}
+
 const initialFormState: PenjualanData = {
   id: '',
   tanggal: '',
@@ -291,7 +313,7 @@ const Penjualan = () => {
 
       const isAutoCalcTrigger = ['caraPembayaran', 'hargaDasar', 'diskonPenjualan', 'bookingFee', 'termin'].includes(name);
 
-      if (merged.caraPembayaran === 'KPR') {
+      if (isKpr(merged.caraPembayaran)) {
         let plafonAwal = merged.plafonAwal;
         if (name === 'plafonAwal') {
           plafonAwal = Number(value);
@@ -360,7 +382,7 @@ const Penjualan = () => {
         updates.dpTidakDibayar = 0;
         updates.nilaiPengajuanKpr = 0;
 
-        if (merged.caraPembayaran === 'CASH BERTAHAP') {
+        if (isCashBertahap(merged.caraPembayaran)) {
           let persentaseDp = name === 'persentaseDp' ? Number(value) : (merged.persentaseDp || 40);
           let dp = merged.dp;
 
@@ -600,7 +622,7 @@ const Penjualan = () => {
       let calculatedCicilan = item.cicilanPerBulan || 0;
       const termin = Number(item.termin) || 3;
 
-      if (item.caraPembayaran === 'CASH BERTAHAP') {
+      if (isCashBertahap(item.caraPembayaran)) {
         const base = Number(item.hargaDasar || 0);
         const diskon = Number(item.diskonPenjualan || 0);
         const bf = Number(item.bookingFee || 5000000);
@@ -669,7 +691,9 @@ const Penjualan = () => {
 
     const base = Number(item.hargaDasar || item.hargaJual) || 0;
     const bf = Number(item.bookingFee) || 5000000;
-    const caraBayar = item.caraPembayaran ? item.caraPembayaran : 'CASH KERAS';
+    const caraBayar = item.caraPembayaran
+      ? caraPembayaranToFormValue(item.caraPembayaran)
+      : 'CASH KERAS';
 
     const plafonAwal = Math.max(0, base - diskonTerpakai - bf);
 
@@ -950,14 +974,14 @@ const Penjualan = () => {
         dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
         dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
-        dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP')
+        dp: (isKpr(formData.caraPembayaran) || isCashBertahap(formData.caraPembayaran))
           ? formData.dp
           : undefined,
-        termin: formData.caraPembayaran === 'CASH BERTAHAP' ? Number(formData.termin) : undefined,
+        termin: isCashBertahap(formData.caraPembayaran) ? Number(formData.termin) : undefined,
         diskonPenjualan: formData.diskonPenjualan,
         bookingFee: formData.bookingFee,
         keteranganUpdateSpr: finalKeterangan.trim() || undefined,
-        keteranganAngsuran: formData.caraPembayaran === 'CASH BERTAHAP' ? formData.keteranganAngsuran : undefined,
+        keteranganAngsuran: isCashBertahap(formData.caraPembayaran) ? formData.keteranganAngsuran : undefined,
 
         biayaTambahan: biayaTambahanList
           .map((b) => ({
@@ -1028,11 +1052,11 @@ const Penjualan = () => {
           dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
           dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
           nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
-          dp: (formData.caraPembayaran === 'KPR' || formData.caraPembayaran === 'CASH BERTAHAP') ? formData.dp : undefined,
-          termin: formData.caraPembayaran === 'CASH BERTAHAP' ? Number(formData.termin) : undefined,
+          dp: (isKpr(formData.caraPembayaran) || isCashBertahap(formData.caraPembayaran)) ? formData.dp : undefined,
+          termin: isCashBertahap(formData.caraPembayaran) ? Number(formData.termin) : undefined,
           diskonPenjualan: formData.diskonPenjualan,
           bookingFee: formData.bookingFee,
-          keteranganAngsuran: formData.caraPembayaran === 'CASH BERTAHAP' ? formData.keteranganAngsuran : undefined,
+          keteranganAngsuran: isCashBertahap(formData.caraPembayaran) ? formData.keteranganAngsuran : undefined,
           biayaTambahan: biayaTambahanList.map((b) => ({ nama: b.nama, nominal: Number(b.nominal) })).filter((b) => b.nama.trim() !== '' && b.nominal > 0),
           biayaTambahanKpr: [
             ...historyBiayaTambahanKpr.map(h => ({ nama: h.nama, nominal: Number(h.nominal) })),
@@ -1315,7 +1339,7 @@ const Penjualan = () => {
               </div>
             )}
           </div>
-          {(row.caraPembayaran === 'KPR' || row.caraPembayaran === 'CASH BERTAHAP') && (
+          {(isKpr(row.caraPembayaran) || isCashBertahap(row.caraPembayaran)) && (
             <div className="space-y-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
               <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">2. Down Payment</h5>
               <div className="flex flex-wrap gap-2">
@@ -2053,7 +2077,7 @@ const Penjualan = () => {
                       </div>
                     )}
 
-                    {(formData.caraPembayaran === 'CASH BERTAHAP') && (
+                    {(isCashBertahap(formData.caraPembayaran)) && (
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mt-4 space-y-2">
                         <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
 
@@ -2194,7 +2218,7 @@ const Penjualan = () => {
                     </div>
                   </div>
 
-                  {formData.caraPembayaran === 'CASH BERTAHAP' && (
+                  {isCashBertahap(formData.caraPembayaran) && (
                     <Input
                       name="keteranganAngsuran"
                       value={formData.keteranganAngsuran || ''}
@@ -2512,7 +2536,7 @@ const Penjualan = () => {
                   </div>
                 )}
 
-                {(formData.caraPembayaran === 'CASH BERTAHAP') && (
+                {(isCashBertahap(formData.caraPembayaran)) && (
                   <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mt-4 space-y-2">
                     <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
 
@@ -2674,7 +2698,7 @@ const Penjualan = () => {
 
             <div className="flex justify-between items-start gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
               <div className="w-1/2">
-                {formData.caraPembayaran === 'CASH BERTAHAP' && (
+                {isCashBertahap(formData.caraPembayaran) && (
                   <Input
                     name="keteranganAngsuran"
                     value={formData.keteranganAngsuran || ''}
