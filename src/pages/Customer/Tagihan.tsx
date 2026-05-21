@@ -507,7 +507,7 @@ const Tagihan = () => {
     const hargaJual = Number(penjualanRow?.hargaJual ?? targetPenjualan?.totalHargaJual ?? 0);
     const targetBooking = Number(penjualanRow?.bookingFee ?? 0);
     const targetDp = Number(penjualanRow?.dp ?? 0);
-    const targetPokok = Math.max(0, hargaJual - targetBooking - targetDp);
+    const targetPokok = Math.max(0, hargaJual - targetDp);
 
     const paidDp = sumLunas((t) => effectiveTagihanTujuan(t) === 'DP');
     const paidPokok = sumLunas((t) => effectiveTagihanTujuan(t) === 'HARGA_JUAL');
