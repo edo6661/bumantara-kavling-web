@@ -68,15 +68,21 @@ const initialFormState: TagihanFormState = {
   reminderBerikutnya: '',
 };
 
+const ROWS_PER_PAGE = 10;
+/** Ambil semua tagihan (max API) lalu paginate per penjualan di client */
+const TAGIHAN_FETCH_LIMIT = 500;
+
 const Tagihan = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
-  const limit = 20;
 
-  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({ limit, page, search });
+  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({
+    limit: TAGIHAN_FETCH_LIMIT,
+    page: 1,
+    search,
+  });
   const tagihans = tagihansResponse?.items || [];
-  const meta = tagihansResponse?.meta;
 
   const { data: customers = [], isLoading: isLoadingCustomer } = useGetCustomers();
   const { data: penjualanList = [], isLoading: isLoadingPenjualan } = useGetCustomerKavlings({ limit: 500 });
@@ -168,6 +174,16 @@ const Tagihan = () => {
 
     return Object.values(groups).filter(g => g.cicilan.length > 0);
   }, [tagihans, penjualanList, penjualanFullList]);
+
+  const totalGroupPages = useMemo(
+    () => Math.max(1, Math.ceil(groupedData.length / ROWS_PER_PAGE)),
+    [groupedData.length],
+  );
+
+  const paginatedGroupedData = useMemo(() => {
+    const start = (page - 1) * ROWS_PER_PAGE;
+    return groupedData.slice(start, start + ROWS_PER_PAGE);
+  }, [groupedData, page]);
 
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer' },
@@ -514,6 +530,8 @@ const Tagihan = () => {
 
     const sisaDp = Math.max(0, targetDp - paidDp);
     const sisaPokok = Math.max(0, targetPokok - paidPokok);
+    const dpLunas = targetDp > 0 && sisaDp === 0;
+    const cicilanLunas = targetPokok > 0 && sisaPokok === 0;
 
     const piutangCicilan = hargaJual;
     const sisaPembayaran = cicilanRows
@@ -535,41 +553,62 @@ const Tagihan = () => {
                 </div>
               )}
               {targetDp > 0 && (
-                <div className="px-3 py-2 border border-teal-100 rounded-lg bg-teal-50/90">
-                  <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP </p>
-                  <p className="text-sm font-black text-teal-950">{formatRupiah(targetDp)}</p>
+                <div className={`px-3 py-2 border rounded-lg ${dpLunas ? 'border-green-200 bg-green-50/90' : 'border-teal-100 bg-teal-50/90'}`}>
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <p className={`text-[9px] uppercase tracking-widest font-bold ${dpLunas ? 'text-green-700' : 'text-teal-700'}`}>DP</p>
+                    {dpLunas && (
+                      <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-green-100 text-green-700 border border-green-200">
+                        Lunas
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-sm font-black ${dpLunas ? 'text-green-950' : 'text-teal-950'}`}>{formatRupiah(targetDp)}</p>
                 </div>
               )}
               {targetPokok > 0 && (
-                <div className="px-3 py-2 border border-blue-100 rounded-lg bg-blue-50/90">
-                  <p className="text-[9px] text-blue-700 uppercase tracking-widest font-bold mb-0.5">Cicilan </p>
-                  <p className="text-sm font-black text-blue-950">{formatRupiah(targetPokok)}</p>
+                <div className={`px-3 py-2 border rounded-lg ${cicilanLunas ? 'border-green-200 bg-green-50/90' : 'border-blue-100 bg-blue-50/90'}`}>
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <p className={`text-[9px] uppercase tracking-widest font-bold ${cicilanLunas ? 'text-green-700' : 'text-blue-700'}`}>Cicilan</p>
+                    {cicilanLunas && (
+                      <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-green-100 text-green-700 border border-green-200">
+                        Lunas
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-sm font-black ${cicilanLunas ? 'text-green-950' : 'text-blue-950'}`}>{formatRupiah(targetPokok)}</p>
                 </div>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              {targetDp > 0 && sisaDp > 0 && (
-                <div className="px-3 py-2 border border-teal-100 rounded-lg bg-blue-50/90">
-                  <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP Terbayar </p>
+              {(targetDp > 0 && paidDp > 0 && !dpLunas) && (
+                <div className="px-3 py-2 border border-teal-100 rounded-lg bg-teal-50/90">
+                  <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP Terbayar</p>
                   <p className="text-sm font-black text-teal-950">{formatRupiah(paidDp)}</p>
                 </div>
               )}
-              {targetDp > 0 && (
-                <div className="px-3 py-2 border border-emerald-100 rounded-lg bg-emerald-50/90">
-                  <p className="text-[9px] text-emerald-700 uppercase tracking-widest font-bold mb-0.5">DP Sisa </p>
-                  <p className="text-sm font-black text-emerald-950">{formatRupiah(sisaDp)}</p>
+              {(targetDp > 0 && !dpLunas) && (
+                <div className={`px-3 py-2 border rounded-lg ${dpLunas ? 'border-green-200 bg-green-50/90' : 'border-emerald-100 bg-emerald-50/90'}`}>
+                  <p className={`text-[9px] uppercase tracking-widest font-bold mb-0.5 ${dpLunas ? 'text-green-700' : 'text-emerald-700'}`}>DP Sisa</p>
+                  
+                    <p className="text-sm font-black text-emerald-950">{formatRupiah(sisaDp)}</p>
                 </div>
               )}
-              {targetPokok > 0 && sisaPokok > 0 && (
+              {(targetPokok > 0 && paidPokok > 0 && !cicilanLunas) && (
                 <div className="px-3 py-2 border border-orange-100 rounded-lg bg-orange-50/90">
-                  <p className="text-[9px] text-orange-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Terbayar </p>
+                  <p className="text-[9px] text-orange-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Terbayar</p>
                   <p className="text-sm font-black text-orange-950">{formatRupiah(paidPokok)}</p>
                 </div>
               )}
-              {targetPokok > 0 && (
-                <div className="px-3 py-2 border border-amber-100 rounded-lg bg-amber-50/90">
-                  <p className="text-[9px] text-amber-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Sisa </p>
-                  <p className="text-sm font-black text-amber-950">{formatRupiah(sisaPokok)}</p>
+              {(targetPokok > 0 && !cicilanLunas) && (
+                <div className={`px-3 py-2 border rounded-lg ${cicilanLunas ? 'border-green-200 bg-green-50/90' : 'border-amber-100 bg-amber-50/90'}`}>
+                  <p className={`text-[9px] uppercase tracking-widest font-bold mb-0.5 ${cicilanLunas ? 'text-green-700' : 'text-amber-800'}`}>Cicilan Sisa</p>
+                  {cicilanLunas ? (
+                    <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-green-100 text-green-700 border border-green-200">
+                      Lunas
+                    </span>
+                  ) : (
+                    <p className="text-sm font-black text-amber-950">{formatRupiah(sisaPokok)}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -846,15 +885,14 @@ const Tagihan = () => {
       <DataTable
         title="Data Tagihan Customer"
         columns={columns}
-        data={groupedData}
+        data={paginatedGroupedData}
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
-        // 👇 TAMBAHKAN PROPERTI DI BAWAH INI 👇
         serverSide={true}
         searchTerm={search}
         onSearchChange={handleSearchChange}
         page={page}
-        totalPages={meta?.totalPages || 1}
+        totalPages={totalGroupPages}
         onPageChange={handlePageChange}
       />
 
