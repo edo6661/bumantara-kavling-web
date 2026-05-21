@@ -6,10 +6,15 @@ interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   onValueChange: (name: string, value: number) => void;
   name: string;
 }
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+});
+
 const CurrencyInput = ({ label, error, value, onValueChange, name, ...props }: CurrencyInputProps) => {
-  const numericValue = Number(value);
+  const numericValue = Math.round(Number(value));
   const isValidNumber = !Number.isNaN(numericValue) && value !== null && value !== undefined && value !== '';
-  const displayValue = isValidNumber && numericValue !== 0 ? new Intl.NumberFormat('id-ID').format(numericValue) : '';
+  const displayValue = isValidNumber && numericValue !== 0 ? rupiahFormatter.format(numericValue) : '';
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
     const newNumericValue = rawValue ? Number(rawValue) : 0;

@@ -273,7 +273,7 @@ const Tagihan = () => {
         kavlingLabel: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
         tujuan: effectiveTagihanTujuan(item),
         pembayaran: item.pembayaran,
-        nominal: item.nominal,
+        nominal: Math.round(Number(item.nominal)),
         jatuhTempo: formatDateForInput(item.jatuhTempo ? String(item.jatuhTempo) : ''),
         status: item.status,
         fileBukti: item.fileBukti || '',
@@ -459,7 +459,7 @@ const Tagihan = () => {
           data: {
             pembayaran: formData.pembayaran,
             tujuan: formData.tujuan,
-            nominal: Number(formData.nominal),
+            nominal: Math.round(Number(formData.nominal)),
             jatuhTempo: formData.jatuhTempo,
             status: formData.status as any,
             reminderBerikutnya: formData.reminderBerikutnya || undefined,
@@ -471,7 +471,7 @@ const Tagihan = () => {
           penjualanId: Number(formData.penjualanId),
           pembayaran: formData.pembayaran,
           tujuan: formData.tujuan,
-          nominal: Number(formData.nominal),
+          nominal: Math.round(Number(formData.nominal)),
           jatuhTempo: formData.jatuhTempo,
           reminderBerikutnya: formData.reminderBerikutnya || undefined,
         });
