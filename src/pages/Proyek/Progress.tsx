@@ -11,8 +11,11 @@ import {
   useUploadTahapanPhotos
 } from "../../hooks/queries/useProgressProyek";
 import { handleApiError } from '../../utils/errorHandler';
+import type { LucideIcon } from 'lucide-react';
 import {
-  HardHat, UploadCloud, Loader2, Trash2, Edit2
+  HardHat, UploadCloud, Loader2, Trash2, Edit2,
+  Layers, Columns3, BrickWall, Home, LayoutGrid,
+  PanelTop, Droplets, Zap, Paintbrush
 } from 'lucide-react';
 import type { ProgressProyekData, TahapanProyekData } from '../../services/progressProyek.service';
 import { formatDate } from '../../utils/formatters';
@@ -36,7 +39,19 @@ interface PenjualanRow {
 const TAHAPAN_LIST = [
   'Pondasi', 'Kolom', 'Dinding', 'Atap', 'Lantai',
   'Plafon', 'Pipa', 'Electrical', 'Finishing'
-];
+] as const;
+
+const TAHAPAN_ICON_MAP: Record<(typeof TAHAPAN_LIST)[number], LucideIcon> = {
+  Pondasi: Layers,
+  Kolom: Columns3,
+  Dinding: BrickWall,
+  Atap: Home,
+  Lantai: LayoutGrid,
+  Plafon: PanelTop,
+  Pipa: Droplets,
+  Electrical: Zap,
+  Finishing: Paintbrush,
+};
 
 
 
@@ -63,15 +78,36 @@ const Progress = () => {
   }, [penjualanResponse]);
 
   const [selectedPenjualan, setSelectedPenjualan] = useState<PenjualanRow | null>(null);
+  const [directTahapan, setDirectTahapan] = useState<string | null>(null);
+
+  const openDetailModal = (row: PenjualanRow) => {
+    setSelectedPenjualan(row);
+    setDirectTahapan(null);
+  };
+
+  const openTahapanModal = (row: PenjualanRow, tahapan: string) => {
+    setSelectedPenjualan(row);
+    setDirectTahapan(tahapan);
+  };
+
+  const closeModals = () => {
+    setSelectedPenjualan(null);
+    setDirectTahapan(null);
+  };
 
   const columns = [
     {
-      header: 'Customer',
+      header: 'Customer & Blok',
       accessor: 'nama',
-      render: (val: string) => <span className="font-bold text-slate-900">{val}</span>
+      render: (_val: string, row: PenjualanRow) => (
+        <div>
+          <span className="font-bold text-slate-900 block">{row.nama}</span>
+          <span className="text-xs font-medium text-slate-500">
+            Blok {row.blok}-{row.nomorUnit}
+          </span>
+        </div>
+      )
     },
-    { header: 'Blok', accessor: 'blok' },
-    { header: 'Unit', accessor: 'nomorUnit' },
     {
       header: 'Pelaksana',
       accessor: 'progressProyek',
@@ -101,12 +137,30 @@ const Progress = () => {
       header: 'Aksi',
       accessor: 'dbId',
       render: (_val: number, row: PenjualanRow) => (
-        <button
-          onClick={() => setSelectedPenjualan(row)}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-black transition shadow-sm cursor-pointer"
-        >
-          <HardHat size={14} /> Kelola Progress
-        </button>
+        <div className="flex flex-wrap items-center gap-1">
+          {TAHAPAN_LIST.map((tahapan) => {
+            const Icon = TAHAPAN_ICON_MAP[tahapan];
+            return (
+              <button
+                key={tahapan}
+                type="button"
+                title={tahapan}
+                onClick={() => openTahapanModal(row, tahapan)}
+                className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 hover:grayscale-0 hover:bg-slate-100 hover:text-slate-600 grayscale"
+              >
+                <Icon size={14} strokeWidth={1.5} />
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            title="Kelola Progress Lapangan"
+            onClick={() => openDetailModal(row)}
+            className="p-1.5 rounded-lg border border-slate-900 bg-slate-900 text-white shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 hover:bg-black"
+          >
+            <HardHat size={14} />
+          </button>
+        </div>
       )
     }
   ];
@@ -121,12 +175,22 @@ const Progress = () => {
         data={penjualanList}
       />
 
-      {selectedPenjualan && (
+      {selectedPenjualan && !directTahapan && (
         <ProgressDetailModal
           key={selectedPenjualan.dbId}
           isOpen={!!selectedPenjualan}
-          onClose={() => setSelectedPenjualan(null)}
+          onClose={closeModals}
           penjualan={selectedPenjualan}
+        />
+      )}
+
+      {selectedPenjualan && directTahapan && (
+        <TahapanDirectEditModal
+          key={`${selectedPenjualan.dbId}-${directTahapan}`}
+          isOpen
+          onClose={closeModals}
+          penjualan={selectedPenjualan}
+          namaTahapan={directTahapan}
         />
       )}
     </div>
@@ -135,6 +199,45 @@ const Progress = () => {
 
 
 
+
+interface TahapanDirectEditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  penjualan: PenjualanRow;
+  namaTahapan: string;
+}
+
+const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
+  isOpen,
+  onClose,
+  penjualan,
+  namaTahapan
+}) => {
+  const { data: progressData, isLoading } = useGetProgressProyek(penjualan.dbId);
+
+  if (!isOpen) return null;
+
+  if (isLoading || !progressData) {
+    return (
+      <Modal isOpen onClose={onClose} title={`Detail Tahapan: ${namaTahapan}`} size="md">
+        <div className="py-20 flex flex-col items-center justify-center">
+          <Loader2 size={32} className="animate-spin text-indigo-600 mb-4" />
+          <p className="text-sm font-bold text-slate-500 animate-pulse">Memuat detail tahapan...</p>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <EditTahapanModal
+      isOpen
+      onClose={onClose}
+      penjualanDbId={penjualan.dbId}
+      namaTahapan={namaTahapan}
+      progressData={progressData}
+    />
+  );
+};
 
 interface ProgressDetailModalProps {
   isOpen: boolean;

@@ -1,4 +1,5 @@
 import api from "../lib/axios";
+import type { TagihanTujuan } from "../constants/tagihanTujuan";
 
 export interface TagihanData {
   id: number;
@@ -9,6 +10,7 @@ export interface TagihanData {
   perumahan: string;
   blok: string;
   nomorUnit: string;
+  tujuan?: TagihanTujuan;
   pembayaran: string;
   nominal: number;
   jatuhTempo: string;
@@ -30,6 +32,7 @@ export interface CreateTagihanDTO {
   customerId: number;
   penjualanId: number;
   pembayaran: string;
+  tujuan?: TagihanTujuan;
   nominal: number;
   jatuhTempo: string;
   reminderBerikutnya?: string | null;
@@ -37,6 +40,7 @@ export interface CreateTagihanDTO {
 
 export interface UpdateTagihanDTO {
   pembayaran?: string;
+  tujuan?: TagihanTujuan;
   nominal?: number;
   jatuhTempo?: string;
   status?: string;

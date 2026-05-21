@@ -31,6 +31,12 @@ import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import jsPDF from 'jspdf';
 import { handleApiError } from '../../utils/errorHandler';
 import { useSearchParams } from 'react-router-dom';
+import type { TagihanTujuan } from '../../constants/tagihanTujuan';
+import {
+  TAGIHAN_TUJUAN_OPTIONS,
+  effectiveTagihanTujuan,
+  tagihanTujuanShortLabel,
+} from '../../constants/tagihanTujuan';
 
 interface TagihanFormState {
   id: number | '';
@@ -38,6 +44,7 @@ interface TagihanFormState {
   customerLabel?: string;
   penjualanId: number | '';
   kavlingLabel?: string;
+  tujuan: TagihanTujuan;
   pembayaran: string;
   nominal: number | '';
   jatuhTempo: string;
@@ -52,6 +59,7 @@ const initialFormState: TagihanFormState = {
   customerLabel: '',
   penjualanId: '',
   kavlingLabel: '',
+  tujuan: 'DP',
   pembayaran: '',
   nominal: '',
   jatuhTempo: '',
@@ -233,6 +241,7 @@ const Tagihan = () => {
         customerLabel: item.namaCustomer,
         penjualanId: item.penjualanId,
         kavlingLabel: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
+        tujuan: effectiveTagihanTujuan(item),
         pembayaran: item.pembayaran,
         nominal: item.nominal,
         jatuhTempo: formatDateForInput(item.jatuhTempo ? String(item.jatuhTempo) : ''),
@@ -249,6 +258,7 @@ const Tagihan = () => {
         customerLabel: parentGroup.namaCustomer,
         penjualanId: parentGroup.penjualanId,
         kavlingLabel: parentGroup.kavling,
+        tujuan: 'DP',
       });
       setIsEditing(false);
       setIsAutoFilled(true);
@@ -418,6 +428,7 @@ const Tagihan = () => {
           id: Number(formData.id),
           data: {
             pembayaran: formData.pembayaran,
+            tujuan: formData.tujuan,
             nominal: Number(formData.nominal),
             jatuhTempo: formData.jatuhTempo,
             status: formData.status as any,
@@ -429,6 +440,7 @@ const Tagihan = () => {
           customerId: Number(formData.customerId),
           penjualanId: Number(formData.penjualanId),
           pembayaran: formData.pembayaran,
+          tujuan: formData.tujuan,
           nominal: Number(formData.nominal),
           jatuhTempo: formData.jatuhTempo,
           reminderBerikutnya: formData.reminderBerikutnya || undefined,
@@ -470,13 +482,32 @@ const Tagihan = () => {
 
   const expandedRowRender = (row: any) => {
     const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(row.penjualanId));
+    const penjualanRow = penjualanFullList.find((p: any) => Number(p.dbId) === Number(row.penjualanId));
+    const cicilanRows: TagihanData[] = row.cicilan || [];
 
-    // Total Harga Akhir
-    const totalHargaJual = targetPenjualan ? Number(targetPenjualan.totalHargaJual) : 0;
-    const piutangCicilan = Math.max(0, totalHargaJual);
+    const sumLunas = (pred: (t: TagihanData) => boolean) =>
+      cicilanRows
+        .filter((t) => t.status === 'LUNAS' && pred(t))
+        .reduce((acc, t) => acc + Number(t.nominal), 0);
 
-    const totalTerbayarCicilan = row.totalTerbayarKeseluruhan;
-    const sisaPembayaran = Math.max(0, piutangCicilan - totalTerbayarCicilan);
+    const hargaJual = Number(penjualanRow?.hargaJual ?? targetPenjualan?.totalHargaJual ?? 0);
+    const targetBooking = Number(penjualanRow?.bookingFee ?? 0);
+    const targetDp = Number(penjualanRow?.dp ?? 0);
+    const targetPokok = Math.max(0, hargaJual - targetBooking - targetDp);
+
+    const paidBooking = sumLunas((t) => effectiveTagihanTujuan(t) === 'BOOKING_FEE');
+    const paidDp = sumLunas((t) => effectiveTagihanTujuan(t) === 'DP');
+    const paidPokok = sumLunas((t) => effectiveTagihanTujuan(t) === 'HARGA_JUAL');
+
+    const sisaBooking = Math.max(0, targetBooking - paidBooking);
+    const sisaDp = Math.max(0, targetDp - paidDp);
+    const sisaPokok = Math.max(0, targetPokok - paidPokok);
+
+    const piutangCicilan = hargaJual;
+    const sisaPembayaran = cicilanRows
+      .filter((t) => t.status !== 'LUNAS')
+      .reduce((acc, t) => acc + Number(t.nominal), 0);
+
     const rekeningTujuanId = targetPenjualan?.rekeningTujuanId;
 
 
@@ -488,19 +519,28 @@ const Tagihan = () => {
 
           </h4>
 
-          <div className="flex flex-wrap items-center gap-4 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm w-full md:w-auto">
-            <div className="px-3 border-r border-slate-100">
-              <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Total Tagihan Cicilan</p>
-              <p className="text-sm font-bold text-slate-700">{formatRupiah(piutangCicilan)}</p>
-            </div>
-            {/* <div className="px-3 border-r border-slate-100">
-              <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Total Terbayar (Cicilan)</p>
-              <p className="text-sm font-bold text-emerald-600">{formatRupiah(totalTerbayarCicilan)}</p>
-            </div>
-            <div className="px-3">
-              <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold mb-0.5">Sisa Pembayaran</p>
-              <p className="text-sm font-black text-orange-600">{formatRupiah(sisaPembayaran)}</p>
-            </div> */}
+          <div className="flex flex-wrap items-stretch gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm w-full md:flex-1">
+            {targetBooking > 0 && (
+              <div className="px-3 py-2 min-w-[140px] border border-slate-100 rounded-lg bg-slate-50/90">
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-0.5">Sisa booking fee</p>
+                <p className="text-sm font-black text-slate-900">{formatRupiah(sisaBooking)}</p>
+              </div>
+            )}
+            {targetDp > 0 && (
+              <div className="px-3 py-2 min-w-[150px] border border-emerald-100 rounded-lg bg-emerald-50/90">
+                <p className="text-[9px] text-emerald-700 uppercase tracking-widest font-bold mb-0.5">Sisa DP / uang muka</p>
+                <p className="text-sm font-black text-emerald-950">{formatRupiah(sisaDp)}</p>
+              </div>
+            )}
+            {targetPokok > 0 && (
+              <div className="px-3 py-2 min-w-[170px] border border-amber-100 rounded-lg bg-amber-50/90">
+                <p className="text-[9px] text-amber-800 uppercase tracking-widest font-bold mb-0.5">Sisa cicilan harga jual</p>
+                <p className="text-sm font-black text-amber-950">{formatRupiah(sisaPokok)}</p>
+              </div>
+            )}
+            {targetBooking <= 0 && targetDp <= 0 && targetPokok <= 0 && (
+              <p className="text-xs text-slate-500 px-2 py-1">Ringkasan sisa membutuhkan data harga jual, booking, dan DP di penjualan.</p>
+            )}
           </div>
 
           <button
@@ -512,10 +552,11 @@ const Tagihan = () => {
         </div>
 
         <div className="overflow-x-auto custom-scrollbar border border-slate-200 rounded-xl bg-white shadow-sm">
-          <table className="w-full text-left text-sm border-collapse min-w-[700px]">
+          <table className="w-full text-left text-sm border-collapse min-w-[820px]">
             <thead>
               <tr className="bg-slate-100/50 border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[10px]">
                 <th className="p-3 font-bold">Keterangan</th>
+                <th className="p-3 font-bold w-28">Tujuan</th>
                 <th className="p-3 font-bold">Jatuh Tempo</th>
                 <th className="p-3 font-bold text-right">Nominal</th>
                 <th className="p-3 font-bold text-center">Status</th>
@@ -530,6 +571,14 @@ const Tagihan = () => {
                   <tr key={c.id} className="hover:bg-blue-50/30 transition-colors group">
 
                     <td className="p-3 font-bold text-slate-800 text-xs">{c.pembayaran}</td>
+                    <td className="p-3 align-top">
+                      <span
+                        className="inline-flex px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide bg-indigo-50 text-indigo-800 border border-indigo-100"
+                        title="Alokasi pembayaran untuk perhitungan sisa DP / cicilan"
+                      >
+                        {tagihanTujuanShortLabel[effectiveTagihanTujuan(c)]}
+                      </span>
+                    </td>
                     <td className="p-3 text-slate-600 text-xs font-medium">
                       <input
                         type="date"
@@ -808,8 +857,20 @@ const Tagihan = () => {
           <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Detail Tagihan & Reminder</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Select
+                label="Tujuan pembayaran"
+                name="tujuan"
+                value={formData.tujuan}
+                onChange={handleChange}
+                error={errors.tujuan}
+                disabled={formData.status === 'LUNAS'}
+                options={TAGIHAN_TUJUAN_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              />
+              <p className="text-[11px] text-slate-500 md:col-span-2 -mt-2 leading-relaxed">
+                Pilih tujuan agar sistem menghitung <strong>sisa DP</strong> dan <strong>sisa cicilan harga jual</strong> dengan benar. Setiap pembayaran tetap memakai satu tagihan (invoice).
+              </p>
               <div className="md:col-span-2">
-                <Input label="Pembayaran (Deskripsi)" name="pembayaran" value={formData.pembayaran} onChange={handleChange} error={errors.pembayaran} placeholder="Contoh: Cicilan Bertahap ke-1 / Pelunasan DP" />
+                <Input label="Pembayaran (Deskripsi)" name="pembayaran" value={formData.pembayaran} onChange={handleChange} error={errors.pembayaran} placeholder="Contoh: Cicilan DP ke-2 / Cicilan pokok ke-5" />
               </div>
               <CurrencyInput
                 label="Nominal"
