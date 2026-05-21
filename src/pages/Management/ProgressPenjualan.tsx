@@ -27,6 +27,18 @@ import Select from '../../components/shared/Select';
 import { useUploadKavlingDocument } from '../../hooks/queries/useKavling';
 import { useQueryClient } from '@tanstack/react-query';
 
+const SP3K_DOKUMEN_NAME = 'Kode Billing PPh dan Suket PPh';
+
+const LEGACY_SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh'];
+
+const isSp3kDokumen = (nama: string) => {
+  const key = nama?.trim().toLowerCase();
+  return (
+    key === SP3K_DOKUMEN_NAME.toLowerCase() ||
+    LEGACY_SP3K_DOKUMEN_NAMES.some((n) => n.toLowerCase() === key)
+  );
+};
+
 const ProgressPenjualan = () => {
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
   const { data: notarisList = [] } = useGetNotaris();
@@ -98,6 +110,25 @@ const ProgressPenjualan = () => {
     }
   }, [progressData]);
 
+  useEffect(() => {
+    if (!['VALIDASI_BERKAS', 'SP3K'].includes(modalStep ?? '') || !currentCustomer?.id || updateCustomerMutation.isPending) return;
+
+    const docs: { id: string; nama: string; fileUrl: string | string[] }[] = Array.isArray(currentCustomer.dokumenLainnya)
+      ? currentCustomer.dokumenLainnya
+      : [];
+    const hasSlot = docs.some((d) => d.nama?.trim().toLowerCase() === SP3K_DOKUMEN_NAME.toLowerCase());
+    if (hasSlot) return;
+
+    const updatedDocs = [
+      ...docs,
+      { id: `sp3k-${Date.now()}`, nama: SP3K_DOKUMEN_NAME, fileUrl: [] as string[] },
+    ];
+
+    updateCustomerMutation.mutate({
+      id: currentCustomer.id,
+      data: { dokumenLainnya: updatedDocs } as any,
+    });
+  }, [modalStep, currentCustomer?.id]);
 
   const handleDrag = (e: React.DragEvent, id: string) => {
     e.preventDefault();
@@ -346,7 +377,10 @@ const ProgressPenjualan = () => {
           return { ...doc, fileUrl: newUrls };
         }
         return doc;
-      }).filter((doc: any) => doc.fileUrl.length > 0);
+      }).filter((doc: any) => {
+        const urls = Array.isArray(doc.fileUrl) ? doc.fileUrl : doc.fileUrl ? [doc.fileUrl] : [];
+        return urls.length > 0 || isSp3kDokumen(doc.nama);
+      });
 
       await updateCustomerMutation.mutateAsync({
         id: currentCustomer.id,
@@ -468,6 +502,115 @@ const ProgressPenjualan = () => {
     setPendingUpload(null);
     setPdfPassword("");
   };
+
+  const renderDokumenLainnyaGroup = (
+    doc: { id: string; nama: string; fileUrl: string | string[] },
+    options?: { hideDeleteGroup?: boolean; fileItems?: { url: string; docId: string }[] }
+  ) => {
+    const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : doc.fileUrl ? [doc.fileUrl] : [];
+    const fileItems = options?.fileItems ?? fileUrls.map((url) => ({ url, docId: doc.id }));
+
+    return (
+      <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 relative shadow-sm">
+        <div className="flex justify-between items-start mb-2 border-b border-slate-200 pb-2">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pr-2 pt-1" title={doc.nama}>
+            {doc.nama} <span className="text-blue-500">({fileItems.length} File)</span>
+          </span>
+          <div className="flex gap-1 shrink-0">
+            <label className="p-1.5 bg-blue-50 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-all z-30 cursor-pointer" title="Tambah File ke Grup Ini">
+              {uploadCustomerDocMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              <input
+                type="file"
+                multiple
+                accept="image/*,application/pdf"
+                className="hidden"
+                disabled={uploadCustomerDocMutation.isPending}
+                onChange={(e) => {
+                  if (e.target.files?.length) handleUploadLainnya(e.target.files, doc.nama);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            {!options?.hideDeleteGroup && (
+              <button
+                type="button"
+                onClick={() => handleDeleteDokumenLainnya(doc.id)}
+                disabled={updateCustomerMutation.isPending}
+                className="p-1.5 bg-red-50 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-all z-30 disabled:opacity-50"
+                title="Hapus Grup Dokumen"
+              >
+                {updateCustomerMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className={`grid gap-2 ${fileItems.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {fileItems.map((item, idx) => {
+            const isPdf = item.url ? (item.url.split('?')[0].toLowerCase().endsWith('.pdf') || item.url.includes('application/pdf')) : false;
+            return (
+              <div
+                key={`${item.docId}-${idx}`}
+                className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative group/item bg-white transition-all hover:border-indigo-200"
+              >
+                {isPdf ? (
+                  <iframe src={item.url} title={`${doc.nama}-${idx}`} className="w-full h-full border-none pointer-events-none" />
+                ) : (
+                  <img src={item.url} alt={doc.nama} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform" />
+                )}
+
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/item:opacity-100 flex items-center justify-center gap-2 transition-opacity z-10">
+                  <button onClick={() => window.open(item.url, '_blank')} className="p-1.5 bg-white text-slate-800 rounded-md hover:bg-slate-200 transition" title="Lihat">
+                    <ZoomIn size={16} />
+                  </button>
+                  <button onClick={() => handleDeleteSingleItemLainnya(item.docId, item.url)} className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition" title="Hapus Gambar Ini">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {fileItems.length === 0 && (
+            <div className="aspect-video w-full rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center bg-white text-slate-400">
+              <span className="text-[9px] font-bold uppercase">Belum ada file</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const sp3kDokumenSlot = useMemo(() => {
+    const docs: { id: string; nama: string; fileUrl: string | string[] }[] = Array.isArray(currentCustomer?.dokumenLainnya)
+      ? currentCustomer.dokumenLainnya
+      : [];
+    const primary = docs.find((d) => d.nama?.trim().toLowerCase() === SP3K_DOKUMEN_NAME.toLowerCase());
+    const legacy = docs.filter((d) =>
+      LEGACY_SP3K_DOKUMEN_NAMES.some((n) => n.toLowerCase() === d.nama?.trim().toLowerCase())
+    );
+
+    const fileItems: { url: string; docId: string }[] = [];
+    const collect = (doc: { id: string; fileUrl: string | string[] }) => {
+      const urls = Array.isArray(doc.fileUrl) ? doc.fileUrl : doc.fileUrl ? [doc.fileUrl] : [];
+      urls.forEach((url) => fileItems.push({ url, docId: doc.id }));
+    };
+    if (primary) collect(primary);
+    legacy.forEach(collect);
+
+    return {
+      id: primary?.id ?? `placeholder-${SP3K_DOKUMEN_NAME}`,
+      nama: SP3K_DOKUMEN_NAME,
+      fileUrl: fileItems.map((f) => f.url),
+      fileItems,
+    };
+  }, [currentCustomer?.dokumenLainnya]);
+
+  const kprDokumenLainnya = useMemo(() => {
+    const docs: { id: string; nama: string; fileUrl: string | string[] }[] = Array.isArray(currentCustomer?.dokumenLainnya)
+      ? currentCustomer.dokumenLainnya
+      : [];
+    return docs.filter((doc) => !isSp3kDokumen(doc.nama));
+  }, [currentCustomer?.dokumenLainnya]);
 
   const handleSaveNilaiAjb = async () => {
     if (!progressData) return;
@@ -706,72 +849,8 @@ const ProgressPenjualan = () => {
                           <PlusCircle size={14} className="text-blue-600" /> Dokumen Pendukung KPR (Slip Gaji, Mutasi, dll)
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {currentCustomer?.dokumenLainnya && currentCustomer.dokumenLainnya.map((doc: any) => {
-
-                            const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : [doc.fileUrl];
-
-                            return (
-                              <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 relative shadow-sm">
-                                <div className="flex justify-between items-start mb-2 border-b border-slate-200 pb-2">
-                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pr-2 pt-1" title={doc.nama}>
-                                    {doc.nama} <span className="text-blue-500">({fileUrls.length} File)</span>
-                                  </span>
-                                  <div className="flex gap-1 shrink-0">
-                                    <label className="p-1.5 bg-blue-50 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-all z-30 cursor-pointer" title="Tambah File ke Grup Ini">
-                                      {uploadCustomerDocMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                                      <input
-                                        type="file"
-                                        multiple
-                                        accept="image/*,application/pdf"
-                                        className="hidden"
-                                        disabled={uploadCustomerDocMutation.isPending}
-                                        onChange={(e) => {
-                                          if (e.target.files?.length) handleUploadLainnya(e.target.files, doc.nama);
-                                          e.target.value = '';
-                                        }}
-                                      />
-                                    </label>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteDokumenLainnya(doc.id)}
-                                      disabled={updateCustomerMutation.isPending}
-                                      className="p-1.5 bg-red-50 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-all z-30 disabled:opacity-50"
-                                      title="Hapus Grup Dokumen"
-                                    >
-                                      {updateCustomerMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className={`grid gap-2 ${fileUrls.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                                  {fileUrls.map((url: string, idx: number) => {
-                                    const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf')) : false;
-                                    return (
-                                      <div
-                                        key={idx}
-                                        className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative group/item bg-white transition-all hover:border-indigo-200"
-                                      >
-                                        {isPdf ? (
-                                          <iframe src={url} title={`${doc.nama}-${idx}`} className="w-full h-full border-none pointer-events-none" />
-                                        ) : (
-                                          <img src={url} alt={doc.nama} className="w-full h-full object-cover group-hover/item:scale-105 transition-transform" />
-                                        )}
-
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/item:opacity-100 flex items-center justify-center gap-2 transition-opacity z-10">
-                                          <button onClick={() => window.open(url, '_blank')} className="p-1.5 bg-white text-slate-800 rounded-md hover:bg-slate-200 transition" title="Lihat">
-                                            <ZoomIn size={16} />
-                                          </button>
-                                          <button onClick={() => handleDeleteSingleItemLainnya(doc.id, url)} className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition" title="Hapus Gambar Ini">
-                                            <Trash2 size={16} />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
+                          {renderDokumenLainnyaGroup(sp3kDokumenSlot, { hideDeleteGroup: true, fileItems: sp3kDokumenSlot.fileItems })}
+                          {kprDokumenLainnya.map((doc) => renderDokumenLainnyaGroup(doc))}
 
                           <div
                             className={`flex flex-col gap-3 p-3 border-2 border-dashed rounded-xl relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-blue-400 transition-all
@@ -885,6 +964,15 @@ const ProgressPenjualan = () => {
                             </button>
                           </div>
 
+                        </div>
+                      </div>
+
+                      <div className="pt-6 mt-6 border-t border-slate-100">
+                        <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                          <PlusCircle size={14} className="text-indigo-600" /> {SP3K_DOKUMEN_NAME}
+                        </h4>
+                        <div className="grid grid-cols-1 gap-4">
+                          {renderDokumenLainnyaGroup(sp3kDokumenSlot, { hideDeleteGroup: true, fileItems: sp3kDokumenSlot.fileItems })}
                         </div>
                       </div>
                     </div>
