@@ -1216,9 +1216,8 @@ const Penjualan = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2">
-          <div className="space-y-3">
-            <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">1. Booking Fee & SPR</h5>
+        <div className="space-y-3">
+            <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Booking Fee & SPR</h5>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => {
@@ -1338,83 +1337,6 @@ const Penjualan = () => {
                 </div>
               </div>
             )}
-          </div>
-          {(isKpr(row.caraPembayaran) || isCashBertahap(row.caraPembayaran)) && (
-            <div className="space-y-3 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6">
-              <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">2. Down Payment</h5>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    setPrintType('invoice');
-                    setPrintTitle('Invoice Down Payment (DP)');
-                    setPrintData({ ...row, nominalCetak: row.dp });
-                  }}
-                  className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer shadow-sm"
-                >
-                  <FileText size={14} /> Invoice DP
-                </button>
-
-                {row.fileBuktiDp ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        setPrintType('kwitansi');
-                        setPrintTitle('Kwitansi Down Payment (DP)');
-                        setPrintData({ ...row, nominalCetak: row.dp });
-                      }}
-                      className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-colors cursor-pointer shadow-md shadow-slate-900/10"
-                    >
-                      <Receipt size={14} /> Kwitansi DP
-                    </button>
-                  </>
-                ) : (
-                  <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
-                    <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti DP"}
-                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'dp', e)} disabled={uploadBuktiMutation.isPending} />
-                  </label>
-                )}
-              </div>
-
-              {row.fileBuktiDp && (
-                <div className="mt-4 border-t border-slate-200 pt-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bukti Transfer DP</p>
-
-                    <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
-                      {uploadBuktiMutation.isPending ? 'Mengunggah...' : 'Ganti Bukti'}
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        className="hidden"
-                        onChange={(e) => handleUploadBukti(row.id!, 'dp', e)}
-                        disabled={uploadBuktiMutation.isPending}
-                      />
-                    </label>
-                  </div>
-
-                  <div
-                    onClick={() => setPreviewImage(row.fileBuktiDp as string)}
-                    className="relative w-24 h-16 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 ring-1 ring-slate-900/5 flex justify-center items-center"
-                    title="Klik untuk perbesar"
-                  >
-                    {row.fileBuktiDp.split('?')[0].toLowerCase().endsWith('.pdf') || row.fileBuktiDp.includes('application/pdf') ? (
-                      <div className="text-red-500"><FileText size={24} /></div>
-                    ) : (
-                      <img
-                        src={`${row.fileBuktiDp}?t=${new Date(row.updatedAt!).getTime()}`}
-                        alt="Bukti DP"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                      <ZoomIn size={14} className="text-white" />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
         </div>
       </div>
     );

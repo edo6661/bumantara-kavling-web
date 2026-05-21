@@ -30,10 +30,24 @@ export interface UpdateFeeAgentDTO {
 
 export const feeAgentService = {
   getAll: async (params?: Record<string, unknown>): Promise<FeeAgentData[]> => {
-    const response = await api.get("/fee-agents", {
-      params: { limit: 100, ...params },
-    });
-    return response.data.data.items;
+    const limit = 500;
+    const all: FeeAgentData[] = [];
+    let cursor: number | undefined;
+
+    for (;;) {
+      const response = await api.get("/fee-agents", {
+        params: { limit, ...(cursor != null ? { cursor } : {}), ...params },
+      });
+      const { items, meta } = response.data.data as {
+        items: FeeAgentData[];
+        meta: { nextCursor: number | null; hasNextPage: boolean };
+      };
+      all.push(...items);
+      if (!meta.hasNextPage || meta.nextCursor == null) break;
+      cursor = meta.nextCursor;
+    }
+
+    return all;
   },
 
   update: async (id: number, data: UpdateFeeAgentDTO) => {

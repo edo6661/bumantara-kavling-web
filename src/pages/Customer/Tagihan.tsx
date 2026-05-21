@@ -193,7 +193,7 @@ const Tagihan = () => {
         if (unpaid === 0 && pending === 0) {
           return (
             <span className="px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wide uppercase bg-green-100 text-green-700 border border-green-200">
-              Lunas Semua
+              Lunas 
             </span>
           );
         }
