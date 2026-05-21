@@ -551,7 +551,7 @@ const ProgressPenjualan = () => {
             return (
               <div
                 key={`${item.docId}-${idx}`}
-                className="aspect-video w-full rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative group/item bg-white transition-all hover:border-indigo-200"
+                className="h-32 w-full max-w-[240px] rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative group/item bg-white transition-all hover:border-indigo-200"
               >
                 {isPdf ? (
                   <iframe src={item.url} title={`${doc.nama}-${idx}`} className="w-full h-full border-none pointer-events-none" />
@@ -571,7 +571,7 @@ const ProgressPenjualan = () => {
             );
           })}
           {fileItems.length === 0 && (
-            <div className="aspect-video w-full rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center bg-white text-slate-400">
+            <div className="h-32 w-full max-w-[240px] rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center bg-white text-slate-400">
               <span className="text-[9px] font-bold uppercase">Belum ada file</span>
             </div>
           )}
@@ -971,7 +971,7 @@ const ProgressPenjualan = () => {
                         <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                           <PlusCircle size={14} className="text-indigo-600" /> {SP3K_DOKUMEN_NAME}
                         </h4>
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {renderDokumenLainnyaGroup(sp3kDokumenSlot, { hideDeleteGroup: true, fileItems: sp3kDokumenSlot.fileItems })}
                         </div>
                       </div>
