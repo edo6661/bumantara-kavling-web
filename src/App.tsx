@@ -47,6 +47,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
   if (user?.role === 'CUSTOMER') return <Navigate to="/portal" replace />;
   if (user?.role === 'AGENT') return <Navigate to="/agent-portal" replace />;
+  if (user?.role === 'MANDOR' && location.pathname === '/') {
+    return <Navigate to="/proyek/progress" replace />;
+  }
 
   return <>{children}</>;
 };
@@ -94,7 +97,9 @@ const App = () => {
               } />
 
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
+                <Route index element={
+                  <PermissionGuard resource="DASHBOARD"><Dashboard /></PermissionGuard>
+                } />
                 <Route path="finance/approve-pembayaran" element={<PermissionGuard resource="TAGIHAN"><ApprovePembayaran /></PermissionGuard>} />
                 <Route path="management/penjualan" element={<PermissionGuard resource="PENJUALAN"><Penjualan /></PermissionGuard>} />
                 <Route path="management/progress-penjualan" element={<PermissionGuard resource="PROGRESS_PENJUALAN"><ProgressPenjualan /></PermissionGuard>} />

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Input from '../components/shared/Input';
 import Select from '../components/shared/Select';
 import { useGetPerumahan } from '../hooks/queries/usePerumahan';
+import { storage } from '../utils/storage';
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -40,7 +41,8 @@ const Login = () => {
     }
     const result = await login(formData.email, formData.password, selectedPerumahan);
     if (result.success) {
-      navigate(from, { replace: true });
+      const redirectTo = storage.getUser()?.role === 'MANDOR' ? '/proyek/progress' : from;
+      navigate(redirectTo, { replace: true });
     } else {
       if (result.errors && Array.isArray(result.errors)) {
         const fieldErrors = result.errors.reduce((acc, err) => {

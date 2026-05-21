@@ -1,5 +1,10 @@
 import api from "../lib/axios";
 
+export interface MandorOption {
+  id: number;
+  username: string;
+}
+
 export interface TahapanProyekData {
   id?: number;
   namaTahapan: string;
@@ -7,12 +12,14 @@ export interface TahapanProyekData {
   deskripsi: string | null;
   tanggal: string;
   foto: string[];
+  reportedBy?: MandorOption | null;
 }
 
 export interface ProgressProyekData {
   id: number;
   penjualanId: number;
-  pelaksana: string | null;
+  mandorId: number | null;
+  mandor: MandorOption | null;
   persentase: number;
   createdAt: string;
   updatedAt: string;
@@ -20,11 +27,16 @@ export interface ProgressProyekData {
 }
 
 export interface UpdateProgressProyekDTO {
-  pelaksana?: string;
+  mandorId?: number | null;
   tahapan?: TahapanProyekData[];
 }
 
 export const progressProyekService = {
+  getMandors: async (): Promise<MandorOption[]> => {
+    const response = await api.get("/progress-proyek/mandors");
+    return response.data.data;
+  },
+
   getById: async (penjualanId: number): Promise<ProgressProyekData> => {
     const response = await api.get(`/progress-proyek/${penjualanId}`);
     return response.data.data;

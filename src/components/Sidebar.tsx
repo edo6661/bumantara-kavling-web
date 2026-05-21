@@ -92,7 +92,10 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const filteredMenuItems = menuItems.map(item => {
-    if (!item.submenus) return item;
+    if (!item.submenus) {
+      if (item.path === '/' && user?.role === 'MANDOR') return null;
+      return item;
+    }
 
     const filteredSubmenus = item.submenus.filter(sub => {
       if (!sub.resource) return true;
@@ -101,7 +104,10 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     });
 
     return { ...item, submenus: filteredSubmenus };
-  }).filter(item => item.submenus ? item.submenus.length > 0 : true);
+  }).filter(item => {
+    if (!item) return false;
+    return item.submenus ? item.submenus.length > 0 : true;
+  });
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
     const initialOpenMenus: Record<string, boolean> = {};
@@ -185,6 +191,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
           <nav className="space-y-1">
             {filteredMenuItems.map((item) => {
+              if (!item) return null;
               const hasSubmenus = !!item.submenus;
               const isActive = checkActive(item.path, item.submenus);
               const isOpenMenu = openMenus[item.title];

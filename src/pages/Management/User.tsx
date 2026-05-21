@@ -65,6 +65,7 @@ const UserManagement = () => {
         if (val === "FINANCE") bgClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
         if (val === "MARKETING") bgClass = "bg-amber-100 text-amber-800 border-amber-200";
         if (val === "BANK") bgClass = "bg-teal-100 text-teal-800 border-teal-200";
+        if (val === "MANDOR") bgClass = "bg-orange-100 text-orange-800 border-orange-200";
 
         return <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>{val}</span>;
       },
@@ -226,6 +227,7 @@ const UserManagement = () => {
                   { value: "MARKETING", label: "Marketing" },
                   { value: "CUSTOMER", label: "Customer" },
                   { value: "BANK", label: "Bank" },
+                  { value: "MANDOR", label: "Mandor" },
                 ]}
               />
             </div>

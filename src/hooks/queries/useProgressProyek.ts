@@ -7,8 +7,16 @@ import { PENJUALAN_KEYS } from "./usePenjualan";
 
 export const PROGRESS_PROYEK_KEYS = {
   all: ["progress-proyek"] as const,
+  mandors: ["progress-proyek", "mandors"] as const,
   detail: (penjualanId: number) =>
     [...PROGRESS_PROYEK_KEYS.all, penjualanId] as const,
+};
+
+export const useGetMandors = () => {
+  return useQuery({
+    queryKey: PROGRESS_PROYEK_KEYS.mandors,
+    queryFn: () => progressProyekService.getMandors(),
+  });
 };
 
 export const useGetProgressProyek = (penjualanId: number | null) => {
