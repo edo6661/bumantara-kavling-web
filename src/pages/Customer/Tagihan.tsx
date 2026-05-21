@@ -526,43 +526,53 @@ const Tagihan = () => {
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-          <div className="flex flex-wrap items-stretch gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm w-full md:flex-1">
-            {hargaJual > 0 && (
-              <div className="px-3 py-2 min-w-[150px] border border-slate-200 rounded-lg bg-slate-50/90">
-                <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mb-0.5">Harga jual</p>
-                <p className="text-sm font-black text-slate-950">{formatRupiah(hargaJual)}</p>
-              </div>
-            )}
-            {targetDp > 0 && (
-              <div className="px-3 py-2 min-w-[150px] border border-teal-100 rounded-lg bg-teal-50/90">
-                <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP </p>
-                <p className="text-sm font-black text-teal-950">{formatRupiah(targetDp)}</p>
-              </div>
-            )}
-            {targetDp > 0 && sisaDp > 0 && (
-              <div className="px-3 py-2 min-w-[150px] border border-teal-100 rounded-lg bg-blue-50/90">
-                <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP Terbayar </p>
-                <p className="text-sm font-black text-teal-950">{formatRupiah(paidDp)}</p>
-              </div>
-            )}
-            {targetDp > 0 && (
-              <div className="px-3 py-2 min-w-[150px] border border-emerald-100 rounded-lg bg-emerald-50/90">
-                <p className="text-[9px] text-emerald-700 uppercase tracking-widest font-bold mb-0.5">DP Sisa </p>
-                <p className="text-sm font-black text-emerald-950">{formatRupiah(sisaDp)}</p>
-              </div>
-            )}
-            {targetPokok > 0 && sisaPokok > 0 && (
-              <div className="px-3 py-2 min-w-[170px] border border-orange-100 rounded-lg bg-orange-50/90">
-                <p className="text-[9px] text-orange-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Terbayar </p>
-                <p className="text-sm font-black text-orange-950">{formatRupiah(paidPokok)}</p>
-              </div>
-            )}
-            {targetPokok > 0 && (
-              <div className="px-3 py-2 min-w-[170px] border border-amber-100 rounded-lg bg-amber-50/90">
-                <p className="text-[9px] text-amber-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Sisa </p>
-                <p className="text-sm font-black text-amber-950">{formatRupiah(sisaPokok)}</p>
-              </div>
-            )}
+          <div className="flex flex-col gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm w-full md:flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {hargaJual > 0 && (
+                <div className="px-3 py-2 border border-slate-200 rounded-lg bg-slate-50/90">
+                  <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mb-0.5">Harga jual</p>
+                  <p className="text-sm font-black text-slate-950">{formatRupiah(hargaJual)}</p>
+                </div>
+              )}
+              {targetDp > 0 && (
+                <div className="px-3 py-2 border border-teal-100 rounded-lg bg-teal-50/90">
+                  <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP </p>
+                  <p className="text-sm font-black text-teal-950">{formatRupiah(targetDp)}</p>
+                </div>
+              )}
+              {targetPokok > 0 && (
+                <div className="px-3 py-2 border border-blue-100 rounded-lg bg-blue-50/90">
+                  <p className="text-[9px] text-blue-700 uppercase tracking-widest font-bold mb-0.5">Cicilan </p>
+                  <p className="text-sm font-black text-blue-950">{formatRupiah(targetPokok)}</p>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {targetDp > 0 && sisaDp > 0 && (
+                <div className="px-3 py-2 border border-teal-100 rounded-lg bg-blue-50/90">
+                  <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP Terbayar </p>
+                  <p className="text-sm font-black text-teal-950">{formatRupiah(paidDp)}</p>
+                </div>
+              )}
+              {targetDp > 0 && (
+                <div className="px-3 py-2 border border-emerald-100 rounded-lg bg-emerald-50/90">
+                  <p className="text-[9px] text-emerald-700 uppercase tracking-widest font-bold mb-0.5">DP Sisa </p>
+                  <p className="text-sm font-black text-emerald-950">{formatRupiah(sisaDp)}</p>
+                </div>
+              )}
+              {targetPokok > 0 && sisaPokok > 0 && (
+                <div className="px-3 py-2 border border-orange-100 rounded-lg bg-orange-50/90">
+                  <p className="text-[9px] text-orange-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Terbayar </p>
+                  <p className="text-sm font-black text-orange-950">{formatRupiah(paidPokok)}</p>
+                </div>
+              )}
+              {targetPokok > 0 && (
+                <div className="px-3 py-2 border border-amber-100 rounded-lg bg-amber-50/90">
+                  <p className="text-[9px] text-amber-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Sisa </p>
+                  <p className="text-sm font-black text-amber-950">{formatRupiah(sisaPokok)}</p>
+                </div>
+              )}
+            </div>
             {targetBooking <= 0 && targetDp <= 0 && targetPokok <= 0 && (
               <p className="text-xs text-slate-500 px-2 py-1">Ringkasan sisa membutuhkan data harga jual, booking, dan DP di penjualan.</p>
             )}
