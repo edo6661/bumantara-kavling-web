@@ -533,15 +533,21 @@ const Tagihan = () => {
                 <p className="text-sm font-black text-slate-950">{formatRupiah(hargaJual)}</p>
               </div>
             )}
-            {targetDp > 0 && sisaDp > 0 && (
+            {targetDp > 0 && (
               <div className="px-3 py-2 min-w-[150px] border border-teal-100 rounded-lg bg-teal-50/90">
+                <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP </p>
+                <p className="text-sm font-black text-teal-950">{formatRupiah(targetDp)}</p>
+              </div>
+            )}
+            {targetDp > 0 && sisaDp > 0 && (
+              <div className="px-3 py-2 min-w-[150px] border border-teal-100 rounded-lg bg-blue-50/90">
                 <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP Terbayar </p>
                 <p className="text-sm font-black text-teal-950">{formatRupiah(paidDp)}</p>
               </div>
             )}
             {targetDp > 0 && (
               <div className="px-3 py-2 min-w-[150px] border border-emerald-100 rounded-lg bg-emerald-50/90">
-                <p className="text-[9px] text-emerald-700 uppercase tracking-widest font-bold mb-0.5">Sisa DP</p>
+                <p className="text-[9px] text-emerald-700 uppercase tracking-widest font-bold mb-0.5">DP Sisa </p>
                 <p className="text-sm font-black text-emerald-950">{formatRupiah(sisaDp)}</p>
               </div>
             )}
