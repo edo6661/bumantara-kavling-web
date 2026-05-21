@@ -7,6 +7,9 @@ export interface PerusahaanAgentData {
   namaBank?: string | null;
   noRekening?: string | null;
   atasNamaRekening?: string | null;
+  feeMarketingPct?: number | null;
+  feeClosingNominal?: number | null;
+  potonganPph?: number | null;
   akte: string | null;
   createdAt: string;
   updatedAt: string;
@@ -18,6 +21,9 @@ export interface CreatePerusahaanAgentDTO {
   namaBank?: string;
   noRekening?: string;
   atasNamaRekening?: string;
+  feeMarketingPct?: number;
+  feeClosingNominal?: number;
+  potonganPph?: number;
 }
 
 export const perusahaanAgentService = {

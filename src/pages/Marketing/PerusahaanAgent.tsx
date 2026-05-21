@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
+import CurrencyInput from "../../components/shared/CurrencyInput";
 import PageLoader from "../PageLoader";
+import { formatRupiah } from "../../utils/formatters";
 import { Edit2, Trash2, UploadCloud, Eye } from "lucide-react";
 import {
   useGetPerusahaanAgents,
@@ -22,22 +24,47 @@ const PerusahaanAgent = () => {
   const uploadAkteMutation = useUploadAktePerusahaan();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const emptyForm = {
     id: "",
     nama: "",
     npwp: "",
     namaBank: "",
     noRekening: "",
-    atasNamaRekening: ""
-  });
+    atasNamaRekening: "",
+    feeMarketingPct: "" as number | "",
+    feeClosingNominal: "" as number | "",
+    potonganPph: "" as number | "",
+  };
+  const [formData, setFormData] = useState(emptyForm);
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const columns = [
-    { header: "Nama Perusahaan", accessor: "nama", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    { header: "Nama", accessor: "nama", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
     // 👇 KOLOM BARU DITAMBAHKAN 👇
     { header: "NPWP", accessor: "npwp", render: (val: string) => <span className="font-mono text-xs">{val || '-'}</span> },
+    {
+      header: "Fee (%)",
+      accessor: "feeMarketingPct",
+      render: (val: number | null) => (
+        <span className="text-xs tabular-nums">{val != null ? `${val}%` : "-"}</span>
+      ),
+    },
+    {
+      header: "Fee Closing (Rp)",
+      accessor: "feeClosingNominal",
+      render: (val: number | null) => (
+        <span className="text-xs tabular-nums">{val != null ? formatRupiah(val) : "-"}</span>
+      ),
+    },
+    {
+      header: "Potongan PPh (%)",
+      accessor: "potonganPph",
+      render: (val: number | null) => (
+        <span className="text-xs tabular-nums">{val != null ? `${val}%` : "-"}</span>
+      ),
+    },
     {
       header: "Bank Detail",
       accessor: "namaBank",
@@ -53,7 +80,7 @@ const PerusahaanAgent = () => {
     },
     // 👆 SAMPAI SINI 👆
     {
-      header: "Akte Perusahaan",
+      header: "Akte",
       accessor: "akte",
       render: (val: string | null) => (
         val ? (
@@ -61,10 +88,10 @@ const PerusahaanAgent = () => {
             onClick={(e) => { e.stopPropagation(); setPreviewImage(val); }}
             className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
-            <Eye size={12} /> Lihat Akte
+            <Eye size={12} /> 
           </button>
         ) : (
-          <span className="text-xs text-slate-400 italic">Belum Ada Akte</span>
+          <span className="text-xs text-slate-400 italic">-</span>
         )
       )
     },
@@ -96,11 +123,14 @@ const PerusahaanAgent = () => {
         npwp: item.npwp || "",
         namaBank: item.namaBank || "",
         noRekening: item.noRekening || "",
-        atasNamaRekening: item.atasNamaRekening || ""
+        atasNamaRekening: item.atasNamaRekening || "",
+        feeMarketingPct: item.feeMarketingPct ?? "",
+        feeClosingNominal: item.feeClosingNominal ?? "",
+        potonganPph: item.potonganPph ?? "",
       });
       setIsEditing(true);
     } else {
-      setFormData({ id: "", nama: "", npwp: "", namaBank: "", noRekening: "", atasNamaRekening: "" });
+      setFormData(emptyForm);
       setIsEditing(false);
     }
     setErrors({});
@@ -109,8 +139,19 @@ const PerusahaanAgent = () => {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setFormData({ id: "", nama: "", npwp: "", namaBank: "", noRekening: "", atasNamaRekening: "" });
+    setFormData(emptyForm);
     setErrors({});
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors({});
+  };
+
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors({});
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +166,10 @@ const PerusahaanAgent = () => {
         npwp: formData.npwp,
         namaBank: formData.namaBank,
         noRekening: formData.noRekening,
-        atasNamaRekening: formData.atasNamaRekening
+        atasNamaRekening: formData.atasNamaRekening,
+        feeMarketingPct: formData.feeMarketingPct !== "" ? Number(formData.feeMarketingPct) : undefined,
+        feeClosingNominal: formData.feeClosingNominal !== "" ? Number(formData.feeClosingNominal) : undefined,
+        potonganPph: formData.potonganPph !== "" ? Number(formData.potonganPph) : undefined,
       };
       if (isEditing && formData.id) {
         await updateMutation.mutateAsync({ id: Number(formData.id), data: payload });
@@ -193,7 +237,7 @@ const PerusahaanAgent = () => {
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Perusahaan" : "Tambah Perusahaan"}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
-            label="Nama Perusahaan"
+            label="Nama"
             value={formData.nama}
             onChange={(e) => {
               setFormData({ ...formData, nama: e.target.value });
@@ -209,6 +253,34 @@ const PerusahaanAgent = () => {
             onChange={(e) => setFormData({ ...formData, npwp: e.target.value })}
             placeholder="Masukkan NPWP"
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              label="Fee Marketing (%)"
+              name="feeMarketingPct"
+              type="number"
+              step="any"
+              value={formData.feeMarketingPct}
+              onChange={handleChange}
+              placeholder="Contoh: 2.5"
+            />
+            <CurrencyInput
+              label="Fee Closing (Rp)"
+              name="feeClosingNominal"
+              value={Number(formData.feeClosingNominal) || 0}
+              onValueChange={(_, val) => handleCurrencyChange("feeClosingNominal", val)}
+              placeholder="0"
+            />
+            <Input
+              label="Potongan PPh (%)"
+              name="potonganPph"
+              type="number"
+              step="any"
+              value={formData.potonganPph}
+              onChange={handleChange}
+              placeholder="Contoh: 2.5"
+            />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
