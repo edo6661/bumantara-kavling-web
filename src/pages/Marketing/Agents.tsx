@@ -7,7 +7,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText } from "lucide-react";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, Upload } from "lucide-react";
 import {
   useGetAgents,
   useCreateAgent,
@@ -17,6 +17,8 @@ import {
   useGenerateAgentAccount
 } from "../../hooks/queries/useAgent";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetFeeAgents, useUploadBuktiFee, useUpdateFeeAgent } from "../../hooks/queries/useFeeAgent";
+import type { FeeAgentData } from "../../services/feeAgent.service";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
@@ -58,9 +60,57 @@ const initialFormState: AgentFormState = {
   pics: [{ nama: '', noHp: '', alamat: '' }]
 };
 
+const getFeeForSale = (feeList: FeeAgentData[], agentId: number, saleId: number, noTransaksi: string) =>
+  feeList.find(
+    (f) => f.agentId === agentId && (f.penjualanId === saleId || f.noTransaksi === noTransaksi)
+  );
+
+const getPaymentStatus = (fee?: FeeAgentData) => {
+  const hasClosing = !!fee?.closingBukti;
+  const hasMarketing = !!fee?.marketingBukti;
+  if (hasClosing && hasMarketing) {
+    return { label: "Sudah", className: "bg-green-100 text-green-700" };
+  }
+  if (hasClosing || hasMarketing) {
+    return { label: "Sebagian", className: "bg-amber-100 text-amber-700" };
+  }
+  return { label: "Belum", className: "bg-red-100 text-red-700" };
+};
+
+const calcAgentFees = (
+  agent: AgentData,
+  nilaiAjb: number | null | undefined,
+  feeRecord?: FeeAgentData
+) => {
+  const ajb = nilaiAjb ? Number(nilaiAjb) : 0;
+  const feeMarketingPct = Number(agent.feeMarketingPct) || 0;
+  const potonganPph = Number(agent.potonganPph) || 0;
+
+  const marketingFee = ajb > 0 ? ajb * (feeMarketingPct / 100) : 0;
+  const closingFee =
+    Number(feeRecord?.closingNominal) ||
+    Number(agent.feeClosingNominal) ||
+    0;
+
+  const totalFeePlusClosing = marketingFee + closingFee;
+  const potPph = (marketingFee + closingFee) * (potonganPph / 100);
+
+  return {
+    fee: marketingFee,
+    totalFee: totalFeePlusClosing,
+    potPph,
+  };
+};
+
+const formatDateForInput = (dateString?: string | null) => {
+  if (!dateString) return "";
+  return dateString.split("T")[0];
+};
+
 const Agents = () => {
   const { data: agentData = [], isLoading } = useGetAgents();
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
+  const { data: feeData = [] } = useGetFeeAgents();
   const { data: perusahaanList = [] } = useGetPerusahaanAgents();
   const penjualanList = penjualanResponse?.items || [];
 
@@ -68,6 +118,8 @@ const Agents = () => {
   const updateMutation = useUpdateAgent();
   const deleteMutation = useDeleteAgent();
   const uploadDocMutation = useUploadAgentDoc();
+  const uploadBuktiFeeMutation = useUploadBuktiFee();
+  const updateFeeAgentMutation = useUpdateFeeAgent();
   const generateAccountMutation = useGenerateAgentAccount();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -83,6 +135,14 @@ const Agents = () => {
 
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const [isFeeUploadModalOpen, setIsFeeUploadModalOpen] = useState(false);
+  const [selectedFeeUpload, setSelectedFeeUpload] = useState<{
+    fee: FeeAgentData;
+    saleLabel: string;
+    bookingTanggal: string;
+    marketingTanggal: string;
+  } | null>(null);
 
 
   const handleApprove = async (agent: AgentData) => {
@@ -374,6 +434,94 @@ const Agents = () => {
     }
   };
 
+  const openFeeUploadModal = (fee: FeeAgentData, saleLabel: string) => {
+    setSelectedFeeUpload({
+      fee,
+      saleLabel,
+      bookingTanggal: formatDateForInput(fee.bookingTanggal as string | null),
+      marketingTanggal: formatDateForInput(fee.marketingTanggal as string | null),
+    });
+    setIsFeeUploadModalOpen(true);
+  };
+
+  const handleFeeDateChange = async (
+    field: "bookingTanggal" | "marketingTanggal",
+    value: string
+  ) => {
+    if (!selectedFeeUpload) return;
+    setSelectedFeeUpload((prev) =>
+      prev ? { ...prev, [field]: value } : prev
+    );
+    try {
+      const updated = await updateFeeAgentMutation.mutateAsync({
+        id: selectedFeeUpload.fee.id,
+        data: { [field]: value || undefined },
+      });
+      setSelectedFeeUpload((prev) =>
+        prev
+          ? {
+              ...prev,
+              fee: {
+                ...prev.fee,
+                bookingTanggal: updated.bookingTanggal ?? prev.fee.bookingTanggal,
+                marketingTanggal: updated.marketingTanggal ?? prev.fee.marketingTanggal,
+              },
+            }
+          : prev
+      );
+    } catch (err: unknown) {
+      const { message } = handleApiError(err);
+      alert(message);
+      setSelectedFeeUpload((prev) =>
+        prev
+          ? {
+              ...prev,
+              [field]: formatDateForInput(
+                prev.fee[field] as string | null
+              ),
+            }
+          : prev
+      );
+    }
+  };
+
+  const handleUploadBuktiFee = async (
+    type: "closingBukti" | "marketingBukti",
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedFeeUpload) return;
+    if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+      alert("Hanya format gambar dan PDF yang diperbolehkan!");
+      e.target.value = "";
+      return;
+    }
+    try {
+      const updated = await uploadBuktiFeeMutation.mutateAsync({
+        id: selectedFeeUpload.fee.id,
+        type,
+        file,
+      });
+      setSelectedFeeUpload((prev) =>
+        prev
+          ? {
+              ...prev,
+              fee: {
+                ...prev.fee,
+                [type]: updated[type] ?? URL.createObjectURL(file),
+              },
+            }
+          : prev
+      );
+      alert("Bukti transfer berhasil diunggah!");
+    } catch (err: any) {
+      const { message } = handleApiError(err);
+      alert(message);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   const handleUploadDoc = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedUploadAgent) return;
@@ -402,50 +550,139 @@ const Agents = () => {
     const relatedSales = row.penjualan || [];
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
-        <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">
+        <h4 className="text-sm font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2">
           Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span>
         </h4>
+        <p className="text-[10px] text-slate-500 mb-4 flex flex-wrap gap-x-4 gap-y-1">
+          <span>
+            Fee Marketing:{" "}
+            <span className="font-semibold text-slate-600 tabular-nums">
+              {row.feeMarketingPct != null ? `${row.feeMarketingPct}%` : "-"}
+            </span>
+          </span>
+          <span>
+            Fee Closing:{" "}
+            <span className="font-semibold text-slate-600 tabular-nums">
+              {row.feeClosingNominal != null ? formatRupiah(row.feeClosingNominal) : "-"}
+            </span>
+          </span>
+          <span>
+            Potongan PPh:{" "}
+            <span className="font-semibold text-slate-600 tabular-nums">
+              {row.potonganPph != null ? `${row.potonganPph}%` : "-"}
+            </span>
+          </span>
+        </p>
         {relatedSales.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left text-sm min-w-[900px]">
+              <thead className="text-[11px] text-slate-500 uppercase bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-bold">No. Transaksi</th>
-                  <th className="px-4 py-3 font-bold">Tanggal</th>
-                  <th className="px-4 py-3 font-bold">Customer</th>
-                  <th className="px-4 py-3 font-bold">Kavling</th>
-                  <th className="px-4 py-3 text-right font-bold">Nilai Penjualan (Rp)</th>
-                  <th className="px-4 py-3 rounded-r-lg text-center font-bold">Status</th>
+                  <th className="px-4 py-3 rounded-l-lg font-bold">Customer</th>
+                  <th className="px-4 py-3 font-bold">Blok</th>
+                  <th className="px-4 py-3 font-bold">No</th>
+                  <th className="px-4 py-3 text-right font-bold">Harga Jual</th>
+                  <th className="px-4 py-3 text-right font-bold">Nilai AJB</th>
+                  <th className="px-4 py-3 text-right font-bold">Fee</th>
+                  <th className="px-4 py-3 text-right font-bold">Total Fee (+ Closing)</th>
+                  <th className="px-4 py-3 text-right font-bold">Pot PPh</th>
+                  <th className="px-4 py-3 text-center font-bold">Dibayar</th>
+                  <th className="px-4 py-3 rounded-r-lg text-center font-bold w-24">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {relatedSales.map((sale: PenjualanAgentData) => (
+                {relatedSales.map((sale: PenjualanAgentData) => {
+                  const detail = penjualanList.find(
+                    (p: { id: number; noTransaksi?: string }) =>
+                      p.id === sale.id || p.noTransaksi === sale.noTransaksi
+                  );
+                  const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
+                  const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
+                  const { fee, totalFee, potPph } = calcAgentFees(row, nilaiAjb, feeRecord);
+                  const paymentStatus = getPaymentStatus(feeRecord);
+                  const saleLabel = `${sale.customer?.nama || "-"} — Blok ${sale.kavling?.blok || "-"} No. ${sale.kavling?.nomorUnit || "-"}`;
+
+                  return (
                   <tr
                     key={sale.id}
-                    onClick={() => {
-                      const detail = penjualanList.find((p: any) => p.id === sale.noTransaksi);
-                      setSelectedDetailPenjualan(detail || sale);
-                    }}
-                    className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    className="hover:bg-slate-50/80 transition-colors group"
                   >
-                    <td className="px-4 py-3 font-medium text-slate-900 group-hover:text-blue-600 transition-colors">{sale.noTransaksi}</td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {new Date(sale.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    <td
+                      className="px-4 py-3 font-medium cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
+                      {sale.customer?.nama || '-'}
                     </td>
-                    <td className="px-4 py-3 font-medium">{sale.customer?.nama || '-'}</td>
-                    <td className="px-4 py-3">
-                      {sale.kavling?.perumahan?.nama} ({sale.kavling?.blok}-{sale.kavling?.nomorUnit})
+                    <td
+                      className="px-4 py-3 cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
+                       {sale.kavling?.blok}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold text-slate-700">
+                    <td
+                      className="px-4 py-3 cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
+                       {sale.kavling?.nomorUnit}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-right font-bold text-slate-700 cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
                       {formatRupiah(sale.hargaJual)}
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${sale.status.toUpperCase() === 'LUNAS' ? 'bg-green-100 text-green-700' : sale.status.toUpperCase() === 'BATAL' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {sale.status}
+                    <td
+                      className="px-4 py-3 text-right text-slate-700 cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
+                      {nilaiAjb ? formatRupiah(nilaiAjb) : '-'}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
+                      {nilaiAjb ? formatRupiah(fee) : '-'}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
+                      {formatRupiah(totalFee)}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
+                      {formatRupiah(potPph)}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-center cursor-pointer"
+                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                    >
+                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${paymentStatus.className}`}>
+                        {paymentStatus.label}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-center">
+                      {feeRecord ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openFeeUploadModal(feeRecord, saleLabel);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer"
+                          title="Upload bukti transfer closing & marketing fee"
+                        >
+                          <Upload size={16} />
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 italic">-</span>
+                      )}
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -819,6 +1056,110 @@ const Agents = () => {
             <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">Tutup</button>
           </div>
         </div>
+      </Modal>
+
+      {/* MODAL UPLOAD BUKTI TRANSFER FEE */}
+      <Modal
+        isOpen={isFeeUploadModalOpen}
+        onClose={() => {
+          setIsFeeUploadModalOpen(false);
+          setSelectedFeeUpload(null);
+        }}
+        title="Upload Bukti Transfer Fee"
+      >
+        {selectedFeeUpload && (
+          <div className="space-y-6">
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+              <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-1">Transaksi</p>
+              <p className="text-sm font-bold text-blue-900">{selectedFeeUpload.saleLabel}</p>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">Booking Fee</h4>
+              <Input
+                label="Tanggal Transfer Booking Fee"
+                name="bookingTanggal"
+                type="date"
+                value={selectedFeeUpload.bookingTanggal}
+                onChange={(e) => handleFeeDateChange("bookingTanggal", e.target.value)}
+                disabled={updateFeeAgentMutation.isPending}
+              />
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">Closing Fee</h4>
+              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  {selectedFeeUpload.fee.closingBukti && (
+                    <div
+                      onClick={() => setPreviewImage(selectedFeeUpload.fee.closingBukti!)}
+                      className="w-28 h-20 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in bg-slate-100 flex items-center justify-center shrink-0"
+                    >
+                      {(selectedFeeUpload.fee.closingBukti.split('?')[0].toLowerCase().endsWith('.pdf') ||
+                        selectedFeeUpload.fee.closingBukti.includes('application/pdf')) ? (
+                        <FileText size={24} className="text-red-500" />
+                      ) : (
+                        <img src={selectedFeeUpload.fee.closingBukti} alt="Closing bukti" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                  )}
+                  <FileInput
+                    label={selectedFeeUpload.fee.closingBukti ? "Ganti Bukti Transfer" : "Upload Bukti Transfer Closing Fee"}
+                    accept="image/*,application/pdf"
+                    onChange={(e) => handleUploadBuktiFee("closingBukti", e)}
+                  disabled={uploadBuktiFeeMutation.isPending}
+                />
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">Marketing Fee</h4>
+              <div className="space-y-4">
+                <Input
+                  label="Tanggal Transfer Marketing Fee"
+                  name="marketingTanggal"
+                  type="date"
+                  value={selectedFeeUpload.marketingTanggal}
+                  onChange={(e) => handleFeeDateChange("marketingTanggal", e.target.value)}
+                  disabled={updateFeeAgentMutation.isPending}
+                />
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  {selectedFeeUpload.fee.marketingBukti && (
+                    <div
+                      onClick={() => setPreviewImage(selectedFeeUpload.fee.marketingBukti!)}
+                      className="w-28 h-20 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in bg-slate-100 flex items-center justify-center shrink-0"
+                    >
+                      {(selectedFeeUpload.fee.marketingBukti.split('?')[0].toLowerCase().endsWith('.pdf') ||
+                        selectedFeeUpload.fee.marketingBukti.includes('application/pdf')) ? (
+                        <FileText size={24} className="text-red-500" />
+                      ) : (
+                        <img src={selectedFeeUpload.fee.marketingBukti} alt="Marketing bukti" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                  )}
+                  <FileInput
+                    label={selectedFeeUpload.fee.marketingBukti ? "Ganti Bukti Transfer" : "Upload Bukti Transfer Marketing Fee"}
+                    accept="image/*,application/pdf"
+                    onChange={(e) => handleUploadBuktiFee("marketingBukti", e)}
+                    disabled={uploadBuktiFeeMutation.isPending}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFeeUploadModalOpen(false);
+                  setSelectedFeeUpload(null);
+                }}
+                className="px-6 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 cursor-pointer transition-all"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* MODAL DETAIL PENJUALAN KETIKA ROW DI KLIK */}

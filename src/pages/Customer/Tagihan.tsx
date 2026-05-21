@@ -8,7 +8,7 @@ import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import { useApproveTagihan } from "../../hooks/queries/useTagihan";
-import { Check, Edit2, FileText, PenTool, Printer, Trash2, UploadCloud, X } from 'lucide-react';
+import { Check, Edit2, Eye, FileText, PenTool, Printer, Trash2, UploadCloud, X } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
@@ -132,6 +132,10 @@ const Tagihan = () => {
       const groupKey = `${item.customerId}_${item.penjualanId}`;
 
       if (!groups[groupKey]) {
+        const targetPenjualan = penjualanList.find((p: any) => String(p.id) === String(item.penjualanId));
+        const penjualanRow = penjualanFullList.find((p: any) => Number(p.dbId) === Number(item.penjualanId));
+        const caraPembayaran = targetPenjualan?.pembiayaan ?? penjualanRow?.pembiayaan ?? '';
+
         groups[groupKey] = {
           id: groupKey,
           customerId: item.customerId,
@@ -140,6 +144,7 @@ const Tagihan = () => {
           kavling: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
           blok: item.blok,
           nomorUnit: item.nomorUnit,
+          caraPembayaran,
           reminderSelanjutnya: '',
           unpaidCount: 0,
           pendingCount: 0,
@@ -162,14 +167,23 @@ const Tagihan = () => {
     });
 
     return Object.values(groups).filter(g => g.cicilan.length > 0);
-  }, [tagihans]);
+  }, [tagihans, penjualanList, penjualanFullList]);
 
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer' },
     { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     {
-      header: 'Status Tagihan',
+      header: 'Pembayaran',
+      accessor: 'caraPembayaran',
+      render: (val: string) => (
+        <span className="text-[11px] font-semibold text-slate-700 whitespace-nowrap">
+          {val ? val.replace(/_/g, ' ') : '-'}
+        </span>
+      ),
+    },
+    {
+      header: 'Tagihan',
       accessor: 'id',
       render: (_: any, row: any) => {
         const unpaid = row.unpaidCount;
@@ -210,10 +224,10 @@ const Tagihan = () => {
             e.stopPropagation();
             setSelectedDetailRow(row);
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+          className="p-2 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
           title="Lihat Detail Penjualan"
         >
-          Detail Penjualan
+          <Eye size={16} />
         </button>
       )
     },
@@ -495,11 +509,9 @@ const Tagihan = () => {
     const targetDp = Number(penjualanRow?.dp ?? 0);
     const targetPokok = Math.max(0, hargaJual - targetBooking - targetDp);
 
-    const paidBooking = sumLunas((t) => effectiveTagihanTujuan(t) === 'BOOKING_FEE');
     const paidDp = sumLunas((t) => effectiveTagihanTujuan(t) === 'DP');
     const paidPokok = sumLunas((t) => effectiveTagihanTujuan(t) === 'HARGA_JUAL');
 
-    const sisaBooking = Math.max(0, targetBooking - paidBooking);
     const sisaDp = Math.max(0, targetDp - paidDp);
     const sisaPokok = Math.max(0, targetPokok - paidPokok);
 
@@ -514,27 +526,34 @@ const Tagihan = () => {
     return (
       <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200 shadow-inner">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-          <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            {targetPenjualan?.pembiayaan?.replace(/_/g, ' ') || '-'}
-
-          </h4>
-
           <div className="flex flex-wrap items-stretch gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm w-full md:flex-1">
-            {targetBooking > 0 && (
-              <div className="px-3 py-2 min-w-[140px] border border-slate-100 rounded-lg bg-slate-50/90">
-                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-0.5">Sisa booking fee</p>
-                <p className="text-sm font-black text-slate-900">{formatRupiah(sisaBooking)}</p>
+            {hargaJual > 0 && (
+              <div className="px-3 py-2 min-w-[150px] border border-slate-200 rounded-lg bg-slate-50/90">
+                <p className="text-[9px] text-slate-600 uppercase tracking-widest font-bold mb-0.5">Harga jual</p>
+                <p className="text-sm font-black text-slate-950">{formatRupiah(hargaJual)}</p>
+              </div>
+            )}
+            {targetDp > 0 && sisaDp > 0 && (
+              <div className="px-3 py-2 min-w-[150px] border border-teal-100 rounded-lg bg-teal-50/90">
+                <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP Terbayar </p>
+                <p className="text-sm font-black text-teal-950">{formatRupiah(paidDp)}</p>
               </div>
             )}
             {targetDp > 0 && (
               <div className="px-3 py-2 min-w-[150px] border border-emerald-100 rounded-lg bg-emerald-50/90">
-                <p className="text-[9px] text-emerald-700 uppercase tracking-widest font-bold mb-0.5">Sisa DP / uang muka</p>
+                <p className="text-[9px] text-emerald-700 uppercase tracking-widest font-bold mb-0.5">Sisa DP</p>
                 <p className="text-sm font-black text-emerald-950">{formatRupiah(sisaDp)}</p>
+              </div>
+            )}
+            {targetPokok > 0 && sisaPokok > 0 && (
+              <div className="px-3 py-2 min-w-[170px] border border-orange-100 rounded-lg bg-orange-50/90">
+                <p className="text-[9px] text-orange-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Terbayar </p>
+                <p className="text-sm font-black text-orange-950">{formatRupiah(paidPokok)}</p>
               </div>
             )}
             {targetPokok > 0 && (
               <div className="px-3 py-2 min-w-[170px] border border-amber-100 rounded-lg bg-amber-50/90">
-                <p className="text-[9px] text-amber-800 uppercase tracking-widest font-bold mb-0.5">Sisa cicilan harga jual</p>
+                <p className="text-[9px] text-amber-800 uppercase tracking-widest font-bold mb-0.5">Cicilan Sisa </p>
                 <p className="text-sm font-black text-amber-950">{formatRupiah(sisaPokok)}</p>
               </div>
             )}
