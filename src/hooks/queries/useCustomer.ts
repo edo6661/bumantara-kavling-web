@@ -8,12 +8,24 @@ import api from "../../lib/axios";
 
 export const CUSTOMER_KEYS = {
   all: ["customers"] as const,
+  list: ["customers", "list"] as const,
+  paginated: (params: Record<string, unknown>) =>
+    ["customers", "paginated", params] as const,
 };
 
+/** Daftar customer lengkap (max 300) — untuk lookup/dropdown, tanpa pagination. */
 export const useGetCustomers = () => {
   return useQuery({
-    queryKey: CUSTOMER_KEYS.all,
+    queryKey: CUSTOMER_KEYS.list,
     queryFn: customerService.getAll,
+  });
+};
+
+/** Daftar customer dengan pagination, search, dan sort (halaman Administrasi). */
+export const useGetCustomersPaginated = (params: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: CUSTOMER_KEYS.paginated(params),
+    queryFn: () => customerService.getPaginated(params),
   });
 };
 export const useGetCustomerById = (id: string) => {

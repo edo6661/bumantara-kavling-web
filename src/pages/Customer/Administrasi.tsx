@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -16,10 +17,12 @@ import {
   Key,
   LinkIcon,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  ArrowUpDown,
+  ChevronDown,
 } from "lucide-react";
 import {
-  useGetCustomers,
+  useGetCustomersPaginated,
   useCreateCustomer,
   useUpdateCustomer,
   useDeleteCustomer,
@@ -27,6 +30,9 @@ import {
 } from "../../hooks/queries/useCustomer";
 import type { CustomerData, CreateCustomerDTO, CustomerDocType } from "../../services/customer.service";
 import { handleApiError } from '../../utils/errorHandler';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
 
 const initialFormState: CreateCustomerDTO = {
   nikKtp: '',
@@ -42,7 +48,24 @@ const initialFormState: CreateCustomerDTO = {
 };
 
 const Administrasi = () => {
-  const { data: customers = [], isLoading } = useGetCustomers();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const orderBy = searchParams.get('orderBy') || '';
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
+
+  const { data: customersResponse, isLoading } = useGetCustomersPaginated({
+    page,
+    limit,
+    search,
+    ...(orderBy ? { orderBy } : {}),
+  });
+  const customers = customersResponse?.items ?? [];
+  const meta = customersResponse?.meta;
+
   const { data: penjualanResponse, isLoading: isLoadingPenjualan } = useGetPenjualan({ limit: 500 });
   const penjualanData = penjualanResponse?.items || [];
 
@@ -81,6 +104,50 @@ const Administrasi = () => {
     alert('Tautan akses Bank berhasil disalin! Silakan paste (Ctrl+V) di WhatsApp.');
   };
   const sigCanvas = useRef<SignatureCanvas>(null);
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams(prev => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const filterSelectClass =
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer';
+
+  const tableToolbar = (
+    <div className="relative group w-full sm:w-52">
+      <select
+        className={`${filterSelectClass} pl-9`}
+        value={orderBy}
+        onChange={handleSortChange}
+        aria-label="Urutkan data"
+      >
+        <option value="">Customer Terbaru</option>
+        <option value="nama:asc">Nama Customer (A-Z)</option>
+        <option value="blokNomorUnit:asc">Blok & No Unit (A-Z)</option>
+      </select>
+      <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+      <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+    </div>
+  );
 
   const currentCustomer = customers.find(c => c.id === selectedCustomer?.id) || selectedCustomer;
 
@@ -523,6 +590,16 @@ const Administrasi = () => {
         data={customers}
         onAdd={() => openEditModal()}
         expandedRowRender={expandedRowRender}
+        serverSide={true}
+        toolbarPrefix={tableToolbar}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
+        pageSize={limit}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+        onPageSizeChange={handlePageSizeChange}
       />
 
       <Modal
