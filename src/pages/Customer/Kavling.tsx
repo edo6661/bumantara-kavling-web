@@ -1,15 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import Select from "../../components/shared/Select";
+import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
-import { useGetCustomerKavlings, useUpdateCustomerKavling } from "../../hooks/queries/useCustomerKavling";
+import {
+  useGetCustomerKavlingsPaginated,
+  useUpdateCustomerKavling,
+} from "../../hooks/queries/useCustomerKavling";
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
 import { useGetTagihans } from '../../hooks/queries/useTagihan';
 import CurrencyInput from '../../components/shared/CurrencyInput';
 import { handleApiError } from '../../utils/errorHandler';
+import { ArrowUpDown, ChevronDown } from 'lucide-react';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
 interface KavlingData {
   id: string;
   perumahan: string;
@@ -92,9 +101,29 @@ const initialFormState: KavlingData = {
 };
 
 const CustomerKavling = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const orderBy = searchParams.get('orderBy') || '';
+  const status = searchParams.get('status') || '';
+  const caraPembayaran = searchParams.get('caraPembayaran') || '';
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
 
-  const { data: apiData = [], isLoading } = useGetCustomerKavlings({ limit: 300 });
-  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({ limit: 300 });
+  const { data: kavlingResponse, isLoading } = useGetCustomerKavlingsPaginated({
+    page,
+    limit,
+    search,
+    ...(orderBy ? { orderBy } : {}),
+    ...(status ? { status } : {}),
+    ...(caraPembayaran ? { caraPembayaran } : {}),
+  });
+  const apiData = kavlingResponse?.items ?? [];
+  const meta = kavlingResponse?.meta;
+
+  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({ limit: 500, page: 1 });
   const tagihans = tagihansResponse?.items || [];
 
 
@@ -107,23 +136,85 @@ const CustomerKavling = () => {
 
   const [activeTab, setActiveTab] = useState<'dasar' | 'harga' | 'nilai' | 'pajak' | 'ajb' | 'notaris'>('dasar');
 
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams(prev => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const filterSelectClass =
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer';
+
+  const tableToolbar = (
+    <>
+      <div className="relative group w-full sm:w-52">
+        <select
+          className={`${filterSelectClass} pl-9`}
+          value={orderBy}
+          onChange={handleSortChange}
+          aria-label="Urutkan data"
+        >
+          <option value="">Penjualan Terbaru</option>
+          <option value="blokNomorUnit:asc">Blok & No Unit (A-Z)</option>
+          <option value="nama:asc">Nama Customer (A-Z)</option>
+          <option value="totalHargaJual:desc">Harga Jual (Tertinggi)</option>
+          <option value="totalHargaJual:asc">Harga Jual (Terendah)</option>
+        </select>
+        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      </div>
+   
+    </>
+  );
+
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer', render: (val: string) => val },
     { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'No', accessor: 'unit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'Tipe', accessor: 'tipe' },
-    { header: 'Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) }, {
-      header: 'Status Penjualan',
-      accessor: 'status',
+    { header: 'Harga Jual', accessor: 'totalHargaJual', render: (val: number) => formatRupiah(val) },
+    {
+      header: 'Cara Pembayaran',
+      accessor: 'pembiayaan',
       render: (val: string) => {
-        let style = 'bg-gray-100 text-gray-800';
-        if (val?.toUpperCase() === 'AVAILABLE') style = 'bg-green-100 text-green-800';
-        if (val?.toUpperCase() === 'BOOKED' || val?.toUpperCase() === 'BOOKING') style = 'bg-blue-100 text-blue-800';
-        if (val?.toUpperCase() === 'PROSES') style = 'bg-yellow-100 text-yellow-800';
-        if (val?.toUpperCase() === 'LUNAS' || val?.toUpperCase() === 'TERJUAL') style = 'bg-emerald-100 text-emerald-800';
-
-        return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>{val}</span>;
-      }
+        if (!val) return <span className="text-slate-400 text-xs italic">-</span>;
+        const key = val.toUpperCase().replace(/\s+/g, '_');
+        let label = val.replace(/_/g, ' ');
+        let style = 'bg-slate-100 text-slate-700';
+        if (key === 'CASH_KERAS') {
+          label = 'Cash Keras';
+          style = 'bg-emerald-100 text-emerald-800';
+        } else if (key === 'CASH_BERTAHAP') {
+          label = 'Cash Bertahap';
+          style = 'bg-blue-100 text-blue-800';
+        } else if (key === 'KPR') {
+          label = 'KPR';
+          style = 'bg-indigo-100 text-indigo-800';
+        }
+        return (
+          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>
+            {label}
+          </span>
+        );
+      },
     },
   ];
 
@@ -360,16 +451,26 @@ const CustomerKavling = () => {
     );
   };
 
-  if (isLoading || isLoadingTagihan) return;
+  if (isLoading || isLoadingTagihan) return <PageLoader />;
 
   return (
     <div>
       <DataTable
-        title="Data Kavling Customer"
+        title="Kavling Customer"
         columns={columns}
         data={apiData}
         onEdit={(item) => openModal(item)}
         expandedRowRender={expandedRowRender}
+        serverSide={true}
+        toolbarPrefix={tableToolbar}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
+        pageSize={limit}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+        onPageSizeChange={handlePageSizeChange}
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title="Edit Customer Kavling">
@@ -470,7 +571,7 @@ const CustomerKavling = () => {
               <CurrencyInput label="Diskon Cash & Lainnya" name="nrDiskonCash" value={formData.nrDiskonCash} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
-              <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} />
+              {/* <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} /> */}
               <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />

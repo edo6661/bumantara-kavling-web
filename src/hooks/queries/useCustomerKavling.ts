@@ -4,12 +4,25 @@ import { customerKavlingService } from "../../services/customerKavling.service";
 
 export const CUSTOMER_KAVLING_KEYS = {
   all: ["customer-kavlings"] as const,
+  paginated: (params: Record<string, unknown>) =>
+    ["customer-kavlings", "paginated", params] as const,
 };
 
+/** Daftar kavling customer lengkap (max 500) — untuk lookup/dropdown. */
 export const useGetCustomerKavlings = (params?: Record<string, unknown>) => {
   return useQuery({
     queryKey: [...CUSTOMER_KAVLING_KEYS.all, params],
     queryFn: () => customerKavlingService.getAll(params),
+  });
+};
+
+/** Daftar kavling customer dengan pagination, search, sort, dan filter. */
+export const useGetCustomerKavlingsPaginated = (
+  params: Record<string, unknown>,
+) => {
+  return useQuery({
+    queryKey: CUSTOMER_KAVLING_KEYS.paginated(params),
+    queryFn: () => customerKavlingService.getPaginated(params),
   });
 };
 
