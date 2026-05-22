@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import CurrencyInput from "../../components/shared/CurrencyInput";
@@ -18,7 +19,10 @@ import {
   Trash2, Plus, UploadCloud,
   UserCheck, Landmark, ScrollText, Key, FileSignature, ImageIcon, ZoomIn, PlusCircle,
   Loader2,
-  Map
+  Map,
+  ArrowUpDown,
+  ChevronDown,
+  Filter
 } from 'lucide-react';
 import Input from '../../components/shared/Input';
 import { handleApiError } from '../../utils/errorHandler';
@@ -31,6 +35,9 @@ const SP3K_DOKUMEN_NAME = 'Kode Billing PPh dan Suket PPh';
 
 const LEGACY_SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh'];
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
 const isSp3kDokumen = (nama: string) => {
   const key = nama?.trim().toLowerCase();
   return (
@@ -40,9 +47,27 @@ const isSp3kDokumen = (nama: string) => {
 };
 
 const ProgressPenjualan = () => {
-  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const orderBy = searchParams.get('orderBy') || '';
+  const caraPembayaran = searchParams.get('caraPembayaran') || '';
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
+
+  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({
+    page,
+    limit,
+    search,
+    excludeStatus: 'BATAL',
+    ...(orderBy ? { orderBy } : {}),
+    ...(caraPembayaran ? { caraPembayaran } : {}),
+  });
   const { data: notarisList = [] } = useGetNotaris();
   const penjualanData = useMemo(() => penjualanResponse?.items || [], [penjualanResponse?.items]);
+  const meta = penjualanResponse?.meta;
   const { data: customers = [], isLoading: loadingCustomers } = useGetCustomers();
 
   const updateMutation = useUpdateProgressPenjualan();
@@ -71,9 +96,72 @@ const ProgressPenjualan = () => {
 
   const [dragActive, setDragActive] = useState<string | null>(null);
 
-  const activePenjualan = useMemo(() => {
-    return penjualanData.filter((p: Record<string, any>) => p.status !== 'BATAL');
-  }, [penjualanData]);
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams(prev => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleCaraPembayaranChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('caraPembayaran', e.target.value); else prev.delete('caraPembayaran');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const filterSelectClass =
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer';
+
+  const tableToolbar = (
+    <>
+      <div className="relative group w-full sm:w-52">
+        <select
+          className={`${filterSelectClass} pl-9`}
+          value={orderBy}
+          onChange={handleSortChange}
+          aria-label="Urutkan data"
+        >
+          <option value="">Penjualan Terbaru</option>
+          <option value="blokNomorUnit:asc">Blok & No Unit (A-Z)</option>
+          <option value="nama:asc">Nama Customer (A-Z)</option>
+        </select>
+        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      </div>
+      <div className="relative group w-full sm:w-44">
+        <select
+          className={`${filterSelectClass} pl-9`}
+          value={caraPembayaran}
+          onChange={handleCaraPembayaranChange}
+          aria-label="Filter cara pembayaran"
+        >
+          <option value="">Semua Pembayaran</option>
+          <option value="CASH_KERAS">Cash Keras</option>
+          <option value="CASH_BERTAHAP">Cash Bertahap</option>
+          <option value="KPR">KPR</option>
+        </select>
+        <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      </div>
+    </>
+  );
 
   const currentCustomer = useMemo(() => {
     if (!selectedPenjualan) return null;
@@ -748,7 +836,21 @@ const ProgressPenjualan = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable title="Progress Penjualan" columns={columns} data={activePenjualan} />
+      <DataTable
+        title="Progress Penjualan"
+        columns={columns}
+        data={penjualanData}
+        serverSide={true}
+        toolbarPrefix={tableToolbar}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
+        pageSize={limit}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+        onPageSizeChange={handlePageSizeChange}
+      />
 
       <Modal isOpen={!!modalStep} onClose={() => { setModalStep(null); setSelectedPenjualan(null); }} title="Kelola Progress Dokumen Penjualan">
         {selectedPenjualan && (

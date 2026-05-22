@@ -23,11 +23,16 @@ interface DataTableProps {
   page?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
+  toolbarPrefix?: React.ReactNode;
+  pageSize?: number;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (size: number) => void;
 }
 
 const DataTable = ({
   title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
-  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange
+  serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange,
+  toolbarPrefix, pageSize = 10, pageSizeOptions = [10, 25, 50, 100], onPageSizeChange
 }: DataTableProps) => {
 
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
@@ -91,7 +96,8 @@ const DataTable = ({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          {toolbarPrefix}
           <div className="relative w-full sm:w-72 group">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
             <input
@@ -218,11 +224,28 @@ const DataTable = ({
         </table>
       </div>
 
-      {serverSide && totalPages > 1 && (
+      {serverSide && (totalPages > 1 || onPageSizeChange) && (
         <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 sticky bottom-0 bg-white z-20">
-          <span className="text-xs font-semibold text-slate-500">
-            Halaman {page} dari {totalPages}
-          </span>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-xs font-semibold text-slate-500">
+              Halaman {page} dari {totalPages}
+            </span>
+            {onPageSizeChange && (
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <select
+                  value={pageSize}
+                  onChange={(e) => onPageSizeChange(Number(e.target.value))}
+                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-sm"
+                  aria-label="Jumlah data per halaman"
+                >
+                  {pageSizeOptions.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+          {totalPages > 1 && (
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => onPageChange?.(page - 1)}
@@ -257,6 +280,7 @@ const DataTable = ({
               <ChevronRight size={16} />
             </button>
           </div>
+          )}
         </div>
       )}
     </div>
