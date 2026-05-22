@@ -341,6 +341,18 @@ const ProgressPenjualan = () => {
         return val;
       }
     },
+    {
+      header: 'Nilai AJB',
+      accessor: 'nilaiAjb',
+      render: (_: unknown, row: Record<string, any>) => {
+        const nilaiAjb = row.progressPenjualan?.nilaiAjb;
+        return (
+          <span className="font-medium text-slate-700 tabular-nums">
+            {nilaiAjb ? formatRupiah(nilaiAjb) : '-'}
+          </span>
+        );
+      }
+    },
     { header: 'Progress', accessor: 'id', render: (_: unknown, row: Record<string, any>) => <ProgressIcons row={row} /> }
   ];
 
