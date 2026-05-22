@@ -1,10 +1,30 @@
 import api from "../lib/axios";
 import type { AgentData, CreateAgentDTO } from "../types/models/agent";
 
+export interface AgentPaginatedResponse {
+  items: AgentData[];
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
 export const agentService = {
+  getPaginated: async (
+    params?: Record<string, unknown>,
+  ): Promise<AgentPaginatedResponse> => {
+    const response = await api.get("/agents", { params });
+    return response.data.data;
+  },
+
+  /** Semua agent untuk dropdown/lookup (tanpa pagination UI). */
   getAll: async (): Promise<AgentData[]> => {
-    const response = await api.get("/agents?limit=300");
-    return response.data.data.items;
+    const response = await agentService.getPaginated({ limit: 300, page: 1 });
+    return response.items;
   },
 
   create: async (data: CreateAgentDTO) => {

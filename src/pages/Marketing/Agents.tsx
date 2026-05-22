@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -7,9 +8,9 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, Upload } from "lucide-react";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, Upload, ArrowUpDown, ChevronDown, Filter } from "lucide-react";
 import {
-  useGetAgents,
+  useGetAgentsPaginated,
   useCreateAgent,
   useUpdateAgent,
   useDeleteAgent,
@@ -107,8 +108,31 @@ const formatDateForInput = (dateString?: string | null) => {
   return dateString.split("T")[0];
 };
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
 const Agents = () => {
-  const { data: agentData = [], isLoading } = useGetAgents();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const orderBy = searchParams.get('orderBy') || '';
+  const statusFilter = searchParams.get('status') || '';
+  const typeFilter = searchParams.get('type') || '';
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
+
+  const { data: agentsResponse, isLoading } = useGetAgentsPaginated({
+    page,
+    limit,
+    search,
+    ...(orderBy ? { orderBy } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(typeFilter ? { type: typeFilter } : {}),
+  });
+  const agentData = agentsResponse?.items ?? [];
+  const meta = agentsResponse?.meta;
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
   const { data: feeData = [] } = useGetFeeAgents();
   const { data: perusahaanList = [] } = useGetPerusahaanAgents();
@@ -144,6 +168,77 @@ const Agents = () => {
     marketingTanggal: string;
   } | null>(null);
 
+  const handlePageChange = (newPage: number) => {
+    setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
+  };
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams(prev => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams(prev => {
+      if (newSearch) prev.set('search', newSearch); else prev.delete('search');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('status', e.target.value); else prev.delete('status');
+      prev.set('page', '1'); return prev;
+    });
+  };
+  const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('type', e.target.value); else prev.delete('type');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
+  const filterSelectClass =
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer';
+
+  const tableToolbar = (
+    <>
+      <div className="relative group w-full sm:w-52">
+        <select
+          className={`${filterSelectClass} pl-9`}
+          value={orderBy}
+          onChange={handleSortChange}
+          aria-label="Urutkan data"
+        >
+          <option value="">Agent Terbaru</option>
+          <option value="nama:asc">Nama Agent (A-Z)</option>
+        </select>
+        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      </div>
+      
+      <div className="relative group w-full sm:w-40">
+        <select
+          className={`${filterSelectClass} pl-9`}
+          value={typeFilter}
+          onChange={handleTypeFilterChange}
+          aria-label="Filter tipe agent"
+        >
+          <option value="">Semua Tipe</option>
+          <option value="PRIBADI">Pribadi</option>
+          <option value="PERUSAHAAN">Perusahaan</option>
+        </select>
+        <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      </div>
+    </>
+  );
 
   const handleApprove = async (agent: AgentData) => {
     if (!agent.fileSuratPernyataan) {
@@ -700,11 +795,21 @@ const Agents = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title="Data Agent Marketing"
+        title="Agent"
         columns={columns}
         data={agentData}
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
+        serverSide={true}
+        toolbarPrefix={tableToolbar}
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
+        pageSize={limit}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+        onPageSizeChange={handlePageSizeChange}
       />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Agent" : "Tambah Data Agent"}>

@@ -115,7 +115,7 @@ const DataTable = ({
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-all font-semibold text-sm cursor-pointer shadow-sm active:scale-95"
             >
               <Plus size={16} strokeWidth={2.5} />
-              Tambah Data
+              
             </button>
           )}
         </div>

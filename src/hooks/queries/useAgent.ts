@@ -4,12 +4,24 @@ import type { CreateAgentDTO } from "../../types/models/agent";
 
 export const AGENT_KEYS = {
   all: ["agents"] as const,
+  list: ["agents", "list"] as const,
+  paginated: (params: Record<string, unknown>) =>
+    ["agents", "paginated", params] as const,
 };
 
+/** Daftar agent lengkap (max 300) — untuk lookup/dropdown, tanpa pagination. */
 export const useGetAgents = () => {
   return useQuery({
-    queryKey: AGENT_KEYS.all,
+    queryKey: AGENT_KEYS.list,
     queryFn: agentService.getAll,
+  });
+};
+
+/** Daftar agent dengan pagination, search, sort, dan filter (halaman Marketing Agents). */
+export const useGetAgentsPaginated = (params: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: AGENT_KEYS.paginated(params),
+    queryFn: () => agentService.getPaginated(params),
   });
 };
 
