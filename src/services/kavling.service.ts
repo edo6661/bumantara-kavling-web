@@ -1,9 +1,12 @@
 import api from "../lib/axios";
 
+export type JenisKavling = 'PERUMAHAN' | 'RUKO';
+
 export interface KavlingData {
   id: number;
   perumahanId: number;
   perumahan?: { id: number; nama: string };
+  jenisKavling: JenisKavling;
   blok: string;
   nomorUnit: string;
   namaTipe: string;
@@ -36,6 +39,7 @@ export interface CreateKavlingDTO {
   luasBangunan: number;
   luasTanah: number;
   hargaDasar: number;
+  jenisKavling?: JenisKavling;
   status?: string;
   rekeningTujuanId?: number;
 
@@ -65,8 +69,14 @@ export interface GetKavlingParams {
   search?: string;
   perumahanId?: number;
   status?: string;
+  jenisKavling?: JenisKavling;
   orderBy?: string;
 }
+
+export const JENIS_KAVLING_LABELS: Record<JenisKavling, string> = {
+  PERUMAHAN: 'Perumahan',
+  RUKO: 'Ruko',
+};
 
 export const kavlingService = {
   getAll: async (params?: GetKavlingParams): Promise<KavlingResponse> => {

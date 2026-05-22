@@ -17,7 +17,8 @@ import {
 } from "../../hooks/queries/useKavling";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
-import type { KavlingData, CreateKavlingDTO } from '../../services/kavling.service';
+import type { KavlingData, CreateKavlingDTO, JenisKavling } from '../../services/kavling.service';
+import { JENIS_KAVLING_LABELS } from '../../services/kavling.service';
 import CurrencyInput from '../../components/shared/CurrencyInput';
 import { handleApiError } from '../../utils/errorHandler';
 
@@ -31,19 +32,59 @@ interface KavlingFormState {
   luasTanah: number | '';
   hargaDasar: number | '';
   status: string;
+  jenisKavling: JenisKavling;
   rekeningTujuanId: number | '';
 }
 
 const initialFormState: KavlingFormState = {
   id: '', perumahanId: '', blok: '', nomorUnit: '', namaTipe: '',
-  luasBangunan: '', luasTanah: '', hargaDasar: '', status: 'AVAILABLE', rekeningTujuanId: '',
+  luasBangunan: '', luasTanah: '', hargaDasar: '', status: 'AVAILABLE', jenisKavling: 'PERUMAHAN', rekeningTujuanId: '',
 };
 
-const KAVLING_DATA: Record<string, { lb: number; lt: number[] }> = {
-  Asvara: { lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
-  Adara: { lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
-  Aruna: { lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
-  Ansara: { lb: 36, lt: [60, 103, 120, 122, 132, 143] }
+type KavlingTipeConfig =
+  | { kind: 'single-lb'; lb: number; lt: number[] }
+  | { kind: 'pairs'; pairs: { lb: number; lt: number }[] };
+
+const KAVLING_DATA: Record<string, KavlingTipeConfig> = {
+  Asvara: { kind: 'single-lb', lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
+  Adara: { kind: 'single-lb', lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
+  Aruna: { kind: 'single-lb', lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
+  Ansara: { kind: 'single-lb', lb: 36, lt: [60, 103, 120, 122, 132, 143] },
+  'Edena Terrace': {
+    kind: 'pairs',
+    pairs: [
+      { lb: 110, lt: 55 },
+      { lb: 0, lt: 38 },
+      { lb: 55, lt: 55 },
+      { lb: 90, lt: 45 },
+      { lb: 45, lt: 45 },
+      { lb: 80, lt: 40 },
+    ],
+  },
+};
+
+const isPairTipe = (namaTipe: string) => KAVLING_DATA[namaTipe]?.kind === 'pairs';
+
+const formatLuasPairLabel = (lb: number, lt: number) => `${lb} / ${lt} m²`;
+
+const getLuasPairValue = (lb: number | '', lt: number | '') =>
+  lb !== '' && lt !== '' ? `${lb}|${lt}` : '';
+
+const getPairSelectOptions = (namaTipe: string) => {
+  const config = KAVLING_DATA[namaTipe];
+  if (!config || config.kind !== 'pairs') return [];
+  return [...config.pairs]
+    .sort((a, b) => a.lb - b.lb || a.lt - b.lt)
+    .map(({ lb, lt }) => ({
+      value: `${lb}|${lt}`,
+      label: formatLuasPairLabel(lb, lt),
+    }));
+};
+
+const getLuasTanahOptions = (namaTipe: string) => {
+  const config = KAVLING_DATA[namaTipe];
+  if (!config || config.kind !== 'single-lb') return [];
+  return [...config.lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }));
 };
 
 const Kavling = () => {
@@ -55,6 +96,7 @@ const Kavling = () => {
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') || '';
+  const jenisKavlingFilter = searchParams.get('jenisKavling') || '';
   const orderBy = searchParams.get('orderBy') || '';
   const limit = 10;
 
@@ -64,6 +106,7 @@ const Kavling = () => {
     page, limit, search,
     perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
     status: statusFilter !== '' ? statusFilter : undefined,
+    jenisKavling: jenisKavlingFilter !== '' ? jenisKavlingFilter as JenisKavling : undefined,
     orderBy: orderBy !== '' ? orderBy : undefined
   });
 
@@ -112,6 +155,13 @@ const Kavling = () => {
     });
   };
 
+  const handleJenisKavlingFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('jenisKavling', e.target.value); else prev.delete('jenisKavling');
+      prev.set('page', '1'); return prev;
+    });
+  };
+
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSearchParams(prev => {
       if (e.target.value) prev.set('orderBy', e.target.value); else prev.delete('orderBy');
@@ -153,7 +203,20 @@ const Kavling = () => {
   const columns = [
     { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
-    { header: 'Tipe Rumah', accessor: 'namaTipe' },
+    {
+      header: 'Jenis Kavling',
+      accessor: 'jenisKavling',
+      render: (val: JenisKavling) => {
+        const label = JENIS_KAVLING_LABELS[val] ?? val;
+        const isRuko = val === 'RUKO';
+        return (
+          <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${isRuko ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-indigo-100 text-indigo-800 border-indigo-200'}`}>
+            {label}
+          </span>
+        );
+      }
+    },
+    { header: 'Tipe', accessor: 'namaTipe' },
     { header: 'LB/LT', accessor: 'luasBangunan', render: (_: unknown, row: KavlingData) => `${row.luasBangunan} / ${row.luasTanah} m²` },
     { header: 'Harga Dasar', accessor: 'hargaDasar', render: (val: number) => formatRupiah(val) }, {
       header: 'Dokumen', accessor: 'id', render: (_: unknown, row: KavlingData) => <DokumenIcons row={row} />
@@ -203,7 +266,8 @@ const Kavling = () => {
       setFormData({
         id: item.id, perumahanId: item.perumahanId, blok: item.blok, nomorUnit: item.nomorUnit,
         namaTipe: item.namaTipe, luasBangunan: item.luasBangunan, luasTanah: item.luasTanah,
-        hargaDasar: item.hargaDasar, status: item.status, rekeningTujuanId: item.rekeningTujuanId || '',
+        hargaDasar: item.hargaDasar, status: item.status, jenisKavling: item.jenisKavling,
+        rekeningTujuanId: item.rekeningTujuanId || '',
       });
       setIsEditing(true);
     } else {
@@ -225,9 +289,19 @@ const Kavling = () => {
     setFormData((prev) => {
       const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
       if (name === 'namaTipe') {
-        const selectedKavling = KAVLING_DATA[value];
-        updates.luasBangunan = selectedKavling ? selectedKavling.lb : '';
-        updates.luasTanah = '';
+        const config = KAVLING_DATA[value];
+        if (config?.kind === 'single-lb') {
+          updates.luasBangunan = config.lb;
+          updates.luasTanah = '';
+        } else {
+          updates.luasBangunan = '';
+          updates.luasTanah = '';
+        }
+      }
+      if (name === 'luasPair' && typeof value === 'string') {
+        const [lb, lt] = value.split('|').map(Number);
+        updates.luasBangunan = lb;
+        updates.luasTanah = lt;
       }
       return { ...prev, ...updates };
     });
@@ -245,8 +319,8 @@ const Kavling = () => {
     if (!formData.perumahanId) newErrors.perumahanId = 'Perumahan wajib dipilih';
     if (!formData.blok.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
-    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe Rumah wajib diisi';
-    if (formData.luasBangunan === '' || formData.luasBangunan <= 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
+    if (!formData.namaTipe.trim()) newErrors.namaTipe = 'Tipe wajib diisi';
+    if (formData.luasBangunan === '' || formData.luasBangunan < 0) newErrors.luasBangunan = 'Luas Bangunan tidak valid';
     if (formData.luasTanah === '' || formData.luasTanah <= 0) newErrors.luasTanah = 'Luas Tanah tidak valid';
     if (formData.hargaDasar === '' || formData.hargaDasar <= 0) newErrors.hargaDasar = 'Harga Dasar tidak valid';
     setErrors(newErrors);
@@ -260,6 +334,7 @@ const Kavling = () => {
       perumahanId: Number(formData.perumahanId), blok: formData.blok, nomorUnit: formData.nomorUnit,
       namaTipe: formData.namaTipe, luasBangunan: Number(formData.luasBangunan), luasTanah: Number(formData.luasTanah),
       hargaDasar: Number(formData.hargaDasar), status: formData.status,
+      jenisKavling: formData.jenisKavling,
       rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
     };
     try {
@@ -379,7 +454,16 @@ const Kavling = () => {
           {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
         {isFilterExpanded && (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+          <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+            <div className="relative">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Jenis Kavling</label>
+              <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={jenisKavlingFilter} onChange={handleJenisKavlingFilterChange}>
+                <option value="">Semua Jenis</option>
+                <option value="PERUMAHAN">Perumahan</option>
+                <option value="RUKO">Ruko</option>
+              </select>
+              <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
+            </div>
             <div className="relative">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Status</label>
               <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={statusFilter} onChange={handleStatusFilterChange}>
@@ -408,13 +492,40 @@ const Kavling = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select label="Perumahan" name="perumahanId" value={formData.perumahanId} onChange={handleChange} options={[{ value: '', label: '-- Pilih Perumahan --' }, ...perumahanList.map(p => ({ value: p.id, label: p.nama }))]} error={errors.perumahanId} disabled={isEditing} />
               <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'HOLD', label: 'Hold' }, { value: 'BOOKING', label: 'Booking' }, { value: 'TERJUAL', label: 'Terjual' }]} />
+              <Select label="Jenis Kavling" name="jenisKavling" value={formData.jenisKavling} onChange={handleChange} options={[{ value: 'PERUMAHAN', label: 'Perumahan' }, { value: 'RUKO', label: 'Ruko' }]} />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
               <div className="md:col-span-2">
-                <Select label="Tipe Rumah" name="namaTipe" value={formData.namaTipe} onChange={handleChange} options={[{ value: '', label: '-- Pilih Tipe --' }, ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))]} error={errors.namaTipe} />
+                <Select label="Tipe" name="namaTipe" value={formData.namaTipe} onChange={handleChange} options={[{ value: '', label: '-- Pilih Tipe --' }, ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))]} error={errors.namaTipe} />
               </div>
-              <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
-              <Select label="Luas Tanah (m²)" name="luasTanah" value={formData.luasTanah} onChange={handleChange} error={errors.luasTanah} options={[{ value: '', label: '-- Pilih LT --' }, ...(formData.namaTipe && KAVLING_DATA[formData.namaTipe] ? [...KAVLING_DATA[formData.namaTipe].lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) })) : [])]} />
+              {isPairTipe(formData.namaTipe) ? (
+                <>
+                  <div className="md:col-span-2">
+                    <Select
+                      label="Luas Bangunan / Tanah (m²)"
+                      name="luasPair"
+                      value={getLuasPairValue(formData.luasBangunan, formData.luasTanah)}
+                      onChange={handleChange}
+                      error={errors.luasBangunan || errors.luasTanah}
+                      options={[{ value: '', label: '-- Pilih LB / LT --' }, ...getPairSelectOptions(formData.namaTipe)]}
+                    />
+                  </div>
+                  <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
+                  <Input label="Luas Tanah (m²)" type="number" name="luasTanah" value={formData.luasTanah} onChange={handleChange} error={errors.luasTanah} readOnly />
+                </>
+              ) : (
+                <>
+                  <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
+                  <Select
+                    label="Luas Tanah (m²)"
+                    name="luasTanah"
+                    value={formData.luasTanah}
+                    onChange={handleChange}
+                    error={errors.luasTanah}
+                    options={[{ value: '', label: '-- Pilih LT --' }, ...getLuasTanahOptions(formData.namaTipe)]}
+                  />
+                </>
+              )}
               <CurrencyInput
                 label="Harga Dasar (Rp)"
                 name="hargaDasar"
@@ -444,7 +555,7 @@ const Kavling = () => {
                 <p className="text-xl font-black">{selectedDocKavling.blok}-{selectedDocKavling.nomorUnit}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tipe Rumah</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tipe</p>
                 <p className="text-sm font-bold text-white">{selectedDocKavling.namaTipe}</p>
               </div>
             </div>
