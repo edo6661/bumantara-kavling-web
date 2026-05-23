@@ -191,12 +191,7 @@ const Agents = () => {
       prev.set('page', '1'); return prev;
     });
   };
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSearchParams(prev => {
-      if (e.target.value) prev.set('status', e.target.value); else prev.delete('status');
-      prev.set('page', '1'); return prev;
-    });
-  };
+
   const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSearchParams(prev => {
       if (e.target.value) prev.set('type', e.target.value); else prev.delete('type');

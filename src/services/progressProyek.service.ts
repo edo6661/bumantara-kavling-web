@@ -26,12 +26,45 @@ export interface ProgressProyekData {
   tahapan: TahapanProyekData[];
 }
 
+export interface ProgressProyekListItem {
+  kavlingId: number;
+  penjualanId: number | null;
+  penjualanNoTransaksi: string | null;
+  blok: string;
+  nomorUnit: string;
+  nama: string;
+  status: string;
+  progressProyek: {
+    persentase: number;
+    mandorId: number | null;
+    mandor: MandorOption | null;
+  } | null;
+}
+
+export interface ProgressProyekListResponse {
+  items: ProgressProyekListItem[];
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
+
 export interface UpdateProgressProyekDTO {
-  mandorId?: number | null;
   tahapan?: TahapanProyekData[];
 }
 
 export const progressProyekService = {
+  getProyekList: async (
+    params?: Record<string, unknown>,
+  ): Promise<ProgressProyekListResponse> => {
+    const response = await api.get("/progress-proyek/proyek", { params });
+    return response.data.data;
+  },
+
   getMandors: async (): Promise<MandorOption[]> => {
     const response = await api.get("/progress-proyek/mandors");
     return response.data.data;

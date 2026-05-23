@@ -2,15 +2,12 @@ import React, { useState, useMemo, useCallback } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
-import Select from "../../components/shared/Select";
 import PageLoader from "../PageLoader";
 import { useAuth } from "../../context/AuthContext";
-import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import {
   useAddTahapanLog,
-  useGetMandors,
   useGetProgressProyek,
-  useUpdateProgressProyek,
+  useGetProgressProyekList,
   useUploadTahapanPhotos
 } from "../../hooks/queries/useProgressProyek";
 import { handleApiError } from '../../utils/errorHandler';
@@ -30,14 +27,16 @@ interface ProgressProyekSummary {
   mandor: { id: number; username: string } | null;
 }
 
-interface PenjualanRow {
+interface ProyekRow {
   id: string;
-  dbId: number;
+  dbId: number | null;
+  kavlingId: number;
   nama: string;
   blok: string;
   nomorUnit: string;
   progressProyek: ProgressProyekSummary | null;
   status: string;
+  hasPenjualan: boolean;
 }
 
 const TAHAPAN_LIST = [
@@ -72,61 +71,71 @@ const TAHAPAN_ICON_MAP: Record<(typeof TAHAPAN_LIST)[number], LucideIcon> = {
 const Progress = () => {
   const { user } = useAuth();
   const isMandorRole = user?.role === 'MANDOR';
-  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const { data: proyekResponse, isLoading: loadingProyek } = useGetProgressProyekList({
+    page: 1,
+    limit: 500,
+  });
 
-  const penjualanList: PenjualanRow[] = useMemo(() => {
-    if (!penjualanResponse?.items) return [];
-    return penjualanResponse.items
-      .filter((p) => {
-        if (p.status === 'BATAL') return false;
-        if (isMandorRole) {
-          return p.progressProyek?.mandorId === user?.id;
-        }
-        return true;
-      })
-      .map((p) => ({
-        id: p.id,
-        dbId: p.dbId,
-        nama: p.nama,
-        blok: p.blok,
-        nomorUnit: p.nomorUnit,
-        progressProyek: p.progressProyek ? {
-          persentase: Number(p.progressProyek.persentase),
-          mandorId: p.progressProyek.mandorId,
-          mandor: p.progressProyek.mandor,
-        } : null,
-        status: p.status
-      }));
-  }, [penjualanResponse, isMandorRole, user?.id]);
+  const proyekList: ProyekRow[] = useMemo(() => {
+    if (!proyekResponse?.items) return [];
+    return proyekResponse.items.map((item) => ({
+      id: item.penjualanNoTransaksi ?? `kavling-${item.kavlingId}`,
+      dbId: item.penjualanId,
+      kavlingId: item.kavlingId,
+      nama: item.nama,
+      blok: item.blok,
+      nomorUnit: item.nomorUnit,
+      progressProyek: item.progressProyek
+        ? {
+            persentase: Number(item.progressProyek.persentase),
+            mandorId: item.progressProyek.mandorId,
+            mandor: item.progressProyek.mandor,
+          }
+        : null,
+      status: item.status,
+      hasPenjualan: item.penjualanId !== null,
+    }));
+  }, [proyekResponse]);
 
-  const [selectedPenjualan, setSelectedPenjualan] = useState<PenjualanRow | null>(null);
+  const [selectedProyek, setSelectedProyek] = useState<ProyekRow | null>(null);
   const [directTahapan, setDirectTahapan] = useState<string | null>(null);
+  const [noPenjualanNotice, setNoPenjualanNotice] = useState(false);
 
-  const openDetailModal = (row: PenjualanRow) => {
-    setSelectedPenjualan(row);
+  const requirePenjualan = (row: ProyekRow): boolean => {
+    if (row.hasPenjualan && row.dbId) return true;
+    setNoPenjualanNotice(true);
+    return false;
+  };
+
+  const openDetailModal = (row: ProyekRow) => {
+    if (!requirePenjualan(row)) return;
+    setSelectedProyek(row);
     setDirectTahapan(null);
   };
 
-  const openTahapanModal = (row: PenjualanRow, tahapan: string) => {
-    setSelectedPenjualan(row);
+  const openTahapanModal = (row: ProyekRow, tahapan: string) => {
+    if (!requirePenjualan(row)) return;
+    setSelectedProyek(row);
     setDirectTahapan(tahapan);
   };
 
   const closeModals = () => {
-    setSelectedPenjualan(null);
+    setSelectedProyek(null);
     setDirectTahapan(null);
+    setNoPenjualanNotice(false);
   };
 
   const columns = [
     {
       header: 'Customer & Blok',
       accessor: 'nama',
-      render: (_val: string, row: PenjualanRow) => (
+      render: (_val: string, row: ProyekRow) => (
         <div>
           <span className="font-bold text-slate-900 block">{row.nama}</span>
           <span className="text-xs font-medium text-slate-500">
             Blok {row.blok}-{row.nomorUnit}
           </span>
+         
         </div>
       )
     },
@@ -158,7 +167,7 @@ const Progress = () => {
     {
       header: 'Aksi',
       accessor: 'dbId',
-      render: (_val: number, row: PenjualanRow) => (
+      render: (_val: number | null, row: ProyekRow) => (
         <div className="flex flex-wrap items-center gap-1">
           {TAHAPAN_LIST.map((tahapan) => {
             const Icon = TAHAPAN_ICON_MAP[tahapan];
@@ -166,9 +175,14 @@ const Progress = () => {
               <button
                 key={tahapan}
                 type="button"
-                title={tahapan}
+                title={row.hasPenjualan ? tahapan : 'Perlu data penjualan terlebih dahulu'}
+                disabled={!row.hasPenjualan}
                 onClick={() => openTahapanModal(row, tahapan)}
-                className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 hover:grayscale-0 hover:bg-slate-100 hover:text-slate-600 grayscale"
+                className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center ${
+                  row.hasPenjualan
+                    ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-pointer hover:scale-110 hover:grayscale-0 hover:bg-slate-100 hover:text-slate-600 grayscale'
+                    : 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed opacity-60'
+                }`}
               >
                 <Icon size={14} strokeWidth={1.5} />
               </button>
@@ -176,9 +190,14 @@ const Progress = () => {
           })}
           <button
             type="button"
-            title="Kelola Progress Lapangan"
+            title={row.hasPenjualan ? 'Kelola Progress Lapangan' : 'Perlu data penjualan terlebih dahulu'}
+            disabled={!row.hasPenjualan}
             onClick={() => openDetailModal(row)}
-            className="p-1.5 rounded-lg border border-slate-900 bg-slate-900 text-white shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 hover:bg-black"
+            className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center ${
+              row.hasPenjualan
+                ? 'border-slate-900 bg-slate-900 text-white cursor-pointer hover:scale-110 hover:bg-black'
+                : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-60'
+            }`}
           >
             <HardHat size={14} />
           </button>
@@ -187,37 +206,58 @@ const Progress = () => {
     }
   ];
 
-  if (loadingPenjualan) return <PageLoader />;
+  if (loadingProyek) return <PageLoader />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {isMandorRole && penjualanList.length === 0 && !loadingPenjualan && (
+      {isMandorRole && proyekList.length === 0 && !loadingProyek && (
         <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6 text-center">
           <p className="text-sm font-bold text-orange-800">Belum ada proyek yang ditugaskan kepada Anda.</p>
-          <p className="text-xs text-orange-600 mt-1">Hubungi admin untuk assign mandor pada kavling proyek.</p>
+          <p className="text-xs text-orange-600 mt-1">Hubungi admin untuk menambahkan kavling Anda ke SPK.</p>
         </div>
       )}
       <DataTable
         title={isMandorRole ? 'Proyek Saya' : 'Laporan Progress Lapangan'}
         columns={columns}
-        data={penjualanList}
+        data={proyekList}
       />
 
-      {selectedPenjualan && !directTahapan && (
+      <Modal
+        isOpen={noPenjualanNotice}
+        onClose={() => setNoPenjualanNotice(false)}
+        title="Belum Ada Data Penjualan"
+        size="sm"
+      >
+        <p className="text-sm text-slate-600">
+          Kavling ini sudah ditugaskan ke mandor via SPK, tetapi belum memiliki transaksi penjualan.
+          Input progress lapangan akan tersedia setelah data penjualan dibuat.
+        </p>
+        <div className="flex justify-end pt-4">
+          <button
+            type="button"
+            onClick={() => setNoPenjualanNotice(false)}
+            className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800"
+          >
+            Mengerti
+          </button>
+        </div>
+      </Modal>
+
+      {selectedProyek && selectedProyek.dbId && !directTahapan && (
         <ProgressDetailModal
-          key={selectedPenjualan.dbId}
-          isOpen={!!selectedPenjualan}
+          key={selectedProyek.dbId}
+          isOpen={!!selectedProyek}
           onClose={closeModals}
-          penjualan={selectedPenjualan}
+          penjualan={selectedProyek}
         />
       )}
 
-      {selectedPenjualan && directTahapan && (
+      {selectedProyek && selectedProyek.dbId && directTahapan && (
         <TahapanDirectEditModal
-          key={`${selectedPenjualan.dbId}-${directTahapan}`}
+          key={`${selectedProyek.dbId}-${directTahapan}`}
           isOpen
           onClose={closeModals}
-          penjualan={selectedPenjualan}
+          penjualan={selectedProyek}
           namaTahapan={directTahapan}
         />
       )}
@@ -231,7 +271,7 @@ const Progress = () => {
 interface TahapanDirectEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  penjualan: PenjualanRow;
+  penjualan: ProyekRow;
   namaTahapan: string;
 }
 
@@ -242,7 +282,7 @@ const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
   namaTahapan
 }) => {
   const { user } = useAuth();
-  const { data: progressData, isLoading } = useGetProgressProyek(penjualan.dbId);
+  const { data: progressData, isLoading } = useGetProgressProyek(penjualan.dbId!);
 
   if (!isOpen) return null;
 
@@ -261,7 +301,7 @@ const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
     <EditTahapanModal
       isOpen
       onClose={onClose}
-      penjualanDbId={penjualan.dbId}
+      penjualanDbId={penjualan.dbId!}
       namaTahapan={namaTahapan}
       progressData={progressData}
       canUpload={canUploadProgress(user?.role, user?.id, progressData.mandorId)}
@@ -272,18 +312,14 @@ const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
 interface ProgressDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  penjualan: PenjualanRow;
+  penjualan: ProyekRow;
 }
 
 const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClose, penjualan }) => {
   const { user } = useAuth();
   const isMandorRole = user?.role === 'MANDOR';
-  const { data: progressData, isLoading } = useGetProgressProyek(penjualan.dbId);
-  const { data: mandorList = [] } = useGetMandors();
-  const updateMutation = useUpdateProgressProyek();
+  const { data: progressData, isLoading } = useGetProgressProyek(penjualan.dbId!);
 
-  const [mandorIdDraft, setMandorIdDraft] = useState<number | null | undefined>(undefined);
-  const selectedMandorId = mandorIdDraft ?? progressData?.mandorId ?? null;
   const [selectedTahapanToEdit, setSelectedTahapanToEdit] = useState<string | null>(null);
   const canUpload = canUploadProgress(
     user?.role,
@@ -291,18 +327,8 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
     progressData?.mandorId ?? penjualan.progressProyek?.mandorId,
   );
 
-  const handleSaveMandor = async () => {
-    try {
-      await updateMutation.mutateAsync({
-        id: penjualan.dbId,
-        data: { mandorId: selectedMandorId }
-      });
-      setMandorIdDraft(undefined);
-      alert('Mandor proyek berhasil disimpan!');
-    } catch (err: unknown) {
-      alert(handleApiError(err).message);
-    }
-  };
+  const mandorName =
+    progressData?.mandor?.username ?? penjualan.progressProyek?.mandor?.username;
 
   return (
     <>
@@ -326,42 +352,15 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
               </div>
             </div>
 
-            {/* Form Mandor — hanya admin/staff yang bisa assign */}
-            {!isMandorRole && (
-              <div className="bg-white p-4 border border-slate-200 rounded-2xl flex items-end gap-3 shadow-sm">
-                <div className="flex-1">
-                  <Select
-                    label="Mandor Proyek"
-                    name="mandorId"
-                    value={selectedMandorId !== null ? String(selectedMandorId) : ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setMandorIdDraft(val ? Number(val) : null);
-                    }}
-                    options={[
-                      { value: '', label: '-- Pilih Mandor --' },
-                      ...mandorList.map((m) => ({
-                        value: String(m.id),
-                        label: m.username,
-                      })),
-                    ]}
-                  />
-                </div>
-                <button
-                  onClick={handleSaveMandor}
-                  disabled={updateMutation.isPending}
-                  className="mb-4 px-6 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition shadow-sm disabled:opacity-50 cursor-pointer"
-                >
-                  {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Mandor'}
-                </button>
-              </div>
-            )}
-            {isMandorRole && progressData?.mandor && (
-              <div className="bg-orange-50 p-4 border border-orange-100 rounded-2xl text-sm">
-                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">Mandor Proyek</p>
-                <p className="font-bold text-slate-800">{progressData.mandor.username}</p>
-              </div>
-            )}
+            <div className={`p-4 border rounded-2xl text-sm ${mandorName ? 'bg-orange-50 border-orange-100' : 'bg-slate-50 border-slate-200'}`}>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Mandor Proyek</p>
+              <p className="font-bold text-slate-800">{mandorName || 'Belum ditugaskan via SPK'}</p>
+              {!isMandorRole && !mandorName && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Assign mandor melalui menu SPK dengan memilih kavling ini.
+                </p>
+              )}
+            </div>
 
             {/* Tabel Detail Tahapan */}
             <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -466,7 +465,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
           key={`${penjualan.dbId}-${selectedTahapanToEdit}`}
           isOpen={!!selectedTahapanToEdit}
           onClose={() => setSelectedTahapanToEdit(null)}
-          penjualanDbId={penjualan.dbId}
+          penjualanDbId={penjualan.dbId!}
           namaTahapan={selectedTahapanToEdit}
           progressData={progressData}
           canUpload={canUpload}
@@ -515,7 +514,6 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
   progressData,
   canUpload,
 }) => {
-  const updateMutation = useUpdateProgressProyek();
   const uploadPhotoMutation = useUploadTahapanPhotos();
   const addLogMutation = useAddTahapanLog();
 
@@ -577,7 +575,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
     }
   };
 
-  const isSaving = updateMutation.isPending || uploadPhotoMutation.isPending || addLogMutation.isPending;
+  const isSaving = uploadPhotoMutation.isPending || addLogMutation.isPending;
 
   const assignedMandorName = progressData.mandor?.username;
 

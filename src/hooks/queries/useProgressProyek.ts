@@ -8,8 +8,17 @@ import { PENJUALAN_KEYS } from "./usePenjualan";
 export const PROGRESS_PROYEK_KEYS = {
   all: ["progress-proyek"] as const,
   mandors: ["progress-proyek", "mandors"] as const,
+  proyekList: (params?: Record<string, unknown>) =>
+    [...PROGRESS_PROYEK_KEYS.all, "proyek", params] as const,
   detail: (penjualanId: number) =>
     [...PROGRESS_PROYEK_KEYS.all, penjualanId] as const,
+};
+
+export const useGetProgressProyekList = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: PROGRESS_PROYEK_KEYS.proyekList(params),
+    queryFn: () => progressProyekService.getProyekList(params),
+  });
 };
 
 export const useGetMandors = () => {
@@ -38,6 +47,7 @@ export const useUpdateProgressProyek = () => {
       });
 
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
     },
   });
 };
@@ -58,6 +68,7 @@ export const useUploadTahapanPhotos = () => {
       queryClient.invalidateQueries({
         queryKey: PROGRESS_PROYEK_KEYS.detail(variables.id),
       });
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
     },
   });
 };
@@ -78,6 +89,7 @@ export const useAddTahapanLog = () => {
         queryKey: PROGRESS_PROYEK_KEYS.detail(variables.id),
       });
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
     },
   });
 };
