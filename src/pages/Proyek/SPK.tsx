@@ -159,7 +159,7 @@ const getFileNameFromUrl = (url: string) => {
     const segment = url.split('/').pop() ?? url;
     return decodeURIComponent(segment.split('?')[0] ?? segment);
   } catch {
-    return 'Dokumen SPK.pdf';
+    return 'Dokumen_SPK.pdf';
   }
 };
 
