@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -232,6 +232,36 @@ const Penjualan = () => {
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<SignatureCanvas>(null);
+  useEffect(() => {
+    const resizeCanvas = () => {
+      const canvas = sigCanvas.current?.getCanvas();
+      if (canvas && canvas.parentElement) {
+        // Dapatkan rasio layar (Penting untuk layar HP / Retina Display agar tidak buram dan offset)
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        
+        // Samakan ukuran internal canvas dengan ukuran visual elemennya
+        canvas.width = canvas.offsetWidth * ratio;
+        canvas.height = canvas.offsetHeight * ratio;
+        
+        canvas.getContext("2d")?.scale(ratio, ratio);
+        
+        // Bersihkan canvas setiap kali di-resize agar siap digunakan
+        sigCanvas.current?.clear();
+      }
+    };
+
+    if (isTtdModalOpen) {
+      // Gunakan sedikit delay agar animasi modal selesai render dan ukuran elemen bisa dibaca
+      const timeoutId = setTimeout(resizeCanvas, 150);
+      window.addEventListener("resize", resizeCanvas);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        window.removeEventListener("resize", resizeCanvas);
+      };
+    }
+  }, [isTtdModalOpen]);
+
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [bankData, setBankData] = useState({ id: '', bank: '' });
 
@@ -1410,6 +1440,7 @@ const Penjualan = () => {
 
   if (isLoading && penjualanData.length === 0) return <PageLoader />;
 
+  
   return (
     <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
 
@@ -2909,8 +2940,16 @@ const Penjualan = () => {
           </div>
           <div>
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2 block">Area Tanda Tangan</label>
-            <div className="border-2 border-dashed border-indigo-200 rounded-2xl bg-white overflow-hidden shadow-inner">
-              <SignatureCanvas ref={sigCanvas} penColor="black" backgroundColor="white" canvasProps={{ width: 600, height: 200, className: 'sigCanvas w-full cursor-crosshair' }} />
+            
+            {/* 1. Tambahkan w-full dan h-48 di div pembungkusnya untuk memberikan ukuran tinggi yang pasti */}
+            <div className="border-2 border-dashed border-indigo-200 rounded-2xl bg-white overflow-hidden shadow-inner w-full h-48">
+              
+              {/* 2. Hapus width dan height dari canvasProps */}
+              <SignatureCanvas 
+                ref={sigCanvas} 
+                penColor="black" 
+                canvasProps={{ className: 'w-full h-full cursor-crosshair' }} 
+              />
             </div>
             <div className="flex justify-between items-center mt-3 px-1">
               <p className="text-xs font-medium text-slate-400">Pastikan tanda tangan berada di dalam kotak.</p>
