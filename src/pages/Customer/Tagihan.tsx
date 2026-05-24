@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -115,35 +115,6 @@ const Tagihan = () => {
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
   const sigCanvas = useRef<any>(null);
-  useEffect(() => {
-    const resizeCanvas = () => {
-      const canvas = sigCanvas.current?.getCanvas();
-      if (canvas && canvas.parentElement) {
-        // Dapatkan rasio layar (Penting untuk layar HP / Retina Display agar tidak buram dan offset)
-        const ratio = Math.max(window.devicePixelRatio || 1, 1);
-        
-        // Samakan ukuran internal canvas dengan ukuran visual elemennya
-        canvas.width = canvas.offsetWidth * ratio;
-        canvas.height = canvas.offsetHeight * ratio;
-        
-        canvas.getContext("2d")?.scale(ratio, ratio);
-        
-        // Bersihkan canvas setiap kali di-resize agar siap digunakan
-        sigCanvas.current?.clear();
-      }
-    };
-
-    if (isTtdModalOpen) {
-      // Gunakan sedikit delay agar animasi modal selesai render dan ukuran elemen bisa dibaca
-      const timeoutId = setTimeout(resizeCanvas, 150);
-      window.addEventListener("resize", resizeCanvas);
-      
-      return () => {
-        clearTimeout(timeoutId);
-        window.removeEventListener("resize", resizeCanvas);
-      };
-    }
-  }, [isTtdModalOpen]);
 
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
@@ -552,10 +523,11 @@ const Tagihan = () => {
     const hargaJual = Number(penjualanRow?.hargaJual ?? targetPenjualan?.totalHargaJual ?? 0);
     const targetBooking = Number(penjualanRow?.bookingFee ?? 0);
     const targetDp = Number(penjualanRow?.dp ?? 0);
-    const targetPokok = Math.max(0, hargaJual - targetDp);
+    const targetPokok = Math.max(0, hargaJual - targetDp - targetBooking);
 
     const paidDp = sumLunas((t) => effectiveTagihanTujuan(t) === 'DP');
     const paidPokok = sumLunas((t) => effectiveTagihanTujuan(t) === 'HARGA_JUAL');
+    const paidBooking = sumLunas((t) => effectiveTagihanTujuan(t) === 'BOOKING_FEE');
 
     const sisaDp = Math.max(0, targetDp - paidDp);
     const sisaPokok = Math.max(0, targetPokok - paidPokok);
@@ -563,9 +535,9 @@ const Tagihan = () => {
     const cicilanLunas = targetPokok > 0 && sisaPokok === 0;
 
     const piutangCicilan = hargaJual;
-    const sisaPembayaran = cicilanRows
-      .filter((t) => t.status !== 'LUNAS')
-      .reduce((acc, t) => acc + Number(t.nominal), 0);
+    const totalTerbayar = sumLunas(() => true);
+    const bookingBelumDicatat = Math.max(0, targetBooking - paidBooking);
+    const sisaBelumDibayar = Math.max(0, hargaJual - totalTerbayar - bookingBelumDicatat);
 
     const rekeningTujuanId = targetPenjualan?.rekeningTujuanId;
 
@@ -762,7 +734,7 @@ const Tagihan = () => {
                                     ...c,
                                     nominalCetak: c.nominal,
                                     hargaJual: piutangCicilan,
-                                    sisaBelumDibayar: sisaPembayaran,
+                                    sisaBelumDibayar: sisaBelumDibayar,
                                     rekeningTujuanId: rekeningTujuanId,
                                     tipe: targetPenjualan?.tipe,
                                     caraPembayaran: targetPenjualan?.pembiayaan,
@@ -788,7 +760,7 @@ const Tagihan = () => {
                                       ...c,
                                       nominalCetak: c.nominal,
                                       hargaJual: piutangCicilan,
-                                      sisaBelumDibayar: sisaPembayaran,
+                                      sisaBelumDibayar: sisaBelumDibayar,
                                       rekeningTujuanId: rekeningTujuanId,
                                       tipe: targetPenjualan?.tipe,
                                       caraPembayaran: targetPenjualan?.pembiayaan,
@@ -1277,7 +1249,7 @@ const Tagihan = () => {
           <div>
             <label className="text-[13px] font-bold text-slate-600 uppercase tracking-wider ml-1 mb-2 block">Area Tanda Tangan</label>
             <div className="border-2 border-dashed border-slate-300 rounded-xl bg-white overflow-hidden shadow-inner">
-              <SignatureCanvas ref={sigCanvas} penColor="black" canvasProps={{ className: 'w-full h-full cursor-crosshair' }} />
+              <SignatureCanvas ref={sigCanvas} penColor="black" backgroundColor="white" canvasProps={{ width: 600, height: 200, className: 'sigCanvas w-full cursor-crosshair' }} />
             </div>
             <div className="flex justify-between items-center mt-2 px-1">
               <p className="text-xs font-medium text-slate-400">Pastikan tanda tangan berada di dalam kotak.</p>
