@@ -1143,7 +1143,6 @@ const Tagihan = () => {
                     />
                   </div>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Scan Validasi</span>
-                  <span className="text-[9px] text-slate-800 font-bold mt-0.5 tracking-wide">[www.purisafana.com](https://www.purisafana.com)</span>
                   <span className="text-[8px] text-slate-500 mt-2 font-bold tracking-widest uppercase">Hormat Kami,</span>
                   <span className="text-[10px] text-slate-900 font-black mt-0.5 tracking-wide uppercase">
                     {printData.pembuat}
