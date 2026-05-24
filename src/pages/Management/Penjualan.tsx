@@ -2072,14 +2072,14 @@ const Penjualan = () => {
                               <div className="w-full pl-[40px] pr-3 py-1 text-left">
                                 <span className="text-base font-black text-orange-600 tabular-nums">
                                   {formatTanpaDesimal(
-                                    Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0) - (formData.bookingFee || 0))
+                                    Math.max(0, (formData.hargaDasar || 0) - (formData.diskonPenjualan || 0) - (formData.dp || 0))
                                   )}
                                 </span>
                               </div>
                             </div>
                           </div>
                           <p className="text-[10px] text-slate-500 font-mono text-right mb-4">
-                            <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - Diskon - DP - Booking Fee
+                            <strong className="text-slate-400">Kalkulasi:</strong> Harga Dasar - Diskon - DP
                           </p>
 
                           <div className="flex items-center justify-between mb-4">
