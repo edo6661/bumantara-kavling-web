@@ -134,11 +134,11 @@ const PenjualanDetailModal = ({
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-sm font-bold text-blue-400">Sisa Pembayaran</span>
                         <span className="text-sm font-bold text-emerald-400 tabular-nums">
-                          {formatRupiah(Math.max(0, (detailData.hargaDasar || 0) - (detailData.diskonPenjualan || 0) - (detailData.bookingFee || 0) - (detailData.dp || 0)))}
+                          {formatRupiah(Math.max(0, (detailData.hargaDasar || 0) - (detailData.diskonPenjualan || 0) - (detailData.dp || 0)))}
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono">
-                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Jual - Booking Fee - DP
+                        <strong className="text-slate-400">Kalkulasi:</strong> Harga Jual - DP
                       </p>
                     </div>
                   </>
