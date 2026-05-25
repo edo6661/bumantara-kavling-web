@@ -31,9 +31,9 @@ import Select from '../../components/shared/Select';
 import { useUploadKavlingDocument } from '../../hooks/queries/useKavling';
 import { useQueryClient } from '@tanstack/react-query';
 
-const SP3K_DOKUMEN_NAME = 'Kode Billing PPh dan Suket PPh';
+const SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh'] as const;
 
-const LEGACY_SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh'];
+const COMBINED_LEGACY_SP3K_NAME = 'Kode Billing PPh dan Suket PPh';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -41,8 +41,8 @@ const DEFAULT_PAGE_SIZE = 10;
 const isSp3kDokumen = (nama: string) => {
   const key = nama?.trim().toLowerCase();
   return (
-    key === SP3K_DOKUMEN_NAME.toLowerCase() ||
-    LEGACY_SP3K_DOKUMEN_NAMES.some((n) => n.toLowerCase() === key)
+    SP3K_DOKUMEN_NAMES.some((n) => n.toLowerCase() === key) ||
+    key === COMBINED_LEGACY_SP3K_NAME.toLowerCase()
   );
 };
 
@@ -201,20 +201,58 @@ const ProgressPenjualan = () => {
   useEffect(() => {
     if (!['VALIDASI_BERKAS', 'SP3K'].includes(modalStep ?? '') || !currentCustomer?.id || updateCustomerMutation.isPending) return;
 
-    const docs: { id: string; nama: string; fileUrl: string | string[] }[] = Array.isArray(currentCustomer.dokumenLainnya)
-      ? currentCustomer.dokumenLainnya
+    let docs: { id: string; nama: string; fileUrl: string | string[] }[] = Array.isArray(currentCustomer.dokumenLainnya)
+      ? [...currentCustomer.dokumenLainnya]
       : [];
-    const hasSlot = docs.some((d) => d.nama?.trim().toLowerCase() === SP3K_DOKUMEN_NAME.toLowerCase());
-    if (hasSlot) return;
+    let changed = false;
 
-    const updatedDocs = [
-      ...docs,
-      { id: `sp3k-${Date.now()}`, nama: SP3K_DOKUMEN_NAME, fileUrl: [] as string[] },
-    ];
+    const combinedIdx = docs.findIndex(
+      (d) => d.nama?.trim().toLowerCase() === COMBINED_LEGACY_SP3K_NAME.toLowerCase()
+    );
+    const billingKey = SP3K_DOKUMEN_NAMES[0].toLowerCase();
+    const hasBilling = docs.some((d) => d.nama?.trim().toLowerCase() === billingKey);
+
+    if (combinedIdx >= 0) {
+      if (!hasBilling) {
+        docs[combinedIdx] = { ...docs[combinedIdx], nama: SP3K_DOKUMEN_NAMES[0] };
+        changed = true;
+      } else {
+        const combined = docs[combinedIdx];
+        const billing = docs.find((d) => d.nama?.trim().toLowerCase() === billingKey)!;
+        const combinedUrls = Array.isArray(combined.fileUrl)
+          ? combined.fileUrl
+          : combined.fileUrl
+            ? [combined.fileUrl]
+            : [];
+        if (combinedUrls.length > 0) {
+          const billingUrls = Array.isArray(billing.fileUrl)
+            ? billing.fileUrl
+            : billing.fileUrl
+              ? [billing.fileUrl]
+              : [];
+          docs = docs.map((d) =>
+            d.id === billing.id ? { ...d, fileUrl: [...billingUrls, ...combinedUrls] } : d
+          );
+          changed = true;
+        }
+        docs = docs.filter((_, i) => i !== combinedIdx);
+        changed = true;
+      }
+    }
+
+    for (const nama of SP3K_DOKUMEN_NAMES) {
+      const exists = docs.some((d) => d.nama?.trim().toLowerCase() === nama.toLowerCase());
+      if (!exists) {
+        docs.push({ id: `sp3k-${nama}-${Date.now()}`, nama, fileUrl: [] as string[] });
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
 
     updateCustomerMutation.mutate({
       id: currentCustomer.id,
-      data: { dokumenLainnya: updatedDocs } as any,
+      data: { dokumenLainnya: docs } as any,
     });
   }, [modalStep, currentCustomer?.id]);
 
@@ -680,29 +718,29 @@ const ProgressPenjualan = () => {
     );
   };
 
-  const sp3kDokumenSlot = useMemo(() => {
+  const sp3kDokumenSlots = useMemo(() => {
     const docs: { id: string; nama: string; fileUrl: string | string[] }[] = Array.isArray(currentCustomer?.dokumenLainnya)
       ? currentCustomer.dokumenLainnya
       : [];
-    const primary = docs.find((d) => d.nama?.trim().toLowerCase() === SP3K_DOKUMEN_NAME.toLowerCase());
-    const legacy = docs.filter((d) =>
-      LEGACY_SP3K_DOKUMEN_NAMES.some((n) => n.toLowerCase() === d.nama?.trim().toLowerCase())
-    );
 
-    const fileItems: { url: string; docId: string }[] = [];
-    const collect = (doc: { id: string; fileUrl: string | string[] }) => {
-      const urls = Array.isArray(doc.fileUrl) ? doc.fileUrl : doc.fileUrl ? [doc.fileUrl] : [];
-      urls.forEach((url) => fileItems.push({ url, docId: doc.id }));
-    };
-    if (primary) collect(primary);
-    legacy.forEach(collect);
+    return SP3K_DOKUMEN_NAMES.map((nama) => {
+      const doc = docs.find((d) => d.nama?.trim().toLowerCase() === nama.toLowerCase());
+      const fileUrls = doc
+        ? Array.isArray(doc.fileUrl)
+          ? doc.fileUrl
+          : doc.fileUrl
+            ? [doc.fileUrl]
+            : []
+        : [];
+      const fileItems = fileUrls.map((url) => ({ url, docId: doc!.id }));
 
-    return {
-      id: primary?.id ?? `placeholder-${SP3K_DOKUMEN_NAME}`,
-      nama: SP3K_DOKUMEN_NAME,
-      fileUrl: fileItems.map((f) => f.url),
-      fileItems,
-    };
+      return {
+        id: doc?.id ?? `placeholder-${nama}`,
+        nama,
+        fileUrl: fileUrls,
+        fileItems,
+      };
+    });
   }, [currentCustomer?.dokumenLainnya]);
 
   const kprDokumenLainnya = useMemo(() => {
@@ -963,7 +1001,9 @@ const ProgressPenjualan = () => {
                           <PlusCircle size={14} className="text-blue-600" /> Dokumen Pendukung KPR (Slip Gaji, Mutasi, dll)
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {renderDokumenLainnyaGroup(sp3kDokumenSlot, { hideDeleteGroup: true, fileItems: sp3kDokumenSlot.fileItems })}
+                          {sp3kDokumenSlots.map((slot) =>
+                            renderDokumenLainnyaGroup(slot, { hideDeleteGroup: true, fileItems: slot.fileItems })
+                          )}
                           {kprDokumenLainnya.map((doc) => renderDokumenLainnyaGroup(doc))}
 
                           <div
@@ -1083,10 +1123,12 @@ const ProgressPenjualan = () => {
 
                       <div className="pt-6 mt-6 border-t border-slate-100">
                         <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <PlusCircle size={14} className="text-indigo-600" /> {SP3K_DOKUMEN_NAME}
+                          <PlusCircle size={14} className="text-indigo-600" /> Dokumen PPh SP3K
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {renderDokumenLainnyaGroup(sp3kDokumenSlot, { hideDeleteGroup: true, fileItems: sp3kDokumenSlot.fileItems })}
+                          {sp3kDokumenSlots.map((slot) =>
+                            renderDokumenLainnyaGroup(slot, { hideDeleteGroup: true, fileItems: slot.fileItems })
+                          )}
                         </div>
                       </div>
                     </div>
