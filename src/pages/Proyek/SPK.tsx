@@ -3,6 +3,7 @@ import { FileText, X, ExternalLink, ChevronDown, ChevronRight } from 'lucide-rea
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
+import CurrencyInput from "../../components/shared/CurrencyInput";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
@@ -372,14 +373,15 @@ const SPK = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const parsedValue =
-      type === 'number'
-        ? value === ''
-          ? ''
-          : Number(value)
-        : value;
-    setFormData((prev) => ({ ...prev, [name]: parsedValue }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleCurrencyChange = (name: string, value: number) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -543,14 +545,13 @@ const SPK = () => {
               <div className="md:col-span-2">
                 <Input label="Judul Pekerjaan" name="judulPekerjaan" value={formData.judulPekerjaan} onChange={handleChange} error={errors.judulPekerjaan} />
               </div>
-              <Input
-                label="Nilai Kontrak (Rp)"
-                type="number"
-                step="any"
+              <CurrencyInput
+                label="Nilai Kontrak"
                 name="nilaiKontrak"
-                value={formData.nilaiKontrak === '' ? '' : formData.nilaiKontrak}
-                onChange={handleChange}
+                value={formData.nilaiKontrak}
+                onValueChange={handleCurrencyChange}
                 error={errors.nilaiKontrak}
+                placeholder="0"
               />
               <Input label="Jatuh Tempo (opsional)" type="date" name="jatuhTempo" value={formData.jatuhTempo} onChange={handleChange} />
               <div className="md:col-span-2 flex flex-col gap-1.5">
