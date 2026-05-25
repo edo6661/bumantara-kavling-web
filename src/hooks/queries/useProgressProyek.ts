@@ -5,13 +5,19 @@ import {
 } from "../../services/progressProyek.service";
 import { PENJUALAN_KEYS } from "./usePenjualan";
 
+export type ProgressProyekScope =
+  | { penjualanId: number }
+  | { kavlingId: number };
+
 export const PROGRESS_PROYEK_KEYS = {
   all: ["progress-proyek"] as const,
   mandors: ["progress-proyek", "mandors"] as const,
   proyekList: (params?: Record<string, unknown>) =>
     [...PROGRESS_PROYEK_KEYS.all, "proyek", params] as const,
-  detail: (penjualanId: number) =>
-    [...PROGRESS_PROYEK_KEYS.all, penjualanId] as const,
+  detail: (scope: ProgressProyekScope) =>
+    "penjualanId" in scope
+      ? ([...PROGRESS_PROYEK_KEYS.all, "penjualan", scope.penjualanId] as const)
+      : ([...PROGRESS_PROYEK_KEYS.all, "kavling", scope.kavlingId] as const),
 };
 
 export const useGetProgressProyekList = (params?: Record<string, unknown>) => {
@@ -28,27 +34,41 @@ export const useGetMandors = () => {
   });
 };
 
-export const useGetProgressProyek = (penjualanId: number | null) => {
+export const useGetProgressProyek = (scope: ProgressProyekScope | null) => {
   return useQuery({
-    queryKey: PROGRESS_PROYEK_KEYS.detail(penjualanId!),
-    queryFn: () => progressProyekService.getById(penjualanId!),
-    enabled: !!penjualanId,
+    queryKey: scope ? PROGRESS_PROYEK_KEYS.detail(scope) : ["progress-proyek", "none"],
+    queryFn: () =>
+      scope && "penjualanId" in scope
+        ? progressProyekService.getById(scope.penjualanId)
+        : progressProyekService.getByKavlingId(scope!.kavlingId),
+    enabled: !!scope,
   });
 };
 
 export const useUpdateProgressProyek = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateProgressProyekDTO }) =>
-      progressProyekService.update(id, data),
+    mutationFn: ({
+      scope,
+      data,
+    }: {
+      scope: ProgressProyekScope & { penjualanId: number };
+      data: UpdateProgressProyekDTO;
+    }) => progressProyekService.update(scope.penjualanId, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: PROGRESS_PROYEK_KEYS.detail(variables.id),
-      });
-
+      invalidateProgressDetail(queryClient, variables.scope);
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
     },
+  });
+};
+
+const invalidateProgressDetail = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  scope: ProgressProyekScope,
+) => {
+  queryClient.invalidateQueries({
+    queryKey: PROGRESS_PROYEK_KEYS.detail(scope),
   });
 };
 
@@ -56,18 +76,21 @@ export const useUploadTahapanPhotos = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
-      id,
+      scope,
       namaTahapan,
       files,
     }: {
-      id: number;
+      scope: ProgressProyekScope & { penjualanId: number };
       namaTahapan: string;
       files: File[];
-    }) => progressProyekService.uploadTahapanPhotos(id, namaTahapan, files),
+    }) =>
+      progressProyekService.uploadTahapanPhotos(
+        scope.penjualanId,
+        namaTahapan,
+        files,
+      ),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: PROGRESS_PROYEK_KEYS.detail(variables.id),
-      });
+      invalidateProgressDetail(queryClient, variables.scope);
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
     },
   });
@@ -77,17 +100,30 @@ export const useAddTahapanLog = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: {
-      id: number;
+      scope: ProgressProyekScope;
       namaTahapan: string;
       persentase: number;
       deskripsi: string;
       tanggal: string;
       files: File[];
-    }) => progressProyekService.addTahapanLog(data.id, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: PROGRESS_PROYEK_KEYS.detail(variables.id),
-      });
+    }) => {
+      const payload = {
+        namaTahapan: data.namaTahapan,
+        persentase: data.persentase,
+        deskripsi: data.deskripsi,
+        tanggal: data.tanggal,
+        files: data.files,
+      };
+      return "penjualanId" in data.scope
+        ? progressProyekService.addTahapanLog(data.scope.penjualanId, payload)
+        : progressProyekService.addTahapanLogByKavling(
+            data.scope.kavlingId,
+            payload,
+          );
+    },
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(PROGRESS_PROYEK_KEYS.detail(variables.scope), data);
+      invalidateProgressDetail(queryClient, variables.scope);
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
     },

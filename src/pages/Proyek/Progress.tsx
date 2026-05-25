@@ -8,7 +8,8 @@ import {
   useAddTahapanLog,
   useGetProgressProyek,
   useGetProgressProyekList,
-  useUploadTahapanPhotos
+  useUploadTahapanPhotos,
+  type ProgressProyekScope,
 } from "../../hooks/queries/useProgressProyek";
 import { handleApiError } from '../../utils/errorHandler';
 import type { LucideIcon } from 'lucide-react';
@@ -36,8 +37,10 @@ interface ProyekRow {
   nomorUnit: string;
   progressProyek: ProgressProyekSummary | null;
   status: string;
-  hasPenjualan: boolean;
 }
+
+const getProgressScope = (row: ProyekRow): ProgressProyekScope =>
+  row.dbId != null ? { penjualanId: row.dbId } : { kavlingId: row.kavlingId };
 
 const TAHAPAN_LIST = [
   'Pondasi', 'Kolom', 'Dinding', 'Atap', 'Lantai',
@@ -93,28 +96,18 @@ const Progress = () => {
           }
         : null,
       status: item.status,
-      hasPenjualan: item.penjualanId !== null,
     }));
   }, [proyekResponse]);
 
   const [selectedProyek, setSelectedProyek] = useState<ProyekRow | null>(null);
   const [directTahapan, setDirectTahapan] = useState<string | null>(null);
-  const [noPenjualanNotice, setNoPenjualanNotice] = useState(false);
-
-  const requirePenjualan = (row: ProyekRow): boolean => {
-    if (row.hasPenjualan && row.dbId) return true;
-    setNoPenjualanNotice(true);
-    return false;
-  };
 
   const openDetailModal = (row: ProyekRow) => {
-    if (!requirePenjualan(row)) return;
     setSelectedProyek(row);
     setDirectTahapan(null);
   };
 
   const openTahapanModal = (row: ProyekRow, tahapan: string) => {
-    if (!requirePenjualan(row)) return;
     setSelectedProyek(row);
     setDirectTahapan(tahapan);
   };
@@ -122,7 +115,6 @@ const Progress = () => {
   const closeModals = () => {
     setSelectedProyek(null);
     setDirectTahapan(null);
-    setNoPenjualanNotice(false);
   };
 
   const columns = [
@@ -175,14 +167,9 @@ const Progress = () => {
               <button
                 key={tahapan}
                 type="button"
-                title={row.hasPenjualan ? tahapan : 'Perlu data penjualan terlebih dahulu'}
-                disabled={!row.hasPenjualan}
+                title={tahapan}
                 onClick={() => openTahapanModal(row, tahapan)}
-                className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center ${
-                  row.hasPenjualan
-                    ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-pointer hover:scale-110 hover:grayscale-0 hover:bg-slate-100 hover:text-slate-600 grayscale'
-                    : 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed opacity-60'
-                }`}
+                className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 hover:grayscale-0 hover:bg-slate-100 hover:text-slate-600 grayscale"
               >
                 <Icon size={14} strokeWidth={1.5} />
               </button>
@@ -190,14 +177,9 @@ const Progress = () => {
           })}
           <button
             type="button"
-            title={row.hasPenjualan ? 'Kelola Progress Lapangan' : 'Perlu data penjualan terlebih dahulu'}
-            disabled={!row.hasPenjualan}
+            title="Kelola Progress Lapangan"
             onClick={() => openDetailModal(row)}
-            className={`p-1.5 rounded-lg border shadow-sm transition-all duration-300 flex items-center justify-center ${
-              row.hasPenjualan
-                ? 'border-slate-900 bg-slate-900 text-white cursor-pointer hover:scale-110 hover:bg-black'
-                : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-60'
-            }`}
+            className="p-1.5 rounded-lg border border-slate-900 bg-slate-900 text-white shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer hover:scale-110 hover:bg-black"
           >
             <HardHat size={14} />
           </button>
@@ -222,42 +204,23 @@ const Progress = () => {
         data={proyekList}
       />
 
-      <Modal
-        isOpen={noPenjualanNotice}
-        onClose={() => setNoPenjualanNotice(false)}
-        title="Belum Ada Data Penjualan"
-        size="sm"
-      >
-        <p className="text-sm text-slate-600">
-          Kavling ini sudah ditugaskan ke mandor via SPK, tetapi belum memiliki transaksi penjualan.
-          Input progress lapangan akan tersedia setelah data penjualan dibuat.
-        </p>
-        <div className="flex justify-end pt-4">
-          <button
-            type="button"
-            onClick={() => setNoPenjualanNotice(false)}
-            className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800"
-          >
-            Mengerti
-          </button>
-        </div>
-      </Modal>
-
-      {selectedProyek && selectedProyek.dbId && !directTahapan && (
+      {selectedProyek && !directTahapan && (
         <ProgressDetailModal
-          key={selectedProyek.dbId}
+          key={selectedProyek.id}
           isOpen={!!selectedProyek}
           onClose={closeModals}
-          penjualan={selectedProyek}
+          proyek={selectedProyek}
+          scope={getProgressScope(selectedProyek)}
         />
       )}
 
-      {selectedProyek && selectedProyek.dbId && directTahapan && (
+      {selectedProyek && directTahapan && (
         <TahapanDirectEditModal
-          key={`${selectedProyek.dbId}-${directTahapan}`}
+          key={`${selectedProyek.id}-${directTahapan}`}
           isOpen
           onClose={closeModals}
-          penjualan={selectedProyek}
+          proyek={selectedProyek}
+          scope={getProgressScope(selectedProyek)}
           namaTahapan={directTahapan}
         />
       )}
@@ -271,18 +234,20 @@ const Progress = () => {
 interface TahapanDirectEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  penjualan: ProyekRow;
+  proyek: ProyekRow;
+  scope: ProgressProyekScope;
   namaTahapan: string;
 }
 
 const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
   isOpen,
   onClose,
-  penjualan,
+  proyek,
+  scope,
   namaTahapan
 }) => {
   const { user } = useAuth();
-  const { data: progressData, isLoading } = useGetProgressProyek(penjualan.dbId!);
+  const { data: progressData, isLoading } = useGetProgressProyek(scope);
 
   if (!isOpen) return null;
 
@@ -301,7 +266,7 @@ const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
     <EditTahapanModal
       isOpen
       onClose={onClose}
-      penjualanDbId={penjualan.dbId!}
+      scope={scope}
       namaTahapan={namaTahapan}
       progressData={progressData}
       canUpload={canUploadProgress(user?.role, user?.id, progressData.mandorId)}
@@ -312,23 +277,29 @@ const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
 interface ProgressDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  penjualan: ProyekRow;
+  proyek: ProyekRow;
+  scope: ProgressProyekScope;
 }
 
-const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClose, penjualan }) => {
+const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
+  isOpen,
+  onClose,
+  proyek,
+  scope,
+}) => {
   const { user } = useAuth();
   const isMandorRole = user?.role === 'MANDOR';
-  const { data: progressData, isLoading } = useGetProgressProyek(penjualan.dbId!);
+  const { data: progressData, isLoading } = useGetProgressProyek(scope);
 
   const [selectedTahapanToEdit, setSelectedTahapanToEdit] = useState<string | null>(null);
   const canUpload = canUploadProgress(
     user?.role,
     user?.id,
-    progressData?.mandorId ?? penjualan.progressProyek?.mandorId,
+    progressData?.mandorId ?? proyek.progressProyek?.mandorId,
   );
 
   const mandorName =
-    progressData?.mandor?.username ?? penjualan.progressProyek?.mandor?.username;
+    progressData?.mandor?.username ?? proyek.progressProyek?.mandor?.username;
 
   return (
     <>
@@ -344,11 +315,11 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
             <div className="bg-slate-900 p-5 rounded-2xl flex justify-between items-center text-white shadow-md">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Kavling</p>
-                <h3 className="text-xl font-black">Blok {penjualan.blok}-{penjualan.nomorUnit}</h3>
+                <h3 className="text-xl font-black">Blok {proyek.blok}-{proyek.nomorUnit}</h3>
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Customer</p>
-                <p className="text-sm font-bold">{penjualan.nama}</p>
+                <p className="text-sm font-bold">{proyek.nama}</p>
               </div>
             </div>
 
@@ -462,10 +433,10 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({ isOpen, onClo
 
       {selectedTahapanToEdit && progressData && (
         <EditTahapanModal
-          key={`${penjualan.dbId}-${selectedTahapanToEdit}`}
+          key={`${proyek.id}-${selectedTahapanToEdit}`}
           isOpen={!!selectedTahapanToEdit}
           onClose={() => setSelectedTahapanToEdit(null)}
-          penjualanDbId={penjualan.dbId!}
+          scope={scope}
           namaTahapan={selectedTahapanToEdit}
           progressData={progressData}
           canUpload={canUpload}
@@ -487,11 +458,24 @@ const getLatestTahapanLog = (tahapan: TahapanProyekData[], namaTahapan: string) 
       return (b.id || 0) - (a.id || 0);
     })[0];
 
+const clampPersentase = (value: number) => {
+  if (Number.isNaN(value)) return 0;
+  return Math.min(100, Math.max(0, value));
+};
+
+const persentaseToInput = (value: number) => String(clampPersentase(value));
+
+const parsePersentaseInput = (raw: string): number | null => {
+  const digits = raw.replace(/\D/g, '');
+  if (digits === '') return null;
+  return clampPersentase(parseInt(digits, 10));
+};
+
 const getEditTahapanFormDefaults = (progressData: ProgressProyekData, namaTahapan: string) => {
   const today = new Date().toISOString().split('T')[0]!;
   const logTerbaru = getLatestTahapanLog(progressData.tahapan, namaTahapan);
   return {
-    persentase: logTerbaru ? Number(logTerbaru.persentase) : 0,
+    persentase: clampPersentase(logTerbaru ? Number(logTerbaru.persentase) : 0),
     deskripsi: '',
     tanggal: today,
   };
@@ -500,7 +484,7 @@ const getEditTahapanFormDefaults = (progressData: ProgressProyekData, namaTahapa
 interface EditTahapanModalProps {
   isOpen: boolean;
   onClose: () => void;
-  penjualanDbId: number;
+  scope: ProgressProyekScope;
   namaTahapan: string;
   progressData: ProgressProyekData;
   canUpload: boolean;
@@ -509,7 +493,7 @@ interface EditTahapanModalProps {
 const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
   isOpen,
   onClose,
-  penjualanDbId,
+  scope,
   namaTahapan,
   progressData,
   canUpload,
@@ -519,6 +503,9 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
 
   const [formData, setFormData] = useState(() =>
     getEditTahapanFormDefaults(progressData, namaTahapan)
+  );
+  const [persentaseInput, setPersentaseInput] = useState(() =>
+    persentaseToInput(getEditTahapanFormDefaults(progressData, namaTahapan).persentase)
   );
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -553,15 +540,40 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
   const removeSelectedFile = (indexToRemove: number) => {
     setSelectedFiles(files => files.filter((_, index) => index !== indexToRemove));
   };
+  const syncPersentaseFromInput = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
+    if (digits === '') {
+      setPersentaseInput('');
+      return;
+    }
+    const parsed = parsePersentaseInput(digits)!;
+    setPersentaseInput(String(parsed));
+    setFormData((prev) => ({ ...prev, persentase: parsed }));
+  };
+
+  const syncPersentaseFromSlider = (raw: string) => {
+    const parsed = clampPersentase(Number(raw));
+    setPersentaseInput(String(parsed));
+    setFormData((prev) => ({ ...prev, persentase: parsed }));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.persentase < 0 || formData.persentase > 100) return;
+    const persentase = parsePersentaseInput(persentaseInput);
+    if (persentase === null) {
+      alert('Persentase pembangunan wajib diisi (0–100%).');
+      return;
+    }
+    if (persentase < 0 || persentase > 100) {
+      alert('Persentase pembangunan harus antara 0% dan 100%.');
+      return;
+    }
 
     try {
-      await addLogMutation.mutateAsync({
-        id: penjualanDbId,
+      const updatedProgress = await addLogMutation.mutateAsync({
+        scope,
         namaTahapan: namaTahapan,
-        persentase: formData.persentase,
+        persentase,
         deskripsi: formData.deskripsi,
         tanggal: formData.tanggal,
         files: selectedFiles
@@ -569,7 +581,9 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
       alert(`Log progres ${namaTahapan} berhasil ditambahkan!`);
       // Jangan onClose() agar user bisa langsung lihat riwayatnya
       setSelectedFiles([]);
-      setFormData(prev => ({ ...prev, persentase: 0, deskripsi: '' }));
+      const defaults = getEditTahapanFormDefaults(updatedProgress, namaTahapan);
+      setFormData(defaults);
+      setPersentaseInput(persentaseToInput(defaults.persentase));
     } catch (err: unknown) {
       alert(handleApiError(err).message);
     }
@@ -603,15 +617,22 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
               min="0"
               max="100"
               value={formData.persentase}
-              onChange={(e) => setFormData({ ...formData, persentase: Number(e.target.value) })}
+              onChange={(e) => syncPersentaseFromSlider(e.target.value)}
               className="w-full h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
             />
             <input
-              type="number"
-              min="0"
-              max="100"
-              value={formData.persentase}
-              onChange={(e) => setFormData({ ...formData, persentase: Number(e.target.value) })}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={3}
+              placeholder="0"
+              value={persentaseInput}
+              onChange={(e) => syncPersentaseFromInput(e.target.value)}
+              onBlur={() => {
+                if (persentaseInput === '') return;
+                const parsed = parsePersentaseInput(persentaseInput);
+                if (parsed !== null) setPersentaseInput(String(parsed));
+              }}
               className="w-16 px-2 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-black text-indigo-700 text-center outline-none"
             />
             <span className="font-bold text-indigo-600">%</span>

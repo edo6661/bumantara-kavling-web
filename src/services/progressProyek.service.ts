@@ -17,7 +17,8 @@ export interface TahapanProyekData {
 
 export interface ProgressProyekData {
   id: number;
-  penjualanId: number;
+  penjualanId: number | null;
+  kavlingId: number | null;
   mandorId: number | null;
   mandor: MandorOption | null;
   persentase: number;
@@ -75,6 +76,11 @@ export const progressProyekService = {
     return response.data.data;
   },
 
+  getByKavlingId: async (kavlingId: number): Promise<ProgressProyekData> => {
+    const response = await api.get(`/progress-proyek/kavling/${kavlingId}`);
+    return response.data.data;
+  },
+
   update: async (
     penjualanId: number,
     data: UpdateProgressProyekDTO,
@@ -122,6 +128,33 @@ export const progressProyekService = {
 
     const response = await api.patch(
       `/progress-proyek/${penjualanId}/tahapan/log`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data.data;
+  },
+
+  addTahapanLogByKavling: async (
+    kavlingId: number,
+    data: {
+      namaTahapan: string;
+      persentase: number;
+      deskripsi: string;
+      tanggal: string;
+      files: File[];
+    },
+  ): Promise<ProgressProyekData> => {
+    const formData = new FormData();
+    formData.append("namaTahapan", data.namaTahapan);
+    formData.append("persentase", String(data.persentase));
+    formData.append("deskripsi", data.deskripsi);
+    formData.append("tanggal", data.tanggal);
+    data.files.forEach((file) => formData.append("foto", file));
+
+    const response = await api.patch(
+      `/progress-proyek/kavling/${kavlingId}/tahapan/log`,
       formData,
       {
         headers: { "Content-Type": "multipart/form-data" },
