@@ -1,11 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { kodeBillingPphService } from "../../services/kodeBillingPph.service";
+import {
+  kodeBillingPphService,
+  type KodeBillingPphData,
+} from "../../services/kodeBillingPph.service";
+
+export const kodeBillingPphPenjualanQueryKey = (penjualanId: number) =>
+  ["kode-billing-pph", "penjualan", penjualanId] as const;
 
 export const useGetKodeBillingPph = (params?: Record<string, unknown>) => {
   return useQuery({
-    queryKey: ["kode-billing-pph", params],
+    queryKey: ["kode-billing-pph", "list", params],
     queryFn: () => kodeBillingPphService.getAll(params),
     enabled: !!params,
+  });
+};
+
+export const useGetKodeBillingPphByPenjualan = (
+  penjualanId: number | null | undefined,
+) => {
+  const id =
+    penjualanId != null && !Number.isNaN(Number(penjualanId))
+      ? Number(penjualanId)
+      : null;
+  return useQuery({
+    queryKey:
+      id != null && id > 0
+        ? kodeBillingPphPenjualanQueryKey(id)
+        : (["kode-billing-pph", "penjualan", "idle"] as const),
+    queryFn: () => kodeBillingPphService.getByPenjualan(id!),
+    enabled: id != null && id > 0,
+    refetchOnMount: "always",
   });
 };
 
@@ -13,9 +37,16 @@ export const useUploadKodeBillingPph = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: kodeBillingPphService.uploadBilling,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kode-billing-pph"] });
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    onSuccess: (data, variables) => {
+      const penjualanId = Number(variables.penjualanId);
+      queryClient.setQueryData<KodeBillingPphData | null>(
+        kodeBillingPphPenjualanQueryKey(penjualanId),
+        data,
+      );
+      // Jangan refetch query penjualan — bisa menimpa fileBilling dari respons upload
+      queryClient.invalidateQueries({
+        queryKey: ["kode-billing-pph", "list"],
+      });
     },
   });
 };

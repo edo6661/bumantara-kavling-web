@@ -12,11 +12,30 @@ export interface KodeBillingPphData {
   nomorUnit: string | null;
   kodeBilling: string;
   fileBilling: string;
+  fileSuket: string | null;
   fileBuktiBayar: string | null;
   status: StatusKodeBillingPph;
   paidAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Normalisasi respons API (termasuk snake_case / URL kosong dari data lama). */
+export function normalizeKodeBillingPphData(
+  raw: Record<string, unknown> | null | undefined,
+): KodeBillingPphData | null {
+  if (!raw || typeof raw !== "object") return null;
+  const fileBilling = String(
+    raw.fileBilling ?? raw.file_billing ?? "",
+  ).trim();
+  const kodeBilling = String(raw.kodeBilling ?? raw.kode_billing ?? "").trim();
+  if (!kodeBilling) return null;
+  return {
+    ...(raw as unknown as KodeBillingPphData),
+    kodeBilling,
+    fileBilling,
+    penjualanId: Number(raw.penjualanId ?? raw.penjualan_id),
+  };
 }
 
 export interface KodeBillingPphResponse {
@@ -32,6 +51,11 @@ export interface KodeBillingPphResponse {
 }
 
 export const kodeBillingPphService = {
+  getByPenjualan: async (penjualanId: number): Promise<KodeBillingPphData | null> => {
+    const response = await api.get(`/kode-billing-pph/penjualan/${penjualanId}`);
+    return normalizeKodeBillingPphData(response.data.data);
+  },
+
   getAll: async (
     params?: Record<string, unknown>,
   ): Promise<KodeBillingPphResponse> => {
@@ -57,7 +81,7 @@ export const kodeBillingPphService = {
     const response = await api.post("/kode-billing-pph/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    return response.data.data;
+    return normalizeKodeBillingPphData(response.data.data)!;
   },
 
   uploadBuktiBayar: async (id: number, file: File): Promise<KodeBillingPphData> => {

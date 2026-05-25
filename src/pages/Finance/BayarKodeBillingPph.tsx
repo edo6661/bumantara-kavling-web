@@ -21,7 +21,7 @@ const BayarKodeBillingPph = () => {
 
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
-  const statusFilter = searchParams.get('status') ?? 'MENUNGGU_BAYAR';
+  const statusFilter = searchParams.get('status') ?? 'ALL';
   const orderBy = searchParams.get('orderBy') || 'createdAt:desc';
   const limit = 10;
 
@@ -104,7 +104,7 @@ const BayarKodeBillingPph = () => {
           <span className="font-bold text-slate-900">{row.namaCustomer}</span>
           {row.perumahan ? (
             <span className="text-[10px] text-slate-500">
-              {row.perumahan} Blok {row.blok}-{row.nomorUnit}
+               Blok {row.blok}-{row.nomorUnit}
             </span>
           ) : (
             <span className="text-[10px] text-slate-400 italic">Tanpa data kavling</span>
@@ -131,6 +131,28 @@ const BayarKodeBillingPph = () => {
         >
           <FileText size={16} />
         </button>
+      ),
+    },
+    {
+      header: 'Suket PPh',
+      accessor: 'fileSuket',
+      render: (val: string | null) => val ? (
+        <button
+          type="button"
+          onClick={() => setPreviewUrl(val)}
+          className="p-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 rounded-lg transition"
+          title="Lihat Suket PPh"
+        >
+          {val.split('?')[0].toLowerCase().endsWith('.pdf') ? (
+            <FileText size={16} />
+          ) : (
+            <span className="relative block w-8 h-6 rounded overflow-hidden">
+              <img src={val} alt="Suket" className="w-full h-full object-cover" />
+            </span>
+          )}
+        </button>
+      ) : (
+        <span className="text-[10px] text-slate-400 italic">-</span>
       ),
     },
     {
@@ -201,7 +223,7 @@ const BayarKodeBillingPph = () => {
             )}
           </button>
         ) : (
-          <span className="text-slate-300 text-xs italic">Selesai</span>
+          <></>
         )
       ),
     },

@@ -1,6 +1,47 @@
 import { isAxiosError } from "axios";
 import type { ActionResult } from "../types/common";
 
+/** Ubah pesan teknis dari server menjadi teks yang ramah pengguna. */
+export function toUserFriendlyMessage(message: string | undefined): string {
+  if (!message?.trim()) {
+    return "Terjadi kesalahan. Silakan coba lagi.";
+  }
+
+  const lower = message.toLowerCase();
+
+  if (
+    lower.includes("request timeout") ||
+    /\btimeout\b/.test(lower) ||
+    lower.includes("econnaborted") ||
+    lower.includes("etimedout")
+  ) {
+    return "Unggah file gagal karena koneksi terlalu lama. Periksa koneksi internet Anda, kurangi ukuran file, lalu coba lagi.";
+  }
+
+  if (
+    lower.includes("econnreset") ||
+    lower.includes("network error") ||
+    lower.includes("err_network") ||
+    lower.includes("gangguan jaringan")
+  ) {
+    return "Unggah file gagal karena gangguan jaringan. Silakan coba lagi dalam beberapa saat.";
+  }
+
+  if (
+    lower.includes("cloudinary") ||
+    lower.includes("unknown cloudinary") ||
+    lower.includes("internal server error")
+  ) {
+    return "Gagal mengunggah file. Silakan coba lagi dalam beberapa saat.";
+  }
+
+  if (lower.startsWith("gagal upload file:") || lower.startsWith("gagal memproses gambar:")) {
+    return "Gagal mengunggah file. Silakan periksa file Anda dan coba lagi.";
+  }
+
+  return message;
+}
+
 export const handleApiError = (error: unknown): ActionResult => {
   if (import.meta.env.DEV) {
     console.error("API Request failed:", error);
@@ -63,9 +104,10 @@ export const handleApiError = (error: unknown): ActionResult => {
         break;
     }
 
+    const rawMessage = serverMessage || defaultMessage;
     return {
       success: false,
-      message: serverMessage || defaultMessage,
+      message: toUserFriendlyMessage(rawMessage),
       errors: error.response.data?.error,
     };
   }
