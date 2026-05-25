@@ -1,10 +1,19 @@
 import api from "../lib/axios";
 
+export interface KavlingRekeningBreakdown {
+  rekeningId: number;
+  label: string;
+  atasNama: string;
+  total: number;
+  terjual: number;
+}
+
 export interface DashboardData {
   stats: {
     totalPendapatan: number;
     kavlingTerjual: number;
     totalKavling: number;
+    kavlingByRekening: KavlingRekeningBreakdown[];
     tagihanJatuhTempo: number;
     customerJatuhTempo: number;
     proyekAktif: number;

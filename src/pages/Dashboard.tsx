@@ -22,6 +22,10 @@ const Dashboard = () => {
 
   const { stats, recentTransactions, topAgents, documentAlerts } = dashboardData;
 
+  const kavlingRekeningTrend = stats.kavlingByRekening?.length
+    ? stats.kavlingByRekening.map((r) => `${r.label}: ${r.terjual}/${r.total}`).join(' · ')
+    : `Dari Total ${stats.totalKavling} Unit`;
+
   const statCards = [
     {
       title: 'Total Pendapatan',
@@ -36,6 +40,7 @@ const Dashboard = () => {
       title: 'Kavling Terjual',
       value: `${stats.kavlingTerjual} Unit`,
       trend: `Dari Total ${stats.totalKavling} Unit`,
+      detail: kavlingRekeningTrend,
       isPositive: true,
       icon: <Building2 className="text-blue-700" size={24} />,
       bgColor: 'bg-blue-50',
@@ -96,6 +101,9 @@ const Dashboard = () => {
             <div>
               <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">{stat.title}</h3>
               <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+              {'detail' in stat && stat.detail && (
+                <p className="text-xs text-slate-500 mt-2 font-medium leading-relaxed">{stat.detail}</p>
+              )}
             </div>
           </div>
         ))}
@@ -122,6 +130,20 @@ const Dashboard = () => {
                 <div className="bg-black h-2.5 rounded-full" style={{ width: `${percentTerjual}%` }}></div>
               </div>
             </div>
+            {stats.kavlingByRekening?.map((rek) => {
+              const percentRek = rek.total > 0 ? Math.round((rek.terjual / rek.total) * 100) : 0;
+              return (
+                <div key={rek.rekeningId}>
+                  <div className="flex justify-between text-xs font-medium mb-1.5">
+                    <span className="text-slate-600">{rek.label} (terjual/total)</span>
+                    <span className="text-slate-800 font-bold">{rek.terjual}/{rek.total} ({percentRek}%)</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${percentRek}%` }}></div>
+                  </div>
+                </div>
+              );
+            })}
             <div>
               <div className="flex justify-between text-sm font-medium mb-2">
                 <span className="text-slate-700">Tersedia</span>
