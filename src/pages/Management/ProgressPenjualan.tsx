@@ -9,6 +9,7 @@ import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetCustomers, useUpdateCustomer, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
+import { useUploadKodeBillingPph, useGetKodeBillingPph } from "../../hooks/queries/useKodeBillingPph";
 import type { CustomerDocType } from "../../services/customer.service";
 import {
   useGetProgressPenjualan,
@@ -32,6 +33,7 @@ import { useUploadKavlingDocument } from '../../hooks/queries/useKavling';
 import { useQueryClient } from '@tanstack/react-query';
 
 const SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh'] as const;
+const KODE_BILLING_PPH_DOC_NAME = SP3K_DOKUMEN_NAMES[0];
 
 const COMBINED_LEGACY_SP3K_NAME = 'Kode Billing PPh dan Suket PPh';
 
@@ -73,6 +75,7 @@ const ProgressPenjualan = () => {
   const updateMutation = useUpdateProgressPenjualan();
   const uploadMutation = useUploadProgressDocument();
   const uploadCustomerDocMutation = useUploadCustomerDoc();
+  const uploadKodeBillingPphMutation = useUploadKodeBillingPph();
   const updateCustomerMutation = useUpdateCustomer();
   const uploadKavlingDocMutation = useUploadKavlingDocument();
   const queryClient = useQueryClient();
@@ -87,7 +90,7 @@ const ProgressPenjualan = () => {
   const [pdfPassword, setPdfPassword] = useState("");
   const [showPdfPasswordModal, setShowPdfPasswordModal] = useState(false);
   const [pendingUpload, setPendingUpload] = useState<{
-    type: 'cust' | 'lainnya';
+    type: 'cust' | 'lainnya' | 'kodeBillingPph';
     docType?: CustomerDocType;
     files: File[];
     groupName?: string;
@@ -167,6 +170,15 @@ const ProgressPenjualan = () => {
     if (!selectedPenjualan) return null;
     return customers.find((c: Record<string, any>) => c.nikKtp === selectedPenjualan.noIdentitas);
   }, [selectedPenjualan, customers]);
+
+  const { data: kodeBillingPphResponse } = useGetKodeBillingPph(
+    selectedPenjualan?.dbId
+      ? { penjualanId: selectedPenjualan.dbId, limit: 1 }
+      : undefined,
+  );
+
+  const kodeBillingRecord = kodeBillingPphResponse?.items?.[0];
+  const kodeBillingLatest = kodeBillingRecord?.kodeBilling;
 
   const { data: progressData, isLoading: loadingProgress } = useGetProgressPenjualan(
     selectedPenjualan ? selectedPenjualan.dbId : null
@@ -580,6 +592,9 @@ const ProgressPenjualan = () => {
     }
   };
 
+  const isKodeBillingPphDoc = (name: string) =>
+    name.trim().toLowerCase() === KODE_BILLING_PPH_DOC_NAME.toLowerCase();
+
   const handleUploadLainnya = async (files: File[] | FileList, groupNameOverride?: string) => {
     if (!currentCustomer) return;
     const docName = groupNameOverride || newDocName;
@@ -587,6 +602,23 @@ const ProgressPenjualan = () => {
       alert("Isi nama dokumen terlebih dahulu sebelum mengunggah file tambahan!");
       return;
     }
+
+    if (isKodeBillingPphDoc(docName)) {
+      const pdfFiles = Array.from(files).filter((f) => f.type === 'application/pdf');
+      if (pdfFiles.length === 0) {
+        alert("Kode Billing PPh hanya dapat diunggah dalam format PDF.");
+        return;
+      }
+      if (pdfFiles.length > 1) {
+        alert("Unggah satu file PDF Kode Billing PPh per kali upload.");
+        return;
+      }
+      setPendingUpload({ type: 'kodeBillingPph', files: [pdfFiles[0]!] });
+      setPdfPassword("");
+      setShowPdfPasswordModal(true);
+      return;
+    }
+
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
     if (validFiles.length === 0) {
       alert("Hanya file gambar dan PDF yang diperbolehkan!");
@@ -602,6 +634,27 @@ const ProgressPenjualan = () => {
     }
 
     await doUploadLainnya(validFiles, docName);
+  };
+
+  const doUploadKodeBillingPph = async (file: File, password?: string) => {
+    if (!currentCustomer || !selectedPenjualan?.dbId) return;
+    setUploadingCustDoc(KODE_BILLING_PPH_DOC_NAME);
+    try {
+      const result = await uploadKodeBillingPphMutation.mutateAsync({
+        customerId: currentCustomer.id,
+        penjualanId: selectedPenjualan.dbId,
+        file,
+        pdfPassword: password,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['customers'] });
+      await queryClient.invalidateQueries({ queryKey: ['kode-billing-pph'] });
+      const action = kodeBillingRecord ? 'diperbarui' : 'disimpan';
+      alert(`Kode billing PPh berhasil ${action}: ${result.kodeBilling}`);
+    } catch (error: unknown) {
+      alert(handleApiError(error).message);
+    } finally {
+      setUploadingCustDoc(null);
+    }
   };
 
   const doUploadLainnya = async (files: File[], docName: string, password?: string) => {
@@ -633,6 +686,8 @@ const ProgressPenjualan = () => {
 
     if (pendingUpload.type === 'cust' && pendingUpload.docType) {
       await doUploadCustDoc(pendingUpload.docType, pendingUpload.files[0]!, pdfPassword || undefined);
+    } else if (pendingUpload.type === 'kodeBillingPph') {
+      await doUploadKodeBillingPph(pendingUpload.files[0]!, pdfPassword || undefined);
     } else if (pendingUpload.type === 'lainnya' && pendingUpload.groupName) {
       await doUploadLainnya(pendingUpload.files, pendingUpload.groupName, pdfPassword || undefined);
     }
@@ -645,24 +700,65 @@ const ProgressPenjualan = () => {
     doc: { id: string; nama: string; fileUrl: string | string[] },
     options?: { hideDeleteGroup?: boolean; fileItems?: { url: string; docId: string }[] }
   ) => {
-    const fileUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : doc.fileUrl ? [doc.fileUrl] : [];
-    const fileItems = options?.fileItems ?? fileUrls.map((url) => ({ url, docId: doc.id }));
+    const isKodeBilling = isKodeBillingPphDoc(doc.nama);
+    const rawUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : doc.fileUrl ? [doc.fileUrl] : [];
+    const fileUrls = isKodeBilling && rawUrls.length > 0 ? [rawUrls[rawUrls.length - 1]!] : rawUrls;
+    const fileItems = (options?.fileItems ?? fileUrls.map((url) => ({ url, docId: doc.id })))
+      .filter((item) => fileUrls.includes(item.url));
+    const hasKodeBillingFile = isKodeBilling && fileItems.length > 0;
+    const isUploadingKodeBilling =
+      uploadKodeBillingPphMutation.isPending && uploadingCustDoc === KODE_BILLING_PPH_DOC_NAME;
 
     return (
       <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 relative shadow-sm">
         <div className="flex justify-between items-start mb-2 border-b border-slate-200 pb-2">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pr-2 pt-1" title={doc.nama}>
-            {doc.nama} <span className="text-blue-500">({fileItems.length} File)</span>
-          </span>
+          <div className="flex flex-col min-w-0 pr-2">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 truncate pt-1" title={doc.nama}>
+              {doc.nama}{' '}
+              <span className="text-blue-500">
+                {isKodeBilling
+                  ? hasKodeBillingFile
+                    ? '(1 File)'
+                    : '(Belum ada)'
+                  : `(${fileItems.length} File)`}
+              </span>
+            </span>
+            {isKodeBilling && kodeBillingLatest && (
+              <span className="text-[9px] font-bold text-indigo-600 mt-0.5 font-mono">
+                Kode: {kodeBillingLatest}
+              </span>
+            )}
+            {isKodeBilling && (
+              <span className="text-[8px] text-slate-400 mt-0.5">
+                Hanya 1 PDF — {hasKodeBillingFile ? 'gunakan tombol ganti untuk mengubah file' : 'kode billing diekstrak otomatis'}
+              </span>
+            )}
+          </div>
           <div className="flex gap-1 shrink-0">
-            <label className="p-1.5 bg-blue-50 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-all z-30 cursor-pointer" title="Tambah File ke Grup Ini">
-              {uploadCustomerDocMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+            <label
+              className={`p-1.5 rounded-lg transition-all z-30 cursor-pointer flex items-center gap-1 ${
+                isKodeBilling
+                  ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                  : 'bg-blue-50 text-blue-500 hover:text-blue-700 hover:bg-blue-100'
+              }`}
+              title={isKodeBilling ? (hasKodeBillingFile ? 'Ganti File PDF' : 'Upload PDF') : 'Tambah File ke Grup Ini'}
+            >
+              {isUploadingKodeBilling || (uploadCustomerDocMutation.isPending && !isKodeBilling) ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : isKodeBilling && hasKodeBillingFile ? (
+                <UploadCloud size={14} />
+              ) : (
+                <Plus size={14} />
+              )}
+              {isKodeBilling && hasKodeBillingFile && (
+                <span className="text-[8px] font-bold uppercase pr-0.5">Ganti</span>
+              )}
               <input
                 type="file"
-                multiple
-                accept="image/*,application/pdf"
+                multiple={!isKodeBilling}
+                accept={isKodeBilling ? 'application/pdf' : 'image/*,application/pdf'}
                 className="hidden"
-                disabled={uploadCustomerDocMutation.isPending}
+                disabled={uploadCustomerDocMutation.isPending || uploadKodeBillingPphMutation.isPending}
                 onChange={(e) => {
                   if (e.target.files?.length) handleUploadLainnya(e.target.files, doc.nama);
                   e.target.value = '';
@@ -701,9 +797,11 @@ const ProgressPenjualan = () => {
                   <button onClick={() => window.open(item.url, '_blank')} className="p-1.5 bg-white text-slate-800 rounded-md hover:bg-slate-200 transition" title="Lihat">
                     <ZoomIn size={16} />
                   </button>
-                  <button onClick={() => handleDeleteSingleItemLainnya(item.docId, item.url)} className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition" title="Hapus Gambar Ini">
-                    <Trash2 size={16} />
-                  </button>
+                  {!isKodeBilling && (
+                    <button onClick={() => handleDeleteSingleItemLainnya(item.docId, item.url)} className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition" title="Hapus Gambar Ini">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -725,13 +823,17 @@ const ProgressPenjualan = () => {
 
     return SP3K_DOKUMEN_NAMES.map((nama) => {
       const doc = docs.find((d) => d.nama?.trim().toLowerCase() === nama.toLowerCase());
-      const fileUrls = doc
+      const isKodeBilling = nama === KODE_BILLING_PPH_DOC_NAME;
+      let fileUrls = doc
         ? Array.isArray(doc.fileUrl)
           ? doc.fileUrl
           : doc.fileUrl
             ? [doc.fileUrl]
             : []
         : [];
+      if (isKodeBilling && fileUrls.length > 0) {
+        fileUrls = [fileUrls[fileUrls.length - 1]!];
+      }
       const fileItems = fileUrls.map((url) => ({ url, docId: doc!.id }));
 
       return {

@@ -66,6 +66,7 @@ const menuItems = [
     icon: <Banknote size={20} strokeWidth={1.5} />,
     submenus: [
       { title: 'Approve Pembayaran', path: '/finance/approve-pembayaran', resource: 'TAGIHAN' },
+      { title: 'Bayar Kode Billing PPh', path: '/finance/bayar-kode-billing-pph', resource: 'TAGIHAN' },
     ],
   },
   {
