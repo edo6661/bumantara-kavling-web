@@ -356,12 +356,6 @@ const SPK = () => {
   }, [kavlingPickerRows]);
 
   useEffect(() => {
-    if (isModalOpen && kavlingBlokGroups.length > 0) {
-      setExpandedBloks(new Set(kavlingBlokGroups.map((g) => g.blok)));
-    }
-  }, [isModalOpen, kavlingBlokGroups]);
-
-  useEffect(() => {
     if (!formData.fileSpk) {
       setFilePreviewUrl(null);
       return;
@@ -524,6 +518,7 @@ const SPK = () => {
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setExpandedBloks(new Set());
     setFormData(initialFormState());
     setEditingId(null);
   };
@@ -789,9 +784,14 @@ const SPK = () => {
                             pattern="[0-9]*"
                             maxLength={3}
                             value={spkProgressInput}
-                            onChange={(e) =>
-                              setSpkProgressInput(e.target.value.replace(/\D/g, '').slice(0, 3))
-                            }
+                            onChange={(e) => {
+                              const digits = e.target.value.replace(/\D/g, '').slice(0, 3);
+                              if (digits === '') {
+                                setSpkProgressInput('');
+                                return;
+                              }
+                              setSpkProgressInput(String(clampPercent(parseInt(digits, 10))));
+                            }}
                             onBlur={() => {
                               if (spkProgressInput === '') {
                                 setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));

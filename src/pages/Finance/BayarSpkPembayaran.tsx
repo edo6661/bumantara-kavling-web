@@ -4,7 +4,6 @@ import DataTable from '../../components/shared/DataTable';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../../components/shared/BuktiFileThumbnail';
-import Input from '../../components/shared/Input';
 import { formatDate, formatRupiah } from '../../utils/formatters';
 import {
   Clock,
@@ -24,9 +23,6 @@ const BayarSpkPembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<SpkPembayaranData | null>(null);
-  const [tanggalBayar, setTanggalBayar] = useState(() =>
-    new Date().toISOString().split('T')[0]!,
-  );
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
@@ -72,7 +68,6 @@ const BayarSpkPembayaran = () => {
 
   const openUpload = (row: SpkPembayaranData) => {
     setUploadTarget(row);
-    setTanggalBayar(new Date().toISOString().split('T')[0]!);
     fileInputRef.current?.click();
   };
 
@@ -90,7 +85,6 @@ const BayarSpkPembayaran = () => {
       await bayarMutation.mutateAsync({
         id: uploadTarget.id,
         file,
-        tanggalPembayaran: tanggalBayar,
       });
       alert('Pembayaran SPK berhasil diproses. Nominal SPK telah diperbarui.');
     } catch (error) {
@@ -200,22 +194,6 @@ const BayarSpkPembayaran = () => {
         className="hidden"
         onChange={handleFileSelected}
       />
-
-      {uploadTarget && (
-        <div className="fixed bottom-4 right-4 z-50 bg-white border border-slate-200 shadow-xl rounded-xl p-4 max-w-xs">
-          <p className="text-xs font-bold text-slate-500 uppercase mb-2">Tanggal pembayaran</p>
-          <Input
-            type="date"
-            name="tanggalBayar"
-            value={tanggalBayar}
-            onChange={(e) => setTanggalBayar(e.target.value)}
-            label=""
-          />
-          <p className="text-[10px] text-slate-500 mt-2">
-            Pilih file bukti setelah tanggal diisi ({uploadTarget.spk?.noSpk})
-          </p>
-        </div>
-      )}
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <button
