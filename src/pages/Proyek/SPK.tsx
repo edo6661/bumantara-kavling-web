@@ -23,6 +23,9 @@ import {
 import type { SpkData } from '../../services/spk.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
 import SpkPembayaranMandorRingkasan from '../../components/proyek/SpkPembayaranMandorRingkasan';
+import SpkPembayaranStatusChips from '../../components/proyek/SpkPembayaranStatusChips';
+import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
+import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 import type { KavlingData } from '../../services/kavling.service';
 import type { BankRekeningPt } from '../../services/bankRekening.service';
 
@@ -89,11 +92,9 @@ interface BlokCheckboxProps {
 
 const BlokCheckbox = ({ checked, indeterminate, disabled, onChange }: BlokCheckboxProps) => {
   const ref = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = indeterminate;
   }, [indeterminate]);
-
   return (
     <input
       ref={ref}
@@ -124,28 +125,25 @@ const SpkKavlingCell = ({ items }: { items: SpkData['kavlingItems'] }) => {
     () => [...items].sort(compareKavlingBlokUnit),
     [items],
   );
-
   if (sorted.length === 0) {
     return <span className="text-xs text-slate-400">-</span>;
   }
-
   const preview = sorted.slice(0, SPK_KAVLING_PREVIEW_MAX);
   const hiddenCount = sorted.length - preview.length;
   const fullLabel = sorted.map((k) => `${k.blok}-${k.nomorUnit}`).join(', ');
-
   return (
     <div className="max-w-[200px]" title={fullLabel}>
       <div className="flex flex-wrap gap-0.5">
         {preview.map((k) => (
           <span
             key={k.kavlingId}
-            className="inline-flex items-center px-1 py-px rounded bg-slate-100 text-[10px] font-semibold text-slate-600 leading-tight whitespace-nowrap"
+            className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-indigo-50 text-[10px] font-semibold text-indigo-700 leading-tight whitespace-nowrap border border-indigo-100"
           >
             {k.blok}-{k.nomorUnit}
           </span>
         ))}
         {hiddenCount > 0 && (
-          <span className="inline-flex items-center px-1 py-px rounded bg-slate-200/80 text-[10px] font-bold text-slate-500 leading-tight">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-slate-500 leading-tight border border-slate-200">
             +{hiddenCount}
           </span>
         )}
@@ -208,6 +206,33 @@ const initialFormState = (): SpkFormState => ({
   existingFileSpk: null,
 });
 
+// ── Section wrapper untuk form modal ──────────────────────────────────────────
+const FormSection = ({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+    <div className="flex items-center gap-2.5 px-5 py-3.5 bg-slate-50 border-b border-slate-200">
+      {icon && <span className="text-slate-500">{icon}</span>}
+      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">{title}</h4>
+    </div>
+    <div className="p-5">{children}</div>
+  </div>
+);
+
+const detailThClass =
+  'px-2.5 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase bg-slate-50 border border-slate-200 whitespace-nowrap';
+const detailTdClass = 'px-2.5 py-1.5 border border-slate-200 text-xs text-slate-800 align-middle';
+
+const DetailSectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <h4 className="text-xs font-bold text-slate-800 mb-1.5">{children}</h4>
+);
+
 const SPK = () => {
   const { user, selectedPerumahan } = useAuth();
   const canManageSpk = user?.role !== 'MANDOR';
@@ -220,8 +245,12 @@ const SPK = () => {
     if (user.role === 'FINANCE' || user.role === 'CUSTOMER') return false;
     return true;
   };
+
   const isMandorRole = user?.role === 'MANDOR';
+
   const { data: spkList = [], isLoading: loadingSpk } = useGetSpk();
+  const { data: pembayaranPage } = useGetSpkPembayaranList({ page: 1, limit: 500, status: 'ALL' });
+
   const visibleSpkList = useMemo(() => {
     if (isMandorRole && user?.id) {
       return spkList.filter((spk) => spk.mandorId === user.id);
@@ -229,9 +258,20 @@ const SPK = () => {
     return spkList;
   }, [isMandorRole, user?.id, spkList]);
 
+  const pembayaranBySpkId = useMemo(() => {
+    const map = new Map<number, SpkPembayaranData[]>();
+    (pembayaranPage?.items ?? []).forEach((p) => {
+      const list = map.get(p.spkId) ?? [];
+      list.push(p);
+      map.set(p.spkId, list);
+    });
+    return map;
+  }, [pembayaranPage?.items]);
+
   const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
   const { data: mandorList = [] } = useGetMandors();
   const { data: bankList = [] } = useGetBankRekening();
+
   const createMutation = useCreateSpk();
   const updateMutation = useUpdateSpk();
   const deleteMutation = useDeleteSpk();
@@ -288,12 +328,9 @@ const SPK = () => {
 
   const kavlingPickerRows = useMemo(() => {
     if (!kavlingResponse?.items) return [];
-
     const rows: KavlingPickerRow[] = kavlingResponse.items.map((k) => {
       const assignment = kavlingSpkAssignmentMap.get(k.id);
-      const isCurrentSpk =
-        editingId !== null && assignment?.spkId === editingId;
-
+      const isCurrentSpk = editingId !== null && assignment?.spkId === editingId;
       return {
         kavlingId: k.id,
         blok: k.blok,
@@ -303,7 +340,6 @@ const SPK = () => {
         handledBy: assignment && !isCurrentSpk ? assignment : undefined,
       };
     });
-
     return rows.sort(compareKavlingBlokUnit);
   }, [kavlingResponse, kavlingSpkAssignmentMap, editingId]);
 
@@ -314,7 +350,6 @@ const SPK = () => {
       existing.push(row);
       groupMap.set(row.blok, existing);
     });
-
     return Array.from(groupMap.entries())
       .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
       .map(([blok, units]) => ({ blok, units }));
@@ -337,12 +372,20 @@ const SPK = () => {
   }, [formData.fileSpk]);
 
   const columns = [
-    { header: 'No. SPK', accessor: 'noSpk' },
+    {
+      header: 'No. SPK',
+      accessor: 'noSpk',
+      render: (val: string) => (
+        <span className="font-bold text-slate-900 font-mono text-xs">{val}</span>
+      ),
+    },
     {
       header: 'Mandor',
       accessor: 'mandor',
       render: (val: SpkData['mandor']) => (
-        <span className="text-slate-700 font-medium">{val?.username || '-'}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-700 font-semibold text-sm">{val?.username || '-'}</span>
+        </div>
       ),
     },
     {
@@ -353,22 +396,25 @@ const SPK = () => {
     {
       header: 'Nilai Kontrak',
       accessor: 'nilaiKontrak',
-      render: (val: number) => formatRupiah(val),
+      render: (val: number) => (
+        <span className="font-semibold text-slate-800 text-sm">{formatRupiah(val)}</span>
+      ),
     },
     {
       header: 'Progress SPK',
       accessor: 'progress',
       render: (_val: number, row: SpkData) => {
         const persentase = Number(row.progress ?? 0);
+        const isComplete = persentase === 100;
         return (
-          <div className="flex items-center gap-2">
-            <div className="w-20 bg-slate-200 rounded-full h-2 overflow-hidden">
+          <div className="flex items-center gap-2 min-w-[120px]">
+            <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
               <div
-                className={`h-full rounded-full ${persentase === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
+                className={`h-full rounded-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-indigo-500'}`}
                 style={{ width: `${persentase}%` }}
               />
             </div>
-            <span className="text-[11px] font-black text-slate-700">
+            <span className={`text-xs font-black min-w-[36px] text-right ${isComplete ? 'text-emerald-700' : 'text-slate-700'}`}>
               {persentase}%{row.progressIsOverride ? ' *' : ''}
             </span>
           </div>
@@ -378,33 +424,50 @@ const SPK = () => {
     {
       header: 'Kasbon sblm 55%',
       accessor: 'kasbonSebelumTermin2',
-      render: (val: number | null) => (val == null ? '-' : formatRupiah(val)),
+      render: (val: number | null) => (
+        <span className="text-sm text-slate-600">{val == null ? <span className="text-slate-300">—</span> : formatRupiah(val)}</span>
+      ),
     },
     {
       header: 'Kasbon sblm 100%',
       accessor: 'kasbonSebelumTermin3',
-      render: (val: number | null) => (val == null ? '-' : formatRupiah(val)),
+      render: (val: number | null) => (
+        <span className="text-sm text-slate-600">{val == null ? <span className="text-slate-300">—</span> : formatRupiah(val)}</span>
+      ),
     },
     {
       header: 'Rek PT',
       accessor: 'bankRekeningPtId',
       render: (val: number | null) => (
-        <span className="text-xs text-slate-600" title={val ? bankLabelById.get(val) : undefined}>
-          {val ? (bankLabelById.get(val) ?? `ID ${val}`) : '-'}
+        <span className="text-xs text-slate-500 leading-tight" title={val ? bankLabelById.get(val) : undefined}>
+          {val ? (bankLabelById.get(val) ?? `ID ${val}`) : <span className="text-slate-300">—</span>}
         </span>
       ),
     },
     {
-      header: 'Nilai tagih',
+      header: 'Nilai Tagih',
       accessor: 'nilaiBisaDitagihkan',
-      render: (val: number | null) => (val == null ? '-' : formatRupiah(val)),
+      render: (val: number | null) => (
+        <span className="text-sm font-semibold text-emerald-700">{val == null ? <span className="text-slate-300 font-normal">—</span> : formatRupiah(val)}</span>
+      ),
     },
     {
-      header: 'Sudah dibayar',
+      header: 'Sudah Dibayar',
       accessor: 'nilaiSudahDibayarkan',
-      render: (val: number | null) => (val == null ? '-' : formatRupiah(val)),
+      render: (val: number | null) => (
+        <span className="text-sm font-semibold text-blue-700">{val == null ? <span className="text-slate-300 font-normal">—</span> : formatRupiah(val)}</span>
+      ),
     },
- 
+    {
+      header: 'Pembayaran',
+      accessor: 'id',
+      render: (_id: number, row: SpkData) => (
+        <SpkPembayaranStatusChips
+          items={pembayaranBySpkId.get(row.id) ?? []}
+          showBuktiLinks={isMandorRole && row.mandorId === user?.id}
+        />
+      ),
+    },
     {
       header: 'Dokumen',
       accessor: 'fileSpk',
@@ -413,13 +476,14 @@ const SPK = () => {
           href={val}
           target="_blank"
           rel="noreferrer"
-          className="text-blue-600 text-xs font-medium bg-blue-50 px-2 py-1 rounded hover:underline"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
-          Lihat PDF
+          <FileText size={12} />
+          
         </a>
       ) : (
-        <span className="text-gray-400 text-xs">-</span>
+        <span className="text-slate-300 text-xs"></span>
       ),
     },
   ];
@@ -481,7 +545,6 @@ const SPK = () => {
   const toggleBlok = (units: KavlingPickerRow[]) => {
     const selectableIds = getSelectableUnitIds(units);
     if (selectableIds.length === 0) return;
-
     updateKavlingIds((ids) => {
       const allSelected = selectableIds.every((id) => ids.includes(id));
       if (allSelected) {
@@ -537,7 +600,6 @@ const SPK = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     const payload = {
       noSpk: formData.noSpk.trim(),
       tanggalSpk: formData.tanggalSpk,
@@ -557,7 +619,6 @@ const SPK = () => {
       kavlingIds: formData.kavlingIds,
       fileSpk: formData.fileSpk,
     };
-
     try {
       if (editingId) {
         await updateMutation.mutateAsync({ id: editingId, data: payload });
@@ -598,6 +659,7 @@ const SPK = () => {
         onDelete={canManageSpk ? handleDelete : undefined}
       />
 
+      {/* ── Detail Modal ─────────────────────────────────────────────────────── */}
       <Modal
         isOpen={isDetailOpen}
         onClose={() => { setIsDetailOpen(false); setDetailItem(null); }}
@@ -605,189 +667,267 @@ const SPK = () => {
         size="lg"
       >
         {detailItem && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">No. SPK</p>
-                <p className="font-bold text-slate-900">{detailItem.noSpk}</p>
+          <div className="space-y-4">
+            <section>
+              <DetailSectionTitle>Informasi SPK</DetailSectionTitle>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs border-collapse min-w-[520px]">
+                <thead>
+                  <tr className="bg-slate-800 text-white">
+                    <th className="px-2.5 py-1.5 text-left text-[10px] font-bold uppercase">No. SPK</th>
+                    <th className="px-2.5 py-1.5 text-left text-[10px] font-bold uppercase">Judul Pekerjaan</th>
+                    <th className="px-2.5 py-1.5 text-left text-[10px] font-bold uppercase">Tanggal</th>
+                    <th className="px-2.5 py-1.5 text-right text-[10px] font-bold uppercase">Nilai Kontrak</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white">
+                    <td className={`${detailTdClass} font-mono font-bold`}>{detailItem.noSpk}</td>
+                    <td className={detailTdClass}>{detailItem.judulPekerjaan}</td>
+                    <td className={`${detailTdClass} whitespace-nowrap`}>{formatDate(detailItem.tanggalSpk)}</td>
+                    <td className={`${detailTdClass} text-right font-bold text-emerald-700 whitespace-nowrap`}>
+                      {formatRupiah(detailItem.nilaiKontrak)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Tanggal SPK</p>
-                <p className="font-medium text-black">{formatDate(detailItem.tanggalSpk)}</p>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Judul Pekerjaan</p>
-                <p className="font-medium text-slate-800">{detailItem.judulPekerjaan}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Mandor</p>
-                <p className="font-medium text-black">{detailItem.mandor.username}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai Kontrak</p>
-                <p className="font-bold text-black">{formatRupiah(detailItem.nilaiKontrak)}</p>
-              </div>
-              <div className="md:col-span-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Progress SPK</p>
-                <div className="mt-1 flex items-center gap-3 flex-wrap">
-                  <div className="w-44 bg-slate-200 rounded-full h-2.5 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${detailItem.progress === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
-                      style={{ width: `${Number(detailItem.progress ?? 0)}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-black text-slate-800">
-                    {Number(detailItem.progress ?? 0)}%{detailItem.progressIsOverride ? ' (manual)' : ' (default)'}
-                  </span>
+            </section>
 
-                  {canEditSpkProgress && (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={3}
-                        value={spkProgressInput}
-                        onChange={(e) =>
-                          setSpkProgressInput(e.target.value.replace(/\D/g, '').slice(0, 3))
-                        }
-                        onBlur={() => {
-                          if (spkProgressInput === '') {
-                            setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
-                            return;
-                          }
-                          setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
-                        }}
-                        className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-black text-slate-800 text-center outline-none"
-                      />
-                      <span className="text-xs font-bold text-slate-500">%</span>
-                      <button
-                        type="button"
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white hover:bg-black"
-                        onClick={async () => {
-                          const parsed =
-                            spkProgressInput === ''
-                              ? clampPercent(Number(detailItem.progress ?? 0))
-                              : clampPercent(parseInt(spkProgressInput, 10));
-                          try {
-                            await updateMutation.mutateAsync({
-                              id: detailItem.id,
-                              data: { progressOverride: parsed },
-                            });
-                          } catch (err: unknown) {
-                            alert(handleApiError(err).message);
-                          }
-                        }}
-                      >
-                        Simpan
-                      </button>
-                      <button
-                        type="button"
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-                        onClick={async () => {
-                          try {
-                            await updateMutation.mutateAsync({
-                              id: detailItem.id,
-                              data: { progressOverride: null },
-                            });
-                          } catch (err: unknown) {
-                            alert(handleApiError(err).message);
-                          }
-                        }}
-                      >
-                        Default
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <p className="text-[10px] text-slate-500 mt-2">
-                  Default = rata-rata progress seluruh kavling dalam SPK ini. Override hanya mengubah progress SPK.
-                </p>
+            <section>
+              <DetailSectionTitle>Keuangan &amp; Kontrak</DetailSectionTitle>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs border-collapse min-w-[640px]">
+                <thead>
+                  <tr>
+                    <th className={detailThClass}>Mandor</th>
+                    <th className={detailThClass}>Nilai Tagih</th>
+                    <th className={detailThClass}>Sudah Dibayar</th>
+                    <th className={detailThClass}>Sisa Kontrak</th>
+                    <th className={detailThClass}>Kasbon 55%</th>
+                    <th className={detailThClass}>Kasbon 100%</th>
+                    <th className={detailThClass}>Jatuh Tempo</th>
+                    <th className={detailThClass}>Rekening PT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white">
+                    <td className={`${detailTdClass} font-semibold`}>{detailItem.mandor.username}</td>
+                    <td className={`${detailTdClass} font-bold text-emerald-700 whitespace-nowrap`}>
+                      {detailItem.nilaiBisaDitagihkan == null ? '—' : formatRupiah(detailItem.nilaiBisaDitagihkan)}
+                    </td>
+                    <td className={`${detailTdClass} font-bold text-blue-700 whitespace-nowrap`}>
+                      {detailItem.nilaiSudahDibayarkan == null ? '—' : formatRupiah(detailItem.nilaiSudahDibayarkan)}
+                    </td>
+                    <td className={`${detailTdClass} whitespace-nowrap`}>
+                      {detailItem.sisaNilaiKontrak == null ? '—' : formatRupiah(detailItem.sisaNilaiKontrak)}
+                    </td>
+                    <td className={`${detailTdClass} whitespace-nowrap`}>
+                      {detailItem.kasbonSebelumTermin2 == null ? '—' : formatRupiah(detailItem.kasbonSebelumTermin2)}
+                    </td>
+                    <td className={`${detailTdClass} whitespace-nowrap`}>
+                      {detailItem.kasbonSebelumTermin3 == null ? '—' : formatRupiah(detailItem.kasbonSebelumTermin3)}
+                    </td>
+                    <td className={detailTdClass}>
+                      {detailItem.jatuhTempo ? formatDate(detailItem.jatuhTempo) : '—'}
+                    </td>
+                    <td className={detailTdClass}>
+                      {detailItem.bankRekeningPtId
+                        ? bankLabelById.get(detailItem.bankRekeningPtId) ?? `ID ${detailItem.bankRekeningPtId}`
+                        : '—'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Kasbon sebelum 55%</p>
-                <p className="font-medium text-black">{detailItem.kasbonSebelumTermin2 == null ? '-' : formatRupiah(detailItem.kasbonSebelumTermin2)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Kasbon sebelum 100%</p>
-                <p className="font-medium text-black">{detailItem.kasbonSebelumTermin3 == null ? '-' : formatRupiah(detailItem.kasbonSebelumTermin3)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Rekening PT</p>
-                <p className="font-medium text-slate-700">
-                  {detailItem.bankRekeningPtId ? (bankLabelById.get(detailItem.bankRekeningPtId) ?? `ID ${detailItem.bankRekeningPtId}`) : '-'}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai yang bisa ditagihkan</p>
-                <p className="font-medium text-black">{detailItem.nilaiBisaDitagihkan == null ? '-' : formatRupiah(detailItem.nilaiBisaDitagihkan)}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai yang sudah dibayarkan</p>
-                <p className="font-medium text-black">{detailItem.nilaiSudahDibayarkan == null ? '-' : formatRupiah(detailItem.nilaiSudahDibayarkan)}</p>
-              </div>
-              {detailItem.jatuhTempo && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Jatuh Tempo</p>
-                  <p className="font-medium text-black">{formatDate(detailItem.jatuhTempo)}</p>
-                </div>
-              )}
-              {detailItem.notesPekerjaan && (
-                <div className="md:col-span-2">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Catatan Pekerjaan</p>
-                  <p className="text-slate-700 whitespace-pre-wrap">{detailItem.notesPekerjaan}</p>
-                </div>
-              )}
-            </div>
+            </section>
 
-            <div className="border-t border-slate-200 pt-4">
+            <section>
+              <DetailSectionTitle>Progress &amp; Dokumen</DetailSectionTitle>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr>
+                    <th className={detailThClass}>Progress SPK</th>
+                    <th className={detailThClass}>Mode</th>
+                    {canEditSpkProgress && <th className={detailThClass}>Progress SPK</th>}
+                    <th className={detailThClass}>Dokumen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white">
+                    <td className={detailTdClass}>
+                      <div className="flex items-center gap-2 min-w-[140px]">
+                        <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${detailItem.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`}
+                            style={{ width: `${Number(detailItem.progress ?? 0)}%` }}
+                          />
+                        </div>
+                        <span className="font-bold text-indigo-800 whitespace-nowrap">
+                          {Number(detailItem.progress ?? 0)}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className={detailTdClass}>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                          detailItem.progressIsOverride
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {detailItem.progressIsOverride ? 'Manual' : 'Default'}
+                      </span>
+                    </td>
+                    {canEditSpkProgress && (
+                      <td className={detailTdClass}>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={3}
+                            value={spkProgressInput}
+                            onChange={(e) =>
+                              setSpkProgressInput(e.target.value.replace(/\D/g, '').slice(0, 3))
+                            }
+                            onBlur={() => {
+                              if (spkProgressInput === '') {
+                                setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
+                                return;
+                              }
+                              setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
+                            }}
+                            className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-center outline-none focus:ring-1 focus:ring-indigo-400"
+                          />
+                          <span className="text-[10px] font-bold text-slate-500">%</span>
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-[10px] font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                            onClick={async () => {
+                              const parsed =
+                                spkProgressInput === ''
+                                  ? clampPercent(Number(detailItem.progress ?? 0))
+                                  : clampPercent(parseInt(spkProgressInput, 10));
+                              try {
+                                await updateMutation.mutateAsync({
+                                  id: detailItem.id,
+                                  data: { progressOverride: parsed },
+                                });
+                              } catch (err: unknown) {
+                                alert(handleApiError(err).message);
+                              }
+                            }}
+                          >
+                            Simpan
+                          </button>
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-[10px] font-bold rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
+                            onClick={async () => {
+                              try {
+                                await updateMutation.mutateAsync({
+                                  id: detailItem.id,
+                                  data: { progressOverride: null },
+                                });
+                              } catch (err: unknown) {
+                                alert(handleApiError(err).message);
+                              }
+                            }}
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                    <td className={detailTdClass}>
+                      {detailItem.fileSpk ? (
+                        <a
+                          href={detailItem.fileSpk}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:underline"
+                        >
+                          <FileText size={12} />
+                          PDF
+                          <ExternalLink size={10} />
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            </section>
+
+            {detailItem.kavlingItems.length > 0 && (
+              <section>
+                <DetailSectionTitle>Kavling SPK</DetailSectionTitle>
+                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full text-xs border-collapse min-w-[320px]">
+                  <thead className="sticky top-0 z-10">
+                    <tr>
+                      <th className={detailThClass}>Blok</th>
+                      <th className={detailThClass}>Unit</th>
+                      <th className={detailThClass}>Customer</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...detailItem.kavlingItems]
+                      .sort(compareKavlingBlokUnit)
+                      .map((k) => (
+                        <tr key={k.kavlingId} className="bg-white hover:bg-slate-50/80">
+                          <td className={detailTdClass}>{k.blok}</td>
+                          <td className={detailTdClass}>{k.nomorUnit}</td>
+                          <td className={detailTdClass}>{k.customerNama || '—'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                </div>
+              </section>
+            )}
+
+            {detailItem.notesPekerjaan && (
+              <section>
+                <DetailSectionTitle>Catatan Pekerjaan</DetailSectionTitle>
+                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                  <table className="w-full text-xs border-collapse">
+                    <tbody>
+                      <tr>
+                        <td className={`${detailTdClass} whitespace-pre-wrap leading-relaxed`}>
+                          {detailItem.notesPekerjaan}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            <section>
+              <DetailSectionTitle>Pengajuan Pembayaran</DetailSectionTitle>
               <SpkPembayaranPanel
                 spk={detailItem}
                 canAjukan={canAjukanPembayaranFor(detailItem)}
               />
-            </div>
-
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Kavling dalam SPK</p>
-              <ul className="border border-slate-200 rounded-xl divide-y divide-slate-100">
-                {[...detailItem.kavlingItems]
-                  .sort((a, b) => compareKavlingBlokUnit(a, b))
-                  .map((item) => (
-                    <li key={item.id} className="px-4 py-2.5">
-                      <KavlingTotalProgressRow
-                        kavlingId={item.kavlingId}
-                        label={`Blok ${item.blok}-${item.nomorUnit} · ${item.customerNama}`}
-                        canEdit={canEditKavlingProgress}
-                      />
-                    </li>
-                  ))}
-              </ul>
-            </div>
-
-            {detailItem.fileSpk && (
-              <a
-                href={detailItem.fileSpk}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:underline"
-              >
-                <FileText size={16} />
-                Buka dokumen SPK (PDF)
-              </a>
-            )}
+            </section>
           </div>
         )}
       </Modal>
 
+      {/* ── Create/Edit Modal ─────────────────────────────────────────────────── */}
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
         title={editingId ? 'Edit SPK' : 'Buat SPK Baru'}
         size="lg"
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi SPK</h4>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <FormSection title="Informasi SPK">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input label="Nomor SPK" name="noSpk" value={formData.noSpk} onChange={handleChange} error={errors.noSpk} />
               <Input label="Tanggal SPK" type="date" name="tanggalSpk" value={formData.tanggalSpk} onChange={handleChange} />
@@ -822,7 +962,7 @@ const SPK = () => {
                 value={formData.bankRekeningPtId !== '' ? String(formData.bankRekeningPtId) : ''}
                 onChange={handleChange}
                 options={[
-                  { value: '', label: '-- Pilih Rekening PT --' },
+                  { value: '', label: '— Pilih Rekening PT —' },
                   ...bankOptions.map((b: BankRekeningPt) => ({
                     value: String(b.id),
                     label: `${b.namaBank} · ${b.noRekening} · a/n ${b.atasNama}`,
@@ -830,23 +970,6 @@ const SPK = () => {
                 ]}
               />
               <Input label="Jatuh Tempo (opsional)" type="date" name="jatuhTempo" value={formData.jatuhTempo} onChange={handleChange} />
-              {editingId && (
-                <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-800">
-                  Nilai tagih, sudah dibayar, dan sisa kontrak dihitung otomatis dari pengajuan &amp; pembayaran finance.
-                </div>
-              )}
-              <div className="md:col-span-2 flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                  Catatan Pekerjaan (opsional)
-                </label>
-                <textarea
-                  name="notesPekerjaan"
-                  value={formData.notesPekerjaan}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm min-h-[80px] text-black"
-                  placeholder="Catatan tambahan pekerjaan..."
-                />
-              </div>
               <Select
                 label="Mandor"
                 name="mandorId"
@@ -854,30 +977,49 @@ const SPK = () => {
                 onChange={handleChange}
                 error={errors.mandorId}
                 options={[
-                  { value: '', label: '-- Pilih Mandor --' },
+                  { value: '', label: '— Pilih Mandor —' },
                   ...mandorList.map((m) => ({
                     value: String(m.id),
                     label: m.username,
                   })),
                 ]}
               />
+              <div className="md:col-span-2 flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-0.5">
+                  Catatan Pekerjaan (opsional)
+                </label>
+                <textarea
+                  name="notesPekerjaan"
+                  value={formData.notesPekerjaan}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm min-h-[80px] text-black focus:outline-none focus:ring-2 focus:ring-indigo-400/20 focus:border-indigo-400 transition-all resize-none"
+                  placeholder="Catatan tambahan pekerjaan..."
+                />
+              </div>
+              {editingId && (
+                <div className="md:col-span-2 flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
+                  <span className="mt-0.5 shrink-0 w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[10px] font-black">i</span>
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    Nilai tagih, sudah dibayar, dan sisa kontrak dihitung otomatis dari pengajuan &amp; pembayaran finance.
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
+          </FormSection>
 
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-2 border-b pb-2">Kavling Proyek</h4>
-            <p className="text-xs text-slate-500 mb-3">
-              Centang blok untuk memilih semua unit di blok tersebut, atau buka blok dan pilih unit tertentu saja.
-              Mandor pada SPK ini akan mengurus semua kavling yang dipilih.
+          <FormSection title="Kavling Proyek">
+            <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+              Centang blok untuk memilih semua unit, atau buka blok dan pilih unit tertentu saja.
             </p>
             {errors.kavlingIds && (
-              <p className="text-xs text-red-600 mb-2">{errors.kavlingIds}</p>
+              <p className="text-xs font-semibold text-red-600 mb-3 flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
+                {errors.kavlingIds}
+              </p>
             )}
             <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-xl bg-white divide-y divide-slate-100">
               {kavlingBlokGroups.length === 0 ? (
-                <p className="p-4 text-xs text-slate-400 italic text-center">
-                  Belum ada data kavling.
-                </p>
+                <p className="p-4 text-xs text-slate-400 italic text-center">Belum ada data kavling.</p>
               ) : (
                 kavlingBlokGroups.map((group) => {
                   const blokState = getBlokSelectionState(group.units, formData.kavlingIds);
@@ -887,10 +1029,9 @@ const SPK = () => {
                   ).length;
                   const isExpanded = expandedBloks.has(group.blok);
                   const blokCheckboxDisabled = selectableIds.length === 0;
-
                   return (
                     <div key={group.blok}>
-                      <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50/90 border-b border-slate-100">
+                      <div className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-50/90">
                         <BlokCheckbox
                           checked={blokState === 'all'}
                           indeterminate={blokState === 'partial'}
@@ -900,11 +1041,10 @@ const SPK = () => {
                         <button
                           type="button"
                           onClick={() => toggleBlokExpanded(group.blok)}
-                          className="p-0.5 rounded text-slate-500 hover:bg-slate-200 hover:text-slate-700 shrink-0"
+                          className="p-0.5 rounded text-slate-400 hover:bg-slate-200 hover:text-slate-600 shrink-0 transition-colors"
                           aria-expanded={isExpanded}
-                          title={isExpanded ? 'Tutup daftar unit' : 'Buka daftar unit'}
                         >
-                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                         </button>
                         <button
                           type="button"
@@ -913,23 +1053,22 @@ const SPK = () => {
                         >
                           <span className="text-sm font-bold text-slate-800">Blok {group.blok}</span>
                           <span className="text-xs text-slate-500 ml-2">
-                            {selectedInBlok}/{selectableIds.length} unit dipilih
+                            {selectedInBlok}/{selectableIds.length} dipilih
                             {group.units.length > selectableIds.length && (
-                              <span className="text-amber-600">
-                                {' '}· {group.units.length - selectableIds.length} tidak tersedia
+                              <span className="text-amber-600 ml-1">
+                                · {group.units.length - selectableIds.length} tidak tersedia
                               </span>
                             )}
                           </span>
                         </button>
                       </div>
-
                       {isExpanded &&
                         group.units.map((k) => (
                           <label
                             key={k.kavlingId}
                             className={`flex items-start gap-3 pl-9 pr-4 py-2 transition-colors ${
                               k.disabled
-                                ? 'bg-slate-50/80 cursor-not-allowed opacity-80'
+                                ? 'bg-slate-50/60 cursor-not-allowed opacity-70'
                                 : 'hover:bg-slate-50 cursor-pointer'
                             }`}
                           >
@@ -942,23 +1081,16 @@ const SPK = () => {
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span
-                                  className={`text-sm font-bold min-w-[72px] ${
-                                    k.disabled ? 'text-slate-500' : 'text-slate-800'
-                                  }`}
-                                >
+                                <span className={`text-sm font-bold min-w-[72px] ${k.disabled ? 'text-slate-400' : 'text-slate-800'}`}>
                                   Unit {k.nomorUnit}
                                 </span>
-                                <span
-                                  className="text-xs text-slate-500 truncate max-w-[140px] ml-auto sm:ml-0"
-                                  title={k.customerNama}
-                                >
+                                <span className="text-xs text-slate-500 truncate max-w-[140px]" title={k.customerNama}>
                                   {k.customerNama}
                                 </span>
                               </div>
                               {k.handledBy && (
-                                <p className="text-[11px] text-amber-700 font-medium mt-1 leading-snug">
-                                  Sudah ditangani mandor {k.handledBy.mandorUsername} (SPK {k.handledBy.noSpk})
+                                <p className="text-[11px] text-amber-700 font-medium mt-0.5 leading-snug">
+                                  Ditangani mandor {k.handledBy.mandorUsername} (SPK {k.handledBy.noSpk})
                                 </p>
                               )}
                             </div>
@@ -969,10 +1101,9 @@ const SPK = () => {
                 })
               )}
             </div>
-          </div>
+          </FormSection>
 
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Dokumen</h4>
+          <FormSection title="Dokumen">
             <FileInput
               label="Upload SPK (PDF, opsional)"
               accept=".pdf,application/pdf"
@@ -986,17 +1117,16 @@ const SPK = () => {
                 e.target.value = '';
               }}
             />
-
             {hasUploadedFile && (
-              <div className="mt-3 flex items-start gap-3 p-3 bg-white border border-red-100 rounded-xl shadow-sm">
-                <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-                  <FileText size={22} className="text-red-600" />
+              <div className="mt-3 flex items-start gap-3 p-3.5 bg-white border border-red-100 rounded-xl shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center shrink-0">
+                  <FileText size={20} className="text-red-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-800 truncate">
                     {formData.fileSpk?.name ?? getFileNameFromUrl(formData.existingFileSpk!)}
                   </p>
-                  <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest mt-0.5">
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-0.5">
                     PDF
                     {formData.fileSpk && (
                       <span className="text-slate-400 normal-case tracking-normal font-medium ml-2">
@@ -1009,14 +1139,14 @@ const SPK = () => {
                       href={formData.existingFileSpk}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 font-bold mt-1 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold mt-1 hover:underline"
                     >
-                      <ExternalLink size={12} />
+                      <ExternalLink size={11} />
                       Pratinjau dokumen tersimpan
                     </a>
                   )}
                   {filePreviewUrl && formData.fileSpk && (
-                    <p className="text-xs text-slate-500 mt-1">File siap diunggah saat simpan</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Siap diunggah saat simpan</p>
                   )}
                 </div>
                 <button
@@ -1025,22 +1155,26 @@ const SPK = () => {
                   className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
                   title="Hapus file"
                 >
-                  <X size={16} />
+                  <X size={15} />
                 </button>
               </div>
             )}
-          </div>
+          </FormSection>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-radius-btn hover:bg-gray-50">
+          <div className="flex justify-end gap-3 pt-2 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+            >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-radius-btn hover:bg-gray-800 disabled:opacity-50"
+              className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
             >
-              {isSaving ? 'Menyimpan...' : 'Simpan SPK'}
+              {isSaving ? 'Menyimpan...' : editingId ? 'Simpan Perubahan' : 'Buat SPK'}
             </button>
           </div>
         </form>

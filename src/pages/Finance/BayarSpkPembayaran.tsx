@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import DataTable from '../../components/shared/DataTable';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
+import BuktiFileThumbnail, { isBuktiPdfUrl } from '../../components/shared/BuktiFileThumbnail';
 import Input from '../../components/shared/Input';
 import { formatDate, formatRupiah } from '../../utils/formatters';
 import {
@@ -150,7 +151,7 @@ const BayarSpkPembayaran = () => {
           </span>
         ) : (
           <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase bg-green-100 text-green-700 rounded-md w-fit">
-            <CheckCircle2 size={12} /> Sudah Dibayar
+            <CheckCircle2 size={12} /> Terbayar
           </span>
         ),
     },
@@ -159,16 +160,11 @@ const BayarSpkPembayaran = () => {
       accessor: 'buktiPembayaran',
       render: (val: string | null) =>
         val ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPreviewUrl(val);
-            }}
-            className="text-blue-600 text-xs font-bold hover:underline"
-          >
-            Lihat
-          </button>
+          <BuktiFileThumbnail
+            url={val}
+            onClick={() => setPreviewUrl(val)}
+            className="w-12 h-8"
+          />
         ) : (
           <span className="text-slate-400 text-xs">-</span>
         ),
@@ -188,7 +184,7 @@ const BayarSpkPembayaran = () => {
             Bayar & Upload Bukti
           </button>
         ) : (
-          <span className="text-[10px] text-slate-400">Selesai</span>
+          <span className="text-[10px] text-slate-400"></span>
         ),
     },
   ];
@@ -270,7 +266,7 @@ const BayarSpkPembayaran = () => {
       >
         {previewUrl && (
           <div className="flex justify-center">
-            {previewUrl.toLowerCase().includes('.pdf') ? (
+            {isBuktiPdfUrl(previewUrl) ? (
               <a
                 href={previewUrl}
                 target="_blank"

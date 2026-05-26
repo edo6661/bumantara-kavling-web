@@ -1,4 +1,7 @@
-import { CheckCircle2, ExternalLink, FileText, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, Loader2 } from 'lucide-react';
+import Modal from '../shared/Modal';
+import BuktiFileThumbnail, { isBuktiPdfUrl } from '../shared/BuktiFileThumbnail';
 import { formatRupiah, formatDate } from '../../utils/formatters';
 import { handleApiError } from '../../utils/errorHandler';
 import {
@@ -9,6 +12,7 @@ import type { SpkData } from '../../services/spk.service';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 import {
   SPK_PEMBAYARAN_JENIS_LABEL,
+  calcSpkPembayaranNominal,
   canRequestSpkPembayaran,
   type SpkPembayaranJenis,
 } from '../../utils/spkPembayaran';
@@ -16,7 +20,11 @@ import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi'
 
 const JENIS_ORDER: SpkPembayaranJenis[] = ['TERMIN_55', 'TERMIN_100', 'RETENSI'];
 
-const KalkulasiNominal = ({ jenis, spk }: { jenis: SpkPembayaranJenis; spk: SpkData }) => {
+const thClass =
+  'px-2.5 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase bg-slate-50 border border-slate-200 whitespace-nowrap';
+const tdClass = 'px-2.5 py-1.5 border border-slate-200 text-xs text-slate-800 align-middle';
+
+const KalkulasiSingkat = ({ jenis, spk }: { jenis: SpkPembayaranJenis; spk: SpkData }) => {
   const baris = buildSpkPembayaranKalkulasi(jenis, {
     nilaiKontrak: spk.nilaiKontrak,
     kasbonSebelumTermin2: spk.kasbonSebelumTermin2,
@@ -24,18 +32,17 @@ const KalkulasiNominal = ({ jenis, spk }: { jenis: SpkPembayaranJenis; spk: SpkD
   });
 
   return (
-    <div className="mt-2 p-2.5 bg-white border border-slate-200 rounded-lg text-[11px] space-y-1">
-      <p className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Rincian perhitungan</p>
+    <div className="mt-1 pt-1 border-t border-slate-100 space-y-0.5 text-[9px] text-slate-500 leading-tight min-w-[160px]">
       {baris.map((b) => (
         <div key={b.label} className="flex justify-between gap-2">
-          <span className="text-slate-600">{b.label}</span>
+          <span className="text-left">{b.label}</span>
           <span
-            className={`font-bold shrink-0 ${
+            className={`shrink-0 font-semibold tabular-nums ${
               b.tipe === 'negatif'
                 ? 'text-red-600'
                 : b.tipe === 'hasil'
-                  ? 'text-indigo-700'
-                  : 'text-slate-800'
+                  ? 'text-indigo-600'
+                  : 'text-slate-600'
             }`}
           >
             {b.tipe === 'negatif' ? '− ' : ''}
@@ -47,129 +54,13 @@ const KalkulasiNominal = ({ jenis, spk }: { jenis: SpkPembayaranJenis; spk: SpkD
   );
 };
 
-const BuktiPembayaranLink = ({ url }: { url: string }) => {
-  const isPdf =
-    url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('application/pdf');
-
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 text-[10px] font-bold uppercase bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-    >
-      {isPdf ? <FileText size={12} /> : <ExternalLink size={12} />}
-      Lihat bukti pembayaran
-    </a>
-  );
-};
-
-const TerminPembayaranCard = ({
-  jenis,
-  spk,
-  existing,
-  canAjukan,
-  onAjukan,
-  isSubmitting,
-}: {
-  jenis: SpkPembayaranJenis;
-  spk: SpkData;
-  existing?: SpkPembayaranData;
-  canAjukan: boolean;
-  onAjukan: (jenis: SpkPembayaranJenis) => void;
-  isSubmitting: boolean;
-}) => {
-  const spkInput = {
-    nilaiKontrak: spk.nilaiKontrak,
-    kasbonSebelumTermin2: spk.kasbonSebelumTermin2,
-    kasbonSebelumTermin3: spk.kasbonSebelumTermin3,
-    progress: Number(spk.progress ?? 0),
-  };
-  const check = canRequestSpkPembayaran(jenis, spkInput, existing ? [{ jenis: existing.jenis, status: existing.status }] : []);
-
-  return (
-    <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-2">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-800">{SPK_PEMBAYARAN_JENIS_LABEL[jenis]}</p>
-
-          {!existing && <KalkulasiNominal jenis={jenis} spk={spk} />}
-
-          {existing && (
-            <>
-              <KalkulasiNominal jenis={jenis} spk={spk} />
-              <p className="text-[10px] text-slate-500 mt-2">
-                Diajukan {formatDate(existing.createdAt)} · {existing.diajukanOleh.username}
-              </p>
-            </>
-          )}
-        </div>
-
-        <div className="shrink-0 flex flex-col items-end gap-2">
-          {existing ? (
-            <span
-              className={`inline-flex px-2.5 py-1 text-[10px] font-bold uppercase rounded-md ${
-                existing.status === 'SUDAH_DIBAYAR'
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-amber-100 text-amber-800'
-              }`}
-            >
-              {existing.status === 'SUDAH_DIBAYAR' ? 'Sudah Dibayar' : 'Menunggu Pembayaran'}
-            </span>
-          ) : canAjukan ? (
-            <button
-              type="button"
-              disabled={!check.allowed || isSubmitting}
-              title={check.reason}
-              onClick={() => onAjukan(jenis)}
-              className="px-4 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Ajukan Pembayaran
-            </button>
-          ) : (
-            <span className="text-[10px] text-slate-400 italic">Belum diajukan</span>
-          )}
-        </div>
-      </div>
-
-      {existing?.status === 'SUDAH_DIBAYAR' && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-          <div className="flex items-start gap-2">
-            <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-bold text-emerald-800">
-                Termin ini sudah dibayar finance
-              </p>
-              <p className="text-[11px] text-emerald-700 mt-0.5">
-                Nominal dibayar: {formatRupiah(existing.nominal)}
-                {existing.tanggalPembayaran &&
-                  ` · ${formatDate(existing.tanggalPembayaran)}`}
-                {existing.dibayarOleh && ` · oleh ${existing.dibayarOleh.username}`}
-              </p>
-              {existing.buktiPembayaran && (
-                <BuktiPembayaranLink url={existing.buktiPembayaran} />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {existing?.status === 'MENUNGGU_PEMBAYARAN' && (
-        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-          Pengajuan menunggu proses finance. Setelah dibayar, status dan bukti transfer akan
-          tampil di sini.
-        </p>
-      )}
-    </div>
-  );
-};
-
 interface SpkPembayaranPanelProps {
   spk: SpkData;
   canAjukan: boolean;
 }
 
 const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const { data: pembayaranList = [], isLoading } = useGetSpkPembayaranBySpk(spk.id);
   const createMutation = useCreateSpkPembayaranRequest();
 
@@ -178,17 +69,15 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     status: p.status,
   }));
 
+  const spkInput = {
+    nilaiKontrak: spk.nilaiKontrak,
+    kasbonSebelumTermin2: spk.kasbonSebelumTermin2,
+    kasbonSebelumTermin3: spk.kasbonSebelumTermin3,
+    progress: Number(spk.progress ?? 0),
+  };
+
   const handleAjukan = async (jenis: SpkPembayaranJenis) => {
-    const check = canRequestSpkPembayaran(
-      jenis,
-      {
-        nilaiKontrak: spk.nilaiKontrak,
-        kasbonSebelumTermin2: spk.kasbonSebelumTermin2,
-        kasbonSebelumTermin3: spk.kasbonSebelumTermin3,
-        progress: Number(spk.progress ?? 0),
-      },
-      statusRows,
-    );
+    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows);
     if (!check.allowed) {
       alert(check.reason);
       return;
@@ -208,38 +97,138 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     }
   };
 
+
+
+  const renderStatus = (existing: SpkPembayaranData | undefined, jenis: SpkPembayaranJenis) => {
+    if (existing) {
+      const paid = existing.status === 'SUDAH_DIBAYAR';
+      return (
+        <span
+          className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded ${
+            paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'
+          }`}
+        >
+          {paid ? 'Terbayar' : 'Menunggu'}
+        </span>
+      );
+    }
+    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows);
+    if (!canAjukan) {
+      return <span className="text-slate-400 text-[10px]">Belum diajukan</span>;
+    }
+    if (!check.allowed) {
+      return (
+        <span className="text-[10px] text-amber-700" title={check.reason}>
+          Belum bisa
+        </span>
+      );
+    }
+    return <span className="text-[10px] text-slate-500">Siap diajukan</span>;
+  };
+
+  const renderAksi = (existing: SpkPembayaranData | undefined, jenis: SpkPembayaranJenis) => {
+    if (existing || !canAjukan) return null;
+    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows);
+    return (
+      <div className="flex flex-col items-start gap-0.5">
+        <button
+          type="button"
+          disabled={!check.allowed || createMutation.isPending}
+          title={check.reason}
+          onClick={() => handleAjukan(jenis)}
+          className="px-2.5 py-1 text-[10px] font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 whitespace-nowrap"
+        >
+          Ajukan
+        </button>
+        {!check.allowed && check.reason && (
+          <span className="text-[9px] text-amber-700 max-w-[140px] leading-tight">{check.reason}</span>
+        )}
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 py-4 text-sm text-slate-500">
-        <Loader2 size={16} className="animate-spin" />
-        Memuat data pembayaran...
+      <div className="flex items-center gap-2 py-2 text-xs text-slate-500">
+        <Loader2 size={14} className="animate-spin" />
+        Memuat pembayaran...
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-[10px] font-bold text-slate-400 uppercase">
-        Pengajuan Pembayaran ke Developer
-      </p>
-      <p className="text-xs text-slate-500 leading-relaxed">
-        Setelah finance membayar, status termin dan bukti transfer tampil di kartu termin di bawah.
-      </p>
-
-      <div className="grid grid-cols-1 gap-3">
-        {JENIS_ORDER.map((jenis) => (
-          <TerminPembayaranCard
-            key={jenis}
-            jenis={jenis}
-            spk={spk}
-            existing={pembayaranList.find((p) => p.jenis === jenis)}
-            canAjukan={canAjukan}
-            onAjukan={handleAjukan}
-            isSubmitting={createMutation.isPending}
-          />
-        ))}
+    <>
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="w-full text-xs border-collapse min-w-[640px]">
+          <thead>
+            <tr>
+              <th className={thClass}>Termin</th>
+              <th className={thClass}>Nominal</th>
+              <th className={thClass}>Status</th>
+              <th className={`${thClass} w-16`}>Bukti</th>
+              <th className={`${thClass} w-24`}>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {JENIS_ORDER.map((jenis) => {
+              const existing = pembayaranList.find((p) => p.jenis === jenis);
+              const nominal = calcSpkPembayaranNominal(jenis, spkInput);
+              return (
+                <tr key={jenis} className="bg-white hover:bg-slate-50/80">
+                  <td className={`${tdClass} font-semibold whitespace-nowrap`}>
+                    {SPK_PEMBAYARAN_JENIS_LABEL[jenis]}
+                  </td>
+                  <td className={tdClass}>
+                    <p className="font-bold text-indigo-700 whitespace-nowrap">
+                      {formatRupiah(existing?.nominal ?? nominal)}
+                    </p>
+                    <KalkulasiSingkat jenis={jenis} spk={spk} />
+                  </td>
+                  <td className={tdClass}>{renderStatus(existing, jenis)}</td>
+                  <td className={tdClass}>
+                    {existing?.buktiPembayaran ? (
+                      <BuktiFileThumbnail
+                        url={existing.buktiPembayaran}
+                        onClick={() => setPreviewUrl(existing.buktiPembayaran!)}
+                        className="w-10 h-7"
+                      />
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className={tdClass}>{renderAksi(existing, jenis)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-    </div>
+
+      <Modal
+        isOpen={!!previewUrl}
+        onClose={() => setPreviewUrl(null)}
+        title="Bukti Pembayaran"
+        size="lg"
+      >
+        {previewUrl && (
+          <div className="flex justify-center">
+            {isBuktiPdfUrl(previewUrl) ? (
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-col items-center gap-2 text-red-600 font-bold"
+              >
+                <FileText size={48} />
+                Buka PDF
+              </a>
+            ) : (
+              <img src={previewUrl} alt="Bukti pembayaran" className="max-h-[70vh] rounded-lg" />
+            )}
+          </div>
+        )}
+      </Modal>
+    </>
   );
 };
 
