@@ -12,7 +12,6 @@ import { handleApiError } from '../../utils/errorHandler';
 import { useAuth } from "../../context/AuthContext";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
 import { useGetMandors } from "../../hooks/queries/useProgressProyek";
-import TotalProgressOverrideControls from '../../components/proyek/TotalProgressOverrideControls';
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
 import {
   useCreateSpk,
@@ -152,20 +151,6 @@ const SpkKavlingCell = ({ items }: { items: SpkData['kavlingItems'] }) => {
 
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 
-const KavlingTotalProgressRow = ({
-  kavlingId,
-  label,
-  canEdit,
-}: {
-  kavlingId: number;
-  label: string;
-  canEdit: boolean;
-}) => (
-  <div className="py-2 space-y-2">
-    <p className="text-sm font-bold text-slate-800 truncate">{label}</p>
-    <TotalProgressOverrideControls kavlingId={kavlingId} canEdit={canEdit} />
-  </div>
-);
 
 const getCustomerNamaFromKavling = (kavling: KavlingData): string => {
   const activePenjualan = kavling.penjualan?.find((p) => p.customer?.nama);
@@ -232,7 +217,6 @@ const DetailSectionTitle = ({ children }: { children: React.ReactNode }) => (
 const SPK = () => {
   const { user, selectedPerumahan } = useAuth();
   const canManageSpk = user?.role !== 'MANDOR';
-  const canEditKavlingProgress = canManageSpk;
   const canEditSpkProgress = canManageSpk;
 
   const canAjukanPembayaranFor = (spk: SpkData) => {
