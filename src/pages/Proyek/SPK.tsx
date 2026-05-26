@@ -602,7 +602,6 @@ const SPK = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {isMandorRole && <SpkPembayaranMandorRingkasan mandorSpks={visibleSpkList} />}
 
       <DataTable
         title={isMandorRole ? 'SPK Saya' : 'Surat Perintah Kerja (SPK)'}
@@ -763,7 +762,7 @@ const SPK = () => {
                           >
                             Simpan
                           </button>
-                          <button
+                          {/* <button
                             type="button"
                             className="px-2 py-1 text-[10px] font-bold rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
                             onClick={async () => {
@@ -778,7 +777,7 @@ const SPK = () => {
                             }}
                           >
                             Reset ke 0%
-                          </button>
+                          </button> */}
                         </div>
                       </td>
                     )}

@@ -1,6 +1,6 @@
 import api from "../lib/axios";
 import type { ApiResponse } from "../types/api_response";
-import type { LoginData } from "../types/models/user";
+import type { LoginData, MandorProfile, ProfileData } from "../types/models/user";
 
 export interface RegisterAgentPayload {
   nik: string;
@@ -49,7 +49,17 @@ export const authService = {
     return response.data;
   },
 
-  updateSelf: async (data: { email?: string; password?: string }) => {
+  getProfile: async (): Promise<ProfileData> => {
+    const response = await api.get("/auth/profile");
+    return response.data.data.user;
+  },
+
+  updateSelf: async (data: {
+    username?: string;
+    email?: string;
+    password?: string;
+    mandor?: MandorProfile;
+  }) => {
     const response = await api.patch("/auth/update-me", data);
     return response.data.data;
   },

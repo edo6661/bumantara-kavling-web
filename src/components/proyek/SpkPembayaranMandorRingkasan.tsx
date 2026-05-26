@@ -96,7 +96,7 @@ const SpkPembayaranMandorRingkasan = ({ mandorSpks }: SpkPembayaranMandorRingkas
             <div>
               <p className="text-sm font-bold text-emerald-900">Pembayaran SPK sudah diterima</p>
               <p className="text-[11px] text-emerald-700">
-                Status dan bukti transfer tercatat di sini — tanpa notifikasi terpisah.
+                Status dan bukti transfer tercatat di sini.
               </p>
             </div>
           </div>

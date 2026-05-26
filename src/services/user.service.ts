@@ -5,6 +5,11 @@ export interface UserData {
   username: string;
   email: string;
   role: string;
+  mandor?: {
+    namaBank: string;
+    noRekening: string;
+    atasNamaRekening: string;
+  } | null;
   createdAt: string;
 }
 
@@ -13,6 +18,11 @@ export interface CreateUserDTO {
   email: string;
   password?: string;
   role: string;
+  mandor?: {
+    namaBank: string;
+    noRekening: string;
+    atasNamaRekening: string;
+  };
 }
 
 export interface UpdateUserDTO {
@@ -20,6 +30,11 @@ export interface UpdateUserDTO {
   email?: string;
   password?: string;
   role?: string;
+  mandor?: {
+    namaBank: string;
+    noRekening: string;
+    atasNamaRekening: string;
+  };
 }
 
 export const userService = {

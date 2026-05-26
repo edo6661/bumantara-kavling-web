@@ -41,6 +41,7 @@ const AgentPortalDashboard = lazy(() => import('./pages/AgentPortal/PortalDashbo
 const ApprovePembayaran = lazy(() => import('./pages/Finance/ApprovePembayaran'));
 const BayarKodeBillingPph = lazy(() => import('./pages/Finance/BayarKodeBillingPph'));
 const BayarSpkPembayaran = lazy(() => import('./pages/Finance/BayarSpkPembayaran'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
@@ -99,6 +100,7 @@ const App = () => {
               } />
 
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
+                <Route path="profile" element={<Profile />} />
                 <Route index element={
                   <PermissionGuard resource="DASHBOARD"><Dashboard /></PermissionGuard>
                 } />

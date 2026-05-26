@@ -22,6 +22,7 @@ const initialFormState: CreateUserDTO & { id: number | "" } = {
   email: "",
   password: "",
   role: "",
+  mandor: undefined,
 };
 
 const UserManagement = () => {
@@ -81,6 +82,13 @@ const UserManagement = () => {
         email: item.email,
         password: "",
         role: item.role,
+        mandor: item.mandor
+          ? {
+              namaBank: item.mandor.namaBank,
+              noRekening: item.mandor.noRekening,
+              atasNamaRekening: item.mandor.atasNamaRekening,
+            }
+          : undefined,
       });
       setIsEditing(true);
     } else {
@@ -109,12 +117,38 @@ const UserManagement = () => {
     }
   };
 
+  const handleMandorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      mandor: {
+        namaBank: prev.mandor?.namaBank ?? "",
+        noRekening: prev.mandor?.noRekening ?? "",
+        atasNamaRekening: prev.mandor?.atasNamaRekening ?? "",
+        [name]: value,
+      },
+    }));
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.username.trim()) newErrors.username = "Username wajib diisi";
     if (!formData.email.trim()) newErrors.email = "Email wajib diisi";
     if (!isEditing && !formData.password?.trim()) newErrors.password = "Password wajib diisi untuk user baru";
     if (!formData.role.trim()) newErrors.role = "Role wajib dipilih";
+    if (formData.role === "MANDOR") {
+      if (!formData.mandor?.namaBank?.trim()) newErrors.namaBank = "Nama bank wajib diisi untuk mandor";
+      if (!formData.mandor?.noRekening?.trim()) newErrors.noRekening = "Nomor rekening wajib diisi untuk mandor";
+      if (!formData.mandor?.atasNamaRekening?.trim()) newErrors.atasNamaRekening = "Atas nama rekening wajib diisi untuk mandor";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -132,6 +166,13 @@ const UserManagement = () => {
     if (formData.password) {
       payload.password = formData.password;
     }
+    if (formData.role === "MANDOR") {
+      payload.mandor = {
+        namaBank: formData.mandor?.namaBank?.trim() ?? "",
+        noRekening: formData.mandor?.noRekening?.trim() ?? "",
+        atasNamaRekening: formData.mandor?.atasNamaRekening?.trim() ?? "",
+      };
+    }
 
     try {
       if (isEditing && formData.id !== "") {
@@ -146,7 +187,15 @@ const UserManagement = () => {
       if (backendErrors && Array.isArray(backendErrors)) {
         const fieldErrors: Record<string, string> = {};
         backendErrors.forEach((err: { field: string; message: string }) => {
-          fieldErrors[err.field] = err.message;
+          const mappedField =
+            err.field === "mandor.namaBank"
+              ? "namaBank"
+              : err.field === "mandor.noRekening"
+                ? "noRekening"
+                : err.field === "mandor.atasNamaRekening"
+                  ? "atasNamaRekening"
+                  : err.field;
+          fieldErrors[mappedField] = err.message;
         });
         setErrors(fieldErrors);
       } else {
@@ -217,7 +266,17 @@ const UserManagement = () => {
                 label="Role Akses"
                 name="role"
                 value={formData.role}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  if (e.target.value !== "MANDOR") {
+                    setFormData((prev) => ({ ...prev, mandor: undefined }));
+                  } else if (!formData.mandor) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      mandor: { namaBank: "", noRekening: "", atasNamaRekening: "" },
+                    }));
+                  }
+                }}
                 error={errors.role}
                 options={[
                   { value: "", label: "-- Pilih Role --" },
@@ -230,6 +289,34 @@ const UserManagement = () => {
                   { value: "MANDOR", label: "Mandor" },
                 ]}
               />
+              {formData.role === "MANDOR" && (
+                <>
+                  <Input
+                    label="Nama Bank (Mandor)"
+                    name="namaBank"
+                    value={formData.mandor?.namaBank ?? ""}
+                    onChange={handleMandorChange}
+                    error={errors.namaBank}
+                    placeholder="Contoh: BCA"
+                  />
+                  <Input
+                    label="Nomor Rekening (Mandor)"
+                    name="noRekening"
+                    value={formData.mandor?.noRekening ?? ""}
+                    onChange={handleMandorChange}
+                    error={errors.noRekening}
+                    placeholder="Masukkan nomor rekening"
+                  />
+                  <Input
+                    label="Atas Nama Rekening (Mandor)"
+                    name="atasNamaRekening"
+                    value={formData.mandor?.atasNamaRekening ?? ""}
+                    onChange={handleMandorChange}
+                    error={errors.atasNamaRekening}
+                    placeholder="Nama pemilik rekening"
+                  />
+                </>
+              )}
             </div>
           </div>
 

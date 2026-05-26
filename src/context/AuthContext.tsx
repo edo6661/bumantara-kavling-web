@@ -13,6 +13,7 @@ export interface AuthContextType {
   loginAgent: (email: string, pass: string) => Promise<ActionResult>;
   logout: () => void;
   setSelectedPerumahan: (perumahan: Perumahan) => void;
+  setUser: (user: User) => void;
 }
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

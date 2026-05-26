@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Menu, Building, Bell, Trash2 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useGetPerumahan } from '../hooks/queries/usePerumahan';
 import { useAdminSocket } from '../hooks/useAdminSocket';
@@ -11,7 +11,10 @@ interface NavbarProps {
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, selectedPerumahan, setSelectedPerumahan } = useAuth();
+  const profileInitials =
+    user?.username?.trim().slice(0, 2).toUpperCase() || 'U';
   const { data: perumahanList } = useGetPerumahan();
 
   const showNotifications = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
@@ -41,6 +44,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return 'Dashboard Utama';
+    if (path === '/profile') return 'Profil Saya';
 
     if (path.startsWith('/customer-detail')) return '';
 
@@ -164,9 +168,14 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           </div>
         )}
 
-        <div className="w-9 h-9 bg-gradient-to-tr from-gray-800 to-black rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md cursor-pointer border-2 border-white ring-1 ring-gray-100">
-          Aq
-        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/profile')}
+          title="Profil saya"
+          className="w-9 h-9 bg-gradient-to-tr from-gray-800 to-black rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md cursor-pointer border-2 border-white ring-1 ring-gray-100 hover:scale-105 transition-transform"
+        >
+          {profileInitials}
+        </button>
       </div>
     </header>
   );
