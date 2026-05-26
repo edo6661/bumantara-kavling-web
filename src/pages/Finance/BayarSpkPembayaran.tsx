@@ -13,7 +13,16 @@ import {
   ChevronRight,
   UploadCloud,
   FileText,
+  FileDown,
 } from 'lucide-react';
+import BsiBatchPaymentPreviewModal from '../../components/finance/BsiBatchPaymentPreviewModal';
+import {
+  BSI_DEFAULT_SOURCE_ACCOUNT,
+  buildBsiBatchRows,
+  createDefaultBsiBatchHeader,
+  type BsiBatchHeader,
+  type BsiBatchPaymentRow,
+} from '../../utils/bsiBatchPayment';
 import { useBayarSpkPembayaran, useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
 import { handleApiError } from '../../utils/errorHandler';
 import {
@@ -55,6 +64,12 @@ const BayarSpkPembayaran = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [expandedSpkIds, setExpandedSpkIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bsiPreviewOpen, setBsiPreviewOpen] = useState(false);
+  const [bsiPreviewRows, setBsiPreviewRows] = useState<BsiBatchPaymentRow[]>([]);
+  const [bsiPreviewHeader, setBsiPreviewHeader] = useState<BsiBatchHeader>(
+    createDefaultBsiBatchHeader(),
+  );
 
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -93,6 +108,43 @@ const BayarSpkPembayaran = () => {
     }
     return Array.from(map.values()).sort((a, b) => a.noSpk.localeCompare(b.noSpk));
   }, [items]);
+
+  const selectedItems = useMemo(
+    () => items.filter((row) => selectedIds.has(row.id)),
+    [items, selectedIds],
+  );
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectGroup = (groupItems: SpkPembayaranData[], checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const row of groupItems) {
+        if (checked) next.add(row.id);
+        else next.delete(row.id);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const openBsiBatchPreview = () => {
+    if (selectedItems.length === 0) return;
+    const rows = buildBsiBatchRows(selectedItems, {
+      sourceAcct: BSI_DEFAULT_SOURCE_ACCOUNT,
+    });
+    setBsiPreviewRows(rows);
+    setBsiPreviewHeader(createDefaultBsiBatchHeader());
+    setBsiPreviewOpen(true);
+  };
 
   const toggleExpand = (spkId: number) => {
     setExpandedSpkIds((prev) => {
@@ -155,9 +207,19 @@ const BayarSpkPembayaran = () => {
   const renderItemRow = (row: SpkPembayaranData) => {
     const colors = JENIS_UI_COLOR[row.jenis];
     const paid = row.status === 'SUDAH_DIBAYAR';
+    const checked = selectedIds.has(row.id);
 
     return (
       <tr key={row.id} className={`border-t border-slate-100 ${colors.row}`}>
+        <td className="px-4 py-2.5 w-10" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={() => toggleSelect(row.id)}
+            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            aria-label={`Pilih pembayaran ${getItemLabel(row)}`}
+          />
+        </td>
         <td className="px-4 py-2.5">
           <span
             className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded border ${colors.badge}`}
@@ -275,11 +337,37 @@ const BayarSpkPembayaran = () => {
         )}
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-indigo-900 text-white rounded-xl shadow-lg">
+          <span className="text-sm font-semibold">
+            {selectedIds.size} pembayaran dipilih
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="px-3 py-1.5 text-[10px] font-bold uppercase border border-white/30 rounded-lg hover:bg-white/10"
+            >
+              Hapus pilihan
+            </button>
+            <button
+              type="button"
+              onClick={openBsiBatchPreview}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase bg-white text-indigo-900 rounded-lg hover:bg-indigo-50"
+            >
+              <FileDown size={14} />
+              Convert to BSI Batch Payment
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-lg font-black text-slate-900">Pembayaran SPK</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Klik baris pada tabel untuk membuka detail termin, retensi, dan kasbon
+            Klik baris pada tabel untuk membuka detail termin, retensi, dan kasbon. Centang baris
+            pembayaran untuk generate file batch BSI.
           </p>
         </div>
 
@@ -302,6 +390,12 @@ const BayarSpkPembayaran = () => {
               <tbody>
                 {spkGroups.map((group) => {
                   const expanded = expandedSpkIds.has(group.spkId);
+                  const groupAllSelected =
+                    group.items.length > 0 &&
+                    group.items.every((item) => selectedIds.has(item.id));
+                  const groupSomeSelected =
+                    !groupAllSelected &&
+                    group.items.some((item) => selectedIds.has(item.id));
                   return (
                     <Fragment key={group.spkId}>
                       <tr
@@ -350,9 +444,23 @@ const BayarSpkPembayaran = () => {
                               Detail pembayaran — {group.noSpk}
                             </p>
                             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                              <table className="w-full min-w-[720px]">
+                              <table className="w-full min-w-[760px]">
                                 <thead>
                                   <tr className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
+                                    <th className="px-4 py-2 w-10" onClick={(e) => e.stopPropagation()}>
+                                      <input
+                                        type="checkbox"
+                                        checked={groupAllSelected}
+                                        ref={(el) => {
+                                          if (el) el.indeterminate = groupSomeSelected;
+                                        }}
+                                        onChange={(e) =>
+                                          toggleSelectGroup(group.items, e.target.checked)
+                                        }
+                                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                        aria-label={`Pilih semua pembayaran ${group.noSpk}`}
+                                      />
+                                    </th>
                                     <th className="px-4 py-2 text-left">Jenis</th>
                                     <th className="px-4 py-2 text-left">Keterangan / Termin</th>
                                     <th className="px-4 py-2 text-left">Nominal</th>
@@ -414,6 +522,13 @@ const BayarSpkPembayaran = () => {
           </div>
         )}
       </div>
+
+      <BsiBatchPaymentPreviewModal
+        isOpen={bsiPreviewOpen}
+        initialRows={bsiPreviewRows}
+        initialHeader={bsiPreviewHeader}
+        onClose={() => setBsiPreviewOpen(false)}
+      />
 
       <Modal
         isOpen={!!previewUrl}
