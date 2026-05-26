@@ -11,10 +11,10 @@ interface NavbarProps {
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
   const location = useLocation();
-  const { selectedPerumahan, setSelectedPerumahan } = useAuth();
+  const { user, selectedPerumahan, setSelectedPerumahan } = useAuth();
   const { data: perumahanList } = useGetPerumahan();
 
-
+  const showNotifications = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
   const { notifications, unreadCount, markAllAsRead, clearNotifications } = useAdminSocket();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -86,7 +86,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
 
       <div className="flex items-center gap-3 md:gap-5">
 
-        {/* --- TOMBOL NOTIFIKASI BELL --- */}
+        {showNotifications && (
         <div className="relative" ref={notifRef}>
           <button
             onClick={toggleNotif}
@@ -118,7 +118,10 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {notifications.map(notif => (
-                      <div key={notif.id} className={`p-4 hover:bg-slate-50 transition-colors ${!notif.isRead ? 'bg-indigo-50/40' : ''}`}>
+                      <div
+                        key={notif.id}
+                        className={`p-4 hover:bg-slate-50 transition-colors ${!notif.isRead ? 'bg-indigo-50/40' : ''}`}
+                      >
                         <div className="flex justify-between items-start mb-1">
                           <p className="text-xs font-bold text-slate-800">{notif.title}</p>
                           {!notif.isRead && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 mt-1"></span>}
@@ -135,6 +138,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
             </div>
           )}
         </div>
+        )}
 
         {selectedPerumahan && perumahanList && (
           <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-black/5 transition-all">

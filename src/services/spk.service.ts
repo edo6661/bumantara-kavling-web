@@ -1,4 +1,5 @@
 import api from "../lib/axios";
+import type { SpkPembayaranData } from "./spkPembayaran.service";
 
 export interface SpkKavlingItem {
   id: number;
@@ -14,12 +15,23 @@ export interface SpkData {
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number;
+  kasbonSebelumTermin2: number | null;
+  kasbonSebelumTermin3: number | null;
+  kasbonSebelumTermin4: number | null;
+  bankRekeningPtId: number | null;
+  nilaiBisaDitagihkan: number | null;
+  nilaiSudahDibayarkan: number | null;
+  sisaNilaiKontrak: number | null;
+  progressOverride: number | null;
+  progress: number;
+  progressIsOverride: boolean;
   notesPekerjaan: string | null;
   jatuhTempo: string | null;
   fileSpk: string | null;
   mandorId: number;
   mandor: { id: number; username: string };
   kavlingItems: SpkKavlingItem[];
+  pembayaranList?: SpkPembayaranData[];
   createdAt: string;
   updatedAt: string;
 }
@@ -29,11 +41,19 @@ export interface CreateSpkDTO {
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number;
+  kasbonSebelumTermin2?: number | null;
+  kasbonSebelumTermin3?: number | null;
+  kasbonSebelumTermin4?: number | null;
+  bankRekeningPtId?: number | null;
+  nilaiBisaDitagihkan?: number | null;
+  nilaiSudahDibayarkan?: number | null;
+  sisaNilaiKontrak?: number | null;
   notesPekerjaan?: string;
   jatuhTempo?: string;
   mandorId: number;
   kavlingIds: number[];
   fileSpk?: File | null;
+  progressOverride?: number | null;
 }
 
 export interface UpdateSpkDTO extends Partial<CreateSpkDTO> {}
@@ -47,6 +67,54 @@ const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
   }
   if (data.nilaiKontrak !== undefined) {
     formData.append("nilaiKontrak", String(data.nilaiKontrak));
+  }
+  if (data.kasbonSebelumTermin2 !== undefined) {
+    formData.append(
+      "kasbonSebelumTermin2",
+      data.kasbonSebelumTermin2 == null ? "" : String(data.kasbonSebelumTermin2),
+    );
+  }
+  if (data.kasbonSebelumTermin3 !== undefined) {
+    formData.append(
+      "kasbonSebelumTermin3",
+      data.kasbonSebelumTermin3 == null ? "" : String(data.kasbonSebelumTermin3),
+    );
+  }
+  if (data.kasbonSebelumTermin4 !== undefined) {
+    formData.append(
+      "kasbonSebelumTermin4",
+      data.kasbonSebelumTermin4 == null ? "" : String(data.kasbonSebelumTermin4),
+    );
+  }
+  if (data.bankRekeningPtId !== undefined) {
+    formData.append(
+      "bankRekeningPtId",
+      data.bankRekeningPtId == null ? "" : String(data.bankRekeningPtId),
+    );
+  }
+  if (data.nilaiBisaDitagihkan !== undefined) {
+    formData.append(
+      "nilaiBisaDitagihkan",
+      data.nilaiBisaDitagihkan == null ? "" : String(data.nilaiBisaDitagihkan),
+    );
+  }
+  if (data.nilaiSudahDibayarkan !== undefined) {
+    formData.append(
+      "nilaiSudahDibayarkan",
+      data.nilaiSudahDibayarkan == null ? "" : String(data.nilaiSudahDibayarkan),
+    );
+  }
+  if (data.sisaNilaiKontrak !== undefined) {
+    formData.append(
+      "sisaNilaiKontrak",
+      data.sisaNilaiKontrak == null ? "" : String(data.sisaNilaiKontrak),
+    );
+  }
+  if (data.progressOverride !== undefined) {
+    formData.append(
+      "progressOverride",
+      data.progressOverride == null ? "" : String(data.progressOverride),
+    );
   }
   if (data.notesPekerjaan !== undefined) {
     formData.append("notesPekerjaan", data.notesPekerjaan);

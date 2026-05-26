@@ -67,6 +67,7 @@ const menuItems = [
     submenus: [
       { title: 'Approve Pembayaran', path: '/finance/approve-pembayaran', resource: 'TAGIHAN' },
       { title: 'Bayar Kode Billing PPh', path: '/finance/bayar-kode-billing-pph', resource: 'TAGIHAN' },
+      { title: 'Bayar SPK Mandor', path: '/finance/bayar-spk', resource: 'TAGIHAN' },
     ],
   },
   {

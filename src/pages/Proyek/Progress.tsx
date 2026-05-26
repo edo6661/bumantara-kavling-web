@@ -11,6 +11,9 @@ import {
   useUploadTahapanPhotos,
   type ProgressProyekScope,
 } from "../../hooks/queries/useProgressProyek";
+import { useGetSpk } from "../../hooks/queries/useSpk";
+import TotalProgressOverrideControls from '../../components/proyek/TotalProgressOverrideControls';
+import SpkPembayaranMandorRingkasan from '../../components/proyek/SpkPembayaranMandorRingkasan';
 import { handleApiError } from '../../utils/errorHandler';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -24,6 +27,7 @@ import { formatDate } from '../../utils/formatters';
 
 interface ProgressProyekSummary {
   persentase: number;
+  persentaseIsOverride?: boolean;
   mandorId: number | null;
   mandor: { id: number; username: string } | null;
 }
@@ -74,10 +78,27 @@ const TAHAPAN_ICON_MAP: Record<(typeof TAHAPAN_LIST)[number], LucideIcon> = {
 const Progress = () => {
   const { user } = useAuth();
   const isMandorRole = user?.role === 'MANDOR';
+  const canEditTotalProgress = user?.role !== 'MANDOR';
   const { data: proyekResponse, isLoading: loadingProyek } = useGetProgressProyekList({
     page: 1,
     limit: 500,
   });
+  const { data: spkList = [] } = useGetSpk();
+
+  const mandorSpks = useMemo(() => {
+    if (!isMandorRole || !user?.id) return [];
+    return spkList.filter((spk) => spk.mandorId === user.id);
+  }, [isMandorRole, user?.id, spkList]);
+
+  const spkByKavlingId = useMemo(() => {
+    const map = new Map<number, { noSpk: string; progress: number }>();
+    spkList.forEach((spk) => {
+      spk.kavlingItems.forEach((k) => {
+        map.set(k.kavlingId, { noSpk: spk.noSpk, progress: Number(spk.progress ?? 0) });
+      });
+    });
+    return map;
+  }, [spkList]);
 
   const proyekList: ProyekRow[] = useMemo(() => {
     if (!proyekResponse?.items) return [];
@@ -91,6 +112,7 @@ const Progress = () => {
       progressProyek: item.progressProyek
         ? {
             persentase: Number(item.progressProyek.persentase),
+            persentaseIsOverride: item.progressProyek.persentaseIsOverride,
             mandorId: item.progressProyek.mandorId,
             mandor: item.progressProyek.mandor,
           }
@@ -121,15 +143,22 @@ const Progress = () => {
     {
       header: 'Customer & Blok',
       accessor: 'nama',
-      render: (_val: string, row: ProyekRow) => (
-        <div>
-          <span className="font-bold text-slate-900 block">{row.nama}</span>
-          <span className="text-xs font-medium text-slate-500">
-            Blok {row.blok}-{row.nomorUnit}
-          </span>
-         
-        </div>
-      )
+      render: (_val: string, row: ProyekRow) => {
+        const spkInfo = spkByKavlingId.get(row.kavlingId);
+        return (
+          <div>
+            <span className="font-bold text-slate-900 block">{row.nama}</span>
+            <span className="text-xs font-medium text-slate-500">
+              Blok {row.blok}-{row.nomorUnit}
+            </span>
+            {spkInfo && (
+              <span className="text-[10px] font-bold text-indigo-600 mt-0.5 block">
+                SPK {spkInfo.noSpk} · progress SPK {spkInfo.progress}%
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: 'Mandor',
@@ -141,20 +170,13 @@ const Progress = () => {
     {
       header: 'Total Progress',
       accessor: 'progressProyek',
-      render: (val: ProgressProyekSummary | null) => {
-        const persentase = val?.persentase || 0;
-        return (
-          <div className="flex items-center gap-3">
-            <div className="w-24 bg-slate-200 rounded-full h-2.5 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${persentase === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
-                style={{ width: `${persentase}%` }}
-              ></div>
-            </div>
-            <span className="text-xs font-black text-slate-700">{persentase}%</span>
-          </div>
-        );
-      }
+      render: (val: ProgressProyekSummary | null, row: ProyekRow) => (
+        <TotalProgressOverrideControls
+          kavlingId={row.kavlingId}
+          canEdit={canEditTotalProgress}
+          compact
+        />
+      ),
     },
     {
       header: 'Aksi',
@@ -198,6 +220,21 @@ const Progress = () => {
           <p className="text-xs text-orange-600 mt-1">Hubungi admin untuk menambahkan kavling Anda ke SPK.</p>
         </div>
       )}
+      {isMandorRole && <SpkPembayaranMandorRingkasan mandorSpks={mandorSpks} />}
+
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs text-slate-600">
+        {canEditTotalProgress ? (
+          <>
+            Admin dapat <strong>override total progress</strong> per unit (kolom Total Progress) atau reset ke default
+            (kalkulasi dari tahapan). Progress unit mempengaruhi <strong>progress SPK</strong>.
+          </>
+        ) : (
+          <>
+            Progress per kavling mempengaruhi <strong>progress SPK</strong> (rata-rata kavling dalam SPK).
+          </>
+        )}
+        {' '}Pengajuan termin & bukti pembayaran di menu <strong>SPK</strong> (detail SPK).
+      </div>
       <DataTable
         title={isMandorRole ? 'Proyek Saya' : 'Laporan Progress Lapangan'}
         columns={columns}
@@ -211,6 +248,7 @@ const Progress = () => {
           onClose={closeModals}
           proyek={selectedProyek}
           scope={getProgressScope(selectedProyek)}
+          canEditTotalProgress={canEditTotalProgress}
         />
       )}
 
@@ -242,7 +280,6 @@ interface TahapanDirectEditModalProps {
 const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
   isOpen,
   onClose,
-  proyek,
   scope,
   namaTahapan
 }) => {
@@ -279,6 +316,7 @@ interface ProgressDetailModalProps {
   onClose: () => void;
   proyek: ProyekRow;
   scope: ProgressProyekScope;
+  canEditTotalProgress: boolean;
 }
 
 const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
@@ -286,6 +324,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
   onClose,
   proyek,
   scope,
+  canEditTotalProgress,
 }) => {
   const { user } = useAuth();
   const isMandorRole = user?.role === 'MANDOR';
@@ -331,6 +370,16 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
                   Assign mandor melalui menu SPK dengan memilih kavling ini.
                 </p>
               )}
+            </div>
+
+            <div className="p-4 border border-indigo-100 rounded-2xl bg-indigo-50/40">
+              <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest mb-2">
+                Total Progress Unit
+              </p>
+              <TotalProgressOverrideControls
+                kavlingId={proyek.kavlingId}
+                canEdit={canEditTotalProgress}
+              />
             </div>
 
             {/* Tabel Detail Tahapan */}

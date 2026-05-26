@@ -4,6 +4,7 @@ import {
   type UpdateProgressProyekDTO,
 } from "../../services/progressProyek.service";
 import { PENJUALAN_KEYS } from "./usePenjualan";
+import { SPK_KEYS } from "./useSpk";
 
 export type ProgressProyekScope =
   | { penjualanId: number }
@@ -126,6 +127,40 @@ export const useAddTahapanLog = () => {
       invalidateProgressDetail(queryClient, variables.scope);
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
+    },
+  });
+};
+
+export const useSetTotalProgressByKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { kavlingId: number; persentase: number }) =>
+      progressProyekService.setTotalByKavling(payload.kavlingId, payload.persentase),
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(
+        PROGRESS_PROYEK_KEYS.detail({ kavlingId: variables.kavlingId }),
+        data,
+      );
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+    },
+  });
+};
+
+export const useResetTotalProgressByKavling = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { kavlingId: number }) =>
+      progressProyekService.resetTotalByKavling(payload.kavlingId),
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData(
+        PROGRESS_PROYEK_KEYS.detail({ kavlingId: variables.kavlingId }),
+        data,
+      );
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
     },
   });
 };

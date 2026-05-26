@@ -22,6 +22,8 @@ export interface ProgressProyekData {
   mandorId: number | null;
   mandor: MandorOption | null;
   persentase: number;
+  persentaseOverride?: number | null;
+  persentaseIsOverride?: boolean;
   createdAt: string;
   updatedAt: string;
   tahapan: TahapanProyekData[];
@@ -37,6 +39,7 @@ export interface ProgressProyekListItem {
   status: string;
   progressProyek: {
     persentase: number;
+    persentaseIsOverride?: boolean;
     mandorId: number | null;
     mandor: MandorOption | null;
   } | null;
@@ -160,6 +163,21 @@ export const progressProyekService = {
         headers: { "Content-Type": "multipart/form-data" },
       },
     );
+    return response.data.data;
+  },
+
+  setTotalByKavling: async (
+    kavlingId: number,
+    persentase: number,
+  ): Promise<ProgressProyekData> => {
+    const response = await api.patch(`/progress-proyek/kavling/${kavlingId}/total`, {
+      persentase,
+    });
+    return response.data.data;
+  },
+
+  resetTotalByKavling: async (kavlingId: number): Promise<ProgressProyekData> => {
+    const response = await api.post(`/progress-proyek/kavling/${kavlingId}/total/reset`);
     return response.data.data;
   },
 };

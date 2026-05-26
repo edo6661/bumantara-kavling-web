@@ -9,8 +9,11 @@ import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import { handleApiError } from '../../utils/errorHandler';
+import { useAuth } from "../../context/AuthContext";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
 import { useGetMandors } from "../../hooks/queries/useProgressProyek";
+import TotalProgressOverrideControls from '../../components/proyek/TotalProgressOverrideControls';
+import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
 import {
   useCreateSpk,
   useDeleteSpk,
@@ -18,13 +21,23 @@ import {
   useUpdateSpk,
 } from "../../hooks/queries/useSpk";
 import type { SpkData } from '../../services/spk.service';
+import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
+import SpkPembayaranMandorRingkasan from '../../components/proyek/SpkPembayaranMandorRingkasan';
+import SpkPembayaranStatusChips from '../../components/proyek/SpkPembayaranStatusChips';
+import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
+import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 import type { KavlingData } from '../../services/kavling.service';
+import type { BankRekeningPt } from '../../services/bankRekening.service';
 
 interface SpkFormState {
   noSpk: string;
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number | '';
+  kasbonSebelumTermin2: number | '';
+  kasbonSebelumTermin3: number | '';
+  bankRekeningPtId: number | '';
+  progressOverride: number | '';
   notesPekerjaan: string;
   jatuhTempo: string;
   mandorId: number | '';
@@ -144,6 +157,23 @@ const SpkKavlingCell = ({ items }: { items: SpkData['kavlingItems'] }) => {
   );
 };
 
+const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
+
+const KavlingTotalProgressRow = ({
+  kavlingId,
+  label,
+  canEdit,
+}: {
+  kavlingId: number;
+  label: string;
+  canEdit: boolean;
+}) => (
+  <div className="py-2 space-y-2">
+    <p className="text-sm font-bold text-slate-800 truncate">{label}</p>
+    <TotalProgressOverrideControls kavlingId={kavlingId} canEdit={canEdit} />
+  </div>
+);
+
 const getCustomerNamaFromKavling = (kavling: KavlingData): string => {
   const activePenjualan = kavling.penjualan?.find((p) => p.customer?.nama);
   return activePenjualan?.customer?.nama ?? '-';
@@ -169,6 +199,10 @@ const initialFormState = (): SpkFormState => ({
   tanggalSpk: todayIso(),
   judulPekerjaan: '',
   nilaiKontrak: '',
+  kasbonSebelumTermin2: '',
+  kasbonSebelumTermin3: '',
+  bankRekeningPtId: '',
+  progressOverride: '',
   notesPekerjaan: '',
   jatuhTempo: '',
   mandorId: '',
@@ -178,9 +212,40 @@ const initialFormState = (): SpkFormState => ({
 });
 
 const SPK = () => {
+  const { user, selectedPerumahan } = useAuth();
+  const canManageSpk = user?.role !== 'MANDOR';
+  const canEditKavlingProgress = canManageSpk;
+  const canEditSpkProgress = canManageSpk;
+
+  const canAjukanPembayaranFor = (spk: SpkData) => {
+    if (!user) return false;
+    if (user.role === 'MANDOR') return spk.mandorId === user.id;
+    if (user.role === 'FINANCE' || user.role === 'CUSTOMER') return false;
+    return true;
+  };
+  const isMandorRole = user?.role === 'MANDOR';
   const { data: spkList = [], isLoading: loadingSpk } = useGetSpk();
+  const { data: pembayaranPage } = useGetSpkPembayaranList({ page: 1, limit: 500, status: 'ALL' });
+
+  const visibleSpkList = useMemo(() => {
+    if (isMandorRole && user?.id) {
+      return spkList.filter((spk) => spk.mandorId === user.id);
+    }
+    return spkList;
+  }, [isMandorRole, user?.id, spkList]);
+
+  const pembayaranBySpkId = useMemo(() => {
+    const map = new Map<number, SpkPembayaranData[]>();
+    (pembayaranPage?.items ?? []).forEach((p) => {
+      const list = map.get(p.spkId) ?? [];
+      list.push(p);
+      map.set(p.spkId, list);
+    });
+    return map;
+  }, [pembayaranPage?.items]);
   const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
   const { data: mandorList = [] } = useGetMandors();
+  const { data: bankList = [] } = useGetBankRekening();
   const createMutation = useCreateSpk();
   const updateMutation = useUpdateSpk();
   const deleteMutation = useDeleteSpk();
@@ -193,6 +258,33 @@ const SPK = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [expandedBloks, setExpandedBloks] = useState<Set<string>>(new Set());
+  const [spkProgressInput, setSpkProgressInput] = useState<string>('');
+
+  useEffect(() => {
+    if (!detailItem) return;
+    setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
+  }, [detailItem]);
+
+  useEffect(() => {
+    if (!detailItem) return;
+    const fresh = visibleSpkList.find((s) => s.id === detailItem.id);
+    if (fresh) setDetailItem(fresh);
+  }, [visibleSpkList, detailItem?.id]);
+
+  const bankOptions = useMemo(() => {
+    const filtered = selectedPerumahan
+      ? bankList.filter((b) => b.perumahanId === Number(selectedPerumahan.id))
+      : bankList;
+    return filtered;
+  }, [bankList, selectedPerumahan]);
+
+  const bankLabelById = useMemo(() => {
+    const map = new Map<number, string>();
+    bankList.forEach((b) => {
+      map.set(b.id, `${b.atasNama}`);
+    });
+    return map;
+  }, [bankList]);
 
   const kavlingSpkAssignmentMap = useMemo(() => {
     const map = new Map<number, KavlingSpkAssignment>();
@@ -278,6 +370,56 @@ const SPK = () => {
       render: (val: number) => formatRupiah(val),
     },
     {
+      header: 'Progress SPK',
+      accessor: 'progress',
+      render: (_val: number, row: SpkData) => {
+        const persentase = Number(row.progress ?? 0);
+        return (
+          <div className="flex items-center gap-2">
+            <div className="w-20 bg-slate-200 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full rounded-full ${persentase === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
+                style={{ width: `${persentase}%` }}
+              />
+            </div>
+            <span className="text-[11px] font-black text-slate-700">
+              {persentase}%{row.progressIsOverride ? ' *' : ''}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Kasbon sblm 55%',
+      accessor: 'kasbonSebelumTermin2',
+      render: (val: number | null) => (val == null ? '-' : formatRupiah(val)),
+    },
+    {
+      header: 'Kasbon sblm 100%',
+      accessor: 'kasbonSebelumTermin3',
+      render: (val: number | null) => (val == null ? '-' : formatRupiah(val)),
+    },
+    {
+      header: 'Rek PT',
+      accessor: 'bankRekeningPtId',
+      render: (val: number | null) => (
+        <span className="text-xs text-slate-600" title={val ? bankLabelById.get(val) : undefined}>
+          {val ? (bankLabelById.get(val) ?? `ID ${val}`) : '-'}
+        </span>
+      ),
+    },
+    {
+      header: 'Nilai tagih',
+      accessor: 'nilaiBisaDitagihkan',
+      render: (val: number | null) => (val == null ? '-' : formatRupiah(val)),
+    },
+    {
+      header: 'Sudah dibayar',
+      accessor: 'nilaiSudahDibayarkan',
+      render: (val: number | null) => (val == null ? '-' : formatRupiah(val)),
+    },
+ 
+    {
       header: 'Dokumen',
       accessor: 'fileSpk',
       render: (val: string | null) => val ? (
@@ -310,6 +452,10 @@ const SPK = () => {
       tanggalSpk: item.tanggalSpk.split('T')[0]!,
       judulPekerjaan: item.judulPekerjaan,
       nilaiKontrak: item.nilaiKontrak,
+      kasbonSebelumTermin2: item.kasbonSebelumTermin2 ?? '',
+      kasbonSebelumTermin3: item.kasbonSebelumTermin3 ?? '',
+      bankRekeningPtId: item.bankRekeningPtId ?? '',
+      progressOverride: item.progressOverride ?? '',
       notesPekerjaan: item.notesPekerjaan || '',
       jatuhTempo: item.jatuhTempo ? item.jatuhTempo.split('T')[0]! : '',
       mandorId: item.mandorId,
@@ -411,6 +557,14 @@ const SPK = () => {
       tanggalSpk: formData.tanggalSpk,
       judulPekerjaan: formData.judulPekerjaan.trim(),
       nilaiKontrak: Number(formData.nilaiKontrak),
+      kasbonSebelumTermin2:
+        formData.kasbonSebelumTermin2 === '' ? undefined : Number(formData.kasbonSebelumTermin2),
+      kasbonSebelumTermin3:
+        formData.kasbonSebelumTermin3 === '' ? undefined : Number(formData.kasbonSebelumTermin3),
+      bankRekeningPtId:
+        formData.bankRekeningPtId === '' ? undefined : Number(formData.bankRekeningPtId),
+      progressOverride:
+        formData.progressOverride === '' ? undefined : Number(formData.progressOverride),
       notesPekerjaan: formData.notesPekerjaan.trim() || undefined,
       jatuhTempo: formData.jatuhTempo || undefined,
       mandorId: Number(formData.mandorId),
@@ -446,14 +600,16 @@ const SPK = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {isMandorRole && <SpkPembayaranMandorRingkasan mandorSpks={visibleSpkList} />}
+
       <DataTable
-        title="Surat Perintah Kerja (SPK)"
+        title={isMandorRole ? 'SPK Saya' : 'Surat Perintah Kerja (SPK)'}
         columns={columns}
-        data={spkList}
-        onAdd={openCreateModal}
-        onEdit={openEditModal}
+        data={visibleSpkList}
+        onAdd={canManageSpk ? openCreateModal : undefined}
+        onEdit={canManageSpk ? openEditModal : undefined}
         onDetail={openDetail}
-        onDelete={handleDelete}
+        onDelete={canManageSpk ? handleDelete : undefined}
       />
 
       <Modal
@@ -471,7 +627,7 @@ const SPK = () => {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Tanggal SPK</p>
-                <p className="font-medium">{formatDate(detailItem.tanggalSpk)}</p>
+                <p className="font-medium text-black">{formatDate(detailItem.tanggalSpk)}</p>
               </div>
               <div className="md:col-span-2">
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Judul Pekerjaan</p>
@@ -479,16 +635,115 @@ const SPK = () => {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Mandor</p>
-                <p className="font-medium">{detailItem.mandor.username}</p>
+                <p className="font-medium text-black">{detailItem.mandor.username}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai Kontrak</p>
-                <p className="font-bold">{formatRupiah(detailItem.nilaiKontrak)}</p>
+                <p className="font-bold text-black">{formatRupiah(detailItem.nilaiKontrak)}</p>
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Progress SPK</p>
+                <div className="mt-1 flex items-center gap-3 flex-wrap">
+                  <div className="w-44 bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${detailItem.progress === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
+                      style={{ width: `${Number(detailItem.progress ?? 0)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-black text-slate-800">
+                    {Number(detailItem.progress ?? 0)}%{detailItem.progressIsOverride ? ' (manual)' : ' (default)'}
+                  </span>
+
+                  {canEditSpkProgress && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={3}
+                        value={spkProgressInput}
+                        onChange={(e) =>
+                          setSpkProgressInput(e.target.value.replace(/\D/g, '').slice(0, 3))
+                        }
+                        onBlur={() => {
+                          if (spkProgressInput === '') {
+                            setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
+                            return;
+                          }
+                          setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
+                        }}
+                        className="w-16 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-black text-slate-800 text-center outline-none"
+                      />
+                      <span className="text-xs font-bold text-slate-500">%</span>
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-900 text-white hover:bg-black"
+                        onClick={async () => {
+                          const parsed =
+                            spkProgressInput === ''
+                              ? clampPercent(Number(detailItem.progress ?? 0))
+                              : clampPercent(parseInt(spkProgressInput, 10));
+                          try {
+                            await updateMutation.mutateAsync({
+                              id: detailItem.id,
+                              data: { progressOverride: parsed },
+                            });
+                          } catch (err: unknown) {
+                            alert(handleApiError(err).message);
+                          }
+                        }}
+                      >
+                        Simpan
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        onClick={async () => {
+                          try {
+                            await updateMutation.mutateAsync({
+                              id: detailItem.id,
+                              data: { progressOverride: null },
+                            });
+                          } catch (err: unknown) {
+                            alert(handleApiError(err).message);
+                          }
+                        }}
+                      >
+                        Default
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-2">
+                  Default = rata-rata progress seluruh kavling dalam SPK ini. Override hanya mengubah progress SPK.
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Kasbon sebelum 55%</p>
+                <p className="font-medium text-black">{detailItem.kasbonSebelumTermin2 == null ? '-' : formatRupiah(detailItem.kasbonSebelumTermin2)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Kasbon sebelum 100%</p>
+                <p className="font-medium text-black">{detailItem.kasbonSebelumTermin3 == null ? '-' : formatRupiah(detailItem.kasbonSebelumTermin3)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Rekening PT</p>
+                <p className="font-medium text-slate-700">
+                  {detailItem.bankRekeningPtId ? (bankLabelById.get(detailItem.bankRekeningPtId) ?? `ID ${detailItem.bankRekeningPtId}`) : '-'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai yang bisa ditagihkan</p>
+                <p className="font-medium text-black">{detailItem.nilaiBisaDitagihkan == null ? '-' : formatRupiah(detailItem.nilaiBisaDitagihkan)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai yang sudah dibayarkan</p>
+                <p className="font-medium text-black">{detailItem.nilaiSudahDibayarkan == null ? '-' : formatRupiah(detailItem.nilaiSudahDibayarkan)}</p>
               </div>
               {detailItem.jatuhTempo && (
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Jatuh Tempo</p>
-                  <p className="font-medium">{formatDate(detailItem.jatuhTempo)}</p>
+                  <p className="font-medium text-black">{formatDate(detailItem.jatuhTempo)}</p>
                 </div>
               )}
               {detailItem.notesPekerjaan && (
@@ -499,17 +754,25 @@ const SPK = () => {
               )}
             </div>
 
+            <div className="border-t border-slate-200 pt-4">
+              <SpkPembayaranPanel
+                spk={detailItem}
+                canAjukan={canAjukanPembayaranFor(detailItem)}
+              />
+            </div>
+
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Kavling dalam SPK</p>
               <ul className="border border-slate-200 rounded-xl divide-y divide-slate-100">
                 {[...detailItem.kavlingItems]
                   .sort((a, b) => compareKavlingBlokUnit(a, b))
                   .map((item) => (
-                    <li key={item.id} className="px-4 py-2.5 text-sm flex justify-between gap-4">
-                      <span className="font-bold text-slate-800">
-                        Blok {item.blok}-{item.nomorUnit}
-                      </span>
-                      <span className="text-slate-500 shrink-0">{item.customerNama}</span>
+                    <li key={item.id} className="px-4 py-2.5">
+                      <KavlingTotalProgressRow
+                        kavlingId={item.kavlingId}
+                        label={`Blok ${item.blok}-${item.nomorUnit} · ${item.customerNama}`}
+                        canEdit={canEditKavlingProgress}
+                      />
                     </li>
                   ))}
               </ul>
@@ -553,7 +816,39 @@ const SPK = () => {
                 error={errors.nilaiKontrak}
                 placeholder="0"
               />
+              <CurrencyInput
+                label="Kasbon sebelum 55% (opsional)"
+                name="kasbonSebelumTermin2"
+                value={formData.kasbonSebelumTermin2}
+                onValueChange={handleCurrencyChange}
+                placeholder="0"
+              />
+              <CurrencyInput
+                label="Kasbon sebelum 100% (opsional)"
+                name="kasbonSebelumTermin3"
+                value={formData.kasbonSebelumTermin3}
+                onValueChange={handleCurrencyChange}
+                placeholder="0"
+              />
+              <Select
+                label="Rekening PT (opsional)"
+                name="bankRekeningPtId"
+                value={formData.bankRekeningPtId !== '' ? String(formData.bankRekeningPtId) : ''}
+                onChange={handleChange}
+                options={[
+                  { value: '', label: '-- Pilih Rekening PT --' },
+                  ...bankOptions.map((b: BankRekeningPt) => ({
+                    value: String(b.id),
+                    label: `${b.namaBank} · ${b.noRekening} · a/n ${b.atasNama}`,
+                  })),
+                ]}
+              />
               <Input label="Jatuh Tempo (opsional)" type="date" name="jatuhTempo" value={formData.jatuhTempo} onChange={handleChange} />
+              {editingId && (
+                <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-800">
+                  Nilai tagih, sudah dibayar, dan sisa kontrak dihitung otomatis dari pengajuan &amp; pembayaran finance.
+                </div>
+              )}
               <div className="md:col-span-2 flex flex-col gap-1.5">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">
                   Catatan Pekerjaan (opsional)
