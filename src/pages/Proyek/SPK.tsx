@@ -23,9 +23,6 @@ import {
 import type { SpkData } from '../../services/spk.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
 import SpkPembayaranMandorRingkasan from '../../components/proyek/SpkPembayaranMandorRingkasan';
-import SpkPembayaranStatusChips from '../../components/proyek/SpkPembayaranStatusChips';
-import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
-import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 import type { KavlingData } from '../../services/kavling.service';
 import type { BankRekeningPt } from '../../services/bankRekening.service';
 
@@ -225,8 +222,6 @@ const SPK = () => {
   };
   const isMandorRole = user?.role === 'MANDOR';
   const { data: spkList = [], isLoading: loadingSpk } = useGetSpk();
-  const { data: pembayaranPage } = useGetSpkPembayaranList({ page: 1, limit: 500, status: 'ALL' });
-
   const visibleSpkList = useMemo(() => {
     if (isMandorRole && user?.id) {
       return spkList.filter((spk) => spk.mandorId === user.id);
@@ -234,15 +229,6 @@ const SPK = () => {
     return spkList;
   }, [isMandorRole, user?.id, spkList]);
 
-  const pembayaranBySpkId = useMemo(() => {
-    const map = new Map<number, SpkPembayaranData[]>();
-    (pembayaranPage?.items ?? []).forEach((p) => {
-      const list = map.get(p.spkId) ?? [];
-      list.push(p);
-      map.set(p.spkId, list);
-    });
-    return map;
-  }, [pembayaranPage?.items]);
   const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
   const { data: mandorList = [] } = useGetMandors();
   const { data: bankList = [] } = useGetBankRekening();

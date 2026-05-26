@@ -170,7 +170,7 @@ const Progress = () => {
     {
       header: 'Total Progress',
       accessor: 'progressProyek',
-      render: (val: ProgressProyekSummary | null, row: ProyekRow) => (
+      render: (_val: ProgressProyekSummary | null, row: ProyekRow) => (
         <TotalProgressOverrideControls
           kavlingId={row.kavlingId}
           canEdit={canEditTotalProgress}
