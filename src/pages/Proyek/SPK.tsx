@@ -696,7 +696,6 @@ const SPK = () => {
                 <thead>
                   <tr>
                     <th className={detailThClass}>Progress SPK</th>
-                    <th className={detailThClass}>Mode</th>
                     {canEditSpkProgress && <th className={detailThClass}>Progress SPK</th>}
                     <th className={detailThClass}>Dokumen</th>
                   </tr>
@@ -716,17 +715,7 @@ const SPK = () => {
                         </span>
                       </div>
                     </td>
-                    <td className={detailTdClass}>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
-                          detailItem.progressIsOverride
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-slate-100 text-slate-500'
-                        }`}
-                      >
-                        {detailItem.progressIsOverride ? 'Manual' : 'Awal (0%)'}
-                      </span>
-                    </td>
+                    
                     {canEditSpkProgress && (
                       <td className={detailTdClass}>
                         <div className="flex items-center gap-1.5 flex-wrap">
