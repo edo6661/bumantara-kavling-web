@@ -3,7 +3,7 @@ import {
   spkPembayaranService,
   type SpkPembayaranListParams,
 } from '../../services/spkPembayaran.service';
-import type { SpkPembayaranJenis } from '../../utils/spkPembayaran';
+import type { CreateSpkPembayaranBody } from '../../services/spkPembayaran.service';
 import { SPK_KEYS } from './useSpk';
 
 export const SPK_PEMBAYARAN_KEYS = {
@@ -31,8 +31,8 @@ export const useGetSpkPembayaranList = (params: SpkPembayaranListParams) => {
 export const useCreateSpkPembayaranRequest = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ spkId, jenis }: { spkId: number; jenis: SpkPembayaranJenis }) =>
-      spkPembayaranService.createRequest(spkId, jenis),
+    mutationFn: ({ spkId, body }: { spkId: number; body: CreateSpkPembayaranBody }) =>
+      spkPembayaranService.createRequest(spkId, body),
     onSuccess: (_, { spkId }) => {
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(spkId) });
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });

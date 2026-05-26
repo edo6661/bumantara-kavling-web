@@ -1,6 +1,5 @@
-import { useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import DataTable from '../../components/shared/DataTable';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../../components/shared/BuktiFileThumbnail';
@@ -11,13 +10,43 @@ import {
   Filter,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   UploadCloud,
   FileText,
 } from 'lucide-react';
 import { useBayarSpkPembayaran, useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
 import { handleApiError } from '../../utils/errorHandler';
-import { SPK_PEMBAYARAN_JENIS_LABEL } from '../../utils/spkPembayaran';
+import {
+  SPK_KASBON_TARGET_LABEL,
+  SPK_PEMBAYARAN_JENIS_LABEL,
+  JENIS_UI_COLOR,
+  type SpkPembayaranJenis,
+} from '../../utils/spkPembayaran';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
+
+interface SpkGroup {
+  spkId: number;
+  noSpk: string;
+  judulPekerjaan: string;
+  mandorUsername: string;
+  nilaiKontrak: number;
+  items: SpkPembayaranData[];
+  menungguCount: number;
+}
+
+const thParentClass =
+  'px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50 border-b border-slate-200 whitespace-nowrap';
+const tdParentClass = 'px-4 py-3 text-sm text-slate-800 align-middle border-b border-slate-100';
+
+const getItemLabel = (row: SpkPembayaranData) => {
+  if (row.jenis === 'KASBON') {
+    const target = row.mengurangiTermin
+      ? ` → ${SPK_KASBON_TARGET_LABEL[row.mengurangiTermin]}`
+      : '';
+    return `${row.keterangan ?? 'Kasbon'}${target}`;
+  }
+  return SPK_PEMBAYARAN_JENIS_LABEL[row.jenis];
+};
 
 const BayarSpkPembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,11 +54,12 @@ const BayarSpkPembayaran = () => {
   const [uploadTarget, setUploadTarget] = useState<SpkPembayaranData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+  const [expandedSpkIds, setExpandedSpkIds] = useState<Set<number>>(new Set());
 
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') ?? 'ALL';
-  const limit = 10;
+  const limit = 200;
 
   const { data: response, isLoading } = useGetSpkPembayaranList({
     page,
@@ -41,6 +71,37 @@ const BayarSpkPembayaran = () => {
   const items = response?.items ?? [];
   const meta = response?.meta;
   const bayarMutation = useBayarSpkPembayaran();
+
+  const spkGroups = useMemo((): SpkGroup[] => {
+    const map = new Map<number, SpkGroup>();
+    for (const row of items) {
+      const existing = map.get(row.spkId);
+      if (existing) {
+        existing.items.push(row);
+        if (row.status === 'MENUNGGU_PEMBAYARAN') existing.menungguCount += 1;
+      } else {
+        map.set(row.spkId, {
+          spkId: row.spkId,
+          noSpk: row.spk?.noSpk ?? `#${row.spkId}`,
+          judulPekerjaan: row.spk?.judulPekerjaan ?? '-',
+          mandorUsername: row.spk?.mandor?.username ?? '-',
+          nilaiKontrak: row.spk?.nilaiKontrak ?? 0,
+          items: [row],
+          menungguCount: row.status === 'MENUNGGU_PEMBAYARAN' ? 1 : 0,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.noSpk.localeCompare(b.noSpk));
+  }, [items]);
+
+  const toggleExpand = (spkId: number) => {
+    setExpandedSpkIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(spkId)) next.delete(spkId);
+      else next.add(spkId);
+      return next;
+    });
+  };
 
   const handlePageChange = (newPage: number) => {
     setSearchParams((prev) => {
@@ -82,11 +143,8 @@ const BayarSpkPembayaran = () => {
     }
 
     try {
-      await bayarMutation.mutateAsync({
-        id: uploadTarget.id,
-        file,
-      });
-      alert('Pembayaran SPK berhasil diproses. Nominal SPK telah diperbarui.');
+      await bayarMutation.mutateAsync({ id: uploadTarget.id, file });
+      alert('Pembayaran SPK berhasil diproses.');
     } catch (error) {
       alert(handleApiError(error).message);
     } finally {
@@ -94,94 +152,64 @@ const BayarSpkPembayaran = () => {
     }
   };
 
-  const columns = [
-    {
-      header: 'SPK & Mandor',
-      accessor: 'spk',
-      render: (_: unknown, row: SpkPembayaranData) => (
-        <div>
-          <span className="font-bold text-slate-900 block">{row.spk?.noSpk ?? `#${row.spkId}`}</span>
-          <span className="text-[10px] text-slate-500">{row.spk?.mandor?.username ?? '-'}</span>
-        </div>
-      ),
-    },
-    {
-      header: 'Termin',
-      accessor: 'jenis',
-      render: (val: SpkPembayaranData['jenis']) => (
-        <span className="text-xs font-semibold text-slate-700">
-          {SPK_PEMBAYARAN_JENIS_LABEL[val]}
-        </span>
-      ),
-    },
-    {
-      header: 'Nominal',
-      accessor: 'nominal',
-      render: (val: number) => (
-        <span className="font-black text-slate-900">{formatRupiah(val)}</span>
-      ),
-    },
-    {
-      header: 'Diajukan',
-      accessor: 'diajukanOleh',
-      render: (val: SpkPembayaranData['diajukanOleh']) => (
-        <span className="text-xs text-slate-600">{val?.username ?? '-'}</span>
-      ),
-    },
-    {
-      header: 'Tanggal',
-      accessor: 'createdAt',
-      render: (val: string) => (
-        <span className="text-xs text-slate-600">{formatDate(val)}</span>
-      ),
-    },
-    {
-      header: 'Status',
-      accessor: 'status',
-      render: (val: string) =>
-        val === 'MENUNGGU_PEMBAYARAN' ? (
-          <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase bg-yellow-100 text-yellow-700 rounded-md w-fit">
-            <Clock size={12} /> Menunggu Pembayaran
-          </span>
-        ) : (
-          <span className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase bg-green-100 text-green-700 rounded-md w-fit">
-            <CheckCircle2 size={12} /> Terbayar
-          </span>
-        ),
-    },
-    {
-      header: 'Bukti',
-      accessor: 'buktiPembayaran',
-      render: (val: string | null) =>
-        val ? (
-          <BuktiFileThumbnail
-            url={val}
-            onClick={() => setPreviewUrl(val)}
-            className="w-12 h-8"
-          />
-        ) : (
-          <span className="text-slate-400 text-xs">-</span>
-        ),
-    },
-    {
-      header: 'Aksi',
-      accessor: 'id',
-      render: (_: number, row: SpkPembayaranData) =>
-        row.status === 'MENUNGGU_PEMBAYARAN' ? (
-          <button
-            type="button"
-            onClick={() => openUpload(row)}
-            disabled={bayarMutation.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase bg-slate-900 text-white rounded-lg hover:bg-black disabled:opacity-50"
+  const renderItemRow = (row: SpkPembayaranData) => {
+    const colors = JENIS_UI_COLOR[row.jenis];
+    const paid = row.status === 'SUDAH_DIBAYAR';
+
+    return (
+      <tr key={row.id} className={`border-t border-slate-100 ${colors.row}`}>
+        <td className="px-4 py-2.5">
+          <span
+            className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded border ${colors.badge}`}
           >
-            <UploadCloud size={12} />
-            Bayar & Upload Bukti
-          </button>
-        ) : (
-          <span className="text-[10px] text-slate-400"></span>
-        ),
-    },
-  ];
+            {row.jenis === 'KASBON' ? 'Kasbon' : row.jenis.replace('_', ' ')}
+          </span>
+        </td>
+        <td className="px-4 py-2.5 text-xs text-slate-700 max-w-[240px]">
+          {getItemLabel(row)}
+        </td>
+        <td className={`px-4 py-2.5 text-sm font-bold ${colors.text} whitespace-nowrap`}>
+          {formatRupiah(row.nominal)}
+        </td>
+        <td className="px-4 py-2.5 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
+        <td className="px-4 py-2.5">
+          {paid ? (
+            <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-green-100 text-green-700 rounded w-fit">
+              <CheckCircle2 size={10} /> Terbayar
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-yellow-100 text-yellow-700 rounded w-fit">
+              <Clock size={10} /> Menunggu
+            </span>
+          )}
+        </td>
+        <td className="px-4 py-2.5">
+          {row.buktiPembayaran ? (
+            <BuktiFileThumbnail
+              url={row.buktiPembayaran}
+              onClick={() => setPreviewUrl(row.buktiPembayaran!)}
+              className="w-12 h-8"
+            />
+          ) : (
+            <span className="text-slate-400 text-xs">—</span>
+          )}
+        </td>
+        <td className="px-4 py-2.5">
+          {!paid && (
+            <button
+              type="button"
+              onClick={() => openUpload(row)}
+              disabled={bayarMutation.isPending}
+              className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold uppercase bg-slate-900 text-white rounded-lg hover:bg-black disabled:opacity-50 whitespace-nowrap"
+            >
+              <UploadCloud size={11} />
+              Bayar
+            </button>
+          )}
+        </td>
+      </tr>
+    );
+  };
 
   if (isLoading) return <PageLoader />;
 
@@ -194,6 +222,17 @@ const BayarSpkPembayaran = () => {
         className="hidden"
         onChange={handleFileSelected}
       />
+
+      <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase">
+        {(Object.keys(JENIS_UI_COLOR) as SpkPembayaranJenis[]).map((jenis) => (
+          <span
+            key={jenis}
+            className={`inline-flex px-2 py-1 rounded border ${JENIS_UI_COLOR[jenis].badge}`}
+          >
+            {jenis === 'KASBON' ? 'Kasbon' : jenis.replace('_', ' ')}
+          </span>
+        ))}
+      </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <button
@@ -220,21 +259,161 @@ const BayarSpkPembayaran = () => {
                 <option value="SUDAH_DIBAYAR">Sudah Dibayar</option>
               </select>
             </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Cari SPK / Mandor</label>
+              <input
+                type="text"
+                defaultValue={search}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSearchChange((e.target as HTMLInputElement).value);
+                }}
+                placeholder="Tekan Enter untuk cari..."
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+              />
+            </div>
           </div>
         )}
       </div>
 
-      <DataTable
-        title="Pembayaran SPK (Mandor / Kontraktor)"
-        columns={columns}
-        data={items}
-        serverSide
-        page={page}
-        totalPages={meta?.totalPages || 1}
-        onPageChange={handlePageChange}
-        searchTerm={search}
-        onSearchChange={handleSearchChange}
-      />
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">Pembayaran SPK</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Klik baris pada tabel untuk membuka detail termin, retensi, dan kasbon
+          </p>
+        </div>
+
+        {spkGroups.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-slate-400">Tidak ada data pembayaran.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] border-collapse">
+              <thead>
+                <tr>
+                  <th className={`${thParentClass} w-10`} aria-label="Buka detail" />
+                  <th className={thParentClass}>No. SPK</th>
+                  <th className={thParentClass}>Judul Pekerjaan</th>
+                  <th className={thParentClass}>Mandor</th>
+                  <th className={thParentClass}>Nilai Kontrak</th>
+                  <th className={`${thParentClass} text-center`}>Menunggu Bayar</th>
+                  <th className={`${thParentClass} text-center`}>Total Item</th>
+                </tr>
+              </thead>
+              <tbody>
+                {spkGroups.map((group) => {
+                  const expanded = expandedSpkIds.has(group.spkId);
+                  return (
+                    <Fragment key={group.spkId}>
+                      <tr
+                        className={`cursor-pointer transition-colors ${
+                          expanded ? 'bg-indigo-50/80' : 'bg-white hover:bg-slate-50'
+                        }`}
+                        onClick={() => toggleExpand(group.spkId)}
+                      >
+                        <td className={tdParentClass}>
+                          <ChevronRight
+                            size={18}
+                            className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-indigo-600' : ''}`}
+                          />
+                        </td>
+                        <td className={`${tdParentClass} font-bold text-slate-900 whitespace-nowrap`}>
+                          {group.noSpk}
+                        </td>
+                        <td className={`${tdParentClass} text-xs text-slate-600 max-w-[200px]`}>
+                          <span className="line-clamp-2" title={group.judulPekerjaan}>
+                            {group.judulPekerjaan}
+                          </span>
+                        </td>
+                        <td className={`${tdParentClass} font-medium text-slate-700 whitespace-nowrap`}>
+                          {group.mandorUsername}
+                        </td>
+                        <td className={`${tdParentClass} font-bold text-slate-900 whitespace-nowrap`}>
+                          {formatRupiah(group.nilaiKontrak)}
+                        </td>
+                        <td className={`${tdParentClass} text-center`}>
+                          {group.menungguCount > 0 ? (
+                            <span className="inline-flex px-2.5 py-1 text-[10px] font-bold uppercase bg-amber-100 text-amber-800 rounded-md">
+                              {group.menungguCount}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className={`${tdParentClass} text-center text-xs font-semibold text-slate-600`}>
+                          {group.items.length}
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr className="bg-slate-50/50">
+                          <td colSpan={7} className="px-4 py-3 border-b border-slate-200">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wide">
+                              Detail pembayaran — {group.noSpk}
+                            </p>
+                            <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                              <table className="w-full min-w-[720px]">
+                                <thead>
+                                  <tr className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
+                                    <th className="px-4 py-2 text-left">Jenis</th>
+                                    <th className="px-4 py-2 text-left">Keterangan / Termin</th>
+                                    <th className="px-4 py-2 text-left">Nominal</th>
+                                    <th className="px-4 py-2 text-left">Tanggal Diajukan</th>
+                                    <th className="px-4 py-2 text-left">Status</th>
+                                    <th className="px-4 py-2 text-left">Bukti</th>
+                                    <th className="px-4 py-2 text-left">Aksi</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {group.items
+                                    .sort((a, b) => {
+                                      const order: Record<string, number> = {
+                                        KASBON: 0,
+                                        TERMIN_55: 1,
+                                        TERMIN_100: 2,
+                                        RETENSI: 3,
+                                      };
+                                      return (
+                                        (order[a.jenis] ?? 9) - (order[b.jenis] ?? 9) || a.id - b.id
+                                      );
+                                    })
+                                    .map(renderItemRow)}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {meta && meta.totalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={!meta.hasPrevPage}
+              onClick={() => handlePageChange(page - 1)}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg border disabled:opacity-40"
+            >
+              Sebelumnya
+            </button>
+            <span className="text-xs text-slate-500">
+              Halaman {meta.page} / {meta.totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={!meta.hasNextPage}
+              onClick={() => handlePageChange(page + 1)}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg border disabled:opacity-40"
+            >
+              Berikutnya
+            </button>
+          </div>
+        )}
+      </div>
 
       <Modal
         isOpen={!!previewUrl}

@@ -32,7 +32,10 @@ const PaidRow = ({ row }: { row: PembayaranRingkasanRow }) => (
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b border-emerald-100 last:border-0">
     <div className="min-w-0">
       <p className="text-xs font-bold text-slate-800">
-        SPK {row.noSpk} · {SPK_PEMBAYARAN_JENIS_LABEL[row.jenis]}
+        SPK {row.noSpk} ·{' '}
+        {row.jenis === 'KASBON'
+          ? `Kasbon: ${row.keterangan ?? '-'}`
+          : SPK_PEMBAYARAN_JENIS_LABEL[row.jenis]}
       </p>
       <p className="text-[11px] text-emerald-700 mt-0.5">
         {formatRupiah(row.nominal)}
@@ -111,7 +114,10 @@ const SpkPembayaranMandorRingkasan = ({ mandorSpks }: SpkPembayaranMandorRingkas
           <ul className="space-y-1 text-[11px]">
             {waiting.map((row) => (
               <li key={row.id}>
-                SPK {row.noSpk} · {SPK_PEMBAYARAN_JENIS_LABEL[row.jenis]} ·{' '}
+                SPK {row.noSpk} ·{' '}
+        {row.jenis === 'KASBON'
+          ? `Kasbon: ${row.keterangan ?? '-'}`
+          : SPK_PEMBAYARAN_JENIS_LABEL[row.jenis]} ·{' '}
                 {formatRupiah(row.nominal)}
               </li>
             ))}

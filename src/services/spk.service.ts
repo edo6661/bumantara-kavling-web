@@ -15,11 +15,7 @@ export interface SpkData {
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number;
-  kasbonSebelumTermin2: number | null;
-  kasbonSebelumTermin3: number | null;
-  kasbonSebelumTermin4: number | null;
   bankRekeningPtId: number | null;
-  nilaiBisaDitagihkan: number | null;
   nilaiSudahDibayarkan: number | null;
   sisaNilaiKontrak: number | null;
   progressOverride: number | null;
@@ -41,11 +37,7 @@ export interface CreateSpkDTO {
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number;
-  kasbonSebelumTermin2?: number | null;
-  kasbonSebelumTermin3?: number | null;
-  kasbonSebelumTermin4?: number | null;
   bankRekeningPtId?: number | null;
-  nilaiBisaDitagihkan?: number | null;
   nilaiSudahDibayarkan?: number | null;
   sisaNilaiKontrak?: number | null;
   notesPekerjaan?: string;
@@ -68,34 +60,10 @@ const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
   if (data.nilaiKontrak !== undefined) {
     formData.append("nilaiKontrak", String(data.nilaiKontrak));
   }
-  if (data.kasbonSebelumTermin2 !== undefined) {
-    formData.append(
-      "kasbonSebelumTermin2",
-      data.kasbonSebelumTermin2 == null ? "" : String(data.kasbonSebelumTermin2),
-    );
-  }
-  if (data.kasbonSebelumTermin3 !== undefined) {
-    formData.append(
-      "kasbonSebelumTermin3",
-      data.kasbonSebelumTermin3 == null ? "" : String(data.kasbonSebelumTermin3),
-    );
-  }
-  if (data.kasbonSebelumTermin4 !== undefined) {
-    formData.append(
-      "kasbonSebelumTermin4",
-      data.kasbonSebelumTermin4 == null ? "" : String(data.kasbonSebelumTermin4),
-    );
-  }
   if (data.bankRekeningPtId !== undefined) {
     formData.append(
       "bankRekeningPtId",
       data.bankRekeningPtId == null ? "" : String(data.bankRekeningPtId),
-    );
-  }
-  if (data.nilaiBisaDitagihkan !== undefined) {
-    formData.append(
-      "nilaiBisaDitagihkan",
-      data.nilaiBisaDitagihkan == null ? "" : String(data.nilaiBisaDitagihkan),
     );
   }
   if (data.nilaiSudahDibayarkan !== undefined) {

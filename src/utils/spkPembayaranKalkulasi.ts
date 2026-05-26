@@ -1,4 +1,5 @@
-import type { SpkNominalInput, SpkPembayaranJenis } from './spkPembayaran';
+import type { SpkNominalInput, SpkPembayaranCalcRow, SpkPembayaranJenis } from './spkPembayaran';
+import { sumKasbonForTermin } from './spkPembayaran';
 
 export interface SpkPembayaranKalkulasiBaris {
   label: string;
@@ -9,6 +10,7 @@ export interface SpkPembayaranKalkulasiBaris {
 export function buildSpkPembayaranKalkulasi(
   jenis: SpkPembayaranJenis,
   spk: SpkNominalInput,
+  pembayaranList: SpkPembayaranCalcRow[] = [],
 ): SpkPembayaranKalkulasiBaris[] {
   const kontrak = spk.nilaiKontrak;
   const baris: SpkPembayaranKalkulasiBaris[] = [
@@ -18,14 +20,10 @@ export function buildSpkPembayaranKalkulasi(
   switch (jenis) {
     case 'TERMIN_55': {
       const bruto = kontrak * 0.5;
-      const kasbon = spk.kasbonSebelumTermin2 ?? 0;
-      baris.push({
-        label: '50%',
-        nilai: bruto,
-        tipe: 'positif',
-      });
+      const kasbon = sumKasbonForTermin(pembayaranList, 'TERMIN_55');
+      baris.push({ label: '50%', nilai: bruto, tipe: 'positif' });
       if (kasbon > 0) {
-        baris.push({ label: 'Kasbon 55%', nilai: kasbon, tipe: 'negatif' });
+        baris.push({ label: 'Total kasbon (termin 55%)', nilai: kasbon, tipe: 'negatif' });
       }
       baris.push({
         label: 'Nominal',
@@ -36,14 +34,10 @@ export function buildSpkPembayaranKalkulasi(
     }
     case 'TERMIN_100': {
       const bruto = kontrak * 0.45;
-      const kasbon = spk.kasbonSebelumTermin3 ?? 0;
-      baris.push({
-        label: '45%',
-        nilai: bruto,
-        tipe: 'positif',
-      });
+      const kasbon = sumKasbonForTermin(pembayaranList, 'TERMIN_100');
+      baris.push({ label: '45%', nilai: bruto, tipe: 'positif' });
       if (kasbon > 0) {
-        baris.push({ label: 'Kasbon 100%', nilai: kasbon, tipe: 'negatif' });
+        baris.push({ label: 'Total kasbon (termin 100%)', nilai: kasbon, tipe: 'negatif' });
       }
       baris.push({
         label: 'Nominal',
@@ -58,6 +52,8 @@ export function buildSpkPembayaranKalkulasi(
       baris.push({ label: 'Nominal', nilai: bruto, tipe: 'hasil' });
       break;
     }
+    default:
+      break;
   }
 
   return baris;

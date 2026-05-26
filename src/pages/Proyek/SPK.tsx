@@ -34,8 +34,6 @@ interface SpkFormState {
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number | '';
-  kasbonSebelumTermin2: number | '';
-  kasbonSebelumTermin3: number | '';
   bankRekeningPtId: number | '';
   progressOverride: number | '';
   notesPekerjaan: string;
@@ -194,8 +192,6 @@ const initialFormState = (): SpkFormState => ({
   tanggalSpk: todayIso(),
   judulPekerjaan: '',
   nilaiKontrak: '',
-  kasbonSebelumTermin2: '',
-  kasbonSebelumTermin3: '',
   bankRekeningPtId: '',
   progressOverride: '',
   notesPekerjaan: '',
@@ -416,20 +412,6 @@ const SPK = () => {
       },
     },
     {
-      header: 'Kasbon sblm 55%',
-      accessor: 'kasbonSebelumTermin2',
-      render: (val: number | null) => (
-        <span className="text-sm text-slate-600">{val == null ? <span className="text-slate-300">—</span> : formatRupiah(val)}</span>
-      ),
-    },
-    {
-      header: 'Kasbon sblm 100%',
-      accessor: 'kasbonSebelumTermin3',
-      render: (val: number | null) => (
-        <span className="text-sm text-slate-600">{val == null ? <span className="text-slate-300">—</span> : formatRupiah(val)}</span>
-      ),
-    },
-    {
       header: 'Rek PT',
       accessor: 'bankRekeningPtId',
       render: (val: number | null) => (
@@ -439,8 +421,8 @@ const SPK = () => {
       ),
     },
     {
-      header: 'Nilai Tagih',
-      accessor: 'nilaiBisaDitagihkan',
+      header: 'Sisa Nilai',
+      accessor: 'sisaNilaiKontrak',
       render: (val: number | null) => (
         <span className="text-sm font-semibold text-emerald-700">{val == null ? <span className="text-slate-300 font-normal">—</span> : formatRupiah(val)}</span>
       ),
@@ -496,8 +478,6 @@ const SPK = () => {
       tanggalSpk: item.tanggalSpk.split('T')[0]!,
       judulPekerjaan: item.judulPekerjaan,
       nilaiKontrak: item.nilaiKontrak,
-      kasbonSebelumTermin2: item.kasbonSebelumTermin2 ?? '',
-      kasbonSebelumTermin3: item.kasbonSebelumTermin3 ?? '',
       bankRekeningPtId: item.bankRekeningPtId ?? '',
       progressOverride: item.progressOverride ?? '',
       notesPekerjaan: item.notesPekerjaan || '',
@@ -600,10 +580,6 @@ const SPK = () => {
       tanggalSpk: formData.tanggalSpk,
       judulPekerjaan: formData.judulPekerjaan.trim(),
       nilaiKontrak: Number(formData.nilaiKontrak),
-      kasbonSebelumTermin2:
-        formData.kasbonSebelumTermin2 === '' ? undefined : Number(formData.kasbonSebelumTermin2),
-      kasbonSebelumTermin3:
-        formData.kasbonSebelumTermin3 === '' ? undefined : Number(formData.kasbonSebelumTermin3),
       bankRekeningPtId:
         formData.bankRekeningPtId === '' ? undefined : Number(formData.bankRekeningPtId),
       progressOverride:
@@ -696,11 +672,9 @@ const SPK = () => {
                 <thead>
                   <tr>
                     <th className={detailThClass}>Mandor</th>
-                    <th className={detailThClass}>Nilai Tagih</th>
+                    <th className={detailThClass}>Sisa Nilai Kontrak</th>
                     <th className={detailThClass}>Sudah Dibayar</th>
-                    <th className={detailThClass}>Sisa Kontrak</th>
-                    <th className={detailThClass}>Kasbon 55%</th>
-                    <th className={detailThClass}>Kasbon 100%</th>
+                    <th className={detailThClass}>Nilai Kontrak</th>
                     <th className={detailThClass}>Jatuh Tempo</th>
                     <th className={detailThClass}>Rekening PT</th>
                   </tr>
@@ -709,19 +683,13 @@ const SPK = () => {
                   <tr className="bg-white">
                     <td className={`${detailTdClass} font-semibold`}>{detailItem.mandor.username}</td>
                     <td className={`${detailTdClass} font-bold text-emerald-700 whitespace-nowrap`}>
-                      {detailItem.nilaiBisaDitagihkan == null ? '—' : formatRupiah(detailItem.nilaiBisaDitagihkan)}
+                      {detailItem.sisaNilaiKontrak == null ? '—' : formatRupiah(detailItem.sisaNilaiKontrak)}
                     </td>
                     <td className={`${detailTdClass} font-bold text-blue-700 whitespace-nowrap`}>
                       {detailItem.nilaiSudahDibayarkan == null ? '—' : formatRupiah(detailItem.nilaiSudahDibayarkan)}
                     </td>
                     <td className={`${detailTdClass} whitespace-nowrap`}>
-                      {detailItem.sisaNilaiKontrak == null ? '—' : formatRupiah(detailItem.sisaNilaiKontrak)}
-                    </td>
-                    <td className={`${detailTdClass} whitespace-nowrap`}>
-                      {detailItem.kasbonSebelumTermin2 == null ? '—' : formatRupiah(detailItem.kasbonSebelumTermin2)}
-                    </td>
-                    <td className={`${detailTdClass} whitespace-nowrap`}>
-                      {detailItem.kasbonSebelumTermin3 == null ? '—' : formatRupiah(detailItem.kasbonSebelumTermin3)}
+                      {formatRupiah(detailItem.nilaiKontrak)}
                     </td>
                     <td className={detailTdClass}>
                       {detailItem.jatuhTempo ? formatDate(detailItem.jatuhTempo) : '—'}
@@ -772,7 +740,7 @@ const SPK = () => {
                             : 'bg-slate-100 text-slate-500'
                         }`}
                       >
-                        {detailItem.progressIsOverride ? 'Manual' : 'Default'}
+                        {detailItem.progressIsOverride ? 'Manual' : 'Awal (0%)'}
                       </span>
                     </td>
                     {canEditSpkProgress && (
@@ -836,7 +804,7 @@ const SPK = () => {
                               }
                             }}
                           >
-                            Reset
+                            Reset ke 0%
                           </button>
                         </div>
                       </td>
@@ -942,20 +910,6 @@ const SPK = () => {
                 error={errors.nilaiKontrak}
                 placeholder="0"
               />
-              <CurrencyInput
-                label="Kasbon sebelum 55% (opsional)"
-                name="kasbonSebelumTermin2"
-                value={formData.kasbonSebelumTermin2}
-                onValueChange={handleCurrencyChange}
-                placeholder="0"
-              />
-              <CurrencyInput
-                label="Kasbon sebelum 100% (opsional)"
-                name="kasbonSebelumTermin3"
-                value={formData.kasbonSebelumTermin3}
-                onValueChange={handleCurrencyChange}
-                placeholder="0"
-              />
               <Select
                 label="Rekening PT (opsional)"
                 name="bankRekeningPtId"
@@ -1000,7 +954,7 @@ const SPK = () => {
                 <div className="md:col-span-2 flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
                   <span className="mt-0.5 shrink-0 w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[10px] font-black">i</span>
                   <p className="text-xs text-blue-800 leading-relaxed">
-                    Nilai tagih, sudah dibayar, dan sisa kontrak dihitung otomatis dari pengajuan &amp; pembayaran finance.
+                    Sisa nilai kontrak dihitung otomatis dari setiap pembayaran (termin, retensi, kasbon) yang sudah diproses finance.
                   </p>
                 </div>
               )}

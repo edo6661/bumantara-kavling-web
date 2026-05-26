@@ -1,11 +1,18 @@
 import api from '../lib/axios';
-import type { SpkPembayaranJenis, SpkPembayaranStatus } from '../utils/spkPembayaran';
+import type {
+  SpkKasbonTargetTermin,
+  SpkPembayaranJenis,
+  SpkPembayaranStatus,
+  SpkTerminPembayaranJenis,
+} from '../utils/spkPembayaran';
 
 export interface SpkPembayaranData {
   id: number;
   spkId: number;
   jenis: SpkPembayaranJenis;
   nominal: number;
+  keterangan: string | null;
+  mengurangiTermin: SpkKasbonTargetTermin | null;
   status: SpkPembayaranStatus;
   buktiPembayaran: string | null;
   tanggalPembayaran: string | null;
@@ -31,6 +38,10 @@ export interface SpkPembayaranListParams {
   search?: string;
 }
 
+export type CreateSpkPembayaranBody =
+  | { jenis: SpkTerminPembayaranJenis }
+  | { jenis: 'KASBON'; keterangan: string; nominal: number };
+
 export const spkPembayaranService = {
   getBySpkId: async (spkId: number): Promise<SpkPembayaranData[]> => {
     const response = await api.get(`/spk-pembayaran/spk/${spkId}`);
@@ -52,8 +63,8 @@ export const spkPembayaranService = {
     };
   },
 
-  createRequest: async (spkId: number, jenis: SpkPembayaranJenis) => {
-    const response = await api.post(`/spk-pembayaran/spk/${spkId}`, { jenis });
+  createRequest: async (spkId: number, body: CreateSpkPembayaranBody) => {
+    const response = await api.post(`/spk-pembayaran/spk/${spkId}`, body);
     return response.data.data as SpkPembayaranData;
   },
 

@@ -7,7 +7,7 @@ import {
 
 const JENIS_ORDER: SpkPembayaranJenis[] = ['TERMIN_55', 'TERMIN_100', 'RETENSI'];
 
-const SHORT_LABEL: Record<SpkPembayaranJenis, string> = {
+const SHORT_LABEL: Record<'TERMIN_55' | 'TERMIN_100' | 'RETENSI', string> = {
   TERMIN_55: '55%',
   TERMIN_100: '100%',
   RETENSI: 'Ret.',
@@ -19,8 +19,19 @@ interface SpkPembayaranStatusChipsProps {
 }
 
 const SpkPembayaranStatusChips = ({ items, showBuktiLinks = false }: SpkPembayaranStatusChipsProps) => {
+  const kasbonItems = items.filter((p) => p.jenis === 'KASBON');
+  const kasbonMenunggu = kasbonItems.filter((p) => p.status === 'MENUNGGU_PEMBAYARAN').length;
+
   return (
     <div className="flex flex-wrap gap-1">
+      {kasbonItems.length > 0 && (
+        <span
+          title={`${kasbonItems.length} kasbon`}
+          className="inline-flex px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-orange-100 text-orange-800 border border-orange-200"
+        >
+          Ksb {kasbonMenunggu > 0 ? `${kasbonMenunggu}…` : '✓'}
+        </span>
+      )}
       {JENIS_ORDER.map((jenis) => {
         const row = items.find((p) => p.jenis === jenis);
         if (!row) {
