@@ -21,7 +21,6 @@ import {
 } from "../../hooks/queries/useSpk";
 import type { SpkData } from '../../services/spk.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
-import SpkPembayaranMandorRingkasan from '../../components/proyek/SpkPembayaranMandorRingkasan';
 import SpkPembayaranStatusChips from '../../components/proyek/SpkPembayaranStatusChips';
 import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';

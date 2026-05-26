@@ -165,7 +165,7 @@ const Progress = () => {
             </span>
             {spkInfo && (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-md mt-1">
-                SPK {spkInfo.noSpk} · {spkInfo.progress}%
+                SPK {spkInfo.noSpk}
               </span>
             )}
           </div>
