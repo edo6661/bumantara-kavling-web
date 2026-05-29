@@ -28,6 +28,15 @@ export function toUserFriendlyMessage(message: string | undefined): string {
   }
 
   if (
+    lower.includes("file too large") ||
+    lower.includes("terlalu besar") ||
+    lower.includes("limit_file_size") ||
+    lower.includes("ukuran file")
+  ) {
+    return message;
+  }
+
+  if (
     lower.includes("cloudinary") ||
     lower.includes("unknown cloudinary") ||
     lower.includes("internal server error")
@@ -91,6 +100,10 @@ export const handleApiError = (error: unknown): ActionResult => {
       case 409:
         defaultMessage =
           "Terjadi konflik data (misalnya data sudah terdaftar sebelumnya).";
+        break;
+      case 413:
+        defaultMessage =
+          "Ukuran file terlalu besar. Kurangi ukuran file lalu coba unggah lagi.";
         break;
       case 500:
         defaultMessage =
