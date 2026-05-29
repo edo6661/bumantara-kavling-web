@@ -31,7 +31,9 @@ export function toUserFriendlyMessage(message: string | undefined): string {
     lower.includes("file too large") ||
     lower.includes("terlalu besar") ||
     lower.includes("limit_file_size") ||
-    lower.includes("ukuran file")
+    lower.includes("ukuran file") ||
+    lower.includes("cloudinary") ||
+    lower.includes("penyimpanan cloud")
   ) {
     return message;
   }
