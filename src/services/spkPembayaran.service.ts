@@ -16,6 +16,8 @@ export interface SpkPembayaranData {
   status: SpkPembayaranStatus;
   buktiPembayaran: string | null;
   tanggalPembayaran: string | null;
+  bsiCmsDilaporkan: boolean;
+  bsiCmsDilaporkanAt: string | null;
   diajukanOlehId: number;
   dibayarOlehId: number | null;
   diajukanOleh: { id: number; username: string };
@@ -84,5 +86,13 @@ export const spkPembayaranService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data.data as SpkPembayaranData;
+  },
+
+  setBsiCmsDilaporkan: async (ids: number[], dilaporkan: boolean) => {
+    const response = await api.patch('/spk-pembayaran/bsi-cms-dilaporkan', {
+      ids,
+      dilaporkan,
+    });
+    return response.data.data as SpkPembayaranData[];
   },
 };

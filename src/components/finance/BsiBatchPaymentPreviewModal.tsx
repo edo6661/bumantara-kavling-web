@@ -16,6 +16,7 @@ interface BsiBatchPaymentPreviewModalProps {
   initialRows: BsiBatchPaymentRow[];
   initialHeader: BsiBatchHeader;
   onClose: () => void;
+  onGenerated?: (pembayaranIds: number[]) => void | Promise<void>;
 }
 
 const fieldInputClass =
@@ -38,6 +39,7 @@ const BsiBatchPaymentPreviewModal = ({
   initialRows,
   initialHeader,
   onClose,
+  onGenerated,
 }: BsiBatchPaymentPreviewModalProps) => {
   const [rows, setRows] = useState<BsiBatchPaymentRow[]>(initialRows);
   const [header, setHeader] = useState<BsiBatchHeader>(initialHeader);
@@ -71,10 +73,12 @@ const BsiBatchPaymentPreviewModal = ({
     setRows((prev) => prev.map((row) => ({ ...row, sourceAcct })));
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (validationErrors.length > 0) return;
     const content = generateBsiBatchTxt(rows, header);
     downloadBsiBatchTxt(content, header.paymentDate);
+    const pembayaranIds = rows.map((row) => row.pembayaranId);
+    await onGenerated?.(pembayaranIds);
     onClose();
   };
 
@@ -241,7 +245,7 @@ const BsiBatchPaymentPreviewModal = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold uppercase border border-slate-200 rounded-lg hover:bg-slate-50"
+            className="text-black px-4 py-2 text-xs font-bold uppercase border border-slate-200 rounded-lg hover:bg-slate-50"
           >
             Batal
           </button>

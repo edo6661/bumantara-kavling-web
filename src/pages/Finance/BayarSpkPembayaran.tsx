@@ -14,6 +14,8 @@ import {
   UploadCloud,
   FileText,
   FileDown,
+  Landmark,
+  Undo2,
 } from 'lucide-react';
 import BsiBatchPaymentPreviewModal from '../../components/finance/BsiBatchPaymentPreviewModal';
 import {
@@ -23,7 +25,11 @@ import {
   type BsiBatchHeader,
   type BsiBatchPaymentRow,
 } from '../../utils/bsiBatchPayment';
-import { useBayarSpkPembayaran, useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
+import {
+  useBayarSpkPembayaran,
+  useGetSpkPembayaranList,
+  useSetBsiCmsDilaporkan,
+} from '../../hooks/queries/useSpkPembayaran';
 import { handleApiError } from '../../utils/errorHandler';
 import {
   SPK_KASBON_TARGET_LABEL,
@@ -86,6 +92,7 @@ const BayarSpkPembayaran = () => {
   const items = response?.items ?? [];
   const meta = response?.meta;
   const bayarMutation = useBayarSpkPembayaran();
+  const bsiCmsMutation = useSetBsiCmsDilaporkan();
 
   const spkGroups = useMemo((): SpkGroup[] => {
     const map = new Map<number, SpkGroup>();
@@ -135,6 +142,30 @@ const BayarSpkPembayaran = () => {
   };
 
   const clearSelection = () => setSelectedIds(new Set());
+
+  const selectedBsiReportedCount = useMemo(
+    () => selectedItems.filter((row) => row.bsiCmsDilaporkan).length,
+    [selectedItems],
+  );
+
+  const handleMarkBsiCmsDilaporkan = async (ids: number[]) => {
+    if (ids.length === 0) return;
+    try {
+      await bsiCmsMutation.mutateAsync({ ids, dilaporkan: true });
+    } catch (error) {
+      alert(handleApiError(error).message);
+    }
+  };
+
+  const handleUnmarkBsiCmsDilaporkan = async () => {
+    const ids = selectedItems.filter((row) => row.bsiCmsDilaporkan).map((row) => row.id);
+    if (ids.length === 0) return;
+    try {
+      await bsiCmsMutation.mutateAsync({ ids, dilaporkan: false });
+    } catch (error) {
+      alert(handleApiError(error).message);
+    }
+  };
 
   const openBsiBatchPreview = () => {
     if (selectedItems.length === 0) return;
@@ -210,7 +241,10 @@ const BayarSpkPembayaran = () => {
     const checked = selectedIds.has(row.id);
 
     return (
-      <tr key={row.id} className={`border-t border-slate-100 ${colors.row}`}>
+      <tr
+        key={row.id}
+        className={`border-t border-slate-100 ${colors.row} ${row.bsiCmsDilaporkan ? 'ring-1 ring-inset ring-sky-200' : ''}`}
+      >
         <td className="px-4 py-2.5 w-10" onClick={(e) => e.stopPropagation()}>
           <input
             type="checkbox"
@@ -235,15 +269,29 @@ const BayarSpkPembayaran = () => {
         </td>
         <td className="px-4 py-2.5 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
         <td className="px-4 py-2.5">
-          {paid ? (
-            <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-green-100 text-green-700 rounded w-fit">
-              <CheckCircle2 size={10} /> Terbayar
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-yellow-100 text-yellow-700 rounded w-fit">
-              <Clock size={10} /> Menunggu
-            </span>
-          )}
+          <div className="flex flex-col gap-1">
+            {paid ? (
+              <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-green-100 text-green-700 rounded w-fit">
+                <CheckCircle2 size={10} /> Terbayar
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-yellow-100 text-yellow-700 rounded w-fit">
+                <Clock size={10} /> Menunggu
+              </span>
+            )}
+            {row.bsiCmsDilaporkan && (
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-sky-100 text-sky-800 rounded w-fit"
+                title={
+                  row.bsiCmsDilaporkanAt
+                    ? `Dilaporkan BSI CMS: ${formatDate(row.bsiCmsDilaporkanAt)}`
+                    : 'Sudah dilaporkan di BSI CMS'
+                }
+              >
+                <Landmark size={10} /> BSI CMS
+              </span>
+            )}
+          </div>
         </td>
         <td className="px-4 py-2.5">
           {row.buktiPembayaran ? (
@@ -350,6 +398,20 @@ const BayarSpkPembayaran = () => {
             >
               Hapus pilihan
             </button>
+            {selectedBsiReportedCount > 0 && (
+              <button
+                type="button"
+                onClick={handleUnmarkBsiCmsDilaporkan}
+                disabled={bsiCmsMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase border border-white/30 rounded-lg hover:bg-white/10 disabled:opacity-50"
+              >
+                <Undo2 size={14} />
+                Batalkan lapor BSI CMS
+                {selectedBsiReportedCount < selectedIds.size
+                  ? ` (${selectedBsiReportedCount})`
+                  : ''}
+              </button>
+            )}
             <button
               type="button"
               onClick={openBsiBatchPreview}
@@ -528,6 +590,7 @@ const BayarSpkPembayaran = () => {
         initialRows={bsiPreviewRows}
         initialHeader={bsiPreviewHeader}
         onClose={() => setBsiPreviewOpen(false)}
+        onGenerated={handleMarkBsiCmsDilaporkan}
       />
 
       <Modal
