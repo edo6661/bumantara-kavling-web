@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
@@ -10,6 +10,7 @@ import {
   Filter,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   ChevronRight,
   UploadCloud,
   FileText,
@@ -61,6 +62,9 @@ const JENIS_ORDER: Record<NotarisPembayaranJenis, number> = {
   BPHTB: 1,
 };
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
 const BayarNotarisPembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +82,10 @@ const BayarNotarisPembayaran = () => {
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') ?? 'ALL';
-  const limit = 200;
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
 
   const { data: response, isLoading } = useGetNotarisPembayaranList({
     page,
@@ -196,6 +203,15 @@ const BayarNotarisPembayaran = () => {
     });
   };
 
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams((prev) => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
   const handleSearchChange = (newSearch: string) => {
     setSearchParams((prev) => {
       if (newSearch) prev.set('search', newSearch);
@@ -212,6 +228,25 @@ const BayarNotarisPembayaran = () => {
       return prev;
     });
   };
+
+  useEffect(() => {
+    setExpandedPenjualanIds(new Set());
+  }, [page, limit, search, statusFilter]);
+
+  const totalPages = meta?.totalPages ?? 1;
+
+  const pageNumbers = useMemo(() => {
+    const delta = 1;
+    const range: (number | string)[] = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift('...');
+    if (page + delta < totalPages - 1) range.push('...');
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  }, [page, totalPages]);
 
   const handleSyncAll = async () => {
     if (
@@ -578,27 +613,76 @@ const BayarNotarisPembayaran = () => {
           </div>
         )}
 
-        {meta && meta.totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-            <button
-              type="button"
-              disabled={!meta.hasPrevPage}
-              onClick={() => handlePageChange(page - 1)}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg border disabled:opacity-40"
-            >
-              Sebelumnya
-            </button>
-            <span className="text-xs text-slate-500">
-              Halaman {meta.page} / {meta.totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={!meta.hasNextPage}
-              onClick={() => handlePageChange(page + 1)}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg border disabled:opacity-40"
-            >
-              Berikutnya
-            </button>
+        {meta && (totalPages > 1 || penjualanGroups.length > 0) && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-3 border-t border-slate-100 bg-white">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-xs font-semibold text-slate-500">
+                Halaman {page} dari {totalPages}
+                {meta.totalItems > 0 && (
+                  <span className="text-slate-400 font-normal">
+                    {' '}
+                    · {meta.totalItems} pembayaran
+                  </span>
+                )}
+              </span>
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <span className="whitespace-nowrap">Per halaman</span>
+                <select
+                  value={limit}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-sm"
+                  aria-label="Jumlah data per halaman"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Halaman sebelumnya"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {pageNumbers.map((num, idx) =>
+                  num === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 font-bold">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handlePageChange(num as number)}
+                      className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        page === num
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ),
+                )}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Halaman berikutnya"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
