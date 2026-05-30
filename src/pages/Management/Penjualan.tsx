@@ -16,7 +16,7 @@ import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
-import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature, useRegenerateSpr, PENJUALAN_KEYS } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
@@ -25,8 +25,6 @@ import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
 import { useAuth } from "../../context/AuthContext";
 import SignatureCanvas from 'react-signature-canvas';
-import { penjualanService } from "../../services/penjualan.service";
-import { useQueryClient } from '@tanstack/react-query';
 import { handleApiError } from '../../utils/errorHandler';
 import type { AgentData } from '../../types/models/agent';
 
@@ -165,7 +163,7 @@ interface BiayaTambahan {
 
 const Penjualan = () => {
   const { selectedPerumahan } = useAuth();
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
@@ -174,7 +172,7 @@ const Penjualan = () => {
   const [historyBiayaTambahan, setHistoryBiayaTambahan] = useState<{ id: string, nama: string, nominal: number, tanggal: string }[]>([]);
   const [historyBiayaTambahanKpr, setHistoryBiayaTambahanKpr] = useState<{ id: string, nama: string, nominal: number }[]>([]);
   const [biayaTambahanKprList, setBiayaTambahanKprList] = useState<BiayaTambahan[]>([]);
-  const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
+  // const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
@@ -206,7 +204,7 @@ const Penjualan = () => {
   const uploadBuktiMutation = useUploadBuktiPenjualan();
   const updateMutation = useUpdatePenjualan();
   const uploadSignatureMutation = useUploadSignature();
-  const regenerateSprMutation = useRegenerateSpr();
+  // const regenerateSprMutation = useRegenerateSpr();
 
   const [isNewAgent, setIsNewAgent] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -469,42 +467,42 @@ const Penjualan = () => {
 
       return updates;
     };
-  const handleBulkGenerateSPR = async () => {
-    if (!window.confirm("Yakin ingin men-generate SPR untuk data penjualan yang BELUM memiliki dokumen SPR?")) return;
+  // const handleBulkGenerateSPR = async () => {
+  //   if (!window.confirm("Yakin ingin men-generate SPR untuk data penjualan yang BELUM memiliki dokumen SPR?")) return;
 
-    setIsGeneratingBulk(true);
-    try {
-      const res = await penjualanService.getAll({ limit: 300 });
-      const allData = res.items || [];
+  //   setIsGeneratingBulk(true);
+  //   try {
+  //     const res = await penjualanService.getAll({ limit: 300 });
+  //     const allData = res.items || [];
 
-      let count = 0;
-      let skipped = 0;
+  //     let count = 0;
+  //     let skipped = 0;
 
-      for (const item of allData) {
-        if (item.status === 'BATAL') continue;
-        if (item.fileSpr) {
-          skipped++;
-          continue;
-        }
+  //     for (const item of allData) {
+  //       if (item.status === 'BATAL') continue;
+  //       if (item.fileSpr) {
+  //         skipped++;
+  //         continue;
+  //       }
 
-        try {
-          await penjualanService.regenerateSpr(item.id as string);
-          count++;
-        } catch (err) {
-          console.error(`Gagal generate SPR Transaksi ${item.id}`, err);
-        }
-      }
+  //       try {
+  //         await penjualanService.regenerateSpr(item.id as string);
+  //         count++;
+  //       } catch (err) {
+  //         console.error(`Gagal generate SPR Transaksi ${item.id}`, err);
+  //       }
+  //     }
 
-      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+  //     queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
 
-      alert(`Selesai! Berhasil men-generate ${count} dokumen SPR baru.\n(Dilewati: ${skipped} data karena sudah memiliki SPR)`);
-    } catch (error) {
-      console.error(error);
-      alert("Gagal mengambil data penjualan.");
-    } finally {
-      setIsGeneratingBulk(false);
-    }
-  };
+  //     alert(`Selesai! Berhasil men-generate ${count} dokumen SPR baru.\n(Dilewati: ${skipped} data karena sudah memiliki SPR)`);
+  //   } catch (error) {
+  //     console.error(error);
+  //     alert("Gagal mengambil data penjualan.");
+  //   } finally {
+  //     setIsGeneratingBulk(false);
+  //   }
+  // };
 
   const availableKavlings = useMemo(() => {
     return kavlingList.filter(k =>
@@ -1205,17 +1203,17 @@ const Penjualan = () => {
       e.target.value = '';
     }
   };
-  const handleQuickGenerateSPR = async (id: string) => {
-    if (!window.confirm("Apakah Anda yakin ingin men-generate dokumen SPR dengan data saat ini?")) return;
+  // const handleQuickGenerateSPR = async (id: string) => {
+  //   if (!window.confirm("Apakah Anda yakin ingin men-generate dokumen SPR dengan data saat ini?")) return;
 
-    try {
-      await regenerateSprMutation.mutateAsync(id);
-      alert("Dokumen SPR berhasil di-generate!");
-    } catch (error: any) {
-      const { message } = handleApiError(error);
-      alert(message);
-    }
-  };
+  //   try {
+  //     await regenerateSprMutation.mutateAsync(id);
+  //     alert("Dokumen SPR berhasil di-generate!");
+  //   } catch (error: any) {
+  //     const { message } = handleApiError(error);
+  //     alert(message);
+  //   }
+  // };
   const expandedRowRender = (row: PenjualanData) => {
     if (row.status === 'BATAL') {
       return (
@@ -1338,13 +1336,13 @@ const Penjualan = () => {
                         Buat SPR
                       </button>
 
-                      <button
+                      {/* <button
                         onClick={() => handleQuickGenerateSPR(row.id!)}
                         disabled={updateMutation.isPending}
                         className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-black transition-all cursor-pointer shadow-md disabled:opacity-50"
                       >
                         Generate Cepat
-                      </button>
+                      </button> */}
                     </div>
                   )}
                 </>
@@ -1576,7 +1574,7 @@ const Penjualan = () => {
           </div>
         )}
       </div>
-      <div className="flex justify-end mt-4 mb-2">
+      {/* <div className="flex justify-end mt-4 mb-2">
         <button
           onClick={handleBulkGenerateSPR}
           disabled={isGeneratingBulk}
@@ -1585,7 +1583,7 @@ const Penjualan = () => {
           <FileText size={16} />
           {isGeneratingBulk ? "Memproses Generate Massal... Mohon Tunggu" : "Generate Cepat Semua SPR"}
         </button>
-      </div>
+      </div> */}
       <DataTable
         title="Data Penjualan"
         columns={columns}
