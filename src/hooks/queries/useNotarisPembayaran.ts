@@ -45,3 +45,14 @@ export const useSetNotarisBsiCmsDilaporkan = () => {
     },
   });
 };
+
+/** Sementara: backfill pembayaran notaris. */
+export const useSyncAllNotarisPembayaran = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => notarisPembayaranService.syncAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: NOTARIS_PEMBAYARAN_KEYS.all });
+    },
+  });
+};

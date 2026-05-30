@@ -226,6 +226,7 @@ const CustomerKavling = () => {
 
   const openModal = (item: any) => {
     setFormData({
+      ...initialFormState,
       ...item,
       nrBiayaNotarisPpjb: item.nrBiayaNotarisPpjb || 0,
       hargaDasarKavling: item.hargaDasarKavling || 0,
@@ -313,7 +314,7 @@ const CustomerKavling = () => {
       luasBangunan: getNum(formData.luasBangunan),
       luasTanah: getNum(formData.luasTanah),
       // hargaDasarKavling TIDAK di lempar karena read-only
-      rekeningTujuanId: getNum(formData.rekeningTujuanId),
+      // rekeningTujuanId tidak di-edit di halaman ini — jangan kirim agar tidak menimpa dengan 0
 
       notarisId: getNum(formData.notarisId),
       biayaNotaris: getNum(formData.biayaNotaris),
@@ -572,7 +573,7 @@ const CustomerKavling = () => {
               <CurrencyInput label="Biaya Balik Nama Sertifikat" name="nrBiayaBbn" value={formData.nrBiayaBbn} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya Notaris AJB" name="nrBiayaNotarisAjb" value={formData.nrBiayaNotarisAjb} onValueChange={handleCurrencyChange} />
               {/* <CurrencyInput label="Biaya Notaris PPJB" name="nrBiayaNotarisPpjb" value={formData.nrBiayaNotarisPpjb} onValueChange={handleCurrencyChange} /> */}
-              <CurrencyInput label="Biaya Appraisal" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
+              <CurrencyInput label="Biaya Appraisal (untuk bayar Bank KPR)" name="nrBiayaAppraisal" value={formData.nrBiayaAppraisal} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Biaya BPHTB" name="nrBiayaBphtb" value={formData.nrBiayaBphtb} onValueChange={handleCurrencyChange} />
               <CurrencyInput label="Lain-lain (Utilitas, Fisik)" name="nrLainLain" value={formData.nrLainLain} onValueChange={handleCurrencyChange} />
               <div className="md:col-span-2 bg-slate-50 p-4 rounded-xl flex justify-between items-center border border-slate-200">

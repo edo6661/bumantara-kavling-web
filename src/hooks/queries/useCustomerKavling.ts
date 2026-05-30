@@ -1,6 +1,7 @@
 // src/hooks/queries/useCustomerKavling.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { customerKavlingService } from "../../services/customerKavling.service";
+import { BANK_KPR_PEMBAYARAN_KEYS } from "./useBankKprPembayaran";
 
 export const CUSTOMER_KAVLING_KEYS = {
   all: ["customer-kavlings"] as const,
@@ -38,6 +39,7 @@ export const useUpdateCustomerKavling = () => {
     }) => customerKavlingService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KAVLING_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: BANK_KPR_PEMBAYARAN_KEYS.all });
     },
   });
 };

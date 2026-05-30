@@ -1,5 +1,6 @@
 import type { SpkPembayaranData } from '../services/spkPembayaran.service';
 import type { NotarisPembayaranData } from '../services/notarisPembayaran.service';
+import type { BankKprPembayaranData } from '../services/bankKprPembayaran.service';
 
 export const BSI_SOURCE_ACCOUNT_OPTIONS = ['7304466671', '7315321381'] as const;
 export const BSI_DEFAULT_SOURCE_ACCOUNT = BSI_SOURCE_ACCOUNT_OPTIONS[0];
@@ -32,6 +33,11 @@ const SPK_BSI_PAYMENT_SUBJECT: Record<string, string> = {
 const NOTARIS_BSI_PAYMENT_SUBJECT: Record<string, string> = {
   BIAYA_NOTARIS: 'biaya notaris',
   BPHTB: 'bphtb',
+};
+
+const BANK_KPR_BSI_PAYMENT_SUBJECT: Record<string, string> = {
+  BIAYA_KPR: 'biaya kpr',
+  BIAYA_APPRAISAL: 'biaya appraisal',
 };
 
 export function truncateBsiField(value: string, maxLen: number): string {
@@ -193,6 +199,55 @@ export function buildNotarisBsiBatchRows(
       spkNo: row.penjualan?.noTransaksi ?? '',
       mandorUsername: notaris?.nama ?? '',
       referenceNo: row.penjualan?.noTransaksi ?? '',
+    };
+  });
+}
+
+export function getBankKprBsiPaymentSubject(row: BankKprPembayaranData): string {
+  return BANK_KPR_BSI_PAYMENT_SUBJECT[row.jenis] ?? row.jenis.toLowerCase();
+}
+
+export function buildBankKprBsiBatchRows(
+  items: BankKprPembayaranData[],
+  defaults: {
+    transferType?: BsiTransferType;
+    sourceAcct?: string;
+  } = {},
+): BsiBatchPaymentRow[] {
+  const transferType = defaults.transferType ?? 'BI FAST';
+  const sourceAcct = defaults.sourceAcct ?? BSI_DEFAULT_SOURCE_ACCOUNT;
+
+  return items.map((row, index) => {
+    const penjualan = row.penjualan;
+    const bankName =
+      penjualan?.bankKprNamaRekening?.trim() || penjualan?.bank?.trim() || '';
+    const { paymentSubject, additionalMessage } = alignBsiPaymentFields(
+      getBankKprBsiPaymentSubject(row),
+    );
+    return {
+      pembayaranId: row.id,
+      lineNo: index + 1,
+      paymentSubject,
+      transferType,
+      sourceAcct: truncateBsiField(sourceAcct, BSI_MAX_SOURCE_ACCT),
+      sourceAcctCcy: 'IDR',
+      beneficiaryCountry: 'ID',
+      beneficiaryType: 'Beneficiary Account',
+      destination: penjualan?.bankKprNoRekening ?? '',
+      beneficiaryAcctName: penjualan?.bankKprAtasNamaRekening ?? bankName,
+      beneficiaryNotifEmail: BSI_NOTIFY_EMAIL,
+      creditAmountCcy: 'IDR',
+      amount: row.nominal,
+      bankName: normalizeBsiBankName(bankName),
+      bankCode: BSI_BANK_CODE,
+      beneficiaryCitizenship: 'R',
+      beneficiaryNationality: 'W',
+      city: 'tangerang',
+      chargeType: 'OUR',
+      additionalMessage,
+      spkNo: penjualan?.noTransaksi ?? '',
+      mandorUsername: bankName,
+      referenceNo: penjualan?.noTransaksi ?? '',
     };
   });
 }

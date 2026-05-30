@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
@@ -10,6 +10,7 @@ import {
   Filter,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   ChevronRight,
   UploadCloud,
   FileText,
@@ -21,25 +22,26 @@ import {
 import BsiBatchPaymentPreviewModal from '../../components/finance/BsiBatchPaymentPreviewModal';
 import {
   BSI_DEFAULT_SOURCE_ACCOUNT,
-  buildNotarisBsiBatchRows,
+  buildBankKprBsiBatchRows,
   createDefaultBsiBatchHeader,
   type BsiBatchHeader,
   type BsiBatchPaymentRow,
 } from '../../utils/bsiBatchPayment';
 import {
-  useBayarNotarisPembayaran,
-  useGetNotarisPembayaranList,
-  useSetNotarisBsiCmsDilaporkan,
-  useSyncAllNotarisPembayaran,
-} from '../../hooks/queries/useNotarisPembayaran';
+  useBayarBankKprPembayaran,
+  useGetBankKprPembayaranList,
+  useSetBankKprBsiCmsDilaporkan,
+  useSyncAllBankKprPembayaran,
+} from '../../hooks/queries/useBankKprPembayaran';
 import { handleApiError } from '../../utils/errorHandler';
 import {
-  NOTARIS_JENIS_UI_COLOR,
-  NOTARIS_PEMBAYARAN_JENIS_LABEL,
+  BANK_KPR_JENIS_UI_COLOR,
+  BANK_KPR_PEMBAYARAN_JENIS_LABEL,
   formatKavlingLabel,
-  type NotarisPembayaranJenis,
-} from '../../utils/notarisPembayaran';
-import type { NotarisPembayaranData } from '../../services/notarisPembayaran.service';
+  getBankKprDisplayName,
+  type BankKprPembayaranJenis,
+} from '../../utils/bankKprPembayaran';
+import type { BankKprPembayaranData } from '../../services/bankKprPembayaran.service';
 
 interface PenjualanGroup {
   penjualanId: number;
@@ -47,8 +49,9 @@ interface PenjualanGroup {
   customerNama: string;
   kavlingLabel: string;
   perumahanNama: string;
-  notarisNama: string | null;
-  items: NotarisPembayaranData[];
+  bankNama: string | null;
+  bankRekening: string | null;
+  items: BankKprPembayaranData[];
   menungguCount: number;
 }
 
@@ -56,15 +59,18 @@ const thParentClass =
   'px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50 border-b border-slate-200 whitespace-nowrap';
 const tdParentClass = 'px-4 py-3 text-sm text-slate-800 align-middle border-b border-slate-100';
 
-const JENIS_ORDER: Record<NotarisPembayaranJenis, number> = {
-  BIAYA_NOTARIS: 0,
-  BPHTB: 1,
+const JENIS_ORDER: Record<BankKprPembayaranJenis, number> = {
+  BIAYA_KPR: 0,
+  BIAYA_APPRAISAL: 1,
 };
 
-const BayarNotarisPembayaran = () => {
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
+const BayarBankKprPembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadTarget, setUploadTarget] = useState<NotarisPembayaranData | null>(null);
+  const [uploadTarget, setUploadTarget] = useState<BankKprPembayaranData | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [expandedPenjualanIds, setExpandedPenjualanIds] = useState<Set<number>>(new Set());
@@ -78,9 +84,12 @@ const BayarNotarisPembayaran = () => {
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') ?? 'ALL';
-  const limit = 200;
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
 
-  const { data: response, isLoading } = useGetNotarisPembayaranList({
+  const { data: response, isLoading } = useGetBankKprPembayaranList({
     page,
     limit,
     search: search || undefined,
@@ -89,9 +98,9 @@ const BayarNotarisPembayaran = () => {
 
   const items = response?.items ?? [];
   const meta = response?.meta;
-  const bayarMutation = useBayarNotarisPembayaran();
-  const bsiCmsMutation = useSetNotarisBsiCmsDilaporkan();
-  const syncAllMutation = useSyncAllNotarisPembayaran();
+  const bayarMutation = useBayarBankKprPembayaran();
+  const bsiCmsMutation = useSetBankKprBsiCmsDilaporkan();
+  const syncAllMutation = useSyncAllBankKprPembayaran();
 
   const penjualanGroups = useMemo((): PenjualanGroup[] => {
     const map = new Map<number, PenjualanGroup>();
@@ -102,15 +111,17 @@ const BayarNotarisPembayaran = () => {
         if (row.status === 'MENUNGGU_PEMBAYARAN') existing.menungguCount += 1;
       } else {
         const kavling = row.penjualan?.kavling;
+        const penjualan = row.penjualan;
         map.set(row.penjualanId, {
           penjualanId: row.penjualanId,
-          noTransaksi: row.penjualan?.noTransaksi ?? `#${row.penjualanId}`,
-          customerNama: row.penjualan?.customer?.nama ?? '-',
+          noTransaksi: penjualan?.noTransaksi ?? `#${row.penjualanId}`,
+          customerNama: penjualan?.customer?.nama ?? '-',
           kavlingLabel: kavling
             ? formatKavlingLabel(kavling.blok, kavling.nomorUnit)
             : '-',
           perumahanNama: kavling?.perumahan?.nama ?? '-',
-          notarisNama: row.penjualan?.detailKavlingPajak?.notaris?.nama ?? null,
+          bankNama: penjualan ? getBankKprDisplayName(penjualan) : null,
+          bankRekening: penjualan?.bankKprNoRekening ?? null,
           items: [row],
           menungguCount: row.status === 'MENUNGGU_PEMBAYARAN' ? 1 : 0,
         });
@@ -133,7 +144,7 @@ const BayarNotarisPembayaran = () => {
     });
   };
 
-  const toggleSelectGroup = (groupItems: NotarisPembayaranData[], checked: boolean) => {
+  const toggleSelectGroup = (groupItems: BankKprPembayaranData[], checked: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       for (const row of groupItems) {
@@ -172,7 +183,7 @@ const BayarNotarisPembayaran = () => {
 
   const openBsiBatchPreview = () => {
     if (selectedItems.length === 0) return;
-    const rows = buildNotarisBsiBatchRows(selectedItems, {
+    const rows = buildBankKprBsiBatchRows(selectedItems, {
       sourceAcct: BSI_DEFAULT_SOURCE_ACCOUNT,
     });
     setBsiPreviewRows(rows);
@@ -196,6 +207,15 @@ const BayarNotarisPembayaran = () => {
     });
   };
 
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams((prev) => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
   const handleSearchChange = (newSearch: string) => {
     setSearchParams((prev) => {
       if (newSearch) prev.set('search', newSearch);
@@ -213,10 +233,29 @@ const BayarNotarisPembayaran = () => {
     });
   };
 
+  useEffect(() => {
+    setExpandedPenjualanIds(new Set());
+  }, [page, limit, search, statusFilter]);
+
+  const totalPages = meta?.totalPages ?? 1;
+
+  const pageNumbers = useMemo(() => {
+    const delta = 1;
+    const range: (number | string)[] = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift('...');
+    if (page + delta < totalPages - 1) range.push('...');
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  }, [page, totalPages]);
+
   const handleSyncAll = async () => {
     if (
       !window.confirm(
-        'Sync semua pembayaran notaris/BPHTB dari data penjualan? Proses ini bisa memakan waktu beberapa menit.',
+        'Sync semua pembayaran bank KPR dari data penjualan? Proses ini bisa memakan waktu beberapa menit.',
       )
     ) {
       return;
@@ -229,7 +268,7 @@ const BayarNotarisPembayaran = () => {
     }
   };
 
-  const openUpload = (row: NotarisPembayaranData) => {
+  const openUpload = (row: BankKprPembayaranData) => {
     setUploadTarget(row);
     fileInputRef.current?.click();
   };
@@ -246,7 +285,7 @@ const BayarNotarisPembayaran = () => {
 
     try {
       await bayarMutation.mutateAsync({ id: uploadTarget.id, file });
-      alert('Pembayaran notaris berhasil diproses.');
+      alert('Pembayaran bank KPR berhasil diproses.');
     } catch (error) {
       alert(handleApiError(error).message);
     } finally {
@@ -254,8 +293,8 @@ const BayarNotarisPembayaran = () => {
     }
   };
 
-  const renderItemRow = (row: NotarisPembayaranData) => {
-    const colors = NOTARIS_JENIS_UI_COLOR[row.jenis];
+  const renderItemRow = (row: BankKprPembayaranData) => {
+    const colors = BANK_KPR_JENIS_UI_COLOR[row.jenis];
     const paid = row.status === 'SUDAH_DIBAYAR';
     const checked = selectedIds.has(row.id);
 
@@ -270,14 +309,14 @@ const BayarNotarisPembayaran = () => {
             checked={checked}
             onChange={() => toggleSelect(row.id)}
             className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-            aria-label={`Pilih pembayaran ${NOTARIS_PEMBAYARAN_JENIS_LABEL[row.jenis]}`}
+            aria-label={`Pilih pembayaran ${BANK_KPR_PEMBAYARAN_JENIS_LABEL[row.jenis]}`}
           />
         </td>
         <td className="px-4 py-2.5">
           <span
             className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded border ${colors.badge}`}
           >
-            {NOTARIS_PEMBAYARAN_JENIS_LABEL[row.jenis]}
+            {BANK_KPR_PEMBAYARAN_JENIS_LABEL[row.jenis]}
           </span>
         </td>
         <td className={`px-4 py-2.5 text-sm font-bold ${colors.text} whitespace-nowrap`}>
@@ -350,12 +389,12 @@ const BayarNotarisPembayaran = () => {
       />
 
       <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase">
-        {(Object.keys(NOTARIS_JENIS_UI_COLOR) as NotarisPembayaranJenis[]).map((jenis) => (
+        {(Object.keys(BANK_KPR_JENIS_UI_COLOR) as BankKprPembayaranJenis[]).map((jenis) => (
           <span
             key={jenis}
-            className={`inline-flex px-2 py-1 rounded border ${NOTARIS_JENIS_UI_COLOR[jenis].badge}`}
+            className={`inline-flex px-2 py-1 rounded border ${BANK_KPR_JENIS_UI_COLOR[jenis].badge}`}
           >
-            {NOTARIS_PEMBAYARAN_JENIS_LABEL[jenis]}
+            {BANK_KPR_PEMBAYARAN_JENIS_LABEL[jenis]}
           </span>
         ))}
       </div>
@@ -387,7 +426,7 @@ const BayarNotarisPembayaran = () => {
             </div>
             <div>
               <label className="text-[10px] font-bold text-slate-500 uppercase">
-                Cari transaksi / customer / notaris
+                Cari transaksi / customer / bank
               </label>
               <input
                 type="text"
@@ -443,10 +482,11 @@ const BayarNotarisPembayaran = () => {
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-slate-900">Pembayaran Notaris</h2>
+            <h2 className="text-lg font-black text-slate-900">Pembayaran Bank KPR</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Biaya notaris dan BPHTB muncul otomatis setelah nilainya diisi di progress penjualan.
-              Centang baris pembayaran untuk generate file batch BSI ke rekening notaris.
+              Biaya KPR dan biaya appraisal muncul otomatis untuk penjualan KPR setelah nilainya
+              disimpan di halaman Kavling Customer (tab Nilai Rumah). Centang baris pembayaran untuk
+              generate file batch BSI ke rekening bank KPR.
             </p>
           </div>
           {/* TODO: hapus setelah backfill data selesai */}
@@ -463,7 +503,7 @@ const BayarNotarisPembayaran = () => {
 
         {penjualanGroups.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">
-            Tidak ada pembayaran notaris/BPHTB yang perlu diproses.
+            Tidak ada pembayaran bank KPR yang perlu diproses.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -473,7 +513,8 @@ const BayarNotarisPembayaran = () => {
                   <th className={`${thParentClass} w-10`} aria-label="Buka detail" />
                   <th className={thParentClass}>Customer</th>
                   <th className={thParentClass}>Kavling</th>
-                  <th className={thParentClass}>Notaris</th>
+                  <th className={thParentClass}>Bank KPR</th>
+                  <th className={thParentClass}>Rekening</th>
                   <th className={`${thParentClass} text-center`}>Menunggu Bayar</th>
                   <th className={`${thParentClass} text-center`}>Total Item</th>
                 </tr>
@@ -500,7 +541,7 @@ const BayarNotarisPembayaran = () => {
                             className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-indigo-600' : ''}`}
                           />
                         </td>
-                    
+               
                         <td className={`${tdParentClass} font-medium text-slate-700 whitespace-nowrap`}>
                           {group.customerNama}
                         </td>
@@ -508,8 +549,13 @@ const BayarNotarisPembayaran = () => {
                           <span title={group.perumahanNama}>{group.kavlingLabel}</span>
                         </td>
                         <td className={`${tdParentClass} text-xs font-medium text-slate-700 whitespace-nowrap`}>
-                          {group.notarisNama ?? (
+                          {group.bankNama ?? (
                             <span className="text-amber-600 italic">Belum diisi</span>
+                          )}
+                        </td>
+                        <td className={`${tdParentClass} text-xs font-mono text-slate-600 whitespace-nowrap`}>
+                          {group.bankRekening ?? (
+                            <span className="text-amber-600 italic font-sans">Belum diisi</span>
                           )}
                         </td>
                         <td className={`${tdParentClass} text-center`}>
@@ -527,7 +573,7 @@ const BayarNotarisPembayaran = () => {
                       </tr>
                       {expanded && (
                         <tr className="bg-slate-50/50">
-                          <td colSpan={7} className="px-4 py-3 border-b border-slate-200">
+                          <td colSpan={8} className="px-4 py-3 border-b border-slate-200">
                             <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wide">
                               Detail pembayaran — {group.noTransaksi}
                             </p>
@@ -578,27 +624,76 @@ const BayarNotarisPembayaran = () => {
           </div>
         )}
 
-        {meta && meta.totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-            <button
-              type="button"
-              disabled={!meta.hasPrevPage}
-              onClick={() => handlePageChange(page - 1)}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg border disabled:opacity-40"
-            >
-              Sebelumnya
-            </button>
-            <span className="text-xs text-slate-500">
-              Halaman {meta.page} / {meta.totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={!meta.hasNextPage}
-              onClick={() => handlePageChange(page + 1)}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg border disabled:opacity-40"
-            >
-              Berikutnya
-            </button>
+        {meta && (totalPages > 1 || penjualanGroups.length > 0) && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-3 border-t border-slate-100 bg-white">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-xs font-semibold text-slate-500">
+                Halaman {page} dari {totalPages}
+                {meta.totalItems > 0 && (
+                  <span className="text-slate-400 font-normal">
+                    {' '}
+                    · {meta.totalItems} pembayaran
+                  </span>
+                )}
+              </span>
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <span className="whitespace-nowrap">Per halaman</span>
+                <select
+                  value={limit}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-sm"
+                  aria-label="Jumlah data per halaman"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Halaman sebelumnya"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {pageNumbers.map((num, idx) =>
+                  num === '...' ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 font-bold">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handlePageChange(num as number)}
+                      className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        page === num
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ),
+                )}
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages}
+                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Halaman berikutnya"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -615,7 +710,7 @@ const BayarNotarisPembayaran = () => {
       <Modal
         isOpen={!!previewUrl}
         onClose={() => setPreviewUrl(null)}
-        title="Bukti Pembayaran Notaris"
+        title="Bukti Pembayaran Bank KPR"
         size="lg"
       >
         {previewUrl && (
@@ -640,4 +735,4 @@ const BayarNotarisPembayaran = () => {
   );
 };
 
-export default BayarNotarisPembayaran;
+export default BayarBankKprPembayaran;
