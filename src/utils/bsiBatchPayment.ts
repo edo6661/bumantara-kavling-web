@@ -1,11 +1,17 @@
 import type { SpkPembayaranData } from '../services/spkPembayaran.service';
-import { SPK_PEMBAYARAN_JENIS_LABEL } from './spkPembayaran';
+import type { NotarisPembayaranData } from '../services/notarisPembayaran.service';
 
 export const BSI_SOURCE_ACCOUNT_OPTIONS = ['7304466671', '7315321381'] as const;
 export const BSI_DEFAULT_SOURCE_ACCOUNT = BSI_SOURCE_ACCOUNT_OPTIONS[0];
 export const BSI_NOTIFY_EMAIL = 'bintangsafana.globalindo@gmail.com';
 export const BSI_BANK_CODE = 'CENAIDJA';
 export const BSI_DEFAULT_COMPANY_ID = '85553201';
+
+/** Batas panjang field sesuai header template BSI CMS. */
+export const BSI_MAX_PAYMENT_SUBJECT = 50;
+export const BSI_MAX_ADDITIONAL_MESSAGE = 16;
+export const BSI_MAX_SOURCE_ACCT = 16;
+export const BSI_MAX_BENEFICIARY_NOTIF_EMAIL = 100;
 
 /** Kolom kosong setelah AMOUNT (USING SPECIAL RATE s.d. DOC. UNDERLYING CODE). */
 const BSI_EMPTY_FIELDS_AFTER_AMOUNT = 6;
@@ -15,6 +21,35 @@ const BSI_EMPTY_FIELDS_AFTER_NATIONALITY = 3;
 const BSI_BANK_NAME_MAP: Record<string, string> = {
   bca: 'PT. BANK CENTRAL ASIA Tbk.',
 };
+
+/** Label pendek untuk kolom PAYMENT SUBJECT — mengikuti gaya template BSI. */
+const SPK_BSI_PAYMENT_SUBJECT: Record<string, string> = {
+  TERMIN_55: 'termin 55',
+  TERMIN_100: 'termin 100',
+  RETENSI: 'retensi',
+};
+
+const NOTARIS_BSI_PAYMENT_SUBJECT: Record<string, string> = {
+  BIAYA_NOTARIS: 'biaya notaris',
+  BPHTB: 'bphtb',
+};
+
+export function truncateBsiField(value: string, maxLen: number): string {
+  return value.trim().slice(0, maxLen);
+}
+
+/** Payment subject max 50; additional message = potongan subject max 16 ( pola template BSI ). */
+export function alignBsiPaymentFields(subject: string): {
+  paymentSubject: string;
+  additionalMessage: string;
+} {
+  const paymentSubject = truncateBsiField(subject, BSI_MAX_PAYMENT_SUBJECT);
+  const additionalMessage = truncateBsiField(
+    paymentSubject,
+    BSI_MAX_ADDITIONAL_MESSAGE,
+  );
+  return { paymentSubject, additionalMessage };
+}
 
 export function normalizeBsiBankName(namaBank: string): string {
   const trimmed = namaBank.trim();
@@ -48,6 +83,7 @@ export interface BsiBatchPaymentRow {
   additionalMessage: string;
   spkNo: string;
   mandorUsername: string;
+  referenceNo?: string;
 }
 
 export interface BsiBatchHeader {
@@ -58,13 +94,12 @@ export interface BsiBatchHeader {
 
 export function getBsiPaymentSubject(row: SpkPembayaranData): string {
   if (row.jenis === 'KASBON') {
-    return (row.keterangan ?? 'Kasbon').trim();
+    return (row.keterangan ?? 'kasbon').trim();
   }
-  return SPK_PEMBAYARAN_JENIS_LABEL[row.jenis];
+  return SPK_BSI_PAYMENT_SUBJECT[row.jenis] ?? row.jenis.toLowerCase();
 }
 
 export function getBsiAdditionalMessage(row: SpkPembayaranData): string {
-  if (row.keterangan?.trim()) return row.keterangan.trim();
   return getBsiPaymentSubject(row);
 }
 
@@ -80,12 +115,15 @@ export function buildBsiBatchRows(
 
   return items.map((row, index) => {
     const mandor = row.spk?.mandor;
+    const { paymentSubject, additionalMessage } = alignBsiPaymentFields(
+      getBsiPaymentSubject(row),
+    );
     return {
       pembayaranId: row.id,
       lineNo: index + 1,
-      paymentSubject: getBsiPaymentSubject(row),
+      paymentSubject,
       transferType,
-      sourceAcct,
+      sourceAcct: truncateBsiField(sourceAcct, BSI_MAX_SOURCE_ACCT),
       sourceAcctCcy: 'IDR',
       beneficiaryCountry: 'ID',
       beneficiaryType: 'Beneficiary Account',
@@ -100,9 +138,61 @@ export function buildBsiBatchRows(
       beneficiaryNationality: 'W',
       city: 'tangerang',
       chargeType: 'OUR',
-      additionalMessage: getBsiAdditionalMessage(row),
+      additionalMessage,
       spkNo: row.spk?.noSpk ?? '',
       mandorUsername: mandor?.username ?? '',
+      referenceNo: row.spk?.noSpk ?? '',
+    };
+  });
+}
+
+export function getNotarisBsiPaymentSubject(row: NotarisPembayaranData): string {
+  return NOTARIS_BSI_PAYMENT_SUBJECT[row.jenis] ?? row.jenis.toLowerCase();
+}
+
+export function getNotarisBsiAdditionalMessage(row: NotarisPembayaranData): string {
+  return getNotarisBsiPaymentSubject(row);
+}
+
+export function buildNotarisBsiBatchRows(
+  items: NotarisPembayaranData[],
+  defaults: {
+    transferType?: BsiTransferType;
+    sourceAcct?: string;
+  } = {},
+): BsiBatchPaymentRow[] {
+  const transferType = defaults.transferType ?? 'BI FAST';
+  const sourceAcct = defaults.sourceAcct ?? BSI_DEFAULT_SOURCE_ACCOUNT;
+
+  return items.map((row, index) => {
+    const notaris = row.penjualan?.detailKavlingPajak?.notaris;
+    const { paymentSubject, additionalMessage } = alignBsiPaymentFields(
+      getNotarisBsiPaymentSubject(row),
+    );
+    return {
+      pembayaranId: row.id,
+      lineNo: index + 1,
+      paymentSubject,
+      transferType,
+      sourceAcct: truncateBsiField(sourceAcct, BSI_MAX_SOURCE_ACCT),
+      sourceAcctCcy: 'IDR',
+      beneficiaryCountry: 'ID',
+      beneficiaryType: 'Beneficiary Account',
+      destination: notaris?.noRekening ?? '',
+      beneficiaryAcctName: notaris?.atasNamaRekening ?? notaris?.nama ?? '',
+      beneficiaryNotifEmail: BSI_NOTIFY_EMAIL,
+      creditAmountCcy: 'IDR',
+      amount: row.nominal,
+      bankName: normalizeBsiBankName(notaris?.namaBank ?? ''),
+      bankCode: BSI_BANK_CODE,
+      beneficiaryCitizenship: 'R',
+      beneficiaryNationality: 'W',
+      city: 'tangerang',
+      chargeType: 'OUR',
+      additionalMessage,
+      spkNo: row.penjualan?.noTransaksi ?? '',
+      mandorUsername: notaris?.nama ?? '',
+      referenceNo: row.penjualan?.noTransaksi ?? '',
     };
   });
 }
@@ -110,12 +200,26 @@ export function buildBsiBatchRows(
 export function validateBsiBatchRows(rows: BsiBatchPaymentRow[]): string[] {
   const errors: string[] = [];
   rows.forEach((row) => {
-    const prefix = `Baris ${row.lineNo} (${row.paymentSubject})`;
-    if (!row.destination.trim()) errors.push(`${prefix}: nomor rekening mandor kosong.`);
-    if (!row.beneficiaryAcctName.trim()) errors.push(`${prefix}: nama mandor kosong.`);
-    if (!row.bankName.trim()) errors.push(`${prefix}: nama bank mandor kosong.`);
+    const { paymentSubject, additionalMessage } = alignBsiPaymentFields(row.paymentSubject);
+    const prefix = `Baris ${row.lineNo} (${paymentSubject})`;
+    if (!row.destination.trim()) errors.push(`${prefix}: nomor rekening penerima kosong.`);
+    if (!row.beneficiaryAcctName.trim()) errors.push(`${prefix}: nama penerima kosong.`);
+    if (!row.bankName.trim()) errors.push(`${prefix}: nama bank penerima kosong.`);
     if (!row.sourceAcct.trim()) errors.push(`${prefix}: rekening sumber kosong.`);
     if (row.amount <= 0) errors.push(`${prefix}: nominal harus lebih dari 0.`);
+    if (row.paymentSubject.length > BSI_MAX_PAYMENT_SUBJECT) {
+      errors.push(`${prefix}: payment subject melebihi ${BSI_MAX_PAYMENT_SUBJECT} karakter.`);
+    }
+    if (row.additionalMessage.length > BSI_MAX_ADDITIONAL_MESSAGE) {
+      errors.push(
+        `${prefix}: additional message melebihi ${BSI_MAX_ADDITIONAL_MESSAGE} karakter.`,
+      );
+    }
+    if (row.additionalMessage !== additionalMessage) {
+      errors.push(
+        `${prefix}: additional message harus sama dengan payment subject (max ${BSI_MAX_ADDITIONAL_MESSAGE} karakter).`,
+      );
+    }
   });
   return errors;
 }
@@ -147,17 +251,18 @@ function emptyFields(count: number): string[] {
 }
 
 function rowToPipeLine(row: BsiBatchPaymentRow): string {
+  const { paymentSubject, additionalMessage } = alignBsiPaymentFields(row.paymentSubject);
   return [
     row.lineNo,
-    row.paymentSubject,
+    paymentSubject,
     row.transferType,
-    row.sourceAcct,
+    truncateBsiField(row.sourceAcct, BSI_MAX_SOURCE_ACCT),
     row.sourceAcctCcy,
     row.beneficiaryCountry,
     row.beneficiaryType,
-    row.destination,
-    row.beneficiaryAcctName,
-    row.beneficiaryNotifEmail,
+    row.destination.trim(),
+    row.beneficiaryAcctName.trim(),
+    truncateBsiField(row.beneficiaryNotifEmail, BSI_MAX_BENEFICIARY_NOTIF_EMAIL),
     row.creditAmountCcy,
     Math.round(row.amount),
     ...emptyFields(BSI_EMPTY_FIELDS_AFTER_AMOUNT),
@@ -169,7 +274,7 @@ function rowToPipeLine(row: BsiBatchPaymentRow): string {
     row.city,
     row.chargeType,
     '',
-    row.additionalMessage,
+    additionalMessage,
     '',
   ].join('|');
 }

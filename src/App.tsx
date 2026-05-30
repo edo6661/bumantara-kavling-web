@@ -41,6 +41,7 @@ const AgentPortalDashboard = lazy(() => import('./pages/AgentPortal/PortalDashbo
 const ApprovePembayaran = lazy(() => import('./pages/Finance/ApprovePembayaran'));
 const BayarKodeBillingPph = lazy(() => import('./pages/Finance/BayarKodeBillingPph'));
 const BayarSpkPembayaran = lazy(() => import('./pages/Finance/BayarSpkPembayaran'));
+const BayarNotarisPembayaran = lazy(() => import('./pages/Finance/BayarNotarisPembayaran'));
 const Profile = lazy(() => import('./pages/Profile'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -107,6 +108,7 @@ const App = () => {
                 <Route path="finance/approve-pembayaran" element={<PermissionGuard resource="TAGIHAN"><ApprovePembayaran /></PermissionGuard>} />
                 <Route path="finance/bayar-kode-billing-pph" element={<PermissionGuard resource="TAGIHAN"><BayarKodeBillingPph /></PermissionGuard>} />
                 <Route path="finance/bayar-spk" element={<PermissionGuard resource="TAGIHAN"><BayarSpkPembayaran /></PermissionGuard>} />
+                <Route path="finance/bayar-notaris" element={<PermissionGuard resource="TAGIHAN"><BayarNotarisPembayaran /></PermissionGuard>} />
                 <Route path="management/penjualan" element={<PermissionGuard resource="PENJUALAN"><Penjualan /></PermissionGuard>} />
                 <Route path="management/progress-penjualan" element={<PermissionGuard resource="PROGRESS_PENJUALAN"><ProgressPenjualan /></PermissionGuard>} />
                 <Route path="management/ganti-kavling" element={<PermissionGuard resource="GANTI_KAVLING"><GantiKavling /></PermissionGuard>} />
