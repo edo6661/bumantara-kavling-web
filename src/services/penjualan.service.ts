@@ -26,6 +26,9 @@ export interface CreatePenjualanDTO {
   bookingFee?: number;
   caraPembayaran: string;
   bank?: string;
+  bankKprNamaRekening?: string;
+  bankKprAtasNamaRekening?: string;
+  bankKprNoRekening?: string;
   nilaiPengajuanKpr?: number;
   agent: string;
   rekeningTujuanId?: number;

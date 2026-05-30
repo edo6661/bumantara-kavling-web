@@ -62,6 +62,9 @@ interface PenjualanData {
   bookingFee: number;
 
   bank: string;
+  bankKprNamaRekening?: string;
+  bankKprAtasNamaRekening?: string;
+  bankKprNoRekening?: string;
   caraPembayaran: string;
   termin?: number;
   cicilanPerBulan?: number;
@@ -263,7 +266,13 @@ const Penjualan = () => {
   }, [isTtdModalOpen]);
 
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
-  const [bankData, setBankData] = useState({ id: '', bank: '' });
+  const [bankData, setBankData] = useState({
+    id: '',
+    bank: '',
+    bankKprNamaRekening: '',
+    bankKprAtasNamaRekening: '',
+    bankKprNoRekening: '',
+  });
 
 
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
@@ -274,10 +283,21 @@ const Penjualan = () => {
     try {
       await updateMutation.mutateAsync({
         id: bankData.id,
-        data: { bank: bankData.bank }
+        data: {
+          bank: bankData.bank,
+          bankKprNamaRekening: bankData.bankKprNamaRekening,
+          bankKprAtasNamaRekening: bankData.bankKprAtasNamaRekening,
+          bankKprNoRekening: bankData.bankKprNoRekening,
+        }
       });
       setIsBankModalOpen(false);
-      setBankData({ id: '', bank: '' });
+      setBankData({
+        id: '',
+        bank: '',
+        bankKprNamaRekening: '',
+        bankKprAtasNamaRekening: '',
+        bankKprNoRekening: '',
+      });
       alert("Data Bank KPR berhasil disimpan!");
     } catch (error: any) {
       const { message } = handleApiError(error);
@@ -1287,7 +1307,13 @@ const Penjualan = () => {
                         <>
                           <button
                             onClick={() => {
-                              setBankData({ id: row.id!, bank: row.bank || '' });
+                              setBankData({
+                                id: row.id!,
+                                bank: row.bank || '',
+                                bankKprNamaRekening: row.bankKprNamaRekening || '',
+                                bankKprAtasNamaRekening: row.bankKprAtasNamaRekening || '',
+                                bankKprNoRekening: row.bankKprNoRekening || '',
+                              });
                               setIsBankModalOpen(true);
                             }}
                             className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer shadow-sm"
@@ -2973,8 +2999,8 @@ const Penjualan = () => {
 
       <Modal isOpen={isBankModalOpen} onClose={() => setIsBankModalOpen(false)} title="Informasi Bank KPR">
         <form onSubmit={handleBankSubmit} className="space-y-5">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
-            <p className="text-xs font-medium text-slate-600 mb-4">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 space-y-4">
+            <p className="text-xs font-medium text-slate-600">
               Masukkan nama Bank yang menyetujui pengajuan KPR customer.
             </p>
             <Input
@@ -2985,6 +3011,38 @@ const Penjualan = () => {
               placeholder="Contoh: MANDIRI / BTN / BSI"
               required
             />
+
+            <div className="pt-2 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-700 mb-1">Detail Rekening Bank KPR</p>
+              <p className="text-[11px] text-slate-500 mb-4">
+                Field di bawah ini opsional. Isi jika informasi rekening sudah tersedia.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <Input
+                  label="Nama Rekening (Opsional)"
+                  name="bankKprNamaRekening"
+                  value={bankData.bankKprNamaRekening}
+                  onChange={(e) => setBankData({ ...bankData, bankKprNamaRekening: e.target.value })}
+                  placeholder="Contoh: Rekening Escrow KPR"
+                />
+                <Input
+                  label="Nomor Rekening (Opsional)"
+                  name="bankKprNoRekening"
+                  value={bankData.bankKprNoRekening}
+                  onChange={(e) => setBankData({ ...bankData, bankKprNoRekening: e.target.value })}
+                  placeholder="Masukkan nomor rekening"
+                />
+                <div className="md:col-span-2">
+                  <Input
+                    label="Atas Nama Rekening (Opsional)"
+                    name="bankKprAtasNamaRekening"
+                    value={bankData.bankKprAtasNamaRekening}
+                    onChange={(e) => setBankData({ ...bankData, bankKprAtasNamaRekening: e.target.value })}
+                    placeholder="Nama pemilik rekening"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
