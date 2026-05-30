@@ -1,10 +1,47 @@
 import { isAxiosError } from "axios";
 import type { ActionResult } from "../types/common";
 
-/** Ubah pesan teknis dari server menjadi teks yang ramah pengguna. */
-export function toUserFriendlyMessage(message: string | undefined): string {
+const GENERIC_SERVER_MESSAGES = new Set(["internal server error"]);
+
+function isGenericServerMessage(message: string | undefined): boolean {
+  if (!message?.trim()) return true;
+  return GENERIC_SERVER_MESSAGES.has(message.toLowerCase().trim());
+}
+
+function extractDetailMessage(errorPayload: unknown): string | null {
+  if (!errorPayload || typeof errorPayload !== "object") return null;
+
+  if ("message" in errorPayload && typeof errorPayload.message === "string") {
+    return errorPayload.message;
+  }
+
+  if ("detail" in errorPayload && typeof errorPayload.detail === "string") {
+    return errorPayload.detail;
+  }
+
+  return null;
+}
+
+/** Pesan teknis dari server (dev) disederhanakan agar mudah ditindaklanjuti. */
+function toDevServerErrorMessage(detail: string): string {
+  const lower = detail.toLowerCase();
+
+  if (
+    lower.includes("does not exist in the current database") ||
+    lower.includes("unknown column") ||
+    lower.includes("p2022") ||
+    lower.includes("p2021")
+  ) {
+    return "Database belum diperbarui. Jalankan `npx prisma migrate deploy` di backend.";
+  }
+
+  return detail.length > 240 ? `${detail.slice(0, 240)}...` : detail;
+}
+
+/** Ubah pesan teknis upload menjadi teks yang ramah pengguna. */
+export function toUploadFriendlyMessage(message: string | undefined): string {
   if (!message?.trim()) {
-    return "Terjadi kesalahan. Silakan coba lagi.";
+    return "Gagal mengunggah file. Silakan coba lagi.";
   }
 
   const lower = message.toLowerCase();
@@ -38,19 +75,23 @@ export function toUserFriendlyMessage(message: string | undefined): string {
     return message;
   }
 
-  if (
-    lower.includes("cloudinary") ||
-    lower.includes("unknown cloudinary") ||
-    lower.includes("internal server error")
-  ) {
+  if (lower.includes("unknown cloudinary")) {
     return "Gagal mengunggah file. Silakan coba lagi dalam beberapa saat.";
   }
 
-  if (lower.startsWith("gagal upload file:") || lower.startsWith("gagal memproses gambar:")) {
+  if (
+    lower.startsWith("gagal upload file:") ||
+    lower.startsWith("gagal memproses gambar:")
+  ) {
     return "Gagal mengunggah file. Silakan periksa file Anda dan coba lagi.";
   }
 
   return message;
+}
+
+/** @deprecated Gunakan `toUploadFriendlyMessage` untuk alur upload. */
+export function toUserFriendlyMessage(message: string | undefined): string {
+  return toUploadFriendlyMessage(message);
 }
 
 export const handleApiError = (error: unknown): ActionResult => {
@@ -80,7 +121,10 @@ export const handleApiError = (error: unknown): ActionResult => {
     }
 
     const status = error.response.status;
-    const serverMessage = error.response.data?.message;
+    const serverMessage = error.response.data?.message as string | undefined;
+    const errorPayload = error.response.data?.error;
+    const detailMessage = extractDetailMessage(errorPayload);
+
     let defaultMessage = "Terjadi kesalahan pada server.";
 
     switch (status) {
@@ -119,11 +163,28 @@ export const handleApiError = (error: unknown): ActionResult => {
         break;
     }
 
-    const rawMessage = serverMessage || defaultMessage;
+    const isGenericServerFailure =
+      status >= 500 && isGenericServerMessage(serverMessage);
+
+    let message: string;
+    if (isGenericServerFailure) {
+      if (import.meta.env.DEV && detailMessage) {
+        message = toDevServerErrorMessage(detailMessage);
+      } else {
+        message = defaultMessage;
+      }
+    } else if (status === 413) {
+      message = toUploadFriendlyMessage(serverMessage || defaultMessage);
+    } else {
+      message = serverMessage || defaultMessage;
+    }
+
+    const fieldErrors = Array.isArray(errorPayload) ? errorPayload : undefined;
+
     return {
       success: false,
-      message: toUserFriendlyMessage(rawMessage),
-      errors: error.response.data?.error,
+      message,
+      errors: fieldErrors,
     };
   }
 

@@ -32,6 +32,9 @@ interface NotarisFormState {
   nama: string;
   noHp: string;
   alamat: string;
+  namaBank: string;
+  noRekening: string;
+  atasNamaRekening: string;
   pics: PicNotarisData[];
 }
 
@@ -43,6 +46,9 @@ const initialFormState: NotarisFormState = {
   nama: '',
   noHp: '',
   alamat: '',
+  namaBank: '',
+  noRekening: '',
+  atasNamaRekening: '',
   pics: []
 };
 
@@ -88,6 +94,9 @@ const Notaris = () => {
         nomorIjin: item.nomorIjin || '',
         noHp: item.noHp || '',
         alamat: item.alamat || '',
+        namaBank: item.namaBank || '',
+        noRekening: item.noRekening || '',
+        atasNamaRekening: item.atasNamaRekening || '',
         pics: item.pics || []
       });
       setIsEditing(true);
@@ -167,6 +176,9 @@ const Notaris = () => {
       nomorIjin: formData.nomorIjin,
       noHp: formData.noHp,
       alamat: formData.alamat,
+      namaBank: formData.namaBank || undefined,
+      noRekening: formData.noRekening || undefined,
+      atasNamaRekening: formData.atasNamaRekening || undefined,
       biayaAjb: 0,
       pics: validPics,
     };
@@ -269,6 +281,34 @@ const Notaris = () => {
               </div>
             </div>
           </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Rekening (Opsional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Nama Bank"
+                name="namaBank"
+                value={formData.namaBank}
+                onChange={handleChange}
+                placeholder="Contoh: BCA, Mandiri, BSI"
+              />
+              <Input
+                label="Nomor Rekening"
+                name="noRekening"
+                value={formData.noRekening}
+                onChange={handleChange}
+                placeholder="Masukkan nomor rekening"
+              />
+              <div className="md:col-span-2">
+                <Input
+                  label="Atas Nama Rekening"
+                  name="atasNamaRekening"
+                  value={formData.atasNamaRekening}
+                  onChange={handleChange}
+                  placeholder="Nama pemilik rekening"
+                />
+              </div>
+            </div>
+          </div>
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
             <div className="flex justify-between items-center mb-4">
               <div>
@@ -367,14 +407,34 @@ const Notaris = () => {
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Kontak Utama / No. HP</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedNotarisDetail.pics?.[0]?.noHp || '-'}</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedNotarisDetail.noHp || '-'}</p>
                 </div>
                 <div className="md:col-span-2 mt-2">
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Kantor</p>
-                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedNotarisDetail.pics?.[0]?.alamat || '-'}</p>
+                  <p className="text-sm font-medium text-slate-800 leading-relaxed">{selectedNotarisDetail.alamat || selectedNotarisDetail.pics?.[0]?.alamat || '-'}</p>
                 </div>
               </div>
             </div>
+
+            {(selectedNotarisDetail.namaBank || selectedNotarisDetail.noRekening || selectedNotarisDetail.atasNamaRekening) && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Informasi Rekening</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nama Bank</p>
+                    <p className="text-sm font-medium text-slate-800">{selectedNotarisDetail.namaBank || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nomor Rekening</p>
+                    <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedNotarisDetail.noRekening || '-'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Atas Nama Rekening</p>
+                    <p className="text-sm font-medium text-slate-800">{selectedNotarisDetail.atasNamaRekening || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {selectedNotarisDetail.pics && selectedNotarisDetail.pics.length > 1 && (
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">

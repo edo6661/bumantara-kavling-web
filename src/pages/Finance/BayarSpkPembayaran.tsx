@@ -44,6 +44,7 @@ interface SpkGroup {
   noSpk: string;
   judulPekerjaan: string;
   mandorUsername: string;
+  ksoFull: string | null;
   nilaiKontrak: number;
   items: SpkPembayaranData[];
   menungguCount: number;
@@ -62,6 +63,9 @@ const getItemLabel = (row: SpkPembayaranData) => {
   }
   return SPK_PEMBAYARAN_JENIS_LABEL[row.jenis];
 };
+
+const formatKsoShortLabel = (atasNama: string) =>
+  atasNama.trim().split(/\s+/).pop() ?? atasNama;
 
 const BayarSpkPembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -107,6 +111,7 @@ const BayarSpkPembayaran = () => {
           noSpk: row.spk?.noSpk ?? `#${row.spkId}`,
           judulPekerjaan: row.spk?.judulPekerjaan ?? '-',
           mandorUsername: row.spk?.mandor?.username ?? '-',
+          ksoFull: row.spk?.bankRekeningPt?.atasNama ?? null,
           nilaiKontrak: row.spk?.nilaiKontrak ?? 0,
           items: [row],
           menungguCount: row.status === 'MENUNGGU_PEMBAYARAN' ? 1 : 0,
@@ -444,6 +449,7 @@ const BayarSpkPembayaran = () => {
                   <th className={thParentClass}>No. SPK</th>
                   <th className={thParentClass}>Judul Pekerjaan</th>
                   <th className={thParentClass}>Mandor</th>
+                  <th className={thParentClass}>KSO</th>
                   <th className={thParentClass}>Nilai Kontrak</th>
                   <th className={`${thParentClass} text-center`}>Menunggu Bayar</th>
                   <th className={`${thParentClass} text-center`}>Total Item</th>
@@ -483,6 +489,16 @@ const BayarSpkPembayaran = () => {
                         <td className={`${tdParentClass} font-medium text-slate-700 whitespace-nowrap`}>
                           {group.mandorUsername}
                         </td>
+                        <td
+                          className={`${tdParentClass} text-xs font-medium text-slate-700 whitespace-nowrap`}
+                          title={group.ksoFull ?? undefined}
+                        >
+                          {group.ksoFull ? (
+                            formatKsoShortLabel(group.ksoFull)
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
                         <td className={`${tdParentClass} font-bold text-slate-900 whitespace-nowrap`}>
                           {formatRupiah(group.nilaiKontrak)}
                         </td>
@@ -501,7 +517,7 @@ const BayarSpkPembayaran = () => {
                       </tr>
                       {expanded && (
                         <tr className="bg-slate-50/50">
-                          <td colSpan={7} className="px-4 py-3 border-b border-slate-200">
+                          <td colSpan={8} className="px-4 py-3 border-b border-slate-200">
                             <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wide">
                               Detail pembayaran — {group.noSpk}
                             </p>

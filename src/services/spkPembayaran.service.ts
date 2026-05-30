@@ -29,6 +29,12 @@ export interface SpkPembayaranData {
     noSpk: string;
     judulPekerjaan: string;
     nilaiKontrak: number;
+    bankRekeningPt: {
+      id: number;
+      namaBank: string;
+      noRekening: string;
+      atasNama: string;
+    } | null;
     mandor: {
       id: number;
       username: string;
