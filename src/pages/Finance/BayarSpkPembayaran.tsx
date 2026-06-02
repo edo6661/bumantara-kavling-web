@@ -384,12 +384,12 @@ const BayarSpkPembayaran = () => {
           {!paid && (
             <button
               type="button"
+              title="Bayar"
               onClick={() => openUpload(row, 'bayar')}
               disabled={bayarMutation.isPending}
               className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold uppercase bg-slate-900 text-white rounded-lg hover:bg-black disabled:opacity-50 whitespace-nowrap"
             >
               <UploadCloud size={11} />
-              Bayar
             </button>
           )}
           {paid && (
