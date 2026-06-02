@@ -16,6 +16,7 @@ export interface SpkPembayaranData {
   mengurangiTermin: SpkKasbonTargetTermin | null;
   status: SpkPembayaranStatus;
   buktiPembayaran: string | null;
+  buktiPembayaranList?: string[] | null;
   tanggalPembayaran: string | null;
   bsiCmsDilaporkan: boolean;
   bsiCmsDilaporkanAt: string | null;
@@ -94,9 +95,9 @@ export const spkPembayaranService = {
     return response.data.data as SpkPembayaranData;
   },
 
-  bayar: async (id: number, file: File, tanggalPembayaran?: string) => {
+  bayar: async (id: number, files: File[], tanggalPembayaran?: string) => {
     const formData = new FormData();
-    formData.append('buktiPembayaran', file);
+    files.forEach((file) => formData.append('buktiPembayaran', file));
     if (tanggalPembayaran) {
       formData.append('tanggalPembayaran', tanggalPembayaran);
     }

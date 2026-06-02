@@ -221,17 +221,20 @@ const BayarSpkPembayaran = () => {
   };
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    if (!file || !uploadTarget) return;
+    if (!files.length || !uploadTarget) return;
 
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      alert('Hanya file gambar dan PDF yang diperbolehkan.');
+    const hasInvalidFile = files.some(
+      (file) => !file.type.startsWith('image/') && file.type !== 'application/pdf',
+    );
+    if (hasInvalidFile) {
+      alert('Semua file harus berupa gambar atau PDF.');
       return;
     }
 
     try {
-      await bayarMutation.mutateAsync({ id: uploadTarget.id, file });
+      await bayarMutation.mutateAsync({ id: uploadTarget.id, files });
       alert('Pembayaran SPK berhasil diproses.');
     } catch (error) {
       alert(handleApiError(error).message);
@@ -244,6 +247,12 @@ const BayarSpkPembayaran = () => {
     const colors = JENIS_UI_COLOR[row.jenis];
     const paid = row.status === 'SUDAH_DIBAYAR';
     const checked = selectedIds.has(row.id);
+    const buktiList =
+      row.buktiPembayaranList && row.buktiPembayaranList.length > 0
+        ? row.buktiPembayaranList
+        : row.buktiPembayaran
+          ? [row.buktiPembayaran]
+          : [];
 
     return (
       <tr
@@ -299,12 +308,20 @@ const BayarSpkPembayaran = () => {
           </div>
         </td>
         <td className="px-4 py-2.5">
-          {row.buktiPembayaran ? (
-            <BuktiFileThumbnail
-              url={row.buktiPembayaran}
-              onClick={() => setPreviewUrl(row.buktiPembayaran!)}
-              className="w-12 h-8"
-            />
+          {buktiList.length > 0 ? (
+            <div className="flex items-center gap-1.5">
+              {buktiList.slice(0, 3).map((url, index) => (
+                <BuktiFileThumbnail
+                  key={`${row.id}-${url}-${index}`}
+                  url={url}
+                  onClick={() => setPreviewUrl(url)}
+                  className="w-12 h-8"
+                />
+              ))}
+              {buktiList.length > 3 && (
+                <span className="text-[10px] font-bold text-slate-500">+{buktiList.length - 3}</span>
+              )}
+            </div>
           ) : (
             <span className="text-slate-400 text-xs">—</span>
           )}
@@ -333,6 +350,7 @@ const BayarSpkPembayaran = () => {
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept="image/*,application/pdf"
         className="hidden"
         onChange={handleFileSelected}

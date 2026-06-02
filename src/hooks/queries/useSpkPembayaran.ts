@@ -64,13 +64,13 @@ export const useBayarSpkPembayaran = () => {
   return useMutation({
     mutationFn: ({
       id,
-      file,
+      files,
       tanggalPembayaran,
     }: {
       id: number;
-      file: File;
+      files: File[];
       tanggalPembayaran?: string;
-    }) => spkPembayaranService.bayar(id, file, tanggalPembayaran),
+    }) => spkPembayaranService.bayar(id, files, tanggalPembayaran),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
