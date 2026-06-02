@@ -1158,21 +1158,6 @@ const ProgressPenjualan = () => {
 
                       <div className="pt-4 border-t border-slate-100 space-y-4">
                         <div>
-                          <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1 flex items-center gap-2">
-                            <PlusCircle size={14} className="text-indigo-600" /> Dokumen PPh SP3K
-                          </h4>
-                          {sp3kUnitLabel && (
-                            <p className="text-[10px] text-slate-500 mb-3 font-medium">
-                              Per kavling: <span className="text-indigo-600 font-bold">{sp3kUnitLabel}</span>
-                            </p>
-                          )}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {sp3kDokumenSlots.map((slot) =>
-                              renderDokumenLainnyaGroup(slot, { hideDeleteGroup: true, fileItems: slot.fileItems })
-                            )}
-                          </div>
-                        </div>
-                        <div>
                           <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">
                             <PlusCircle size={14} className="text-blue-600" /> Dokumen Pendukung KPR (Slip Gaji, Mutasi, dll)
                           </h4>
