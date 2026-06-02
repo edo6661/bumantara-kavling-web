@@ -12,6 +12,7 @@ export interface SpkPembayaranData {
   jenis: SpkPembayaranJenis;
   nominal: number;
   keterangan: string | null;
+  tanggalPo: string | null;
   mengurangiTermin: SpkKasbonTargetTermin | null;
   status: SpkPembayaranStatus;
   buktiPembayaran: string | null;
@@ -54,7 +55,7 @@ export interface SpkPembayaranListParams {
 
 export type CreateSpkPembayaranBody =
   | { jenis: SpkTerminPembayaranJenis }
-  | { jenis: 'KASBON'; keterangan: string; nominal: number };
+  | { jenis: 'KASBON'; keterangan: string; nominal: number; tanggalPo: string };
 
 export const spkPembayaranService = {
   getBySpkId: async (spkId: number): Promise<SpkPembayaranData[]> => {

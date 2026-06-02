@@ -24,6 +24,8 @@ import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi'
 
 const TERMIN_JENIS_ORDER: SpkTerminPembayaranJenis[] = ['TERMIN_55', 'TERMIN_100', 'RETENSI'];
 
+const todayIso = () => new Date().toISOString().split('T')[0]!;
+
 const thClass =
   'px-2.5 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase bg-slate-50 border border-slate-200 whitespace-nowrap';
 const tdClass = 'px-2.5 py-1.5 border border-slate-200 text-xs text-slate-800 align-middle';
@@ -84,6 +86,7 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
   const [kasbonModalOpen, setKasbonModalOpen] = useState(false);
   const [kasbonKeterangan, setKasbonKeterangan] = useState('');
   const [kasbonNominal, setKasbonNominal] = useState('');
+  const [kasbonTanggalPo, setKasbonTanggalPo] = useState(() => todayIso());
 
   const { data: pembayaranList = [], isLoading } = useGetSpkPembayaranBySpk(spk.id);
   const createMutation = useCreateSpkPembayaranRequest();
@@ -135,6 +138,10 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
       alert('Nominal kasbon harus lebih dari 0.');
       return;
     }
+    if (!kasbonTanggalPo) {
+      alert('Tanggal PO wajib diisi.');
+      return;
+    }
     if (!kasbonCheck.allowed) {
       alert(kasbonCheck.reason);
       return;
@@ -144,7 +151,7 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
       : '';
     if (
       !window.confirm(
-        `Ajukan kasbon ${formatRupiah(nominal)}?\nKeterangan: ${kasbonKeterangan.trim()}\nMengurangi: ${targetLabel}`,
+        `Ajukan kasbon ${formatRupiah(nominal)}?\nTanggal PO: ${kasbonTanggalPo}\nKeterangan: ${kasbonKeterangan.trim()}\nMengurangi: ${targetLabel}`,
       )
     ) {
       return;
@@ -152,11 +159,17 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     try {
       await createMutation.mutateAsync({
         spkId: spk.id,
-        body: { jenis: 'KASBON', keterangan: kasbonKeterangan.trim(), nominal },
+        body: {
+          jenis: 'KASBON',
+          keterangan: kasbonKeterangan.trim(),
+          nominal,
+          tanggalPo: kasbonTanggalPo,
+        },
       });
       setKasbonModalOpen(false);
       setKasbonKeterangan('');
       setKasbonNominal('');
+      setKasbonTanggalPo(todayIso());
       alert('Pengajuan kasbon berhasil dikirim ke finance.');
     } catch (err: unknown) {
       alert(handleApiError(err).message);
@@ -246,7 +259,10 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
             type="button"
             disabled={!kasbonCheck.allowed || createMutation.isPending}
             title={kasbonCheck.reason}
-            onClick={() => setKasbonModalOpen(true)}
+            onClick={() => {
+              setKasbonTanggalPo(todayIso());
+              setKasbonModalOpen(true);
+            }}
             className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-40"
           >
             <Plus size={12} />
@@ -308,10 +324,11 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
             Kasbon ({kasbonItems.length})
           </p>
           <div className="overflow-x-auto rounded-lg border border-orange-200">
-            <table className="w-full text-xs border-collapse min-w-[640px]">
+            <table className="w-full text-xs border-collapse min-w-[720px]">
               <thead>
                 <tr>
                   <th className={thClass}>Keterangan</th>
+                  <th className={thClass}>Tanggal PO</th>
                   <th className={thClass}>Mengurangi</th>
                   <th className={thClass}>Nominal</th>
                   <th className={thClass}>Status</th>
@@ -325,9 +342,9 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
                     <tr key={row.id} className={JENIS_UI_COLOR.KASBON.row}>
                       <td className={`${tdClass} max-w-[200px]`}>
                         <span className="font-medium text-slate-800">{row.keterangan}</span>
-                        <p className="text-[9px] text-slate-400 mt-0.5">
-                          {formatDate(row.createdAt)}
-                        </p>
+                      </td>
+                      <td className={`${tdClass} whitespace-nowrap text-slate-600`}>
+                        {formatDate(row.tanggalPo ?? row.createdAt)}
                       </td>
                       <td className={tdClass}>
                         {row.mengurangiTermin
@@ -389,6 +406,15 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
               <strong>{SPK_KASBON_TARGET_LABEL[kasbonCheck.targetTermin]}</strong> (FIFO).
             </p>
           )}
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal PO</label>
+            <input
+              type="date"
+              value={kasbonTanggalPo}
+              onChange={(e) => setKasbonTanggalPo(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-black"
+            />
+          </div>
           <div>
             <label className="text-[10px] font-bold text-slate-500 uppercase">Keterangan</label>
             <textarea
