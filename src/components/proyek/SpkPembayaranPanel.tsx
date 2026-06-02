@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Loader2, Plus } from 'lucide-react';
+import { FileText, Loader2, Pencil, Plus } from 'lucide-react';
 import Modal from '../shared/Modal';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../shared/BuktiFileThumbnail';
 import { formatRupiah, formatDate } from '../../utils/formatters';
@@ -7,7 +7,10 @@ import { handleApiError } from '../../utils/errorHandler';
 import {
   useCreateSpkPembayaranRequest,
   useGetSpkPembayaranBySpk,
+  useUpdateSpkKasbon,
 } from '../../hooks/queries/useSpkPembayaran';
+import { useAuth } from '../../context/AuthContext';
+import { usePermission } from '../../hooks/usePermission';
 import type { SpkData } from '../../services/spk.service';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 import {
@@ -25,6 +28,13 @@ import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi'
 const TERMIN_JENIS_ORDER: SpkTerminPembayaranJenis[] = ['TERMIN_55', 'TERMIN_100', 'RETENSI'];
 
 const todayIso = () => new Date().toISOString().split('T')[0]!;
+
+const toDateInputValue = (dateStr: string | null | undefined) => {
+  if (!dateStr) return todayIso();
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return todayIso();
+  return d.toISOString().split('T')[0]!;
+};
 
 const thClass =
   'px-2.5 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase bg-slate-50 border border-slate-200 whitespace-nowrap';
@@ -82,14 +92,21 @@ interface SpkPembayaranPanelProps {
 }
 
 const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
+  const { user } = useAuth();
+  const { canUpdate: canUpdateSpk } = usePermission('SPK');
+  const canEditKasbon = canUpdateSpk && user?.role !== 'MANDOR';
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [kasbonModalOpen, setKasbonModalOpen] = useState(false);
+  const [kasbonEditModalOpen, setKasbonEditModalOpen] = useState(false);
+  const [editingKasbon, setEditingKasbon] = useState<SpkPembayaranData | null>(null);
   const [kasbonKeterangan, setKasbonKeterangan] = useState('');
   const [kasbonNominal, setKasbonNominal] = useState('');
   const [kasbonTanggalPo, setKasbonTanggalPo] = useState(() => todayIso());
 
   const { data: pembayaranList = [], isLoading } = useGetSpkPembayaranBySpk(spk.id);
   const createMutation = useCreateSpkPembayaranRequest();
+  const updateKasbonMutation = useUpdateSpkKasbon();
 
   const calcRows = toCalcRows(pembayaranList);
   const statusRows = pembayaranList.map((p) => ({
@@ -171,6 +188,60 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
       setKasbonNominal('');
       setKasbonTanggalPo(todayIso());
       alert('Pengajuan kasbon berhasil dikirim ke finance.');
+    } catch (err: unknown) {
+      alert(handleApiError(err).message);
+    }
+  };
+
+  const canEditKasbonRow = (row: SpkPembayaranData) =>
+    canEditKasbon && !row.buktiPembayaran && row.status !== 'SUDAH_DIBAYAR';
+
+  const openEditKasbon = (row: SpkPembayaranData) => {
+    setEditingKasbon(row);
+    setKasbonKeterangan(row.keterangan ?? '');
+    setKasbonNominal(String(row.nominal));
+    setKasbonTanggalPo(toDateInputValue(row.tanggalPo ?? row.createdAt));
+    setKasbonEditModalOpen(true);
+  };
+
+  const closeEditKasbonModal = () => {
+    setKasbonEditModalOpen(false);
+    setEditingKasbon(null);
+  };
+
+  const handleSimpanEditKasbon = async () => {
+    if (!editingKasbon) return;
+    const nominal = Number(kasbonNominal.replace(/\D/g, ''));
+    if (!kasbonKeterangan.trim()) {
+      alert('Keterangan kasbon wajib diisi.');
+      return;
+    }
+    if (!nominal || nominal <= 0) {
+      alert('Nominal kasbon harus lebih dari 0.');
+      return;
+    }
+    if (!kasbonTanggalPo) {
+      alert('Tanggal PO wajib diisi.');
+      return;
+    }
+    if (
+      !window.confirm(
+        `Simpan perubahan kasbon?\nKeterangan: ${kasbonKeterangan.trim()}\nTanggal PO: ${kasbonTanggalPo}\nNominal: ${formatRupiah(nominal)}`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await updateKasbonMutation.mutateAsync({
+        id: editingKasbon.id,
+        body: {
+          keterangan: kasbonKeterangan.trim(),
+          nominal,
+          tanggalPo: kasbonTanggalPo,
+        },
+      });
+      closeEditKasbonModal();
+      alert('Data kasbon berhasil diperbarui.');
     } catch (err: unknown) {
       alert(handleApiError(err).message);
     }
@@ -333,11 +404,13 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
                   <th className={thClass}>Nominal</th>
                   <th className={thClass}>Status</th>
                   <th className={`${thClass} w-16`}>Bukti</th>
+                  {canEditKasbon && <th className={`${thClass} w-14`}>Aksi</th>}
                 </tr>
               </thead>
               <tbody>
                 {kasbonItems.map((row) => {
                   const paid = row.status === 'SUDAH_DIBAYAR';
+                  const editable = canEditKasbonRow(row);
                   return (
                     <tr key={row.id} className={JENIS_UI_COLOR.KASBON.row}>
                       <td className={`${tdClass} max-w-[200px]`}>
@@ -374,6 +447,22 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
+                      {canEditKasbon && (
+                        <td className={tdClass}>
+                          {editable ? (
+                            <button
+                              type="button"
+                              title="Edit kasbon"
+                              onClick={() => openEditKasbon(row)}
+                              className="p-1 rounded text-indigo-600 hover:bg-indigo-50"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -453,6 +542,70 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
               className="px-4 py-2 text-sm font-bold bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
             >
               Ajukan ke Finance
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={kasbonEditModalOpen}
+        onClose={closeEditKasbonModal}
+        title="Edit Kasbon"
+        size="md"
+      >
+        <div className="space-y-4">
+          {editingKasbon?.mengurangiTermin && (
+            <p className="text-xs text-orange-800 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
+              Kasbon ini mengurangi nominal{' '}
+              <strong>{SPK_KASBON_TARGET_LABEL[editingKasbon.mengurangiTermin]}</strong>.
+              Mengurangi termin tidak dapat diubah dari sini.
+            </p>
+          )}
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal PO</label>
+            <input
+              type="date"
+              value={kasbonTanggalPo}
+              onChange={(e) => setKasbonTanggalPo(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-black"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 uppercase">Keterangan</label>
+            <textarea
+              value={kasbonKeterangan}
+              onChange={(e) => setKasbonKeterangan(e.target.value)}
+              className="text-black mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm min-h-[72px]"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold text-slate-500 uppercase">Nominal</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={kasbonNominal}
+              onChange={(e) => setKasbonNominal(e.target.value.replace(/[^\d]/g, ''))}
+              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-black"
+            />
+            {kasbonNominal && (
+              <p className="text-xs text-slate-500 mt-1">{formatRupiah(Number(kasbonNominal))}</p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={closeEditKasbonModal}
+              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              disabled={updateKasbonMutation.isPending}
+              onClick={handleSimpanEditKasbon}
+              className="px-4 py-2 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            >
+              Simpan
             </button>
           </div>
         </div>

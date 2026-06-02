@@ -3,7 +3,10 @@ import {
   spkPembayaranService,
   type SpkPembayaranListParams,
 } from '../../services/spkPembayaran.service';
-import type { CreateSpkPembayaranBody } from '../../services/spkPembayaran.service';
+import type {
+  CreateSpkPembayaranBody,
+  UpdateSpkKasbonBody,
+} from '../../services/spkPembayaran.service';
 import { SPK_KEYS } from './useSpk';
 
 export const SPK_PEMBAYARAN_KEYS = {
@@ -38,6 +41,20 @@ export const useCreateSpkPembayaranRequest = () => {
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(spkId) });
+    },
+  });
+};
+
+export const useUpdateSpkKasbon = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: UpdateSpkKasbonBody }) =>
+      spkPembayaranService.updateKasbon(id, body),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(data.spkId) });
     },
   });
 };

@@ -57,6 +57,12 @@ export type CreateSpkPembayaranBody =
   | { jenis: SpkTerminPembayaranJenis }
   | { jenis: 'KASBON'; keterangan: string; nominal: number; tanggalPo: string };
 
+export interface UpdateSpkKasbonBody {
+  keterangan: string;
+  nominal: number;
+  tanggalPo: string;
+}
+
 export const spkPembayaranService = {
   getBySpkId: async (spkId: number): Promise<SpkPembayaranData[]> => {
     const response = await api.get(`/spk-pembayaran/spk/${spkId}`);
@@ -80,6 +86,11 @@ export const spkPembayaranService = {
 
   createRequest: async (spkId: number, body: CreateSpkPembayaranBody) => {
     const response = await api.post(`/spk-pembayaran/spk/${spkId}`, body);
+    return response.data.data as SpkPembayaranData;
+  },
+
+  updateKasbon: async (id: number, body: UpdateSpkKasbonBody) => {
+    const response = await api.patch(`/spk-pembayaran/${id}/kasbon`, body);
     return response.data.data as SpkPembayaranData;
   },
 
