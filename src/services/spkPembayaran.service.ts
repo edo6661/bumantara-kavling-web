@@ -107,6 +107,22 @@ export const spkPembayaranService = {
     return response.data.data as SpkPembayaranData;
   },
 
+  addBukti: async (id: number, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('buktiPembayaran', file));
+    const response = await api.patch(`/spk-pembayaran/${id}/bukti`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data as SpkPembayaranData;
+  },
+
+  removeBukti: async (id: number, buktiUrl: string) => {
+    const response = await api.delete(`/spk-pembayaran/${id}/bukti`, {
+      data: { buktiUrl },
+    });
+    return response.data.data as SpkPembayaranData;
+  },
+
   setBsiCmsDilaporkan: async (ids: number[], dilaporkan: boolean) => {
     const response = await api.patch('/spk-pembayaran/bsi-cms-dilaporkan', {
       ids,

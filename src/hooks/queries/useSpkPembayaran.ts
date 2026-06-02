@@ -80,6 +80,34 @@ export const useBayarSpkPembayaran = () => {
   });
 };
 
+export const useAddBuktiSpkPembayaran = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, files }: { id: number; files: File[] }) =>
+      spkPembayaranService.addBukti(id, files),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(data.spkId) });
+    },
+  });
+};
+
+export const useRemoveBuktiSpkPembayaran = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, buktiUrl }: { id: number; buktiUrl: string }) =>
+      spkPembayaranService.removeBukti(id, buktiUrl),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(data.spkId) });
+    },
+  });
+};
+
 export const useSetBsiCmsDilaporkan = () => {
   const queryClient = useQueryClient();
   return useMutation({

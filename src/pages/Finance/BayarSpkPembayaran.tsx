@@ -16,6 +16,7 @@ import {
   FileDown,
   Landmark,
   Undo2,
+  X,
 } from 'lucide-react';
 import BsiBatchPaymentPreviewModal from '../../components/finance/BsiBatchPaymentPreviewModal';
 import {
@@ -26,8 +27,10 @@ import {
   type BsiBatchPaymentRow,
 } from '../../utils/bsiBatchPayment';
 import {
+  useAddBuktiSpkPembayaran,
   useBayarSpkPembayaran,
   useGetSpkPembayaranList,
+  useRemoveBuktiSpkPembayaran,
   useSetBsiCmsDilaporkan,
 } from '../../hooks/queries/useSpkPembayaran';
 import { handleApiError } from '../../utils/errorHandler';
@@ -50,6 +53,8 @@ interface SpkGroup {
   menungguCount: number;
 }
 
+type UploadMode = 'bayar' | 'add-bukti';
+
 const thParentClass =
   'px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50 border-b border-slate-200 whitespace-nowrap';
 const tdParentClass = 'px-4 py-3 text-sm text-slate-800 align-middle border-b border-slate-100';
@@ -71,6 +76,7 @@ const BayarSpkPembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<SpkPembayaranData | null>(null);
+  const [uploadMode, setUploadMode] = useState<UploadMode>('bayar');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [expandedSpkIds, setExpandedSpkIds] = useState<Set<number>>(new Set());
@@ -96,6 +102,8 @@ const BayarSpkPembayaran = () => {
   const items = response?.items ?? [];
   const meta = response?.meta;
   const bayarMutation = useBayarSpkPembayaran();
+  const addBuktiMutation = useAddBuktiSpkPembayaran();
+  const removeBuktiMutation = useRemoveBuktiSpkPembayaran();
   const bsiCmsMutation = useSetBsiCmsDilaporkan();
 
   const spkGroups = useMemo((): SpkGroup[] => {
@@ -215,7 +223,8 @@ const BayarSpkPembayaran = () => {
     });
   };
 
-  const openUpload = (row: SpkPembayaranData) => {
+  const openUpload = (row: SpkPembayaranData, mode: UploadMode) => {
+    setUploadMode(mode);
     setUploadTarget(row);
     fileInputRef.current?.click();
   };
@@ -234,12 +243,40 @@ const BayarSpkPembayaran = () => {
     }
 
     try {
-      await bayarMutation.mutateAsync({ id: uploadTarget.id, files });
-      alert('Pembayaran SPK berhasil diproses.');
+      if (uploadMode === 'add-bukti') {
+        await addBuktiMutation.mutateAsync({ id: uploadTarget.id, files });
+        alert('Bukti pembayaran berhasil ditambahkan.');
+      } else {
+        await bayarMutation.mutateAsync({ id: uploadTarget.id, files });
+        alert('Pembayaran SPK berhasil diproses.');
+      }
     } catch (error) {
       alert(handleApiError(error).message);
     } finally {
       setUploadTarget(null);
+      setUploadMode('bayar');
+    }
+  };
+
+  const handleRemoveBukti = async (row: SpkPembayaranData, buktiUrl: string) => {
+    const buktiList =
+      row.buktiPembayaranList && row.buktiPembayaranList.length > 0
+        ? row.buktiPembayaranList
+        : row.buktiPembayaran
+          ? [row.buktiPembayaran]
+          : [];
+    if (buktiList.length <= 1) {
+      alert('Minimal harus tersisa 1 bukti pembayaran.');
+      return;
+    }
+
+    const confirmed = window.confirm('Hapus bukti pembayaran ini?');
+    if (!confirmed) return;
+    try {
+      await removeBuktiMutation.mutateAsync({ id: row.id, buktiUrl });
+      alert('Bukti pembayaran berhasil dihapus.');
+    } catch (error) {
+      alert(handleApiError(error).message);
     }
   };
 
@@ -310,14 +347,31 @@ const BayarSpkPembayaran = () => {
         <td className="px-4 py-2.5">
           {buktiList.length > 0 ? (
             <div className="flex items-center gap-1.5">
-              {buktiList.slice(0, 3).map((url, index) => (
-                <BuktiFileThumbnail
-                  key={`${row.id}-${url}-${index}`}
-                  url={url}
-                  onClick={() => setPreviewUrl(url)}
-                  className="w-12 h-8"
-                />
-              ))}
+              {buktiList.slice(0, 3).map((url, index) => {
+                return (
+                  <div key={`${row.id}-${url}-${index}`} className="relative">
+                    <BuktiFileThumbnail
+                      url={url}
+                      onClick={() => setPreviewUrl(url)}
+                      className="w-12 h-8"
+                    />
+                    {paid && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleRemoveBukti(row, url);
+                        }}
+                        disabled={removeBuktiMutation.isPending || buktiList.length <= 1}
+                        className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                        title="Hapus bukti"
+                      >
+                        <X size={10} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
               {buktiList.length > 3 && (
                 <span className="text-[10px] font-bold text-slate-500">+{buktiList.length - 3}</span>
               )}
@@ -330,12 +384,24 @@ const BayarSpkPembayaran = () => {
           {!paid && (
             <button
               type="button"
-              onClick={() => openUpload(row)}
+              onClick={() => openUpload(row, 'bayar')}
               disabled={bayarMutation.isPending}
               className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold uppercase bg-slate-900 text-white rounded-lg hover:bg-black disabled:opacity-50 whitespace-nowrap"
             >
               <UploadCloud size={11} />
               Bayar
+            </button>
+          )}
+          {paid && (
+            <button
+              type="button"
+              title="Tambah Bukti"
+              onClick={() => openUpload(row, 'add-bukti')}
+              disabled={addBuktiMutation.isPending}
+              className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold uppercase bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 whitespace-nowrap"
+            >
+              <UploadCloud size={11} />
+              
             </button>
           )}
         </td>
