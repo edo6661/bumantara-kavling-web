@@ -10,6 +10,7 @@ import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import { handleApiError } from '../../utils/errorHandler';
 import { useAuth } from "../../context/AuthContext";
+import { usePermission } from "../../hooks/usePermission";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
 import { useGetMandors } from "../../hooks/queries/useProgressProyek";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
@@ -215,14 +216,15 @@ const DetailSectionTitle = ({ children }: { children: React.ReactNode }) => (
 
 const SPK = () => {
   const { user, selectedPerumahan } = useAuth();
+  const { canRead: canReadSpk } = usePermission('SPK');
   const canManageSpk = user?.role !== 'MANDOR';
   const canEditSpkProgress = canManageSpk;
 
   const canAjukanPembayaranFor = (spk: SpkData) => {
     if (!user) return false;
     if (user.role === 'MANDOR') return spk.mandorId === user.id;
-    if (user.role === 'FINANCE' || user.role === 'CUSTOMER') return false;
-    return true;
+    if (user.role === 'CUSTOMER') return false;
+    return canReadSpk;
   };
 
   const isMandorRole = user?.role === 'MANDOR';
