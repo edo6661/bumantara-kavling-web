@@ -12,10 +12,12 @@ import {
 } from 'lucide-react';
 import { formatRupiah } from '../utils/formatters';
 import { useGetDashboardSummary } from '../hooks/queries/useDashboard';
+import { useAuth } from '../context/AuthContext';
 import PageLoader from './PageLoader';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: dashboardData, isLoading } = useGetDashboardSummary();
 
   if (isLoading || !dashboardData) return <PageLoader />;
@@ -75,11 +77,8 @@ const Dashboard = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
         <div>
           <h1 className="text-2xl font-heading font-bold text-slate-900 tracking-tight">
-            Selamat datang kembali! 👋
+            Halo, {user?.username ?? 'Pengguna'}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Berikut adalah ringkasan performa operasional dan finansial hari ini.
-          </p>
         </div>
       </div>
 
