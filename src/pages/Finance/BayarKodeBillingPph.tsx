@@ -105,6 +105,7 @@ const BayarKodeBillingPph = () => {
           {row.perumahan ? (
             <span className="text-[10px] text-slate-500">
                Blok {row.blok}-{row.nomorUnit}
+               {(row.sertifikatUrutan ?? 1) > 1 ? ` · Tanah ke-${row.sertifikatUrutan}` : ''}
             </span>
           ) : (
             <span className="text-[10px] text-slate-400 italic">Tanpa data kavling</span>

@@ -72,3 +72,24 @@ export const useUploadKavlingDocument = () => {
     },
   });
 };
+
+export const useUploadKavlingSertifikatTambahanDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      urutan,
+      docType,
+      file,
+    }: {
+      id: number;
+      urutan: number;
+      docType: string;
+      file: File;
+    }) => kavlingService.uploadSertifikatTambahanDocument(id, urutan, docType, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};

@@ -15,6 +15,9 @@ export const useGetKodeBillingPph = (params?: Record<string, unknown>) => {
   });
 };
 
+export const kodeBillingPphPenjualanAllQueryKey = (penjualanId: number) =>
+  ["kode-billing-pph", "penjualan", penjualanId, "all"] as const;
+
 export const useGetKodeBillingPphByPenjualan = (
   penjualanId: number | null | undefined,
 ) => {
@@ -33,16 +36,40 @@ export const useGetKodeBillingPphByPenjualan = (
   });
 };
 
+export const useGetAllKodeBillingPphByPenjualan = (
+  penjualanId: number | null | undefined,
+) => {
+  const id =
+    penjualanId != null && !Number.isNaN(Number(penjualanId))
+      ? Number(penjualanId)
+      : null;
+  return useQuery({
+    queryKey:
+      id != null && id > 0
+        ? kodeBillingPphPenjualanAllQueryKey(id)
+        : (["kode-billing-pph", "penjualan", "all", "idle"] as const),
+    queryFn: () => kodeBillingPphService.getAllByPenjualan(id!),
+    enabled: id != null && id > 0,
+    refetchOnMount: "always",
+  });
+};
+
 export const useUploadKodeBillingPph = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: kodeBillingPphService.uploadBilling,
     onSuccess: (data, variables) => {
       const penjualanId = Number(variables.penjualanId);
-      queryClient.setQueryData<KodeBillingPphData | null>(
-        kodeBillingPphPenjualanQueryKey(penjualanId),
-        data,
-      );
+      const urutan = variables.sertifikatUrutan ?? 1;
+      if (urutan === 1) {
+        queryClient.setQueryData<KodeBillingPphData | null>(
+          kodeBillingPphPenjualanQueryKey(penjualanId),
+          data,
+        );
+      }
+      queryClient.invalidateQueries({
+        queryKey: kodeBillingPphPenjualanAllQueryKey(penjualanId),
+      });
       // Jangan refetch query penjualan — bisa menimpa fileBilling dari respons upload
       queryClient.invalidateQueries({
         queryKey: ["kode-billing-pph", "list"],

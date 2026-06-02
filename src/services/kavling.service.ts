@@ -23,6 +23,15 @@ export interface KavlingData {
   filePbg: string | null;
   fileSertifikatTanah: string | null;
   fileNopPbb: string | null;
+  jumlahSertifikatTanah?: number;
+  sertifikatTanahTambahan?: {
+    id: number;
+    kavlingId: number;
+    urutan: number;
+    filePbg: string | null;
+    fileSertifikatTanah: string | null;
+    fileNopPbb: string | null;
+  }[];
   penjualan?: {
     customer?: {
       nama: string;
@@ -42,6 +51,7 @@ export interface CreateKavlingDTO {
   jenisKavling?: JenisKavling;
   status?: string;
   rekeningTujuanId?: number;
+  jumlahSertifikatTanah?: number;
 
   filePbg?: string;
   fileSertifikatTanah?: string;
@@ -106,6 +116,24 @@ export const kavlingService = {
     formData.append("file", file);
     const response = await api.patch(
       `/kavling/${id}/upload/${docType}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data.data;
+  },
+
+  uploadSertifikatTambahanDocument: async (
+    id: number,
+    urutan: number,
+    docType: string,
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.patch(
+      `/kavling/${id}/upload-tambahan/${urutan}/${docType}`,
       formData,
       {
         headers: { "Content-Type": "multipart/form-data" },

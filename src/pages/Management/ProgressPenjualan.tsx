@@ -12,9 +12,10 @@ import { useGetCustomers, useUpdateCustomer, useUploadCustomerDoc } from "../../
 import {
   useUploadKodeBillingPph,
   useGetKodeBillingPphByPenjualan,
+  useGetAllKodeBillingPphByPenjualan,
   kodeBillingPphPenjualanQueryKey,
 } from "../../hooks/queries/useKodeBillingPph";
-import { useUploadSuketPph, useGetSuketPphByPenjualan } from "../../hooks/queries/useSuketPph";
+import { useUploadSuketPph, useGetSuketPphByPenjualan, useGetAllSuketPphByPenjualan } from "../../hooks/queries/useSuketPph";
 import type { CustomerDocType } from "../../services/customer.service";
 import {
   useGetProgressPenjualan,
@@ -34,7 +35,7 @@ import Input from '../../components/shared/Input';
 import { handleApiError } from '../../utils/errorHandler';
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
 import Select from '../../components/shared/Select';
-import { useUploadKavlingDocument } from '../../hooks/queries/useKavling';
+import { useUploadKavlingDocument, useUploadKavlingSertifikatTambahanDocument } from '../../hooks/queries/useKavling';
 import { useQueryClient } from '@tanstack/react-query';
 
 const SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh'] as const;
@@ -85,6 +86,7 @@ const ProgressPenjualan = () => {
   const uploadSuketPphMutation = useUploadSuketPph();
   const updateCustomerMutation = useUpdateCustomer();
   const uploadKavlingDocMutation = useUploadKavlingDocument();
+  const uploadKavlingTambahanDocMutation = useUploadKavlingSertifikatTambahanDocument();
   const queryClient = useQueryClient();
   const [uploadingKavlingDoc, setUploadingKavlingDoc] = useState<string | null>(null);
 
@@ -101,6 +103,7 @@ const ProgressPenjualan = () => {
     docType?: CustomerDocType;
     files: File[];
     groupName?: string;
+    sertifikatUrutan?: number;
   } | null>(null);
 
 
@@ -194,15 +197,27 @@ const ProgressPenjualan = () => {
       ? activePenjualanId
       : null;
 
+  const jumlahSertifikatTanah = Math.max(
+    1,
+    Number(selectedPenjualan?.jumlahSertifikatTanah ?? 1),
+  );
+  const isMultiSertifikat = jumlahSertifikatTanah > 1;
+
   const { data: kodeBillingRecord } = useGetKodeBillingPphByPenjualan(
-    modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
+    !isMultiSertifikat && modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
+  );
+  const { data: kodeBillingRecords = [] } = useGetAllKodeBillingPphByPenjualan(
+    isMultiSertifikat && modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
   );
 
-  const kodeBillingLatest = kodeBillingRecord?.kodeBilling;
-  const kodeBillingFileUrl = kodeBillingRecord?.fileBilling?.trim() || null;
+  const kodeBillingLatest = (isMultiSertifikat ? kodeBillingRecords[0] : kodeBillingRecord)?.kodeBilling;
+  const kodeBillingFileUrl = (isMultiSertifikat ? kodeBillingRecords[0] : kodeBillingRecord)?.fileBilling?.trim() || null;
 
   const { data: suketRecord } = useGetSuketPphByPenjualan(
-    modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
+    !isMultiSertifikat && modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
+  );
+  const { data: suketRecords = [] } = useGetAllSuketPphByPenjualan(
+    isMultiSertifikat && modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
   );
 
   const sp3kUnitLabel = selectedPenjualan
@@ -269,19 +284,46 @@ const ProgressPenjualan = () => {
     }
   };
 
-  const handleUploadKavlingDoc = async (docType: string, file: File) => {
+  const handleUploadKavlingDoc = async (docType: string, file: File, urutan = 1) => {
     if (!selectedPenjualan) return;
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       alert("Hanya format gambar dan PDF yang diperbolehkan!");
       return;
     }
-    setUploadingKavlingDoc(docType);
+    const uploadKey = urutan === 1 ? docType : `${urutan}-${docType}`;
+    setUploadingKavlingDoc(uploadKey);
     try {
-      await uploadKavlingDocMutation.mutateAsync({ id: selectedPenjualan.kavlingId, docType, file });
+      if (urutan === 1) {
+        await uploadKavlingDocMutation.mutateAsync({ id: selectedPenjualan.kavlingId, docType, file });
+        const fileUrl = URL.createObjectURL(file);
+        setSelectedPenjualan((prev: any) => prev ? { ...prev, [docType]: fileUrl } : prev);
+      } else {
+        await uploadKavlingTambahanDocMutation.mutateAsync({
+          id: selectedPenjualan.kavlingId,
+          urutan,
+          docType,
+          file,
+        });
+        const fileUrl = URL.createObjectURL(file);
+        setSelectedPenjualan((prev: any) => {
+          if (!prev) return prev;
+          const existing = Array.isArray(prev.sertifikatTanahTambahan)
+            ? [...prev.sertifikatTanahTambahan]
+            : [];
+          const idx = existing.findIndex((row: { urutan: number }) => row.urutan === urutan);
+          const nextRow = {
+            urutan,
+            filePbg: idx >= 0 ? existing[idx].filePbg : null,
+            fileSertifikatTanah: idx >= 0 ? existing[idx].fileSertifikatTanah : null,
+            fileNopPbb: idx >= 0 ? existing[idx].fileNopPbb : null,
+            [docType]: fileUrl,
+          };
+          if (idx >= 0) existing[idx] = { ...existing[idx], ...nextRow };
+          else existing.push(nextRow);
+          return { ...prev, sertifikatTanahTambahan: existing };
+        });
+      }
       alert(`Dokumen kavling berhasil diunggah!`);
-
-      const fileUrl = URL.createObjectURL(file);
-      setSelectedPenjualan((prev: any) => prev ? { ...prev, [docType]: fileUrl } : prev);
       queryClient.invalidateQueries({ queryKey: ["penjualan"] });
     } catch (err: any) {
       alert(handleApiError(err).message);
@@ -290,10 +332,22 @@ const ProgressPenjualan = () => {
     }
   };
 
-  const renderKavlingFileBox = (title: string, docType: string, url: string | null) => {
+  const getSertifikatTanahFileUrl = (docType: string, urutan: number) => {
+    if (!selectedPenjualan) return null;
+    if (urutan === 1) return selectedPenjualan[docType] ?? null;
+    const row = selectedPenjualan.sertifikatTanahTambahan?.find(
+      (item: { urutan: number }) => item.urutan === urutan,
+    );
+    return row?.[docType] ?? null;
+  };
+
+  const renderKavlingFileBox = (title: string, docType: string, url: string | null, urutan = 1) => {
+    const uploadKey = urutan === 1 ? docType : `${urutan}-${docType}`;
     const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf') || url.startsWith('blob:')) : false;
-    const isUploading = uploadKavlingDocMutation.isPending && uploadingKavlingDoc === docType;
-    const isDrag = dragActive === docType;
+    const isUploading =
+      (uploadKavlingDocMutation.isPending || uploadKavlingTambahanDocMutation.isPending) &&
+      uploadingKavlingDoc === uploadKey;
+    const isDrag = dragActive === uploadKey;
 
     return (
       <div
@@ -301,19 +355,22 @@ const ProgressPenjualan = () => {
           ${isDrag ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-200'}
         `}
         tabIndex={0}
-        onDragEnter={(e) => handleDrag(e, docType)}
-        onDragLeave={(e) => handleDrag(e, docType)}
-        onDragOver={(e) => handleDrag(e, docType)}
+        onDragEnter={(e) => handleDrag(e, uploadKey)}
+        onDragLeave={(e) => handleDrag(e, uploadKey)}
+        onDragOver={(e) => handleDrag(e, uploadKey)}
         onDrop={(e) => {
           e.preventDefault(); e.stopPropagation(); setDragActive(null);
           const file = e.dataTransfer.files?.[0];
-          if (file) handleUploadKavlingDoc(docType, file);
+          if (file) handleUploadKavlingDoc(docType, file, urutan);
         }}
-        onPaste={(e) => handlePaste(e, (files) => handleUploadKavlingDoc(docType, files[0]))}
+        onPaste={(e) => handlePaste(e, (files) => handleUploadKavlingDoc(docType, files[0], urutan))}
       >
         <div className="flex justify-between items-center relative z-10">
           <div className="flex flex-col">
             <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+            {urutan > 1 && (
+              <span className="text-[9px] text-indigo-600 font-bold">Sertifikat Tanah ke-{urutan}</span>
+            )}
             <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
           </div>
           <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
@@ -324,9 +381,9 @@ const ProgressPenjualan = () => {
             )}
             <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) handleUploadKavlingDoc(docType, file);
+              if (file) handleUploadKavlingDoc(docType, file, urutan);
               e.target.value = '';
-            }} disabled={uploadKavlingDocMutation.isPending} />
+            }} disabled={uploadKavlingDocMutation.isPending || uploadKavlingTambahanDocMutation.isPending} />
           </label>
         </div>
 
@@ -560,15 +617,16 @@ const ProgressPenjualan = () => {
   };
 
   const isKodeBillingPphDoc = (name: string) =>
-    name.trim().toLowerCase() === KODE_BILLING_PPH_DOC_NAME.toLowerCase();
+    name.trim().toLowerCase().startsWith(KODE_BILLING_PPH_DOC_NAME.toLowerCase());
 
   const isSuketPphDoc = (name: string) =>
-    name.trim().toLowerCase() === SUKET_PPH_DOC_NAME.toLowerCase();
+    name.trim().toLowerCase().startsWith(SUKET_PPH_DOC_NAME.toLowerCase());
 
-  const isSp3kPerPenjualanDoc = (name: string) =>
-    isKodeBillingPphDoc(name) || isSuketPphDoc(name);
-
-  const handleUploadLainnya = async (files: File[] | FileList, groupNameOverride?: string) => {
+  const handleUploadLainnya = async (
+    files: File[] | FileList,
+    groupNameOverride?: string,
+    sertifikatUrutan = 1,
+  ) => {
     if (!currentCustomer) return;
     const docName = groupNameOverride || newDocName;
     if (!docName.trim()) {
@@ -586,7 +644,7 @@ const ProgressPenjualan = () => {
         alert("Unggah satu file PDF Kode Billing PPh per kali upload.");
         return;
       }
-      setPendingUpload({ type: 'kodeBillingPph', files: [pdfFiles[0]!] });
+      setPendingUpload({ type: 'kodeBillingPph', files: [pdfFiles[0]!], sertifikatUrutan });
       setPdfPassword("");
       setShowPdfPasswordModal(true);
       return;
@@ -606,12 +664,12 @@ const ProgressPenjualan = () => {
       }
       const file = validFiles[0]!;
       if (file.type === 'application/pdf') {
-        setPendingUpload({ type: 'suketPph', files: [file] });
+        setPendingUpload({ type: 'suketPph', files: [file], sertifikatUrutan });
         setPdfPassword("");
         setShowPdfPasswordModal(true);
         return;
       }
-      await doUploadSuketPph(file);
+      await doUploadSuketPph(file, undefined, sertifikatUrutan);
       return;
     }
 
@@ -632,18 +690,24 @@ const ProgressPenjualan = () => {
     await doUploadLainnya(validFiles, docName);
   };
 
-  const doUploadSuketPph = async (file: File, password?: string) => {
+  const doUploadSuketPph = async (file: File, password?: string, sertifikatUrutan = 1) => {
     if (!currentCustomer || !selectedPenjualan?.dbId) return;
-    setUploadingCustDoc(SUKET_PPH_DOC_NAME);
+    setUploadingCustDoc(`${SUKET_PPH_DOC_NAME}-${sertifikatUrutan}`);
     try {
       await uploadSuketPphMutation.mutateAsync({
         customerId: currentCustomer.id,
         penjualanId: selectedPenjualan.dbId,
+        sertifikatUrutan,
         file,
         pdfPassword: password,
       });
-      const action = suketRecord ? 'diperbarui' : 'disimpan';
-      alert(`Suket PPh untuk kavling ini berhasil ${action}!`);
+      const existing =
+        (isMultiSertifikat ? suketRecords : suketRecord ? [suketRecord] : []).find(
+          (row) => (row?.sertifikatUrutan ?? 1) === sertifikatUrutan,
+        );
+      const action = existing ? 'diperbarui' : 'disimpan';
+      const tanahLabel = isMultiSertifikat ? ` tanah ke-${sertifikatUrutan}` : '';
+      alert(`Suket PPh${tanahLabel} untuk kavling ini berhasil ${action}!`);
     } catch (error: unknown) {
       alert(handleApiError(error).message);
     } finally {
@@ -651,25 +715,33 @@ const ProgressPenjualan = () => {
     }
   };
 
-  const doUploadKodeBillingPph = async (file: File, password?: string) => {
+  const doUploadKodeBillingPph = async (file: File, password?: string, sertifikatUrutan = 1) => {
     if (!currentCustomer || !selectedPenjualan?.dbId) return;
-    setUploadingCustDoc(KODE_BILLING_PPH_DOC_NAME);
+    setUploadingCustDoc(`${KODE_BILLING_PPH_DOC_NAME}-${sertifikatUrutan}`);
     try {
       const penjualanId = Number(selectedPenjualan.dbId);
       const result = await uploadKodeBillingPphMutation.mutateAsync({
         customerId: currentCustomer.id,
         penjualanId,
+        sertifikatUrutan,
         file,
         pdfPassword: password,
       });
-      queryClient.setQueryData(
-        kodeBillingPphPenjualanQueryKey(penjualanId),
-        result,
-      );
+      if (sertifikatUrutan === 1) {
+        queryClient.setQueryData(
+          kodeBillingPphPenjualanQueryKey(penjualanId),
+          result,
+        );
+      }
       await queryClient.invalidateQueries({ queryKey: ['customers'] });
       await queryClient.invalidateQueries({ queryKey: ['kode-billing-pph', 'list'] });
-      const action = kodeBillingRecord ? 'diperbarui' : 'disimpan';
-      alert(`Kode billing PPh kavling ini berhasil ${action}: ${result.kodeBilling}`);
+      const existing =
+        (isMultiSertifikat ? kodeBillingRecords : kodeBillingRecord ? [kodeBillingRecord] : []).find(
+          (row) => (row?.sertifikatUrutan ?? 1) === sertifikatUrutan,
+        );
+      const action = existing ? 'diperbarui' : 'disimpan';
+      const tanahLabel = isMultiSertifikat ? ` tanah ke-${sertifikatUrutan}` : '';
+      alert(`Kode billing PPh${tanahLabel} kavling ini berhasil ${action}: ${result.kodeBilling}`);
     } catch (error: unknown) {
       alert(handleApiError(error).message);
     } finally {
@@ -707,9 +779,17 @@ const ProgressPenjualan = () => {
     if (pendingUpload.type === 'cust' && pendingUpload.docType) {
       await doUploadCustDoc(pendingUpload.docType, pendingUpload.files[0]!, pdfPassword || undefined);
     } else if (pendingUpload.type === 'kodeBillingPph') {
-      await doUploadKodeBillingPph(pendingUpload.files[0]!, pdfPassword || undefined);
+      await doUploadKodeBillingPph(
+        pendingUpload.files[0]!,
+        pdfPassword || undefined,
+        pendingUpload.sertifikatUrutan ?? 1,
+      );
     } else if (pendingUpload.type === 'suketPph') {
-      await doUploadSuketPph(pendingUpload.files[0]!, pdfPassword || undefined);
+      await doUploadSuketPph(
+        pendingUpload.files[0]!,
+        pdfPassword || undefined,
+        pendingUpload.sertifikatUrutan ?? 1,
+      );
     } else if (pendingUpload.type === 'lainnya' && pendingUpload.groupName) {
       await doUploadLainnya(pendingUpload.files, pendingUpload.groupName, pdfPassword || undefined);
     }
@@ -720,11 +800,17 @@ const ProgressPenjualan = () => {
 
   const renderDokumenLainnyaGroup = (
     doc: { id: string; nama: string; fileUrl: string | string[] },
-    options?: { hideDeleteGroup?: boolean; fileItems?: { url: string; docId: string }[] }
+    options?: {
+      hideDeleteGroup?: boolean;
+      fileItems?: { url: string; docId: string }[];
+      sertifikatUrutan?: number;
+      kodeBilling?: string | null;
+    }
   ) => {
+    const slotUrutan = options?.sertifikatUrutan ?? 1;
     const isKodeBilling = isKodeBillingPphDoc(doc.nama);
     const isSuket = isSuketPphDoc(doc.nama);
-    const isSingleFileSlot = isSp3kPerPenjualanDoc(doc.nama);
+    const isSingleFileSlot = isKodeBilling || isSuket;
     const rawUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : doc.fileUrl ? [doc.fileUrl] : [];
     const itemsFromOptions = options?.fileItems ?? [];
     const fileUrls =
@@ -739,10 +825,13 @@ const ProgressPenjualan = () => {
         : fileUrls.map((url) => ({ url, docId: doc.id }))
     ).filter((item) => item.url && (fileUrls.length === 0 || fileUrls.includes(item.url)));
     const hasSingleSlotFile = isSingleFileSlot && fileItems.length > 0;
+    const slotKodeBilling = options?.kodeBilling ?? (slotUrutan === 1 ? kodeBillingLatest : null);
     const isUploadingKodeBilling =
-      uploadKodeBillingPphMutation.isPending && uploadingCustDoc === KODE_BILLING_PPH_DOC_NAME;
+      uploadKodeBillingPphMutation.isPending &&
+      uploadingCustDoc === `${KODE_BILLING_PPH_DOC_NAME}-${slotUrutan}`;
     const isUploadingSuket =
-      uploadSuketPphMutation.isPending && uploadingCustDoc === SUKET_PPH_DOC_NAME;
+      uploadSuketPphMutation.isPending &&
+      uploadingCustDoc === `${SUKET_PPH_DOC_NAME}-${slotUrutan}`;
     const isUploadingSlot = isUploadingKodeBilling || isUploadingSuket;
 
     return (
@@ -759,9 +848,9 @@ const ProgressPenjualan = () => {
                   : `(${fileItems.length} File)`}
               </span>
             </span>
-            {isKodeBilling && kodeBillingLatest && (
+            {isKodeBilling && slotKodeBilling && (
               <span className="text-[9px] font-bold text-indigo-600 mt-0.5 font-mono">
-                Kode: {kodeBillingLatest}
+                Kode: {slotKodeBilling}
               </span>
             )}
             {isKodeBilling && (
@@ -815,7 +904,14 @@ const ProgressPenjualan = () => {
                   uploadSuketPphMutation.isPending
                 }
                 onChange={(e) => {
-                  if (e.target.files?.length) handleUploadLainnya(e.target.files, doc.nama);
+                  if (e.target.files?.length) {
+                    const canonicalName = isKodeBilling
+                      ? KODE_BILLING_PPH_DOC_NAME
+                      : isSuket
+                        ? SUKET_PPH_DOC_NAME
+                        : doc.nama;
+                    handleUploadLainnya(e.target.files, canonicalName, slotUrutan);
+                  }
                   e.target.value = '';
                 }}
               />
@@ -879,29 +975,77 @@ const ProgressPenjualan = () => {
     const penjualanId = selectedPenjualan?.dbId;
     if (!penjualanId) return [];
 
-    const billingUrl = kodeBillingFileUrl ?? undefined;
-    const suketUrl = suketRecord?.fileSuket;
-
     const buildSlot = (
-      nama: string,
+      baseNama: string,
       url: string | undefined,
+      sertifikatUrutan: number,
       recordId?: number,
+      kodeBilling?: string,
     ) => {
+      const nama = isMultiSertifikat
+        ? `${baseNama} (Tanah ${sertifikatUrutan})`
+        : baseNama;
       const fileUrls = url ? [url] : [];
-      const docId = recordId ? String(recordId) : `placeholder-${nama}-${penjualanId}`;
+      const docId = recordId
+        ? String(recordId)
+        : `placeholder-${baseNama}-${penjualanId}-${sertifikatUrutan}`;
       return {
         id: docId,
         nama,
         fileUrl: fileUrls,
         fileItems: fileUrls.map((u) => ({ url: u, docId })),
+        sertifikatUrutan,
+        kodeBilling: kodeBilling ?? null,
       };
     };
 
+    if (isMultiSertifikat) {
+      return Array.from({ length: jumlahSertifikatTanah }, (_, idx) => {
+        const urutan = idx + 1;
+        const billing = kodeBillingRecords.find(
+          (row) => (row.sertifikatUrutan ?? 1) === urutan,
+        );
+        const suket = suketRecords.find(
+          (row) => (row.sertifikatUrutan ?? 1) === urutan,
+        );
+        return [
+          buildSlot(
+            KODE_BILLING_PPH_DOC_NAME,
+            billing?.fileBilling?.trim() || undefined,
+            urutan,
+            billing?.id,
+            billing?.kodeBilling,
+          ),
+          buildSlot(
+            SUKET_PPH_DOC_NAME,
+            suket?.fileSuket,
+            urutan,
+            suket?.id,
+          ),
+        ];
+      }).flat();
+    }
+
     return [
-      buildSlot(KODE_BILLING_PPH_DOC_NAME, billingUrl, kodeBillingRecord?.id),
-      buildSlot(SUKET_PPH_DOC_NAME, suketUrl, suketRecord?.id),
+      buildSlot(
+        KODE_BILLING_PPH_DOC_NAME,
+        kodeBillingFileUrl ?? undefined,
+        1,
+        kodeBillingRecord?.id,
+        kodeBillingRecord?.kodeBilling,
+      ),
+      buildSlot(SUKET_PPH_DOC_NAME, suketRecord?.fileSuket, 1, suketRecord?.id),
     ];
-  }, [selectedPenjualan?.dbId, kodeBillingFileUrl, kodeBillingRecord?.id, suketRecord]);
+  }, [
+    selectedPenjualan?.dbId,
+    isMultiSertifikat,
+    jumlahSertifikatTanah,
+    kodeBillingFileUrl,
+    kodeBillingRecord,
+    kodeBillingRecords,
+    suketRecord,
+    suketRecords,
+  ]);
 
   const kprDokumenLainnya = useMemo(() => {
     const docs: { id: string; nama: string; fileUrl: string | string[] }[] = Array.isArray(currentCustomer?.dokumenLainnya)
@@ -1217,11 +1361,20 @@ const ProgressPenjualan = () => {
                   <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
                     <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
                       <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap 2: Sertifikat Kavling</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {renderKavlingFileBox("PBG", "filePbg", selectedPenjualan.filePbg)}
-                        {renderKavlingFileBox("Tanah", "fileSertifikatTanah", selectedPenjualan.fileSertifikatTanah)}
-                        {renderKavlingFileBox("PBB", "fileNopPbb", selectedPenjualan.fileNopPbb)}
-                      </div>
+                      {Array.from({ length: jumlahSertifikatTanah }, (_, idx) => idx + 1).map((urutan) => (
+                        <div key={urutan} className={isMultiSertifikat ? 'mb-6 last:mb-0' : ''}>
+                          {isMultiSertifikat && (
+                            <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide mb-3">
+                              Sertifikat Tanah ke-{urutan}
+                            </p>
+                          )}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {renderKavlingFileBox("PBG", "filePbg", getSertifikatTanahFileUrl("filePbg", urutan), urutan)}
+                            {renderKavlingFileBox("Tanah", "fileSertifikatTanah", getSertifikatTanahFileUrl("fileSertifikatTanah", urutan), urutan)}
+                            {renderKavlingFileBox("PBB", "fileNopPbb", getSertifikatTanahFileUrl("fileNopPbb", urutan), urutan)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -1291,7 +1444,12 @@ const ProgressPenjualan = () => {
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {sp3kDokumenSlots.map((slot) =>
-                            renderDokumenLainnyaGroup(slot, { hideDeleteGroup: true, fileItems: slot.fileItems })
+                            renderDokumenLainnyaGroup(slot, {
+                              hideDeleteGroup: true,
+                              fileItems: slot.fileItems,
+                              sertifikatUrutan: slot.sertifikatUrutan,
+                              kodeBilling: slot.kodeBilling,
+                            })
                           )}
                         </div>
                       </div>

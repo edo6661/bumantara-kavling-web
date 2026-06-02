@@ -13,7 +13,8 @@ import { formatRupiah } from "../../utils/formatters";
 import { useAuth } from "../../context/AuthContext";
 import {
   useGetKavlings, useCreateKavling, useUpdateKavling,
-  useDeleteKavling, useUploadKavlingDocument
+  useDeleteKavling, useUploadKavlingDocument,
+  useUploadKavlingSertifikatTambahanDocument,
 } from "../../hooks/queries/useKavling";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
@@ -34,11 +35,13 @@ interface KavlingFormState {
   status: string;
   jenisKavling: JenisKavling;
   rekeningTujuanId: number | '';
+  jumlahSertifikatTanah: number;
 }
 
 const initialFormState: KavlingFormState = {
   id: '', perumahanId: '', blok: '', nomorUnit: '', namaTipe: '',
   luasBangunan: '', luasTanah: '', hargaDasar: '', status: 'AVAILABLE', jenisKavling: 'PERUMAHAN', rekeningTujuanId: '',
+  jumlahSertifikatTanah: 1,
 };
 
 type KavlingTipeConfig =
@@ -118,6 +121,7 @@ const Kavling = () => {
   const updateMutation = useUpdateKavling();
   const deleteMutation = useDeleteKavling();
   const uploadDocMutation = useUploadKavlingDocument();
+  const uploadTambahanDocMutation = useUploadKavlingSertifikatTambahanDocument();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<KavlingFormState>(initialFormState);
@@ -169,9 +173,27 @@ const Kavling = () => {
     });
   };
 
+  const hasDocForType = (
+    row: KavlingData,
+    docType: 'filePbg' | 'fileSertifikatTanah' | 'fileNopPbb',
+  ) => {
+    if (row[docType]) return true;
+    return row.sertifikatTanahTambahan?.some((item) => item[docType]) ?? false;
+  };
+
   const DokumenIcons = ({ row }: { row: KavlingData }) => {
 
-    const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
+    const IconNode = ({
+      active,
+      icon: IconComp,
+      title,
+      step,
+    }: {
+      active: boolean;
+      icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+      title: string;
+      step: string;
+    }) => (
       <button
         type="button"
         title={title}
@@ -185,17 +207,21 @@ const Kavling = () => {
           : 'bg-slate-50 border-slate-200 text-slate-400 grayscale hover:grayscale-0 hover:bg-slate-100'
           }`}
       >
-        <Icon size={14} strokeWidth={active ? 2.5 : 1.5} />
+        <IconComp size={14} strokeWidth={active ? 2.5 : 1.5} />
       </button>
     );
 
+    const pbgOk = hasDocForType(row, 'filePbg');
+    const tanahOk = hasDocForType(row, 'fileSertifikatTanah');
+    const pbbOk = hasDocForType(row, 'fileNopPbb');
+
     return (
       <div className="flex items-center gap-1">
-        <IconNode active={!!row.filePbg} icon={FileText} title="Dokumen PBG" step="PBG" />
-        <div className={`w-2 h-0.5 rounded-full ${row.filePbg && row.fileSertifikatTanah ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
-        <IconNode active={!!row.fileSertifikatTanah} icon={ScrollText} title="Sertifikat Tanah" step="SERTIFIKAT" />
-        <div className={`w-2 h-0.5 rounded-full ${row.fileSertifikatTanah && row.fileNopPbb ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
-        <IconNode active={!!row.fileNopPbb} icon={Map} title="NOP PBB" step="NOP" />
+        <IconNode active={pbgOk} icon={FileText} title="Dokumen PBG" step="PBG" />
+        <div className={`w-2 h-0.5 rounded-full ${pbgOk && tanahOk ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+        <IconNode active={tanahOk} icon={ScrollText} title="Sertifikat Tanah" step="SERTIFIKAT" />
+        <div className={`w-2 h-0.5 rounded-full ${tanahOk && pbbOk ? 'bg-emerald-300' : 'bg-slate-200'}`}></div>
+        <IconNode active={pbbOk} icon={Map} title="NOP PBB" step="NOP" />
       </div>
     );
   };
@@ -268,6 +294,7 @@ const Kavling = () => {
         namaTipe: item.namaTipe, luasBangunan: item.luasBangunan, luasTanah: item.luasTanah,
         hargaDasar: item.hargaDasar, status: item.status, jenisKavling: item.jenisKavling,
         rekeningTujuanId: item.rekeningTujuanId || '',
+        jumlahSertifikatTanah: item.jumlahSertifikatTanah ?? 1,
       });
       setIsEditing(true);
     } else {
@@ -285,7 +312,10 @@ const Kavling = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const parsedValue = type === 'number' ? (value === '' ? '' : Number(value)) : value;
+    const parsedValue =
+      type === 'number' || name === 'jumlahSertifikatTanah'
+        ? (value === '' ? '' : Number(value))
+        : value;
     setFormData((prev) => {
       const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
       if (name === 'namaTipe') {
@@ -336,6 +366,7 @@ const Kavling = () => {
       hargaDasar: Number(formData.hargaDasar), status: formData.status,
       jenisKavling: formData.jenisKavling,
       rekeningTujuanId: formData.rekeningTujuanId !== '' ? Number(formData.rekeningTujuanId) : undefined,
+      jumlahSertifikatTanah: formData.jumlahSertifikatTanah,
     };
     try {
       if (isEditing && formData.id !== '') {
@@ -369,38 +400,99 @@ const Kavling = () => {
     }
   };
 
-  const handleUploadDoc = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedDocKavling) return;
+  const getDocUrl = (
+    kavling: KavlingData,
+    docType: 'filePbg' | 'fileSertifikatTanah' | 'fileNopPbb',
+    urutan: number,
+  ) => {
+    if (urutan === 1) return kavling[docType] ?? null;
+    const row = kavling.sertifikatTanahTambahan?.find((item) => item.urutan === urutan);
+    return row?.[docType] ?? null;
+  };
+
+  const handleUploadDoc = async (
+    docType: 'filePbg' | 'fileSertifikatTanah' | 'fileNopPbb',
+    file: File,
+    urutan = 1,
+  ) => {
+    if (!selectedDocKavling) return;
 
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       alert("Hanya format gambar dan PDF yang diperbolehkan!");
-      e.target.value = '';
       return;
     }
 
-    try {
-      await uploadDocMutation.mutateAsync({ id: selectedDocKavling.id, docType, file });
-      alert(`Dokumen berhasil diunggah!`);
-      setSelectedDocKavling(prev => prev ? { ...prev, [docType]: URL.createObjectURL(file) } : prev);
+    const previewUrl = URL.createObjectURL(file);
 
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Gagal mengunggah dokumen kavling");
-    } finally {
-      e.target.value = '';
+    try {
+      if (urutan === 1) {
+        await uploadDocMutation.mutateAsync({ id: selectedDocKavling.id, docType, file });
+        setSelectedDocKavling((prev) =>
+          prev ? { ...prev, [docType]: previewUrl } : prev,
+        );
+      } else {
+        await uploadTambahanDocMutation.mutateAsync({
+          id: selectedDocKavling.id,
+          urutan,
+          docType,
+          file,
+        });
+        setSelectedDocKavling((prev) => {
+          if (!prev) return prev;
+          const existing = [...(prev.sertifikatTanahTambahan ?? [])];
+          const idx = existing.findIndex((item) => item.urutan === urutan);
+          const nextRow = {
+            id: idx >= 0 ? existing[idx]?.id ?? 0 : 0,
+            kavlingId: selectedDocKavling.id,
+            urutan,
+            filePbg: idx >= 0 ? existing[idx]?.filePbg ?? null : null,
+            fileSertifikatTanah: idx >= 0 ? existing[idx]?.fileSertifikatTanah ?? null : null,
+            fileNopPbb: idx >= 0 ? existing[idx]?.fileNopPbb ?? null : null,
+            [docType]: previewUrl,
+          };
+          if (idx >= 0) existing[idx] = { ...existing[idx], ...nextRow };
+          else existing.push(nextRow);
+          return { ...prev, sertifikatTanahTambahan: existing };
+        });
+      }
+      alert(`Dokumen berhasil diunggah!`);
+    } catch (err: unknown) {
+      alert(handleApiError(err).message);
     }
   };
 
-
-  const renderFileBox = (title: string, docType: string, url: string | null | undefined) => {
+  const renderFileBox = (
+    title: string,
+    docType: 'filePbg' | 'fileSertifikatTanah' | 'fileNopPbb',
+    url: string | null | undefined,
+    urutan = 1,
+  ) => {
     const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf')) : false;
+    const isUploading =
+      uploadDocMutation.isPending || uploadTambahanDocMutation.isPending;
+
     return (
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200">
         <div className="flex justify-between items-center">
-          <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
-          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${uploadDocMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+          <div className="flex flex-col">
+            <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+            {urutan > 1 && (
+              <span className="text-[9px] font-bold text-indigo-600">Sertifikat Tanah ke-{urutan}</span>
+            )}
+          </div>
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
             <UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}
-            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadDoc(docType, e)} disabled={uploadDocMutation.isPending} />
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUploadDoc(docType, file, urutan);
+                e.target.value = '';
+              }}
+              disabled={isUploading}
+            />
           </label>
         </div>
 
@@ -423,6 +515,29 @@ const Kavling = () => {
             <span className="text-[10px] font-medium italic">Belum ada dokumen yang diunggah</span>
           </div>
         )}
+      </div>
+    );
+  };
+
+  const renderDocStepPanels = (
+    docType: 'filePbg' | 'fileSertifikatTanah' | 'fileNopPbb',
+    title: string,
+  ) => {
+    if (!selectedDocKavling) return null;
+    const jumlah = Math.max(1, selectedDocKavling.jumlahSertifikatTanah ?? 1);
+
+    return (
+      <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+        {Array.from({ length: jumlah }, (_, idx) => idx + 1).map((urutan) => (
+          <div key={`${docType}-${urutan}`}>
+            {jumlah > 1 && (
+              <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide mb-3">
+                Sertifikat Tanah ke-{urutan}
+              </p>
+            )}
+            {renderFileBox(title, docType, getDocUrl(selectedDocKavling, docType, urutan), urutan)}
+          </div>
+        ))}
       </div>
     );
   };
@@ -493,6 +608,16 @@ const Kavling = () => {
               <Select label="Perumahan" name="perumahanId" value={formData.perumahanId} onChange={handleChange} options={[{ value: '', label: '-- Pilih Perumahan --' }, ...perumahanList.map(p => ({ value: p.id, label: p.nama }))]} error={errors.perumahanId} disabled={isEditing} />
               <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'HOLD', label: 'Hold' }, { value: 'BOOKING', label: 'Booking' }, { value: 'TERJUAL', label: 'Terjual' }]} />
               <Select label="Jenis Kavling" name="jenisKavling" value={formData.jenisKavling} onChange={handleChange} options={[{ value: 'PERUMAHAN', label: 'Perumahan' }, { value: 'RUKO', label: 'Ruko' }]} />
+              <Select
+                label="Jumlah Sertifikat Tanah"
+                name="jumlahSertifikatTanah"
+                value={formData.jumlahSertifikatTanah}
+                onChange={handleChange}
+                options={[
+                  { value: 1, label: '1 Sertifikat (Default)' },
+                  { value: 2, label: '2 Sertifikat (Multi Tanah)' },
+                ]}
+              />
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
               <div className="md:col-span-2">
@@ -557,12 +682,17 @@ const Kavling = () => {
               <div className="text-right">
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tipe</p>
                 <p className="text-sm font-bold text-white">{selectedDocKavling.namaTipe}</p>
+                {(selectedDocKavling.jumlahSertifikatTanah ?? 1) > 1 && (
+                  <p className="text-[10px] text-indigo-300 font-bold mt-1">
+                    {selectedDocKavling.jumlahSertifikatTanah} sertifikat tanah
+                  </p>
+                )}
               </div>
             </div>
 
-            {docModalStep === 'PBG' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Persetujuan Bangunan Gedung (PBG)", "filePbg", selectedDocKavling.filePbg)}</div>}
-            {docModalStep === 'SERTIFIKAT' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Sertifikat Tanah / SHM / HGB", "fileSertifikatTanah", selectedDocKavling.fileSertifikatTanah)}</div>}
-            {docModalStep === 'NOP' && <div className="animate-in fade-in zoom-in-95 duration-300">{renderFileBox("Nomor Objek Pajak (NOP PBB)", "fileNopPbb", selectedDocKavling.fileNopPbb)}</div>}
+            {docModalStep === 'PBG' && renderDocStepPanels('filePbg', 'Persetujuan Bangunan Gedung (PBG)')}
+            {docModalStep === 'SERTIFIKAT' && renderDocStepPanels('fileSertifikatTanah', 'Sertifikat Tanah / SHM / HGB')}
+            {docModalStep === 'NOP' && renderDocStepPanels('fileNopPbb', 'Nomor Objek Pajak (NOP PBB)')}
 
             <div className="flex justify-end pt-4 sticky bottom-0 bg-white border-t border-slate-100 mt-6 -mx-4 -mb-4 px-4 py-4 z-20">
               <button onClick={() => { setDocModalStep(null); setSelectedDocKavling(null); }} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-colors shadow-md cursor-pointer">

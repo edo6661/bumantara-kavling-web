@@ -9,6 +9,14 @@ export const useGetSuketPphByPenjualan = (penjualanId: number | null | undefined
   });
 };
 
+export const useGetAllSuketPphByPenjualan = (penjualanId: number | null | undefined) => {
+  return useQuery({
+    queryKey: ["suket-pph", "penjualan", penjualanId, "all"],
+    queryFn: () => suketPphService.getAllByPenjualan(penjualanId!),
+    enabled: !!penjualanId,
+  });
+};
+
 export const useUploadSuketPph = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -16,6 +24,9 @@ export const useUploadSuketPph = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["suket-pph", "penjualan", variables.penjualanId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["suket-pph", "penjualan", variables.penjualanId, "all"],
       });
     },
   });
