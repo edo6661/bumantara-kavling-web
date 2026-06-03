@@ -106,6 +106,13 @@ const ApprovePembayaran = () => {
       )
     },
     {
+      header: 'Nama Agent',
+      accessor: 'namaAgent',
+      render: (val: string) => (
+        <span className="text-sm font-semibold text-slate-700">{val?.trim() ? val : '-'}</span>
+      ),
+    },
+    {
       header: 'Jenis Pembayaran',
       accessor: 'pembayaran',
       render: (val: string) => <span className="font-semibold text-slate-700">{val}</span>
