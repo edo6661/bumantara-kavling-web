@@ -83,6 +83,21 @@ export interface GetKavlingParams {
   orderBy?: string;
 }
 
+export type ExportKavlingParams = Omit<GetKavlingParams, "page" | "limit">;
+
+function parseFilenameFromDisposition(
+  disposition: string | undefined,
+  fallback: string,
+): string {
+  if (!disposition) return fallback;
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1].replace(/"/g, ""));
+  }
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  return match?.[1]?.trim() || fallback;
+}
+
 export const JENIS_KAVLING_LABELS: Record<JenisKavling, string> = {
   PERUMAHAN: 'Perumahan',
   RUKO: 'Ruko',
@@ -122,6 +137,27 @@ export const kavlingService = {
       },
     );
     return response.data.data;
+  },
+
+  exportExcel: async (params?: ExportKavlingParams): Promise<void> => {
+    const response = await api.get("/kavling/export/excel", {
+      params,
+      responseType: "blob",
+    });
+    const blob = new Blob([response.data], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fallback = `Data_Kavling_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = parseFilenameFromDisposition(
+      response.headers["content-disposition"] as string | undefined,
+      fallback,
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
   },
 
   uploadSertifikatTambahanDocument: async (

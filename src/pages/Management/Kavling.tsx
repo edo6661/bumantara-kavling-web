@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   UserCircle, ChevronDown, ChevronUp, Filter, ArrowUpDown,
   PieChart, CheckCircle2, Clock, Ban, Building2, FileText,
-  Map, ScrollText, UploadCloud
+  Map, ScrollText, UploadCloud, FileSpreadsheet,
 } from "lucide-react";
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -19,7 +19,7 @@ import {
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
 import type { KavlingData, CreateKavlingDTO, JenisKavling } from '../../services/kavling.service';
-import { JENIS_KAVLING_LABELS } from '../../services/kavling.service';
+import { JENIS_KAVLING_LABELS, kavlingService } from '../../services/kavling.service';
 import CurrencyInput from '../../components/shared/CurrencyInput';
 import { handleApiError } from '../../utils/errorHandler';
 
@@ -130,6 +130,25 @@ const Kavling = () => {
 
   const [selectedDocKavling, setSelectedDocKavling] = useState<KavlingData | null>(null);
   const [docModalStep, setDocModalStep] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      await kavlingService.exportExcel({
+        search: search || undefined,
+        perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
+        status: statusFilter !== '' ? statusFilter : undefined,
+        jenisKavling: jenisKavlingFilter !== '' ? jenisKavlingFilter as JenisKavling : undefined,
+        orderBy: orderBy !== '' ? orderBy : undefined,
+      });
+    } catch (error: unknown) {
+      const { message } = handleApiError(error);
+      alert(message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
@@ -569,7 +588,8 @@ const Kavling = () => {
           {isFilterExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
         {isFilterExpanded && (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+          <div className="p-5 space-y-4 bg-white animate-in fade-in slide-in-from-top-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Jenis Kavling</label>
               <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={jenisKavlingFilter} onChange={handleJenisKavlingFilterChange}>
@@ -594,6 +614,18 @@ const Kavling = () => {
               <ArrowUpDown size={16} className="absolute left-3.5 top-8 pointer-events-none text-slate-400" />
               <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
+            >
+              <FileSpreadsheet size={18} />
+              {isExporting ? 'Mengekspor...' : 'Export Excel'}
+            </button>
+          </div>
           </div>
         )}
       </div>
