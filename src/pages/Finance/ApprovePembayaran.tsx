@@ -5,11 +5,13 @@ import PageLoader from "../PageLoader";
 import Modal from "../../components/shared/Modal";
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import {
-  Check, X, FileText, ZoomIn, Clock, CheckCircle2, AlertCircle,
+  Check, X, Clock, CheckCircle2, AlertCircle,
   Filter, ChevronDown, ChevronUp, Calendar, ArrowUpDown
 } from 'lucide-react';
 import { useGetTagihans, useApproveTagihan } from "../../hooks/queries/useTagihan";
 import { handleApiError } from '../../utils/errorHandler';
+import BuktiFileThumbnail from '../../components/shared/BuktiFileThumbnail';
+import { getTagihanFileBuktiList } from '../../utils/tagihanBukti';
 
 const ApprovePembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -130,24 +132,27 @@ const ApprovePembayaran = () => {
     {
       header: 'Bukti',
       accessor: 'fileBukti',
-      render: (val: string | null) => val ? (
-        <div
-          onClick={(e) => { e.stopPropagation(); setPreviewImage(val); }}
-          className="relative w-12 h-8 rounded border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 flex justify-center items-center hover:border-blue-400 transition-colors"
-          title="Lihat Bukti Transfer"
-        >
-          {val.split('?')[0].toLowerCase().endsWith('.pdf') || val.includes('application/pdf') ? (
-            <div className="text-red-500"><FileText size={16} /></div>
-          ) : (
-            <img src={val} alt="Bukti" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-          )}
-          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-            <ZoomIn className="text-white" size={14} />
+      render: (_: string | null, row: { id: number; fileBukti?: string | null; fileBuktiList?: string[] }) => {
+        const buktiList = getTagihanFileBuktiList(row);
+        if (buktiList.length === 0) {
+          return <span className="text-[10px] text-slate-400 italic">-</span>;
+        }
+        return (
+          <div className="flex items-center gap-1 flex-wrap">
+            {buktiList.slice(0, 3).map((url, index) => (
+              <BuktiFileThumbnail
+                key={`${row.id}-bukti-${index}`}
+                url={url}
+                onClick={() => setPreviewImage(url)}
+                className="w-12 h-8"
+              />
+            ))}
+            {buktiList.length > 3 && (
+              <span className="text-[9px] font-bold text-slate-500">+{buktiList.length - 3}</span>
+            )}
           </div>
-        </div>
-      ) : (
-        <span className="text-[10px] text-slate-400 italic">-</span>
-      )
+        );
+      },
     },
     {
       header: 'Aksi',

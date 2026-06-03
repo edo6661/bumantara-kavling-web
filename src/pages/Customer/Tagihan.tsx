@@ -37,6 +37,8 @@ import {
   effectiveTagihanTujuan,
   tagihanTujuanShortLabel,
 } from '../../constants/tagihanTujuan';
+import BuktiFileThumbnail from '../../components/shared/BuktiFileThumbnail';
+import { getTagihanFileBuktiList } from '../../utils/tagihanBukti';
 
 interface TagihanFormState {
   id: number | '';
@@ -49,7 +51,7 @@ interface TagihanFormState {
   nominal: number | '';
   jatuhTempo: string;
   status: string;
-  fileBukti: string | File;
+  fileBukti: string | File | File[];
   reminderBerikutnya: string;
 }
 
@@ -110,6 +112,7 @@ const Tagihan = () => {
   const [printTitle, setPrintTitle] = useState('');
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [existingBuktiUrls, setExistingBuktiUrls] = useState<string[]>([]);
   const [selectedDetailRow, setSelectedDetailRow] = useState<any>(null);
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
@@ -276,9 +279,10 @@ const Tagihan = () => {
         nominal: Math.round(Number(item.nominal)),
         jatuhTempo: formatDateForInput(item.jatuhTempo ? String(item.jatuhTempo) : ''),
         status: item.status,
-        fileBukti: item.fileBukti || '',
+        fileBukti: '',
         reminderBerikutnya: formatDateForInput(item.reminderBerikutnya ? String(item.reminderBerikutnya) : ''),
       });
+      setExistingBuktiUrls(getTagihanFileBuktiList(item));
       setIsEditing(true);
       setIsAutoFilled(true);
     } else if (parentGroup) {
@@ -290,10 +294,12 @@ const Tagihan = () => {
         kavlingLabel: parentGroup.kavling,
         tujuan: 'DP',
       });
+      setExistingBuktiUrls([]);
       setIsEditing(false);
       setIsAutoFilled(true);
     } else {
       setFormData(initialFormState);
+      setExistingBuktiUrls([]);
       setIsEditing(false);
       setIsAutoFilled(false);
     }
@@ -304,6 +310,7 @@ const Tagihan = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
+    setExistingBuktiUrls([]);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -427,13 +434,34 @@ const Tagihan = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const selected = e.target.files ? Array.from(e.target.files) : [];
+    if (selected.length) {
       setFormData((prev) => ({
         ...prev,
-        fileBukti: file,
-        status: 'LUNAS'
+        fileBukti: selected.length === 1 ? selected[0]! : selected,
       }));
+    }
+    e.target.value = '';
+  };
+
+  const handleQuickUploadBukti = async (
+    tagihanId: number,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const selected = e.target.files ? Array.from(e.target.files) : [];
+    if (!selected.length) return;
+    try {
+      await uploadBuktiMutation.mutateAsync({ id: tagihanId, files: selected });
+      alert(
+        selected.length > 1
+          ? `${selected.length} bukti berhasil diunggah.`
+          : 'Bukti pembayaran berhasil diunggah.',
+      );
+    } catch (error: unknown) {
+      const { message } = handleApiError(error);
+      alert(message);
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -477,10 +505,15 @@ const Tagihan = () => {
         });
         currentTagihanId = result.id;
       }
-      if (formData.fileBukti instanceof File && currentTagihanId) {
+      const pendingFiles = Array.isArray(formData.fileBukti)
+        ? formData.fileBukti
+        : formData.fileBukti instanceof File
+          ? [formData.fileBukti]
+          : [];
+      if (pendingFiles.length && currentTagihanId) {
         await uploadBuktiMutation.mutateAsync({
           id: Number(currentTagihanId),
-          file: formData.fileBukti
+          files: pendingFiles,
         });
       }
       closeModal();
@@ -677,21 +710,29 @@ const Tagihan = () => {
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      {c.fileBukti ? (
-                        <div
-                          onClick={() => setPreviewImage(c.fileBukti as string)}
-                          className="relative w-8 h-6 mx-auto rounded border border-slate-200 overflow-hidden cursor-zoom-in group-hover:border-blue-300 transition-colors shadow-sm bg-slate-100 flex justify-center items-center"
-                          title="Lihat Bukti Transfer"
-                        >
-                          {c.fileBukti.split('?')[0].toLowerCase().endsWith('.pdf') || c.fileBukti.includes('application/pdf') ? (
-                            <div className="text-red-500"><FileText size={16} /></div>
-                          ) : (
-                            <img src={c.fileBukti as string} alt="Bukti" className="w-full h-full object-cover" />
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 italic">-</span>
-                      )}
+                      {(() => {
+                        const buktiList = getTagihanFileBuktiList(c);
+                        if (buktiList.length === 0) {
+                          return <span className="text-[10px] text-slate-400 italic">-</span>;
+                        }
+                        return (
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
+                            {buktiList.slice(0, 2).map((url, index) => (
+                              <BuktiFileThumbnail
+                                key={`${c.id}-bukti-${index}`}
+                                url={url}
+                                onClick={() => setPreviewImage(url)}
+                                className="w-8 h-6"
+                              />
+                            ))}
+                            {buktiList.length > 2 && (
+                              <span className="text-[9px] font-bold text-slate-500">
+                                +{buktiList.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="p-3">
                       <div className="flex items-center justify-center gap-1.5">
@@ -721,6 +762,20 @@ const Tagihan = () => {
                                 Menunggu Verifikasi Finance
                               </span>
                             )}
+                            <label
+                              className={`p-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition shadow-sm cursor-pointer inline-flex ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}
+                              title="Tambah Bukti Pembayaran"
+                            >
+                              <UploadCloud size={14} />
+                              <input
+                                type="file"
+                                className="hidden"
+                                multiple
+                                accept="image/*,application/pdf"
+                                onChange={(e) => handleQuickUploadBukti(c.id, e)}
+                                disabled={uploadBuktiMutation.isPending}
+                              />
+                            </label>
                           </>
                         ) : (
                           /* 👇 2. JIKA LUNAS ATAU BELUM BAYAR 👇 */
@@ -964,30 +1019,64 @@ const Tagihan = () => {
             <div className="bg-blue-50/50 p-4 rounded-md border border-blue-100">
               <h4 className="text-sm font-semibold text-blue-900 mb-2">Upload Bukti Pembayaran</h4>
 
+              {existingBuktiUrls.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                    Bukti yang sudah diunggah ({existingBuktiUrls.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {existingBuktiUrls.map((url, index) => (
+                      <BuktiFileThumbnail
+                        key={`existing-${index}`}
+                        url={url}
+                        onClick={() => setPreviewImage(url)}
+                        className="w-20 h-14"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <FileInput
-                label={formData.fileBukti ? "Ganti Bukti Transfer" : "Upload Bukti Transfer"}
+                label={
+                  existingBuktiUrls.length > 0
+                    ? 'Tambah Bukti Transfer (bisa lebih dari 1 file)'
+                    : 'Upload Bukti Transfer (bisa lebih dari 1 file)'
+                }
                 accept="image/*,application/pdf"
+                multiple
                 onChange={handleFileChange}
               />
 
-              {formData.fileBukti && (
+              {(Array.isArray(formData.fileBukti)
+                ? formData.fileBukti.length > 0
+                : formData.fileBukti instanceof File) && (
                 <div className="mt-4 border border-blue-200 rounded-lg overflow-hidden bg-white relative">
                   <p className="text-[10px] font-bold text-slate-500 bg-slate-50 px-3 py-1.5 border-b border-slate-200 uppercase tracking-widest">
-                    Pratinjau File
+                    File baru akan diunggah
                   </p>
-                  <div className="p-2 flex justify-center">
-                    {formData.fileBukti instanceof File ? (
-                      formData.fileBukti.type === 'application/pdf' ? (
-                        <iframe src={URL.createObjectURL(formData.fileBukti)} className="w-full h-48 rounded border-none" />
-                      ) : (
-                        <img src={URL.createObjectURL(formData.fileBukti)} alt="Preview Baru" className="max-h-48 object-contain rounded" />
-                      )
-                    ) : (
-                      typeof formData.fileBukti === 'string' && formData.fileBukti.includes('.pdf') ? (
-                        <iframe src={formData.fileBukti} className="w-full h-48 rounded border-none" />
-                      ) : (
-                        <img src={formData.fileBukti as string} alt="Preview Lama" className="max-h-48 object-contain rounded" />
-                      )
+                  <div className="p-2 flex flex-wrap gap-2 justify-center">
+                    {(Array.isArray(formData.fileBukti)
+                      ? formData.fileBukti
+                      : [formData.fileBukti]
+                    ).map((file, index) =>
+                      file instanceof File ? (
+                        file.type === 'application/pdf' ? (
+                          <iframe
+                            key={`new-${index}`}
+                            src={URL.createObjectURL(file)}
+                            className="w-full max-w-xs h-36 rounded border-none"
+                            title={`Preview ${index + 1}`}
+                          />
+                        ) : (
+                          <img
+                            key={`new-${index}`}
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="max-h-36 object-contain rounded border border-slate-200"
+                          />
+                        )
+                      ) : null,
                     )}
                   </div>
                 </div>

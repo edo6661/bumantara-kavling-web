@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { formatRupiah, formatDate } from '../../utils/formatters';
 import { handleApiError } from '../../utils/errorHandler';
+import BuktiFileThumbnail, { isBuktiPdfUrl } from '../../components/shared/BuktiFileThumbnail';
+import { getTagihanFileBuktiList } from '../../utils/tagihanBukti';
 
 const PortalDashboard = () => {
   const { data, isLoading } = useGetCustomerDashboard();
@@ -54,11 +56,15 @@ const PortalDashboard = () => {
   };
 
   const handleUploadBuktiTagihan = async (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selected = e.target.files ? Array.from(e.target.files) : [];
+    if (!selected.length) return;
     try {
-      await uploadBuktiMutation.mutateAsync({ id, file });
-      alert('Bukti pembayaran berhasil diunggah, menunggu verifikasi Admin!');
+      await uploadBuktiMutation.mutateAsync({ id, files: selected });
+      alert(
+        selected.length > 1
+          ? `${selected.length} bukti pembayaran berhasil diunggah, menunggu verifikasi Admin!`
+          : 'Bukti pembayaran berhasil diunggah, menunggu verifikasi Admin!',
+      );
     } catch (error) {
       const { message } = handleApiError(error);
       alert(message);
@@ -352,7 +358,11 @@ const PortalDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {trx.tagihan.map((t: any) => (
+                      {trx.tagihan.map((t: any) => {
+                        const buktiList = getTagihanFileBuktiList(t);
+                        const canUploadBukti =
+                          t.status === 'BELUM_BAYAR' || t.status === 'MENUNGGU_KONFIRMASI';
+                        return (
                         <tr key={t.noTagihan} className="hover:bg-slate-50/80 transition-colors">
                           <td className="p-4 font-bold text-slate-800">{t.pembayaran}</td>
                           <td className="p-4 text-slate-600 font-medium">
@@ -377,41 +387,50 @@ const PortalDashboard = () => {
                               >
                                 {t.status === 'LUNAS' ? 'Kwitansi' : 'Invoice'}
                               </a>
-                              {t.status === 'BELUM_BAYAR' && (
+                              {canUploadBukti && (
                                 <label className="px-3 py-1.5 bg-blue-600 text-white text-[10px] uppercase tracking-widest font-bold rounded-lg cursor-pointer hover:bg-blue-700 transition-colors shadow-sm shrink-0 flex items-center gap-1.5">
                                   <UploadCloud size={14} />
-                                  {uploadBuktiMutation.isPending ? 'Proses...' : 'Upload Bukti'}
+                                  {uploadBuktiMutation.isPending
+                                    ? 'Proses...'
+                                    : buktiList.length > 0
+                                      ? 'Tambah Bukti'
+                                      : 'Upload Bukti'}
                                   <input
                                     type="file"
                                     className="hidden"
+                                    multiple
                                     accept="image/*,application/pdf"
                                     onChange={(e) => handleUploadBuktiTagihan(t.id, e)}
                                     disabled={uploadBuktiMutation.isPending}
                                   />
                                 </label>
                               )}
-                              {t.fileBukti ? (
-                                <div
-                                  onClick={() => setPreviewImage(t.fileBukti as string)}
-                                  className="relative w-14 h-9 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 shrink-0"
-                                  title="Lihat Bukti Transfer"
-                                >
-                                  <img
-                                    src={t.fileBukti as string}
-                                    alt="Bukti Transfer"
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                  />
-                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <ZoomIn className="text-white" size={14} />
-                                  </div>
+                              {buktiList.length > 0 ? (
+                                <div className="flex items-center gap-1.5 flex-wrap justify-center max-w-[200px]">
+                                  {buktiList.slice(0, 3).map((url, index) => (
+                                    <BuktiFileThumbnail
+                                      key={`${t.id}-bukti-${index}`}
+                                      url={url}
+                                      onClick={() => setPreviewImage(url)}
+                                      className="w-14 h-9"
+                                    />
+                                  ))}
+                                  {buktiList.length > 3 && (
+                                    <span className="text-[10px] font-bold text-slate-500">
+                                      +{buktiList.length - 3}
+                                    </span>
+                                  )}
                                 </div>
                               ) : (
-                                t.status !== 'BELUM_BAYAR' && <span className="text-[10px] text-slate-400 italic">Tidak ada gambar</span>
+                                !canUploadBukti && (
+                                  <span className="text-[10px] text-slate-400 italic">Tidak ada bukti</span>
+                                )
                               )}
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      );
+                      })}
                       {trx.tagihan.length === 0 && (
                         <tr><td colSpan={5} className="p-6 text-center text-slate-400 italic">Belum ada rincian tagihan.</td></tr>
                       )}
@@ -504,7 +523,7 @@ const PortalDashboard = () => {
         <div className="flex flex-col items-center">
           {previewImage && (
             <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
-              {previewImage.split('?')[0].toLowerCase().endsWith('.pdf') || previewImage.includes('application/pdf') ? (
+              {isBuktiPdfUrl(previewImage) ? (
                 <iframe src={previewImage} className="w-full h-[70vh] rounded-lg border-none" title="PDF Preview" />
               ) : (
                 <img src={previewImage} alt="Preview Full" className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain" />

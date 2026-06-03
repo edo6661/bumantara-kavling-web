@@ -69,8 +69,8 @@ export const useDeleteTagihan = () => {
 export const useUploadBuktiTagihan = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, file }: { id: number; file: File }) =>
-      tagihanService.uploadBukti(id, file),
+    mutationFn: ({ id, files }: { id: number; files: File | File[] }) =>
+      tagihanService.uploadBukti(id, files),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["penjualan"] });

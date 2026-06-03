@@ -36,8 +36,8 @@ export const useUploadMyDocument = () => {
 export const useUploadMyBuktiTagihan = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, file }: { id: number; file: File }) =>
-      customerPortalService.uploadBuktiTagihan(id, file),
+    mutationFn: ({ id, files }: { id: number; files: File | File[] }) =>
+      customerPortalService.uploadBuktiTagihan(id, files),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: CUSTOMER_PORTAL_KEYS.dashboard,

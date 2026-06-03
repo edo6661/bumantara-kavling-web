@@ -1,5 +1,6 @@
 import api from "../lib/axios";
 import type { TagihanTujuan } from "../constants/tagihanTujuan";
+import { appendFilesToFormData } from "../utils/tagihanBukti";
 
 export interface TagihanData {
   id: number;
@@ -16,6 +17,7 @@ export interface TagihanData {
   jatuhTempo: string;
   status: string;
   fileBukti: string | null;
+  fileBuktiList?: string[];
   reminderBerikutnya: string | null;
   rekeningTujuan?: {
     namaBank: string;
@@ -90,9 +92,9 @@ export const tagihanService = {
     return response.data;
   },
 
-  uploadBukti: async (id: number, file: File) => {
+  uploadBukti: async (id: number, files: File | File[]) => {
     const formData = new FormData();
-    formData.append("fileBukti", file);
+    appendFilesToFormData(formData, "fileBukti", files);
     const response = await api.patch(`/tagihan/${id}/upload-bukti`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });

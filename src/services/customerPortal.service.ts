@@ -1,4 +1,5 @@
 import api from "../lib/axios";
+import { appendFilesToFormData } from "../utils/tagihanBukti";
 
 export const customerPortalService = {
   getDashboard: async () => {
@@ -18,9 +19,9 @@ export const customerPortalService = {
     );
     return response.data.data;
   },
-  uploadBuktiTagihan: async (tagihanId: number, file: File) => {
+  uploadBuktiTagihan: async (tagihanId: number, files: File | File[]) => {
     const formData = new FormData();
-    formData.append("fileBukti", file);
+    appendFilesToFormData(formData, "fileBukti", files);
     const response = await api.patch(
       `/customers/me/tagihan/${tagihanId}/upload-bukti`,
       formData,
