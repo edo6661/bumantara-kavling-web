@@ -64,7 +64,22 @@ const getItemLabel = (row: SpkPembayaranData) => {
     const target = row.mengurangiTermin
       ? ` → ${SPK_KASBON_TARGET_LABEL[row.mengurangiTermin]}`
       : '';
+    const itemCount = row.kasbonBaris?.length ?? 0;
+    if (itemCount > 0) {
+      return `Kasbon ${itemCount} item${target}`;
+    }
     return `${row.keterangan ?? 'Kasbon'}${target}`;
+  }
+  if (row.jenis === 'UPAH') {
+    const target = row.mengurangiTermin
+      ? ` → ${SPK_KASBON_TARGET_LABEL[row.mengurangiTermin]}`
+      : '';
+    const periode =
+      row.tanggalDari && row.tanggalSampai
+        ? ` · ${formatDate(row.tanggalDari)}–${formatDate(row.tanggalSampai)}`
+        : '';
+    const tukangCount = row.upahBaris?.length ?? 0;
+    return `Upah ${tukangCount} tukang${periode}${target}`;
   }
   return SPK_PEMBAYARAN_JENIS_LABEL[row.jenis];
 };
@@ -309,11 +324,29 @@ const BayarSpkPembayaran = () => {
           <span
             className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded border ${colors.badge}`}
           >
-            {row.jenis === 'KASBON' ? 'Kasbon' : row.jenis.replace('_', ' ')}
+            {row.jenis === 'KASBON' ? 'Kasbon' : row.jenis === 'UPAH' ? 'Upah' : row.jenis.replace('_', ' ')}
           </span>
         </td>
-        <td className="px-4 py-2.5 text-xs text-slate-700 max-w-[240px]">
-          {getItemLabel(row)}
+        <td className="px-4 py-2.5 text-xs text-slate-700 max-w-[280px]">
+          <p>{getItemLabel(row)}</p>
+          {row.jenis === 'UPAH' && (row.upahBaris?.length ?? 0) > 0 && (
+            <ul className="mt-1 space-y-0.5 text-[10px] text-slate-500">
+              {row.upahBaris!.map((b) => (
+                <li key={b.id}>
+                  {b.nama} ({b.nik}) — {formatRupiah(b.nominal)}
+                </li>
+              ))}
+            </ul>
+          )}
+          {row.jenis === 'KASBON' && (row.kasbonBaris?.length ?? 0) > 0 && (
+            <ul className="mt-1 space-y-0.5 text-[10px] text-slate-500">
+              {row.kasbonBaris!.map((b) => (
+                <li key={b.id}>
+                  {b.keterangan} · PO {formatDate(b.tanggalPo)} — {formatRupiah(b.nominal)}
+                </li>
+              ))}
+            </ul>
+          )}
         </td>
         <td className={`px-4 py-2.5 text-sm font-bold ${colors.text} whitespace-nowrap`}>
           {formatRupiah(row.nominal)}

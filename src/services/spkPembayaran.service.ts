@@ -6,6 +6,23 @@ import type {
   SpkTerminPembayaranJenis,
 } from '../utils/spkPembayaran';
 
+export interface SpkPembayaranKasbonBarisData {
+  id: number;
+  spkPembayaranId: number;
+  keterangan: string;
+  tanggalPo: string;
+  nominal: number;
+}
+
+export interface SpkPembayaranUpahBarisData {
+  id: number;
+  spkPembayaranId: number;
+  tukangId: number | null;
+  nik: string;
+  nama: string;
+  nominal: number;
+}
+
 export interface SpkPembayaranData {
   id: number;
   spkId: number;
@@ -13,7 +30,11 @@ export interface SpkPembayaranData {
   nominal: number;
   keterangan: string | null;
   tanggalPo: string | null;
+  tanggalDari: string | null;
+  tanggalSampai: string | null;
   mengurangiTermin: SpkKasbonTargetTermin | null;
+  upahBaris?: SpkPembayaranUpahBarisData[];
+  kasbonBaris?: SpkPembayaranKasbonBarisData[];
   status: SpkPembayaranStatus;
   buktiPembayaran: string | null;
   buktiPembayaranList?: string[] | null;
@@ -54,14 +75,38 @@ export interface SpkPembayaranListParams {
   search?: string;
 }
 
+export interface SpkPembayaranUpahBarisBody {
+  tukangId?: number | null;
+  nik: string;
+  nama: string;
+  nominal: number;
+}
+
+export interface SpkPembayaranKasbonBarisBody {
+  keterangan: string;
+  tanggalPo: string;
+  nominal: number;
+}
+
 export type CreateSpkPembayaranBody =
   | { jenis: SpkTerminPembayaranJenis }
-  | { jenis: 'KASBON'; keterangan: string; nominal: number; tanggalPo: string };
+  | { jenis: 'KASBON'; kasbonBaris: SpkPembayaranKasbonBarisBody[] }
+  | { jenis: 'KASBON'; keterangan: string; nominal: number; tanggalPo: string }
+  | {
+      jenis: 'UPAH';
+      tanggalDari: string;
+      tanggalSampai: string;
+      baris: SpkPembayaranUpahBarisBody[];
+    };
 
-export interface UpdateSpkKasbonBody {
-  keterangan: string;
-  nominal: number;
-  tanggalPo: string;
+export type UpdateSpkKasbonBody =
+  | { kasbonBaris: SpkPembayaranKasbonBarisBody[] }
+  | { keterangan: string; nominal: number; tanggalPo: string };
+
+export interface UpdateSpkUpahBody {
+  tanggalDari: string;
+  tanggalSampai: string;
+  baris: SpkPembayaranUpahBarisBody[];
 }
 
 export const spkPembayaranService = {
@@ -95,6 +140,11 @@ export const spkPembayaranService = {
     return response.data.data as SpkPembayaranData;
   },
 
+  updateUpah: async (id: number, body: UpdateSpkUpahBody) => {
+    const response = await api.patch(`/spk-pembayaran/${id}/upah`, body);
+    return response.data.data as SpkPembayaranData;
+  },
+
   bayar: async (id: number, files: File[], tanggalPembayaran?: string) => {
     const formData = new FormData();
     files.forEach((file) => formData.append('buktiPembayaran', file));
@@ -121,6 +171,10 @@ export const spkPembayaranService = {
       data: { buktiUrl },
     });
     return response.data.data as SpkPembayaranData;
+  },
+
+  deletePengurangan: async (id: number) => {
+    await api.delete(`/spk-pembayaran/${id}`);
   },
 
   setBsiCmsDilaporkan: async (ids: number[], dilaporkan: boolean) => {

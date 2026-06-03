@@ -6,6 +6,7 @@ import {
 import type {
   CreateSpkPembayaranBody,
   UpdateSpkKasbonBody,
+  UpdateSpkUpahBody,
 } from '../../services/spkPembayaran.service';
 import { SPK_KEYS } from './useSpk';
 
@@ -41,6 +42,20 @@ export const useCreateSpkPembayaranRequest = () => {
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(spkId) });
+    },
+  });
+};
+
+export const useUpdateSpkUpah = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: UpdateSpkUpahBody }) =>
+      spkPembayaranService.updateUpah(id, body),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(data.spkId) });
     },
   });
 };
@@ -104,6 +119,20 @@ export const useRemoveBuktiSpkPembayaran = () => {
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(data.spkId) });
+    },
+  });
+};
+
+export const useDeleteSpkPengurangan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: number; spkId: number }) =>
+      spkPembayaranService.deletePengurangan(id),
+    onSuccess: (_, { spkId }) => {
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
     },
   });
 };

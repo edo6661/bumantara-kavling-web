@@ -100,7 +100,15 @@ export interface BsiBatchHeader {
 
 export function getBsiPaymentSubject(row: SpkPembayaranData): string {
   if (row.jenis === 'KASBON') {
+    const count = row.kasbonBaris?.length ?? 0;
+    if (count > 0) {
+      return `kasbon ${count} item`.trim();
+    }
     return (row.keterangan ?? 'kasbon').trim();
+  }
+  if (row.jenis === 'UPAH') {
+    const count = row.upahBaris?.length ?? 0;
+    return `upah ${count} tukang`.trim();
   }
   return SPK_BSI_PAYMENT_SUBJECT[row.jenis] ?? row.jenis.toLowerCase();
 }

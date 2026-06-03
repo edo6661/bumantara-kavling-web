@@ -23,7 +23,7 @@ export function buildSpkPembayaranKalkulasi(
       const kasbon = sumKasbonForTermin(pembayaranList, 'TERMIN_55');
       baris.push({ label: '50%', nilai: bruto, tipe: 'positif' });
       if (kasbon > 0) {
-        baris.push({ label: 'Total kasbon (termin 55%)', nilai: kasbon, tipe: 'negatif' });
+        baris.push({ label: 'Total kasbon & upah (termin 55%)', nilai: kasbon, tipe: 'negatif' });
       }
       baris.push({
         label: 'Nominal',
@@ -37,7 +37,7 @@ export function buildSpkPembayaranKalkulasi(
       const kasbon = sumKasbonForTermin(pembayaranList, 'TERMIN_100');
       baris.push({ label: '45%', nilai: bruto, tipe: 'positif' });
       if (kasbon > 0) {
-        baris.push({ label: 'Total kasbon (termin 100%)', nilai: kasbon, tipe: 'negatif' });
+        baris.push({ label: 'Total kasbon & upah (termin 100%)', nilai: kasbon, tipe: 'negatif' });
       }
       baris.push({
         label: 'Nominal',

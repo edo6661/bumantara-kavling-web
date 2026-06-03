@@ -20,7 +20,9 @@ interface SpkPembayaranStatusChipsProps {
 
 const SpkPembayaranStatusChips = ({ items, showBuktiLinks = false }: SpkPembayaranStatusChipsProps) => {
   const kasbonItems = items.filter((p) => p.jenis === 'KASBON');
+  const upahItems = items.filter((p) => p.jenis === 'UPAH');
   const kasbonMenunggu = kasbonItems.filter((p) => p.status === 'MENUNGGU_PEMBAYARAN').length;
+  const upahMenunggu = upahItems.filter((p) => p.status === 'MENUNGGU_PEMBAYARAN').length;
 
   return (
     <div className="flex flex-wrap gap-1">
@@ -30,6 +32,14 @@ const SpkPembayaranStatusChips = ({ items, showBuktiLinks = false }: SpkPembayar
           className="inline-flex px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-orange-100 text-orange-800 border border-orange-200"
         >
           Ksb {kasbonMenunggu > 0 ? `${kasbonMenunggu}…` : '✓'}
+        </span>
+      )}
+      {upahItems.length > 0 && (
+        <span
+          title={`${upahItems.length} upah tukang`}
+          className="inline-flex px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-teal-100 text-teal-800 border border-teal-200"
+        >
+          Upah {upahMenunggu > 0 ? `${upahMenunggu}…` : '✓'}
         </span>
       )}
       {JENIS_ORDER.map((jenis) => {
