@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -84,15 +85,43 @@ const TAHAPAN_COLOR_MAP: Record<(typeof TAHAPAN_LIST)[number], string> = {
   Finishing:  'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100',
 };
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
 const Progress = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
+
   const { user } = useAuth();
   const isMandorRole = user?.role === 'MANDOR';
   const canEditTotalProgress = user?.role !== 'MANDOR';
 
   const { data: proyekResponse, isLoading: loadingProyek } = useGetProgressProyekList({
-    page: 1,
-    limit: 500,
+    page,
+    limit,
   });
+
+  const meta = proyekResponse?.meta;
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams((prev) => {
+      prev.set('page', String(newPage));
+      return prev;
+    });
+  };
+
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams((prev) => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
 
   const { data: spkList = [] } = useGetSpk();
 
@@ -232,11 +261,11 @@ const Progress = () => {
     },
   ];
 
-  if (loadingProyek) return <PageLoader />;
+  if (loadingProyek && !proyekResponse) return <PageLoader />;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {isMandorRole && proyekList.length === 0 && !loadingProyek && (
+      {isMandorRole && proyekList.length === 0 && !loadingProyek && page === 1 && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
           <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
             <HardHat size={24} className="text-amber-600" />
@@ -270,6 +299,13 @@ const Progress = () => {
         title={isMandorRole ? 'Proyek Saya' : 'Laporan Progress Lapangan'}
         columns={columns}
         data={proyekList}
+        serverSide
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
+        pageSize={limit}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+        onPageSizeChange={handlePageSizeChange}
       />
 
       {selectedProyek && !directTahapan && (
