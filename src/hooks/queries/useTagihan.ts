@@ -79,6 +79,19 @@ export const useUploadBuktiTagihan = () => {
   });
 };
 
+export const useRemoveBuktiTagihan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, buktiUrl }: { id: number; buktiUrl: string }) =>
+      tagihanService.removeBukti(id, buktiUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+    },
+  });
+};
+
 export const useUploadRefundTagihan = () => {
   const queryClient = useQueryClient();
   return useMutation({

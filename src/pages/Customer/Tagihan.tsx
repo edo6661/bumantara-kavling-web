@@ -19,7 +19,8 @@ import {
   useUpdateTagihan,
   useDeleteTagihan,
   useUploadBuktiTagihan,
-  useUploadTagihanSignature
+  useUploadTagihanSignature,
+  useRemoveBuktiTagihan,
 } from "../../hooks/queries/useTagihan";
 import { useGetCustomers } from "../../hooks/queries/useCustomer";
 import { useGetCustomerKavlings } from "../../hooks/queries/useCustomerKavling";
@@ -98,6 +99,7 @@ const Tagihan = () => {
   const updateMutation = useUpdateTagihan();
   const deleteMutation = useDeleteTagihan();
   const uploadBuktiMutation = useUploadBuktiTagihan();
+  const removeBuktiMutation = useRemoveBuktiTagihan();
   const uploadSignatureMutation = useUploadTagihanSignature();
   const approveMutation = useApproveTagihan();
 
@@ -436,12 +438,50 @@ const Tagihan = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files ? Array.from(e.target.files) : [];
     if (selected.length) {
-      setFormData((prev) => ({
-        ...prev,
-        fileBukti: selected.length === 1 ? selected[0]! : selected,
-      }));
+      setFormData((prev) => {
+        const existing = Array.isArray(prev.fileBukti)
+          ? prev.fileBukti
+          : prev.fileBukti instanceof File
+            ? [prev.fileBukti]
+            : [];
+        const merged = [...existing, ...selected];
+        return {
+          ...prev,
+          fileBukti: merged.length === 1 ? merged[0]! : merged,
+        };
+      });
     }
     e.target.value = '';
+  };
+
+  const handleRemovePendingFile = (index: number) => {
+    setFormData((prev) => {
+      const files = Array.isArray(prev.fileBukti)
+        ? prev.fileBukti
+        : prev.fileBukti instanceof File
+          ? [prev.fileBukti]
+          : [];
+      const next = files.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        fileBukti: next.length === 0 ? '' : next.length === 1 ? next[0]! : next,
+      };
+    });
+  };
+
+  const handleRemoveExistingBukti = async (buktiUrl: string) => {
+    if (!formData.id) return;
+    if (!window.confirm('Hapus bukti pembayaran ini?')) return;
+    try {
+      await removeBuktiMutation.mutateAsync({
+        id: Number(formData.id),
+        buktiUrl,
+      });
+      setExistingBuktiUrls((prev) => prev.filter((url) => url !== buktiUrl));
+    } catch (error: unknown) {
+      const { message } = handleApiError(error);
+      alert(message);
+    }
   };
 
   const handleQuickUploadBukti = async (
@@ -781,30 +821,46 @@ const Tagihan = () => {
                           /* 👇 2. JIKA LUNAS ATAU BELUM BAYAR 👇 */
                           <>
                             {c.status === 'LUNAS' ? (
-                              <button
-                                onClick={() => {
-                                  setPrintType('kwitansi');
-                                  setPrintTitle(`${c.pembayaran}`);
-                                  setPrintData({
-                                    ...c,
-                                    nominalCetak: c.nominal,
-                                    hargaJual: piutangCicilan,
-                                    sisaBelumDibayar: sisaBelumDibayar,
-                                    rekeningTujuanId: rekeningTujuanId,
-                                    tipe: targetPenjualan?.tipe,
-                                    caraPembayaran: targetPenjualan?.pembiayaan,
-                                    bank: targetPenjualan?.bank,
-                                    agent: targetPenjualan?.agent || '-',
-                                    pembuat: targetPenjualan?.createdBy || 'Admin',
-                                    luasTanah: targetPenjualan?.luasTanah,
-                                    luasBangunan: targetPenjualan?.luasBangunan
-                                  });
-                                }}
-                                className="p-1.5 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition shadow-sm cursor-pointer"
-                                title="Cetak Kwitansi"
-                              >
-                                <Printer size={14} />
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setPrintType('kwitansi');
+                                    setPrintTitle(`${c.pembayaran}`);
+                                    setPrintData({
+                                      ...c,
+                                      nominalCetak: c.nominal,
+                                      hargaJual: piutangCicilan,
+                                      sisaBelumDibayar: sisaBelumDibayar,
+                                      rekeningTujuanId: rekeningTujuanId,
+                                      tipe: targetPenjualan?.tipe,
+                                      caraPembayaran: targetPenjualan?.pembiayaan,
+                                      bank: targetPenjualan?.bank,
+                                      agent: targetPenjualan?.agent || '-',
+                                      pembuat: targetPenjualan?.createdBy || 'Admin',
+                                      luasTanah: targetPenjualan?.luasTanah,
+                                      luasBangunan: targetPenjualan?.luasBangunan
+                                    });
+                                  }}
+                                  className="p-1.5 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition shadow-sm cursor-pointer"
+                                  title="Cetak Kwitansi"
+                                >
+                                  <Printer size={14} />
+                                </button>
+                                <label
+                                  className={`p-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition shadow-sm cursor-pointer inline-flex ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}
+                                  title="Tambah Bukti Pembayaran"
+                                >
+                                  <UploadCloud size={14} />
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    multiple
+                                    accept="image/*,application/pdf"
+                                    onChange={(e) => handleQuickUploadBukti(c.id, e)}
+                                    disabled={uploadBuktiMutation.isPending}
+                                  />
+                                </label>
+                              </>
                             ) : (
                               <>
                                 <button
@@ -1026,12 +1082,22 @@ const Tagihan = () => {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {existingBuktiUrls.map((url, index) => (
-                      <BuktiFileThumbnail
-                        key={`existing-${index}`}
-                        url={url}
-                        onClick={() => setPreviewImage(url)}
-                        className="w-20 h-14"
-                      />
+                      <div key={`existing-${index}`} className="relative">
+                        <BuktiFileThumbnail
+                          url={url}
+                          onClick={() => setPreviewImage(url)}
+                          className="w-20 h-14"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleRemoveExistingBukti(url)}
+                          disabled={removeBuktiMutation.isPending}
+                          className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+                          title="Hapus bukti"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1061,21 +1127,29 @@ const Tagihan = () => {
                       : [formData.fileBukti]
                     ).map((file, index) =>
                       file instanceof File ? (
-                        file.type === 'application/pdf' ? (
-                          <iframe
-                            key={`new-${index}`}
-                            src={URL.createObjectURL(file)}
-                            className="w-full max-w-xs h-36 rounded border-none"
-                            title={`Preview ${index + 1}`}
-                          />
-                        ) : (
-                          <img
-                            key={`new-${index}`}
-                            src={URL.createObjectURL(file)}
-                            alt={`Preview ${index + 1}`}
-                            className="max-h-36 object-contain rounded border border-slate-200"
-                          />
-                        )
+                        <div key={`new-${index}`} className="relative">
+                          {file.type === 'application/pdf' ? (
+                            <iframe
+                              src={URL.createObjectURL(file)}
+                              className="w-full max-w-xs h-36 rounded border-none"
+                              title={`Preview ${index + 1}`}
+                            />
+                          ) : (
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={`Preview ${index + 1}`}
+                              className="max-h-36 object-contain rounded border border-slate-200"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePendingFile(index)}
+                            className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+                            title="Hapus file"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
                       ) : null,
                     )}
                   </div>
@@ -1087,17 +1161,17 @@ const Tagihan = () => {
             <button
               type="button"
               onClick={closeModal}
-              disabled={createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending || removeBuktiMutation.isPending}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending || removeBuktiMutation.isPending}
               className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition cursor-pointer disabled:opacity-50"
             >
-              {(createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending) ? 'Menyimpan...' : 'Simpan Tagihan'}
+              {(createMutation.isPending || updateMutation.isPending || uploadBuktiMutation.isPending || removeBuktiMutation.isPending) ? 'Menyimpan...' : 'Simpan Tagihan'}
             </button>
           </div>
         </form>

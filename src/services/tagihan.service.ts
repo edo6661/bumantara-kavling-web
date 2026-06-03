@@ -100,6 +100,12 @@ export const tagihanService = {
     });
     return response.data.data;
   },
+  removeBukti: async (id: number, buktiUrl: string) => {
+    const response = await api.delete(`/tagihan/${id}/bukti`, {
+      data: { buktiUrl },
+    });
+    return response.data.data;
+  },
   uploadRefund: async (id: number, file: File) => {
     const formData = new FormData();
     formData.append("fileBuktiRefund", file);
