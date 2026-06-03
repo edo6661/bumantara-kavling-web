@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { canReadResource } from '../utils/permissions';
 const menuItems = [
   {
     title: 'Dashboard',
@@ -91,8 +92,6 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate(); // <-- Inisialisasi useNavigate
   const { user, logout } = useAuth(); // <-- Ambil fungsi logout dari context
-  const isSuperAdmin = user?.role === 'SUPERADMIN';
-
   const [isExpanded, setIsExpanded] = useState(true);
 
   const filteredMenuItems = menuItems.map(item => {
@@ -103,8 +102,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
     const filteredSubmenus = item.submenus.filter(sub => {
       if (!sub.resource) return true;
-      if (isSuperAdmin) return true;
-      return user?.permissions?.some(p => p.resource === sub.resource && p.canRead);
+      return canReadResource(user, sub.resource);
     });
 
     return { ...item, submenus: filteredSubmenus };
