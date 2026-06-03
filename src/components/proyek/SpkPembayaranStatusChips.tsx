@@ -52,7 +52,7 @@ const SpkPembayaranStatusChips = ({ items, showBuktiLinks = false }: SpkPembayar
             <span
               title={SPK_PEMBAYARAN_JENIS_LABEL[jenis]}
               className={`inline-flex px-1.5 py-0.5 text-[9px] font-bold uppercase rounded ${
-                paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'
+                paid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
               }`}
             >
               {SHORT_LABEL[jenis]} {paid ? '✓' : '…'}

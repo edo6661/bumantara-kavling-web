@@ -6,6 +6,10 @@ interface Column {
   header: string;
   accessor: string;
   render?: (value: any, row: any) => React.ReactNode;
+  /** Default true — set false for multi-line cells (e.g. kavling lists). */
+  nowrap?: boolean;
+  /** Tailwind min-width class, e.g. `min-w-[260px]` */
+  minWidth?: string;
 }
 
 interface DataTableProps {
@@ -27,16 +31,24 @@ interface DataTableProps {
   pageSize?: number;
   pageSizeOptions?: number[];
   onPageSizeChange?: (size: number) => void;
+  /** Custom client-side search; when set, replaces default column accessor matching. */
+  filterRow?: (row: any, searchTerm: string) => boolean;
+  searchPlaceholder?: string;
 }
 
 const DataTable = ({
   title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
   serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange,
-  toolbarPrefix, pageSize = 10, pageSizeOptions = [10, 25, 50, 100], onPageSizeChange
+  toolbarPrefix, pageSize = 10, pageSizeOptions = [10, 25, 50, 100], onPageSizeChange,
+  filterRow, searchPlaceholder = 'Cari data...',
 }: DataTableProps) => {
 
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setLocalSearchTerm(searchTerm);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (serverSide && onSearchChange) {
@@ -55,8 +67,12 @@ const DataTable = ({
 
   const filteredData = useMemo(() => {
     if (serverSide) return data;
-    if (!localSearchTerm) return data;
-    const lowercasedTerm = localSearchTerm.toLowerCase();
+    const term = localSearchTerm.trim();
+    if (!term) return data;
+    if (filterRow) {
+      return data.filter((row) => filterRow(row, term));
+    }
+    const lowercasedTerm = term.toLowerCase();
     return data.filter((row) => {
       return columns.some((col) => {
         const value = row[col.accessor];
@@ -64,7 +80,7 @@ const DataTable = ({
         return String(value).toLowerCase().includes(lowercasedTerm);
       });
     });
-  }, [data, localSearchTerm, columns, serverSide]);
+  }, [data, localSearchTerm, columns, serverSide, filterRow]);
 
   const hasActions = !!(onDetail || onEdit || onDelete);
   const totalCols = columns.length + (expandedRowRender ? 1 : 0) + (hasActions ? 1 : 0);
@@ -102,7 +118,7 @@ const DataTable = ({
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
             <input
               type="text"
-              placeholder="Cari data..."
+              placeholder={searchPlaceholder}
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
@@ -127,7 +143,10 @@ const DataTable = ({
             <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider">
               {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center bg-slate-50"></th>}
               {columns.map((col, index) => (
-                <th key={index} className="px-6 py-3.5 whitespace-nowrap bg-slate-50">
+                <th
+                  key={index}
+                  className={`px-6 py-3.5 whitespace-nowrap bg-slate-50 ${col.minWidth ?? ''}`}
+                >
                   {col.header}
                 </th>
               ))}
@@ -155,7 +174,10 @@ const DataTable = ({
                         </td>
                       )}
                       {columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-6 py-4 text-slate-700 whitespace-nowrap font-medium">
+                        <td
+                          key={colIndex}
+                          className={`px-6 py-4 text-slate-700 font-medium align-top ${col.minWidth ?? ''} ${col.nowrap === false ? 'whitespace-normal' : 'whitespace-nowrap'}`}
+                        >
                           {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                         </td>
                       ))}

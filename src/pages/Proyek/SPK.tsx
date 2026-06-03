@@ -1,5 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FileText, X, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import {
+  FileText,
+  X,
+  ExternalLink,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  ArrowUpDown,
+  Search,
+  PieChart,
+  HardHat,
+  Building2,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -18,13 +33,12 @@ import {
   useCreateSpk,
   useDeleteSpk,
   useGetSpk,
+  useGetSpkPaginated,
   useUpdateSpk,
 } from "../../hooks/queries/useSpk";
-import type { SpkData } from '../../services/spk.service';
+import type { GetSpkParams, SpkData } from '../../services/spk.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
-import SpkPembayaranStatusChips from '../../components/proyek/SpkPembayaranStatusChips';
-import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
-import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
+import type { SpkKavlingItem } from '../../services/spk.service';
 import type { KavlingData } from '../../services/kavling.service';
 import type { BankRekeningPt } from '../../services/bankRekening.service';
 
@@ -53,6 +67,8 @@ interface KavlingPickerRow {
   kavlingId: number;
   blok: string;
   nomorUnit: string;
+  luasTanah: number;
+  luasBangunan: number;
   customerNama: string;
   disabled: boolean;
   handledBy?: KavlingSpkAssignment;
@@ -115,36 +131,102 @@ const compareKavlingBlokUnit = (
   return a.nomorUnit.localeCompare(b.nomorUnit, undefined, { numeric: true, sensitivity: 'base' });
 };
 
-const SPK_KAVLING_PREVIEW_MAX = 8;
+const SPK_KAVLING_PREVIEW_MAX = 4;
+
+/** Tampilan 3 digit nomor urut SPK (mis. 016), bukan digit terakhir gabungan dengan tahun. */
+const formatShortNoSpk = (noSpk: string): string => {
+  const trimmed = noSpk.trim();
+  if (!trimmed) return '';
+
+  const pad3 = (digits: string) => {
+    const d = digits.replace(/\D/g, '');
+    if (!d) return '';
+    return d.length <= 3 ? d.padStart(3, '0') : d.slice(-3);
+  };
+
+  // Contoh: 016/2026, 16/2026 → ambil segmen sebelum /
+  if (trimmed.includes('/')) {
+    const head = pad3(trimmed.split('/')[0] ?? '');
+    if (head) return head;
+  }
+
+  // Contoh: SPK-016, SPK 016 → grup digit nomor urut (bukan tahun 20xx)
+  const digitGroups = trimmed.match(/\d+/g);
+  if (digitGroups?.length) {
+    const seq =
+      digitGroups.find((g) => g.length >= 2 && g.length <= 3)
+      ?? digitGroups.find((g) => g.length === 1)
+      ?? digitGroups.find((g) => !(g.length === 4 && /^20\d{2}$/.test(g)))
+      ?? digitGroups[0];
+    const short = pad3(seq);
+    if (short) return short;
+  }
+
+  return trimmed.slice(0, 3);
+};
+
+const formatKavlingItemLabel = (k: SpkKavlingItem) =>
+  `Blok ${k.blok} · Unit ${k.nomorUnit} · LT ${k.luasTanah ?? 0} · LB ${k.luasBangunan ?? 0}`;
+
+const KavlingListItem = ({ k }: { k: SpkKavlingItem }) => (
+  <li className="leading-tight">
+    <p className="whitespace-nowrap text-xs font-bold text-slate-800">
+      {k.blok}-{k.nomorUnit}
+    </p>
+    <p className="whitespace-nowrap text-[11px] text-slate-500 tabular-nums">
+      LT {k.luasTanah ?? 0} · LB {k.luasBangunan ?? 0}
+    </p>
+  </li>
+);
 
 const SpkKavlingCell = ({ items }: { items: SpkData['kavlingItems'] }) => {
+  const [expanded, setExpanded] = useState(false);
   const sorted = useMemo(
     () => [...items].sort(compareKavlingBlokUnit),
     [items],
   );
+  const kavlingIdsKey = useMemo(
+    () => sorted.map((k) => k.kavlingId).join(','),
+    [sorted],
+  );
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [kavlingIdsKey]);
+
   if (sorted.length === 0) {
     return <span className="text-xs text-slate-400">-</span>;
   }
-  const preview = sorted.slice(0, SPK_KAVLING_PREVIEW_MAX);
-  const hiddenCount = sorted.length - preview.length;
-  const fullLabel = sorted.map((k) => `${k.blok}-${k.nomorUnit}`).join(', ');
+
+  const hasMore = sorted.length > SPK_KAVLING_PREVIEW_MAX;
+  const hiddenCount = sorted.length - SPK_KAVLING_PREVIEW_MAX;
+  const visibleItems = expanded || !hasMore ? sorted : sorted.slice(0, SPK_KAVLING_PREVIEW_MAX);
+  const fullLabel = sorted.map(formatKavlingItemLabel).join('\n');
+
   return (
-    <div className="max-w-[200px]" title={fullLabel}>
-      <div className="flex flex-wrap gap-0.5">
-        {preview.map((k) => (
-          <span
-            key={k.kavlingId}
-            className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-indigo-50 text-[10px] font-semibold text-indigo-700 leading-tight whitespace-nowrap border border-indigo-100"
-          >
-            {k.blok}-{k.nomorUnit}
-          </span>
+    <div className="min-w-[90px]" title={expanded ? undefined : fullLabel}>
+      <ul className="space-y-1.5">
+        {visibleItems.map((k) => (
+          <KavlingListItem key={k.kavlingId} k={k} />
         ))}
-        {hiddenCount > 0 && (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-slate-500 leading-tight border border-slate-200">
-            +{hiddenCount}
-          </span>
+        {hasMore && (
+          <li>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((prev) => !prev);
+              }}
+              className="text-[10px] font-bold text-indigo-600 whitespace-nowrap hover:text-indigo-800 hover:underline cursor-pointer"
+              aria-expanded={expanded}
+            >
+              {expanded
+                ? 'Lihat lebih sedikit'
+                : `+${hiddenCount} kavling lainnya`}
+            </button>
+          </li>
         )}
-      </div>
+      </ul>
     </div>
   );
 };
@@ -214,6 +296,9 @@ const DetailSectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h4 className="text-xs font-bold text-slate-800 mb-1.5">{children}</h4>
 );
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
 const SPK = () => {
   const { user, selectedPerumahan } = useAuth();
   const { canRead: canReadSpk } = usePermission('SPK');
@@ -229,25 +314,70 @@ const SPK = () => {
 
   const isMandorRole = user?.role === 'MANDOR';
 
-  const { data: spkList = [], isLoading: loadingSpk } = useGetSpk();
-  const { data: pembayaranPage } = useGetSpkPembayaranList({ page: 1, limit: 500, status: 'ALL' });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const orderBy = (searchParams.get('orderBy') || 'mandor:asc') as GetSpkParams['orderBy'];
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
 
-  const visibleSpkList = useMemo(() => {
-    if (isMandorRole && user?.id) {
-      return spkList.filter((spk) => spk.mandorId === user.id);
-    }
-    return spkList;
-  }, [isMandorRole, user?.id, spkList]);
+  const { data: spkResponse, isLoading: loadingSpk, isFetching: fetchingSpk } = useGetSpkPaginated({
+    page,
+    limit,
+    search: search || undefined,
+    orderBy,
+  });
+  const spkData = spkResponse?.items ?? [];
+  const meta = spkResponse?.meta;
 
-  const pembayaranBySpkId = useMemo(() => {
-    const map = new Map<number, SpkPembayaranData[]>();
-    (pembayaranPage?.items ?? []).forEach((p) => {
-      const list = map.get(p.spkId) ?? [];
-      list.push(p);
-      map.set(p.spkId, list);
+  const { data: spkAllList = [] } = useGetSpk({ limit: 500 });
+
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [kavlingPickerSearch, setKavlingPickerSearch] = useState('');
+
+  const spkSummary = meta?.summary ?? {
+    totalSpk: 0,
+    totalKavling: 0,
+    totalNilaiKontrak: 0,
+    totalSudahDibayar: 0,
+    totalSisaNilai: 0,
+    progressSelesai: 0,
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams((prev) => {
+      prev.set('page', String(newPage));
+      return prev;
     });
-    return map;
-  }, [pembayaranPage?.items]);
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams((prev) => {
+      if (newSearch) prev.set('search', newSearch);
+      else prev.delete('search');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams((prev) => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleOrderByChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams((prev) => {
+      prev.set('orderBy', e.target.value);
+      prev.set('page', '1');
+      return prev;
+    });
+  };
 
   const { data: kavlingResponse, isLoading: loadingKavling } = useGetKavlings({ limit: 500 });
   const { data: mandorList = [] } = useGetMandors();
@@ -274,9 +404,9 @@ const SPK = () => {
 
   useEffect(() => {
     if (!detailItem) return;
-    const fresh = visibleSpkList.find((s) => s.id === detailItem.id);
+    const fresh = spkData.find((s) => s.id === detailItem.id);
     if (fresh) setDetailItem(fresh);
-  }, [visibleSpkList, detailItem?.id]);
+  }, [spkData, detailItem?.id]);
 
   const bankOptions = useMemo(() => {
     const filtered = selectedPerumahan
@@ -295,7 +425,7 @@ const SPK = () => {
 
   const kavlingSpkAssignmentMap = useMemo(() => {
     const map = new Map<number, KavlingSpkAssignment>();
-    spkList.forEach((spk) => {
+    spkAllList.forEach((spk) => {
       spk.kavlingItems.forEach((item) => {
         map.set(item.kavlingId, {
           spkId: spk.id,
@@ -305,7 +435,7 @@ const SPK = () => {
       });
     });
     return map;
-  }, [spkList]);
+  }, [spkAllList]);
 
   const kavlingPickerRows = useMemo(() => {
     if (!kavlingResponse?.items) return [];
@@ -316,6 +446,8 @@ const SPK = () => {
         kavlingId: k.id,
         blok: k.blok,
         nomorUnit: k.nomorUnit,
+        luasTanah: k.luasTanah,
+        luasBangunan: k.luasBangunan,
         customerNama: getCustomerNamaFromKavling(k),
         disabled: !!assignment && !isCurrentSpk,
         handledBy: assignment && !isCurrentSpk ? assignment : undefined,
@@ -336,6 +468,34 @@ const SPK = () => {
       .map(([blok, units]) => ({ blok, units }));
   }, [kavlingPickerRows]);
 
+  const filteredKavlingBlokGroups = useMemo((): KavlingBlokGroup[] => {
+    const q = kavlingPickerSearch.trim().toLowerCase();
+    if (!q) return kavlingBlokGroups;
+    return kavlingBlokGroups
+      .map((group) => {
+        const units = group.units.filter((u) => {
+          const haystack = [
+            group.blok,
+            u.nomorUnit,
+            u.customerNama,
+            String(u.luasTanah),
+            String(u.luasBangunan),
+          ]
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(q);
+        });
+        return { blok: group.blok, units };
+      })
+      .filter((g) => g.units.length > 0);
+  }, [kavlingBlokGroups, kavlingPickerSearch]);
+
+  useEffect(() => {
+    const q = kavlingPickerSearch.trim();
+    if (!q) return;
+    setExpandedBloks(new Set(filteredKavlingBlokGroups.map((g) => g.blok)));
+  }, [kavlingPickerSearch, filteredKavlingBlokGroups]);
+
   useEffect(() => {
     if (!formData.fileSpk) {
       setFilePreviewUrl(null);
@@ -348,31 +508,43 @@ const SPK = () => {
 
   const columns = [
     {
-      header: 'No. SPK',
+      header: 'No',
       accessor: 'noSpk',
       render: (val: string) => (
-        <span className="font-bold text-slate-900 font-mono text-xs">{val}</span>
+        <span
+          className="font-bold text-slate-900 font-mono text-xs"
+          title={val}
+        >
+          {formatShortNoSpk(val)}
+        </span>
       ),
     },
     {
       header: 'Mandor',
       accessor: 'mandor',
       render: (val: SpkData['mandor']) => (
-        <div className="flex items-center gap-2">
-          <span className="text-slate-700 font-semibold text-sm">{val?.username || '-'}</span>
-        </div>
+        <span className="text-slate-700 font-semibold text-sm">{val?.username || '-'}</span>
       ),
     },
     {
       header: 'Kavling',
       accessor: 'kavlingItems',
+      nowrap: false,
+      minWidth: '',
       render: (items: SpkData['kavlingItems']) => <SpkKavlingCell items={items} />,
+    },
+    {
+      header: 'Total',
+      accessor: 'id',
+      render: (_id: number, row: SpkData) => (
+        <span className="text-sm font-bold text-slate-800 tabular-nums">{row.kavlingItems.length}</span>
+      ),
     },
     {
       header: 'Nilai Kontrak',
       accessor: 'nilaiKontrak',
       render: (val: number) => (
-        <span className="font-semibold text-slate-800 text-sm">{formatRupiah(val)}</span>
+        <span className="font-semibold text-slate-800 text-sm whitespace-nowrap">{formatRupiah(val)}</span>
       ),
     },
     {
@@ -397,10 +569,10 @@ const SPK = () => {
       },
     },
     {
-      header: 'Rek PT',
+      header: 'KSO',
       accessor: 'bankRekeningPtId',
       render: (val: number | null) => (
-        <span className="text-xs text-slate-500 leading-tight" title={val ? bankLabelById.get(val) : undefined}>
+        <span className="text-xs text-slate-600 leading-tight max-w-[120px] block truncate" title={val ? bankLabelById.get(val) : undefined}>
           {val ? (bankLabelById.get(val) ?? `ID ${val}`) : <span className="text-slate-300">—</span>}
         </span>
       ),
@@ -408,26 +580,28 @@ const SPK = () => {
     {
       header: 'Sisa Nilai',
       accessor: 'sisaNilaiKontrak',
-      render: (val: number | null) => (
-        <span className="text-sm font-semibold text-emerald-700">{val == null ? <span className="text-slate-300 font-normal">—</span> : formatRupiah(val)}</span>
-      ),
+      render: (val: number | null) => {
+        if (val == null) return <span className="text-slate-300 text-sm">—</span>;
+        const unpaid = val > 0;
+        return (
+          <span className={`text-sm font-semibold whitespace-nowrap ${unpaid ? 'text-red-600' : 'text-slate-400'}`}>
+            {formatRupiah(val)}
+          </span>
+        );
+      },
     },
     {
       header: 'Sudah Dibayar',
       accessor: 'nilaiSudahDibayarkan',
-      render: (val: number | null) => (
-        <span className="text-sm font-semibold text-blue-700">{val == null ? <span className="text-slate-300 font-normal">—</span> : formatRupiah(val)}</span>
-      ),
-    },
-    {
-      header: 'Pembayaran',
-      accessor: 'id',
-      render: (_id: number, row: SpkData) => (
-        <SpkPembayaranStatusChips
-          items={pembayaranBySpkId.get(row.id) ?? []}
-          showBuktiLinks={isMandorRole && row.mandorId === user?.id}
-        />
-      ),
+      render: (val: number | null) => {
+        if (val == null) return <span className="text-slate-300 text-sm">—</span>;
+        const paid = val > 0;
+        return (
+          <span className={`text-sm font-semibold whitespace-nowrap ${paid ? 'text-emerald-700' : 'text-slate-400'}`}>
+            {formatRupiah(val)}
+          </span>
+        );
+      },
     },
     {
       header: 'Dokumen',
@@ -441,18 +615,35 @@ const SPK = () => {
           onClick={(e) => e.stopPropagation()}
         >
           <FileText size={12} />
-          
+          PDF
         </a>
       ) : (
-        <span className="text-slate-300 text-xs"></span>
+        <span className="text-slate-300 text-xs">—</span>
       ),
     },
   ];
+
+  const tableToolbar = (
+    <div className="relative w-full sm:w-56">
+      <ArrowUpDown size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      <select
+        value={orderBy}
+        onChange={handleOrderByChange}
+        className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none shadow-sm cursor-pointer"
+        aria-label="Urutkan berdasarkan mandor"
+      >
+        <option value="mandor:asc">Mandor A → Z</option>
+        <option value="mandor:desc">Mandor Z → A</option>
+        <option value="id:desc">Terbaru</option>
+      </select>
+    </div>
+  );
 
   const openCreateModal = () => {
     setEditingId(null);
     setFormData(initialFormState());
     setErrors({});
+    setKavlingPickerSearch('');
     setIsModalOpen(true);
   };
 
@@ -473,6 +664,7 @@ const SPK = () => {
       existingFileSpk: item.fileSpk,
     });
     setErrors({});
+    setKavlingPickerSearch('');
     setIsModalOpen(true);
   };
 
@@ -484,6 +676,7 @@ const SPK = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setExpandedBloks(new Set());
+    setKavlingPickerSearch('');
     setFormData(initialFormState());
     setEditingId(null);
   };
@@ -599,20 +792,116 @@ const SPK = () => {
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const hasUploadedFile = !!formData.fileSpk || !!formData.existingFileSpk;
 
-  if (loadingSpk || loadingKavling) return <PageLoader />;
+  if ((loadingSpk && !spkResponse) || loadingKavling) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
+
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
+        <div
+          className="p-3 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
+          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg ring-1 ring-indigo-100">
+              <PieChart size={18} strokeWidth={2.5} />
+            </div>
+            <h3 className="font-bold text-slate-900 tracking-tight">
+              {isMandorRole ? 'Ringkasan SPK Saya' : 'Ringkasan SPK'}
+            </h3>
+          </div>
+          <button
+            type="button"
+            className="text-slate-400 hover:text-indigo-600 transition-colors"
+            aria-expanded={isSummaryExpanded}
+            aria-label={isSummaryExpanded ? 'Tutup ringkasan' : 'Buka ringkasan'}
+          >
+            {isSummaryExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
+        </div>
+
+        {isSummaryExpanded && (
+          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50/50">
+            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-slate-400 group-hover:bg-slate-600 transition-colors" />
+              <div className="flex items-center gap-3 mb-3 pl-2">
+                <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+                  <HardHat size={16} className="text-slate-600" />
+                </div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total SPK</p>
+              </div>
+              <p className="text-3xl font-black text-slate-900 pl-2 tabular-nums">{spkSummary.totalSpk}</p>
+              <p className="text-[11px] text-slate-500 pl-2 mt-1 font-medium">
+                {spkSummary.progressSelesai} selesai (100%)
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 group-hover:bg-blue-600 transition-colors" />
+              <div className="flex items-center gap-3 mb-3 pl-2">
+                <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center">
+                  <Building2 size={16} className="text-blue-600" />
+                </div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Kavling</p>
+              </div>
+              <p className="text-3xl font-black text-blue-700 pl-2 tabular-nums">{spkSummary.totalKavling}</p>
+              <p className="text-[11px] text-slate-500 pl-2 mt-1 font-medium truncate" title={formatRupiah(spkSummary.totalNilaiKontrak)}>
+                Kontrak {formatRupiah(spkSummary.totalNilaiKontrak)}
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400 group-hover:bg-emerald-600 transition-colors" />
+              <div className="flex items-center gap-3 mb-3 pl-2">
+                <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center">
+                  <CheckCircle2 size={16} className="text-emerald-600" />
+                </div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sudah Dibayar</p>
+              </div>
+              <p className="text-xl font-black text-emerald-700 pl-2 tabular-nums leading-tight">
+                {formatRupiah(spkSummary.totalSudahDibayar)}
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-1 h-full bg-red-400 group-hover:bg-red-600 transition-colors" />
+              <div className="flex items-center gap-3 mb-3 pl-2">
+                <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
+                  <AlertCircle size={16} className="text-red-600" />
+                </div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sisa Nilai</p>
+              </div>
+              <p className="text-xl font-black text-red-700 pl-2 tabular-nums leading-tight">
+                {formatRupiah(spkSummary.totalSisaNilai)}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
 
       <DataTable
         title={isMandorRole ? 'SPK Saya' : 'Surat Perintah Kerja (SPK)'}
         columns={columns}
-        data={visibleSpkList}
+        data={spkData}
+        toolbarPrefix={tableToolbar}
+        serverSide
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Cari mandor, blok, no. SPK..."
+        page={page}
+        totalPages={meta?.totalPages || 1}
+        onPageChange={handlePageChange}
+        pageSize={limit}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+        onPageSizeChange={handlePageSizeChange}
         onAdd={canManageSpk ? openCreateModal : undefined}
         onEdit={canManageSpk ? openEditModal : undefined}
         onDetail={openDetail}
         onDelete={canManageSpk ? handleDelete : undefined}
       />
+      {fetchingSpk && spkResponse && (
+        <p className="text-center text-xs text-slate-400 -mt-1 pb-2">Memuat ulang data...</p>
+      )}
 
       {/* ── Detail Modal ─────────────────────────────────────────────────────── */}
       <Modal
@@ -637,7 +926,9 @@ const SPK = () => {
                 </thead>
                 <tbody>
                   <tr className="bg-white">
-                    <td className={`${detailTdClass} font-mono font-bold`}>{detailItem.noSpk}</td>
+                    <td className={`${detailTdClass} font-mono font-bold`} title={detailItem.noSpk}>
+                      {formatShortNoSpk(detailItem.noSpk)}
+                    </td>
                     <td className={detailTdClass}>{detailItem.judulPekerjaan}</td>
                     <td className={`${detailTdClass} whitespace-nowrap`}>{formatDate(detailItem.tanggalSpk)}</td>
                     <td className={`${detailTdClass} text-right font-bold text-emerald-700 whitespace-nowrap`}>
@@ -660,16 +951,24 @@ const SPK = () => {
                     <th className={detailThClass}>Sudah Dibayar</th>
                     <th className={detailThClass}>Nilai Kontrak</th>
                     <th className={detailThClass}>Jatuh Tempo</th>
-                    <th className={detailThClass}>Rekening PT</th>
+                    <th className={detailThClass}>KSO (Rek PT)</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="bg-white">
                     <td className={`${detailTdClass} font-semibold`}>{detailItem.mandor.username}</td>
-                    <td className={`${detailTdClass} font-bold text-emerald-700 whitespace-nowrap`}>
+                    <td className={`${detailTdClass} font-bold whitespace-nowrap ${
+                      detailItem.sisaNilaiKontrak != null && detailItem.sisaNilaiKontrak > 0
+                        ? 'text-red-600'
+                        : 'text-slate-400'
+                    }`}>
                       {detailItem.sisaNilaiKontrak == null ? '—' : formatRupiah(detailItem.sisaNilaiKontrak)}
                     </td>
-                    <td className={`${detailTdClass} font-bold text-blue-700 whitespace-nowrap`}>
+                    <td className={`${detailTdClass} font-bold whitespace-nowrap ${
+                      detailItem.nilaiSudahDibayarkan != null && detailItem.nilaiSudahDibayarkan > 0
+                        ? 'text-emerald-700'
+                        : 'text-slate-400'
+                    }`}>
                       {detailItem.nilaiSudahDibayarkan == null ? '—' : formatRupiah(detailItem.nilaiSudahDibayarkan)}
                     </td>
                     <td className={`${detailTdClass} whitespace-nowrap`}>
@@ -813,6 +1112,8 @@ const SPK = () => {
                     <tr>
                       <th className={detailThClass}>Blok</th>
                       <th className={detailThClass}>Unit</th>
+                      <th className={detailThClass}>LT</th>
+                      <th className={detailThClass}>LB</th>
                       <th className={detailThClass}>Customer</th>
                     </tr>
                   </thead>
@@ -823,6 +1124,8 @@ const SPK = () => {
                         <tr key={k.kavlingId} className="bg-white hover:bg-slate-50/80">
                           <td className={detailTdClass}>{k.blok}</td>
                           <td className={detailTdClass}>{k.nomorUnit}</td>
+                          <td className={detailTdClass}>{k.luasTanah ?? 0}</td>
+                          <td className={detailTdClass}>{k.luasBangunan ?? 0}</td>
                           <td className={detailTdClass}>{k.customerNama || '—'}</td>
                         </tr>
                       ))}
@@ -938,6 +1241,16 @@ const SPK = () => {
             <p className="text-xs text-slate-500 mb-3 leading-relaxed">
               Centang blok untuk memilih semua unit, atau buka blok dan pilih unit tertentu saja.
             </p>
+            <div className="relative mb-3">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={kavlingPickerSearch}
+                onChange={(e) => setKavlingPickerSearch(e.target.value)}
+                placeholder="Cari blok, unit, LT/LB, atau customer..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 focus:border-indigo-400"
+              />
+            </div>
             {errors.kavlingIds && (
               <p className="text-xs font-semibold text-red-600 mb-3 flex items-center gap-1.5">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
@@ -945,10 +1258,14 @@ const SPK = () => {
               </p>
             )}
             <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-xl bg-white divide-y divide-slate-100">
-              {kavlingBlokGroups.length === 0 ? (
-                <p className="p-4 text-xs text-slate-400 italic text-center">Belum ada data kavling.</p>
+              {filteredKavlingBlokGroups.length === 0 ? (
+                <p className="p-4 text-xs text-slate-400 italic text-center">
+                  {kavlingBlokGroups.length === 0
+                    ? 'Belum ada data kavling.'
+                    : 'Tidak ada kavling yang cocok dengan pencarian.'}
+                </p>
               ) : (
-                kavlingBlokGroups.map((group) => {
+                filteredKavlingBlokGroups.map((group) => {
                   const blokState = getBlokSelectionState(group.units, formData.kavlingIds);
                   const selectableIds = getSelectableUnitIds(group.units);
                   const selectedInBlok = selectableIds.filter((id) =>
@@ -1010,6 +1327,9 @@ const SPK = () => {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`text-sm font-bold min-w-[72px] ${k.disabled ? 'text-slate-400' : 'text-slate-800'}`}>
                                   Unit {k.nomorUnit}
+                                </span>
+                                <span className="text-[11px] text-slate-500 font-medium">
+                                  LT {k.luasTanah} · LB {k.luasBangunan}
                                 </span>
                                 <span className="text-xs text-slate-500 truncate max-w-[140px]" title={k.customerNama}>
                                   {k.customerNama}

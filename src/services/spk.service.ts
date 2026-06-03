@@ -6,6 +6,8 @@ export interface SpkKavlingItem {
   kavlingId: number;
   blok: string;
   nomorUnit: string;
+  luasTanah: number;
+  luasBangunan: number;
   customerNama: string;
 }
 
@@ -49,6 +51,37 @@ export interface CreateSpkDTO {
 }
 
 export interface UpdateSpkDTO extends Partial<CreateSpkDTO> {}
+
+export interface SpkListSummary {
+  totalSpk: number;
+  totalKavling: number;
+  totalNilaiKontrak: number;
+  totalSudahDibayar: number;
+  totalSisaNilai: number;
+  progressSelesai: number;
+}
+
+export interface SpkPaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  summary?: SpkListSummary;
+}
+
+export interface SpkListResponse {
+  items: SpkData[];
+  meta: SpkPaginationMeta;
+}
+
+export interface GetSpkParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  orderBy?: "mandor:asc" | "mandor:desc" | "id:desc";
+}
 
 const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
   const formData = new FormData();
@@ -103,9 +136,18 @@ const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
 };
 
 export const spkService = {
+  getPaginated: async (params?: GetSpkParams): Promise<SpkListResponse> => {
+    const response = await api.get("/spk", { params });
+    return response.data.data;
+  },
+
   getAll: async (params?: { search?: string; limit?: number }): Promise<SpkData[]> => {
-    const response = await api.get("/spk", { params: { limit: 200, ...params } });
-    return response.data.data.items;
+    const result = await spkService.getPaginated({
+      page: 1,
+      limit: params?.limit ?? 500,
+      search: params?.search,
+    });
+    return result.items;
   },
 
   getById: async (id: number): Promise<SpkData> => {
