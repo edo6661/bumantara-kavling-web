@@ -86,6 +86,11 @@ interface PenjualanData {
   tambahanKpr?: any[];
   createdAt?: string;
   updatedAt?: string;
+  progressProyek?: {
+    persentase?: number;
+    mandorId?: number | null;
+    mandor?: { id: number; username: string } | null;
+  } | null;
 }
 
 /** API / Prisma pakai enum `CASH_BERTAHAP`, opsi form pakai label dengan spasi */
@@ -530,12 +535,21 @@ const Penjualan = () => {
   }, [availableKavlings, formData.blok]);
 
   const columns = [
-    { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
+    { header: 'Customer', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
     { header: 'Blok', accessor: 'blok', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
     { header: 'No', accessor: 'nomorUnit', render: (val: string) => <span className="font-medium text-slate-700">{val}</span> },
+    {
+      header: 'Mandor',
+      accessor: 'progressProyek',
+      render: (val: PenjualanData['progressProyek']) => (
+        <span className="font-medium text-slate-700">
+          {val?.mandor?.username ?? '-'}
+        </span>
+      ),
+    },
     { header: 'Tanggal', accessor: 'tanggal', render: (val: string) => formatDate(val) },
     {
-      header: 'Cara Pembayaran',
+      header: 'Pembayaran',
       accessor: 'caraPembayaran',
       render: (val: string) => {
         if (!val) return '-';
