@@ -85,6 +85,16 @@ export function sumKasbonForTermin(
     .reduce((sum, p) => sum + p.nominal, 0);
 }
 
+export function sumPengurangJenisForTermin(
+  pembayaranList: SpkPembayaranCalcRow[],
+  termin: SpkKasbonTargetTermin,
+  jenis: 'KASBON' | 'UPAH',
+): number {
+  return pembayaranList
+    .filter((p) => p.jenis === jenis && p.mengurangiTermin === termin)
+    .reduce((sum, p) => sum + p.nominal, 0);
+}
+
 export function calcSpkPembayaranNominal(
   jenis: SpkPembayaranJenis,
   spk: SpkNominalInput,

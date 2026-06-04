@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronUp,
   ArrowUpDown,
+  Plus,
   Search,
   PieChart,
   HardHat,
@@ -22,7 +23,7 @@ import CurrencyInput from "../../components/shared/CurrencyInput";
 import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
-import { formatRupiah, formatDate } from "../../utils/formatters";
+import { formatRupiah, formatDate, formatTanpaDesimal } from "../../utils/formatters";
 import { handleApiError } from '../../utils/errorHandler';
 import { useAuth } from "../../context/AuthContext";
 import { usePermission } from "../../hooks/usePermission";
@@ -135,6 +136,14 @@ const compareKavlingBlokUnit = (
 const SPK_KAVLING_PREVIEW_MAX = 4;
 
 /** Tampilan 3 digit nomor urut SPK (mis. 016), bukan digit terakhir gabungan dengan tahun. */
+/** Label singkat KSO di tabel (SGMP / BMS). */
+const formatKsoShortLabel = (atasNama: string): string => {
+  const n = atasNama.trim().toLowerCase();
+  if (n.includes('mahligai')) return 'BMS';
+  if (n.includes('gajah')) return 'SGMP';
+  return atasNama;
+};
+
 const formatShortNoSpk = (noSpk: string): string => {
   const trimmed = noSpk.trim();
   if (!trimmed) return '';
@@ -205,7 +214,7 @@ const SpkKavlingCell = ({ items }: { items: SpkData['kavlingItems'] }) => {
   const fullLabel = sorted.map(formatKavlingItemLabel).join('\n');
 
   return (
-    <div className="min-w-[90px]" title={expanded ? undefined : fullLabel}>
+    <div className="max-w-[130px]" title={expanded ? undefined : fullLabel}>
       <ul className="space-y-1.5">
         {visibleItems.map((k) => (
           <KavlingListItem key={k.kavlingId} k={k} />
@@ -387,6 +396,7 @@ const SPK = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<SpkData | null>(null);
+  const [kasbonQuickSpk, setKasbonQuickSpk] = useState<SpkData | null>(null);
   const [formData, setFormData] = useState<SpkFormState>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -416,6 +426,14 @@ const SPK = () => {
     const map = new Map<number, string>();
     bankList.forEach((b) => {
       map.set(b.id, `${b.atasNama}`);
+    });
+    return map;
+  }, [bankList]);
+
+  const bankShortLabelById = useMemo(() => {
+    const map = new Map<number, string>();
+    bankList.forEach((b) => {
+      map.set(b.id, formatKsoShortLabel(b.atasNama));
     });
     return map;
   }, [bankList]);
@@ -519,70 +537,90 @@ const SPK = () => {
     {
       header: 'Mandor',
       accessor: 'mandor',
+      minWidth: 'min-w-[4.5rem]',
       render: (val: SpkData['mandor']) => (
-        <span className="text-slate-700 font-semibold text-sm">{val?.username || '-'}</span>
+        <span className="text-slate-700 font-semibold text-xs" title={val?.username}>
+          {val?.username || '-'}
+        </span>
       ),
     },
     {
       header: 'Kavling',
       accessor: 'kavlingItems',
       nowrap: false,
-      minWidth: '',
+      minWidth: 'min-w-[7.5rem]',
       render: (items: SpkData['kavlingItems']) => <SpkKavlingCell items={items} />,
     },
     {
       header: 'Total',
       accessor: 'id',
+      className: 'text-center',
       render: (_id: number, row: SpkData) => (
-        <span className="text-sm font-bold text-slate-800 tabular-nums">{row.kavlingItems.length}</span>
+        <span className="text-xs font-bold text-slate-800 tabular-nums">{row.kavlingItems.length}</span>
       ),
     },
     {
       header: 'Nilai Kontrak',
       accessor: 'nilaiKontrak',
-      render: (val: number) => (
-        <span className="font-semibold text-slate-800 text-sm whitespace-nowrap">{formatRupiah(val)}</span>
-      ),
+      headerNowrap: false,
+      minWidth: 'min-w-[8.25rem]',
+      render: (val: number, row: SpkData) => {
+        const canAjukanKasbon = canAjukanPembayaranFor(row);
+        return (
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-slate-800 text-xs tabular-nums whitespace-nowrap">
+              {formatTanpaDesimal(val)}
+            </span>
+            {canAjukanKasbon && (
+              <button
+                type="button"
+                title="Ajukan kasbon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setKasbonQuickSpk(row);
+                }}
+                className="inline-flex items-center justify-center w-6 h-6 rounded-lg border border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors shrink-0"
+              >
+                <Plus size={12} strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+        );
+      },
     },
     {
-      header: 'Progress SPK',
+      header: 'Progress',
       accessor: 'progress',
+      minWidth: 'min-w-[5.5rem]',
       render: (_val: number, row: SpkData) => {
         const persentase = Number(row.progress ?? 0);
         const isComplete = persentase === 100;
         return (
-          <div className="flex items-center gap-2 min-w-[120px]">
-            <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+          <div className="flex items-center gap-1.5 w-[5.5rem]">
+            <div className="flex-1 min-w-0 bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-indigo-500'}`}
                 style={{ width: `${persentase}%` }}
               />
             </div>
-            <span className={`text-xs font-black min-w-[36px] text-right ${isComplete ? 'text-emerald-700' : 'text-slate-700'}`}>
-              {persentase}%{row.progressIsOverride ? ' *' : ''}
+            <span className={`text-[10px] font-black shrink-0 ${isComplete ? 'text-emerald-700' : 'text-slate-700'}`}>
+              {persentase}%{row.progressIsOverride ? '*' : ''}
             </span>
           </div>
         );
       },
     },
     {
-      header: 'KSO',
-      accessor: 'bankRekeningPtId',
-      render: (val: number | null) => (
-        <span className="text-xs text-slate-600 leading-tight max-w-[120px] block truncate" title={val ? bankLabelById.get(val) : undefined}>
-          {val ? (bankLabelById.get(val) ?? `ID ${val}`) : <span className="text-slate-300">—</span>}
-        </span>
-      ),
-    },
-    {
       header: 'Sisa Nilai',
       accessor: 'sisaNilaiKontrak',
+      headerNowrap: false,
+      minWidth: 'min-w-[6.75rem]',
       render: (val: number | null) => {
-        if (val == null) return <span className="text-slate-300 text-sm">—</span>;
+        if (val == null) return <span className="text-slate-300 text-xs">—</span>;
         const unpaid = val > 0;
         return (
-          <span className={`text-sm font-semibold whitespace-nowrap ${unpaid ? 'text-red-600' : 'text-slate-400'}`}>
-            {formatRupiah(val)}
+          <span className={`text-xs font-semibold tabular-nums whitespace-nowrap ${unpaid ? 'text-red-600' : 'text-slate-400'}`}>
+            {formatTanpaDesimal(val)}
           </span>
         );
       },
@@ -590,12 +628,14 @@ const SPK = () => {
     {
       header: 'Sudah Dibayar',
       accessor: 'nilaiSudahDibayarkan',
+      headerNowrap: false,
+      minWidth: 'min-w-[6.75rem]',
       render: (val: number | null) => {
-        if (val == null) return <span className="text-slate-300 text-sm">—</span>;
+        if (val == null) return <span className="text-slate-300 text-xs">—</span>;
         const paid = val > 0;
         return (
-          <span className={`text-sm font-semibold whitespace-nowrap ${paid ? 'text-emerald-700' : 'text-slate-400'}`}>
-            {formatRupiah(val)}
+          <span className={`text-xs font-semibold tabular-nums whitespace-nowrap ${paid ? 'text-emerald-700' : 'text-slate-400'}`}>
+            {formatTanpaDesimal(val)}
           </span>
         );
       },
@@ -603,19 +643,33 @@ const SPK = () => {
     {
       header: 'Dokumen',
       accessor: 'fileSpk',
+      minWidth: 'min-w-[4.5rem]',
       render: (val: string | null) => val ? (
         <a
           href={val}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors"
+          className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
-          <FileText size={12} />
+          <FileText size={11} />
           PDF
         </a>
       ) : (
         <span className="text-slate-300 text-xs">—</span>
+      ),
+    },
+    {
+      header: 'KSO',
+      accessor: 'bankRekeningPtId',
+      minWidth: 'min-w-[2.75rem]',
+      render: (val: number | null) => (
+        <span
+          className="text-xs font-bold text-slate-700"
+          title={val ? bankLabelById.get(val) : undefined}
+        >
+          {val ? (bankShortLabelById.get(val) ?? `ID ${val}`) : <span className="text-slate-300 font-normal">—</span>}
+        </span>
       ),
     },
   ];
@@ -879,6 +933,7 @@ const SPK = () => {
       <DataTable
         title={isMandorRole ? 'SPK Saya' : 'Surat Perintah Kerja (SPK)'}
         columns={columns}
+        dense
         data={spkData}
         toolbarPrefix={tableToolbar}
         serverSide
@@ -898,6 +953,15 @@ const SPK = () => {
       />
       {fetchingSpk && spkResponse && (
         <p className="text-center text-xs text-slate-400 -mt-1 pb-2">Memuat ulang data...</p>
+      )}
+
+      {kasbonQuickSpk && (
+        <SpkPembayaranPanel
+          kasbonOnly
+          spk={kasbonQuickSpk}
+          canAjukan={canAjukanPembayaranFor(kasbonQuickSpk)}
+          onKasbonModalClose={() => setKasbonQuickSpk(null)}
+        />
       )}
 
       {/* ── Detail Modal ─────────────────────────────────────────────────────── */}

@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { FileText, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Camera, FileText, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import Modal from '../shared/Modal';
+import CollapsibleDetailSection from '../shared/CollapsibleDetailSection';
 import CurrencyInput from '../shared/CurrencyInput';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../shared/BuktiFileThumbnail';
 import { formatRupiah, formatDate } from '../../utils/formatters';
@@ -36,10 +37,20 @@ import {
   type SpkTerminPembayaranJenis,
 } from '../../utils/spkPembayaran';
 import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi';
+import { ocrService } from '../../services/ocr.service';
+import { spkPembayaranService } from '../../services/spkPembayaran.service';
 
 const TERMIN_JENIS_ORDER: SpkTerminPembayaranJenis[] = ['TERMIN_55', 'TERMIN_100', 'RETENSI'];
 
 const todayIso = () => new Date().toISOString().split('T')[0]!;
+
+/** Bon tanpa header nama toko — dipakai di form & DB. */
+const KASBON_NAMA_SUPPLIER_DEFAULT = '-';
+
+const normalizeMaterialNamaSupplier = (value: string) => {
+  const trimmed = value.trim();
+  return trimmed || KASBON_NAMA_SUPPLIER_DEFAULT;
+};
 
 interface UpahBarisForm {
   key: string;
@@ -91,11 +102,19 @@ interface MaterialItemForm {
   nominal: number | '';
 }
 
+interface MaterialBonForm {
+  key: string;
+  tanggal: string;
+  items: MaterialItemForm[];
+  fotoBonFile: File | null;
+  fotoBonUrl: string | null;
+  fotoBonPreview: string | null;
+}
+
 interface MaterialSupplierForm {
   key: string;
   namaSupplier: string;
-  tanggal: string;
-  items: MaterialItemForm[];
+  bons: MaterialBonForm[];
 }
 
 const newMaterialItem = (): MaterialItemForm => ({
@@ -104,18 +123,50 @@ const newMaterialItem = (): MaterialItemForm => ({
   nominal: '',
 });
 
+const newMaterialBon = (): MaterialBonForm => ({
+  key: `${Date.now()}-${Math.random()}`,
+  tanggal: todayIso(),
+  items: [newMaterialItem()],
+  fotoBonFile: null,
+  fotoBonUrl: null,
+  fotoBonPreview: null,
+});
+
 const newMaterialSupplier = (): MaterialSupplierForm => ({
   key: `${Date.now()}-${Math.random()}`,
   namaSupplier: '',
-  tanggal: todayIso(),
-  items: [newMaterialItem()],
+  bons: [newMaterialBon()],
 });
 
-const supplierMaterialTotal = (supplier: MaterialSupplierForm) =>
-  supplier.items.reduce(
+const bonHasFoto = (bon: MaterialBonForm) =>
+  !!bon.fotoBonFile || !!bon.fotoBonUrl?.trim();
+
+const revokeBonPreview = (bon: MaterialBonForm) => {
+  if (bon.fotoBonPreview?.startsWith('blob:')) {
+    URL.revokeObjectURL(bon.fotoBonPreview);
+  }
+};
+
+const bonHasContent = (bon: MaterialBonForm) =>
+  bonHasFoto(bon) ||
+  bon.items.some((i) => i.keterangan.trim() !== '' || i.nominal !== '');
+
+const bonMaterialTotal = (bon: MaterialBonForm) =>
+  bon.items.reduce(
     (sum, item) => sum + (item.nominal === '' ? 0 : Number(item.nominal)),
     0,
   );
+
+const supplierMaterialTotal = (supplier: MaterialSupplierForm) =>
+  supplier.bons.reduce((sum, bon) => sum + bonMaterialTotal(bon), 0);
+
+const supplierIsUsed = (supplier: MaterialSupplierForm) =>
+  supplier.namaSupplier.trim() !== '' || supplier.bons.some(bonHasContent);
+
+const supplierMissingFotoBon = (supplier: MaterialSupplierForm) => {
+  const idx = supplier.bons.findIndex((b) => bonHasContent(b) && !bonHasFoto(b));
+  return idx >= 0 ? idx + 1 : null;
+};
 
 const allMaterialTotal = (suppliers: MaterialSupplierForm[]) =>
   suppliers.reduce((sum, s) => sum + supplierMaterialTotal(s), 0);
@@ -127,49 +178,253 @@ const flattenMaterialSuppliers = (
 ): SpkPembayaranKasbonBarisBody[] | null => {
   const parsed: SpkPembayaranKasbonBarisBody[] = [];
   for (const supplier of suppliers) {
-    const namaSupplier = supplier.namaSupplier.trim();
-    if (!namaSupplier || !supplier.tanggal) return null;
-    for (const item of supplier.items) {
-      const keterangan = item.keterangan.trim();
-      const nominal = item.nominal === '' ? 0 : Number(item.nominal);
-      if (!keterangan || !nominal || nominal <= 0) return null;
-      parsed.push({
-        namaSupplier,
-        keterangan,
-        tanggalPo: supplier.tanggal,
-        nominal,
-      });
+    const namaSupplier = normalizeMaterialNamaSupplier(supplier.namaSupplier);
+    for (const bon of supplier.bons) {
+      if (!bonHasContent(bon)) continue;
+      if (!bon.tanggal || !bonHasFoto(bon)) return null;
+      const fotoBon = bon.fotoBonUrl?.trim() || null;
+      let hasItem = false;
+      for (const item of bon.items) {
+        const keterangan = item.keterangan.trim();
+        const nominal = item.nominal === '' ? 0 : Number(item.nominal);
+        if (!keterangan || !nominal || nominal <= 0) return null;
+        hasItem = true;
+        parsed.push({
+          namaSupplier,
+          keterangan,
+          tanggalPo: bon.tanggal,
+          nominal,
+          fotoBon,
+        });
+      }
+      if (!hasItem) return null;
     }
   }
   return parsed.length ? parsed : null;
 };
 
+const uploadMaterialSupplierFotos = async (
+  suppliers: MaterialSupplierForm[],
+): Promise<MaterialSupplierForm[]> =>
+  Promise.all(
+    suppliers.map(async (supplier) => ({
+      ...supplier,
+      bons: await Promise.all(
+        supplier.bons.map(async (bon) => {
+          if (!bon.fotoBonFile) return bon;
+          const url = await spkPembayaranService.uploadFotoBon(bon.fotoBonFile);
+          revokeBonPreview(bon);
+          return {
+            ...bon,
+            fotoBonFile: null,
+            fotoBonUrl: url,
+            fotoBonPreview: url,
+          };
+        }),
+      ),
+    })),
+  );
+
 const kasbonBarisToSuppliers = (
   baris: SpkPembayaranData['kasbonBaris'],
 ): MaterialSupplierForm[] => {
   if (!baris?.length) return [newMaterialSupplier()];
-  const map = new Map<string, MaterialSupplierForm>();
+  const supplierMap = new Map<string, MaterialSupplierForm>();
   for (const b of baris) {
+    const nama = normalizeMaterialNamaSupplier(b.namaSupplier || '');
+    let supplier = supplierMap.get(nama);
+    if (!supplier) {
+      supplier = {
+        key: `supplier-${nama}-${supplierMap.size}`,
+        namaSupplier: nama,
+        bons: [],
+      };
+      supplierMap.set(nama, supplier);
+    }
     const tanggal = toDateInputValue(b.tanggalPo);
-    const groupKey = `${b.namaSupplier ?? ''}\0${tanggal}`;
-    let group = map.get(groupKey);
-    if (!group) {
-      group = {
-        key: `supplier-${groupKey}-${map.size}`,
-        namaSupplier: b.namaSupplier || '',
+    const foto = b.fotoBon ?? '';
+    const bonLookup = `${tanggal}\0${foto}`;
+    let bon = supplier.bons.find(
+      (x) => `${x.tanggal}\0${x.fotoBonUrl ?? ''}` === bonLookup,
+    );
+    if (!bon) {
+      bon = {
+        key: `bon-${bonLookup}-${supplier.bons.length}`,
         tanggal,
         items: [],
+        fotoBonFile: null,
+        fotoBonUrl: b.fotoBon ?? null,
+        fotoBonPreview: b.fotoBon ?? null,
       };
-      map.set(groupKey, group);
+      supplier.bons.push(bon);
     }
-    group.items.push({
+    bon.items.push({
       key: `kasbon-${b.id}`,
       keterangan: b.keterangan,
       nominal: b.nominal,
     });
   }
-  const groups = Array.from(map.values());
+  const groups = Array.from(supplierMap.values());
   return groups.length ? groups : [newMaterialSupplier()];
+};
+
+type KasbonDisplayItem = { id: number; keterangan: string; nominal: number };
+
+type KasbonDisplayBon = {
+  tanggalPo: string;
+  tanggalIso: string;
+  fotoBon: string | null;
+  items: KasbonDisplayItem[];
+  subtotal: number;
+};
+
+type KasbonDisplaySupplier = {
+  namaSupplier: string;
+  bons: KasbonDisplayBon[];
+  total: number;
+};
+
+const kasbonSupplierDisplayName = (nama: string) =>
+  nama === KASBON_NAMA_SUPPLIER_DEFAULT ? '-' : nama;
+
+const groupKasbonBarisForDisplay = (
+  baris: NonNullable<SpkPembayaranData['kasbonBaris']>,
+): KasbonDisplaySupplier[] => {
+  const supplierMap = new Map<string, KasbonDisplaySupplier>();
+
+  for (const b of baris) {
+    const nama = normalizeMaterialNamaSupplier(b.namaSupplier || '');
+    let supplier = supplierMap.get(nama);
+    if (!supplier) {
+      supplier = { namaSupplier: nama, bons: [], total: 0 };
+      supplierMap.set(nama, supplier);
+    }
+
+    const tanggalIso = toDateInputValue(b.tanggalPo);
+    const foto = b.fotoBon ?? '';
+    const bonKey = `${tanggalIso}\0${foto}`;
+    let bon = supplier.bons.find(
+      (x) => `${x.tanggalIso}\0${x.fotoBon ?? ''}` === bonKey,
+    );
+    if (!bon) {
+      bon = {
+        tanggalPo: b.tanggalPo,
+        tanggalIso,
+        fotoBon: b.fotoBon,
+        items: [],
+        subtotal: 0,
+      };
+      supplier.bons.push(bon);
+    }
+
+    bon.items.push({
+      id: b.id,
+      keterangan: b.keterangan,
+      nominal: b.nominal,
+    });
+    bon.subtotal += b.nominal;
+    supplier.total += b.nominal;
+  }
+
+  return Array.from(supplierMap.values());
+};
+
+const kasbonTanggalPoSummary = (baris: NonNullable<SpkPembayaranData['kasbonBaris']>) => {
+  const isoDays = [...new Set(baris.map((b) => toDateInputValue(b.tanggalPo)))].filter(Boolean).sort();
+  if (isoDays.length === 0) return { label: '—', title: undefined as string | undefined };
+  if (isoDays.length === 1) {
+    return { label: formatDate(isoDays[0]!), title: undefined };
+  }
+  const title = isoDays.map((d) => formatDate(d)).join(', ');
+  return {
+    label: `${formatDate(isoDays[0]!)} – ${formatDate(isoDays[isoDays.length - 1]!)}`,
+    title,
+  };
+};
+
+const KasbonBatchDetailView = ({
+  baris,
+}: {
+  baris: NonNullable<SpkPembayaranData['kasbonBaris']>;
+}) => {
+  const groups = useMemo(() => groupKasbonBarisForDisplay(baris), [baris]);
+  const totalBons = groups.reduce((sum, g) => sum + g.bons.length, 0);
+
+  return (
+    <div className="space-y-2 min-w-[220px]">
+      <p className="text-[9px] font-medium text-slate-500">
+        {groups.length} supplier · {totalBons} bon · {baris.length} item
+      </p>
+      {groups.map((supplier) => (
+        <div
+          key={supplier.namaSupplier}
+          className="rounded-lg border border-orange-100 bg-white overflow-hidden shadow-sm"
+        >
+          <div className="flex items-start justify-between gap-2 px-2.5 py-1.5 bg-orange-50 border-b border-orange-100">
+            <span className="text-[11px] font-bold text-slate-900 leading-snug">
+              {kasbonSupplierDisplayName(supplier.namaSupplier)}
+            </span>
+            <span className="text-[10px] font-bold text-orange-800 tabular-nums shrink-0">
+              {formatRupiah(supplier.total)}
+            </span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {supplier.bons.map((bon) => (
+              <div
+                key={`${supplier.namaSupplier}-${bon.tanggalIso}-${bon.fotoBon ?? 'no-foto'}`}
+                className="px-2.5 py-2"
+              >
+                <div className="flex gap-2.5 items-start">
+                  {bon.fotoBon ? (
+                    <a
+                      href={bon.fotoBon}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Lihat foto bon"
+                      className="shrink-0"
+                    >
+                      <img
+                        src={bon.fotoBon}
+                        alt=""
+                        className="h-11 w-11 rounded-md object-cover border border-slate-200 hover:ring-2 hover:ring-orange-200 transition-shadow"
+                      />
+                    </a>
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-semibold text-slate-500 mb-1">
+                      {bon.items.length > 1 ? (
+                        <span className="text-slate-400 font-medium">
+                           {bon.items.length} item
+                        </span>
+                      ) : null}
+                    </p>
+                    <ul className="space-y-1">
+                      {bon.items.map((item) => (
+                        <li
+                          key={item.id}
+                          className="flex justify-between gap-2 text-[10px] leading-snug"
+                        >
+                          <span className="text-slate-800 font-medium">{item.keterangan}</span>
+                          <span className="font-bold text-orange-800 tabular-nums shrink-0">
+                            {formatRupiah(item.nominal)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {bon.items.length > 1 && (
+                      <p className="text-[9px] text-slate-500 mt-1 text-right tabular-nums">
+                        Subtotal bon {formatRupiah(bon.subtotal)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const thClass =
@@ -222,6 +477,37 @@ const KalkulasiSingkat = ({
   );
 };
 
+const materialBonHasFilledItems = (bon: MaterialBonForm) =>
+  bon.items.some((i) => i.keterangan.trim() !== '' || i.nominal !== '');
+
+const applyKasbonBonOcr = (
+  supplier: MaterialSupplierForm,
+  bonKey: string,
+  extracted: Awaited<ReturnType<typeof ocrService.extractKasbonBon>>,
+): MaterialSupplierForm => ({
+  ...supplier,
+  namaSupplier:
+    extracted.namaSupplier?.trim() ||
+    supplier.namaSupplier.trim() ||
+    KASBON_NAMA_SUPPLIER_DEFAULT,
+  bons: supplier.bons.map((bon) => {
+    if (bon.key !== bonKey) return bon;
+    const items =
+      extracted.items.length > 0
+        ? extracted.items.map((row) => ({
+            key: `${Date.now()}-${Math.random()}`,
+            keterangan: row.keterangan,
+            nominal: row.nominal,
+          }))
+        : bon.items;
+    return {
+      ...bon,
+      tanggal: extracted.tanggal ?? bon.tanggal,
+      items,
+    };
+  }),
+});
+
 const MaterialSuppliersEditor = ({
   suppliers,
   setSuppliers,
@@ -230,7 +516,89 @@ const MaterialSuppliersEditor = ({
   suppliers: MaterialSupplierForm[];
   setSuppliers: React.Dispatch<React.SetStateAction<MaterialSupplierForm[]>>;
   idPrefix: string;
-}) => (
+}) => {
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [ocrLoadingKey, setOcrLoadingKey] = useState<string | null>(null);
+
+  const openBonPhotoPicker = (supplierKey: string, bonKey: string, replace: boolean) => {
+    const supplier = suppliers.find((s) => s.key === supplierKey);
+    const bon = supplier?.bons.find((b) => b.key === bonKey);
+    if (!bon) return;
+    if (
+      replace &&
+      (bonHasFoto(bon) || materialBonHasFilledItems(bon)) &&
+      !window.confirm(
+        'Foto dan isian bon ini akan diganti. Bon lain pada supplier yang sama tidak berubah.\n\nLanjutkan?',
+      )
+    ) {
+      return;
+    }
+    fileInputRefs.current[bonKey]?.click();
+  };
+
+  const attachFotoBon = (supplierKey: string, bonKey: string, file: File) => {
+    setSuppliers((prev) =>
+      prev.map((s) => {
+        if (s.key !== supplierKey) return s;
+        return {
+          ...s,
+          bons: s.bons.map((b) => {
+            if (b.key !== bonKey) return b;
+            revokeBonPreview(b);
+            return {
+              ...b,
+              fotoBonFile: file,
+              fotoBonUrl: null,
+              fotoBonPreview: URL.createObjectURL(file),
+            };
+          }),
+        };
+      }),
+    );
+  };
+
+  const handleBonPhoto = async (supplierKey: string, bonKey: string, file: File) => {
+    attachFotoBon(supplierKey, bonKey, file);
+    setOcrLoadingKey(bonKey);
+    try {
+      const extracted = await ocrService.extractKasbonBon(file);
+      if (!extracted.tanggal && extracted.items.length === 0) {
+        alert(
+          'Bon tidak terbaca dengan jelas. Pastikan foto fokus, tidak blur, dan semua baris terlihat.',
+        );
+        return;
+      }
+      setSuppliers((prev) =>
+        prev.map((s) =>
+          s.key === supplierKey ? applyKasbonBonOcr(s, bonKey, extracted) : s,
+        ),
+      );
+    } catch (err) {
+      alert(handleApiError(err).message);
+    } finally {
+      setOcrLoadingKey(null);
+      const input = fileInputRefs.current[bonKey];
+      if (input) input.value = '';
+    }
+  };
+
+  const removeSupplier = (supplier: MaterialSupplierForm) => {
+    supplier.bons.forEach(revokeBonPreview);
+    setSuppliers((prev) => prev.filter((s) => s.key !== supplier.key));
+  };
+
+  const removeBon = (supplierKey: string, bon: MaterialBonForm) => {
+    revokeBonPreview(bon);
+    setSuppliers((prev) =>
+      prev.map((s) => {
+        if (s.key !== supplierKey) return s;
+        const nextBons = s.bons.filter((b) => b.key !== bon.key);
+        return { ...s, bons: nextBons.length ? nextBons : [newMaterialBon()] };
+      }),
+    );
+  };
+
+  return (
   <div className="space-y-4">
     {suppliers.map((supplier, supplierIndex) => (
       <div
@@ -244,150 +612,299 @@ const MaterialSuppliersEditor = ({
           <button
             type="button"
             disabled={suppliers.length <= 1}
-            onClick={() =>
-              setSuppliers((prev) => prev.filter((s) => s.key !== supplier.key))
-            }
-            className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
+            onClick={() => removeSupplier(supplier)}
+            className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-30 shrink-0"
             title="Hapus supplier"
           >
             <Trash2 size={14} />
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-[10px] font-bold text-slate-500 uppercase">Nama supplier</label>
-            <input
-              type="text"
-              value={supplier.namaSupplier}
-              onChange={(e) =>
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 uppercase">Nama supplier</label>
+          <input
+            type="text"
+            value={supplier.namaSupplier}
+            onChange={(e) =>
+              setSuppliers((prev) =>
+                prev.map((s) =>
+                  s.key === supplier.key ? { ...s, namaSupplier: e.target.value } : s,
+                ),
+              )
+            }
+            className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-black"
+            placeholder="Nama toko / supplier (kosong = -)"
+          />
+        </div>
+
+        {supplier.bons.map((bon, bonIndex) => (
+          <div
+            key={bon.key}
+            className="rounded-lg border border-orange-200/80 bg-white p-3 space-y-3"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[10px] font-bold text-orange-700 uppercase">Bon {bonIndex + 1}</p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <input
+                  ref={(el) => {
+                    fileInputRefs.current[bon.key] = el;
+                  }}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  id={`${idPrefix}-bon-ocr-${bon.key}`}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void handleBonPhoto(supplier.key, bon.key, file);
+                  }}
+                />
+                {!bonHasFoto(bon) ? (
+                  <button
+                    type="button"
+                    disabled={ocrLoadingKey === bon.key}
+                    onClick={() => openBonPhotoPicker(supplier.key, bon.key, false)}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-orange-300 bg-orange-50 text-[10px] font-bold text-orange-800 hover:bg-orange-100 disabled:opacity-50"
+                    title="Ambil foto bon — isi otomatis via OCR"
+                  >
+                    {ocrLoadingKey === bon.key ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Camera size={14} />
+                    )}
+                    Foto bon
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={ocrLoadingKey === bon.key}
+                    onClick={() => openBonPhotoPicker(supplier.key, bon.key, true)}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-300 bg-white text-[10px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    title="Ganti foto bon ini"
+                  >
+                    {ocrLoadingKey === bon.key ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Camera size={14} />
+                    )}
+                    Ganti bon
+                  </button>
+                )}
+                {supplier.bons.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeBon(supplier.key, bon)}
+                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    title="Hapus bon"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {(bon.fotoBonPreview || bon.fotoBonUrl) && (
+              <div className="flex items-center gap-3 p-2 rounded-lg border border-green-200 bg-green-50/50">
+                <a
+                  href={bon.fotoBonPreview ?? bon.fotoBonUrl!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0"
+                >
+                  <img
+                    src={bon.fotoBonPreview ?? bon.fotoBonUrl!}
+                    alt={`Preview bon ${bonIndex + 1}`}
+                    className="h-20 w-20 rounded-lg object-cover border border-slate-200"
+                  />
+                </a>
+                <p className="text-[10px] font-semibold text-green-800 leading-snug">
+                  Preview foto bon {bonIndex + 1}
+                  <span className="block font-normal text-green-700">
+                    Klik gambar untuk perbesar
+                  </span>
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-4">
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal</label>
+              <input
+                type="date"
+                value={bon.tanggal}
+                onChange={(e) =>
+                  setSuppliers((prev) =>
+                    prev.map((s) =>
+                      s.key !== supplier.key
+                        ? s
+                        : {
+                            ...s,
+                            bons: s.bons.map((b) =>
+                              b.key === bon.key ? { ...b, tanggal: e.target.value } : b,
+                            ),
+                          },
+                    ),
+                  )
+                }
+                className="mt-1 w-full max-w-xs px-3 py-2 border border-slate-200 rounded-lg text-sm text-black"
+              />
+            </div>
+
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-xs border-collapse min-w-[480px]">
+                <thead>
+                  <tr>
+                    <th className={thClass}>Keterangan</th>
+                    <th className={thClass}>Nominal</th>
+                    <th className={`${thClass} w-10`} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {bon.items.map((item) => (
+                    <tr key={item.key}>
+                      <td className={tdClass}>
+                        <input
+                          type="text"
+                          value={item.keterangan}
+                          onChange={(e) =>
+                            setSuppliers((prev) =>
+                              prev.map((s) =>
+                                s.key !== supplier.key
+                                  ? s
+                                  : {
+                                      ...s,
+                                      bons: s.bons.map((b) =>
+                                        b.key !== bon.key
+                                          ? b
+                                          : {
+                                              ...b,
+                                              items: b.items.map((i) =>
+                                                i.key === item.key
+                                                  ? { ...i, keterangan: e.target.value }
+                                                  : i,
+                                              ),
+                                            },
+                                      ),
+                                    },
+                              ),
+                            )
+                          }
+                          className="w-full min-w-[160px] px-2 py-1.5 border border-slate-200 rounded text-xs text-black"
+                          placeholder="Contoh: Semen 50 sak"
+                        />
+                      </td>
+                      <td className={tdClass}>
+                        <CurrencyInput
+                          compact
+                          name={`${idPrefix}-nominal-${item.key}`}
+                          value={item.nominal === '' ? 0 : item.nominal}
+                          onValueChange={(_, value) =>
+                            setSuppliers((prev) =>
+                              prev.map((s) =>
+                                s.key !== supplier.key
+                                  ? s
+                                  : {
+                                      ...s,
+                                      bons: s.bons.map((b) =>
+                                        b.key !== bon.key
+                                          ? b
+                                          : {
+                                              ...b,
+                                              items: b.items.map((i) =>
+                                                i.key === item.key
+                                                  ? { ...i, nominal: value > 0 ? value : '' }
+                                                  : i,
+                                              ),
+                                            },
+                                      ),
+                                    },
+                              ),
+                            )
+                          }
+                          placeholder="0"
+                        />
+                      </td>
+                      <td className={tdClass}>
+                        <button
+                          type="button"
+                          disabled={bon.items.length <= 1}
+                          onClick={() =>
+                            setSuppliers((prev) =>
+                              prev.map((s) =>
+                                s.key !== supplier.key
+                                  ? s
+                                  : {
+                                      ...s,
+                                      bons: s.bons.map((b) =>
+                                        b.key !== bon.key
+                                          ? b
+                                          : {
+                                              ...b,
+                                              items: b.items.filter((i) => i.key !== item.key),
+                                            },
+                                      ),
+                                    },
+                              ),
+                            )
+                          }
+                          className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
+                          title="Hapus item"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
                 setSuppliers((prev) =>
                   prev.map((s) =>
-                    s.key === supplier.key ? { ...s, namaSupplier: e.target.value } : s,
+                    s.key === supplier.key
+                      ? {
+                          ...s,
+                          bons: s.bons.map((b) =>
+                            b.key === bon.key
+                              ? { ...b, items: [...b.items, newMaterialItem()] }
+                              : b,
+                          ),
+                        }
+                      : s,
                   ),
                 )
               }
-              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-black"
-              placeholder="Nama toko / supplier"
-            />
+              className="text-xs font-bold text-orange-700 hover:underline"
+            >
+              + Tambah item
+            </button>
+            <p className="text-[10px] font-semibold text-orange-800">
+              Subtotal bon ini: {formatRupiah(bonMaterialTotal(bon))}
+            </p>
           </div>
-          <div>
-            <label className="text-[10px] font-bold text-slate-500 uppercase">Tanggal</label>
-            <input
-              type="date"
-              value={supplier.tanggal}
-              onChange={(e) =>
-                setSuppliers((prev) =>
-                  prev.map((s) =>
-                    s.key === supplier.key ? { ...s, tanggal: e.target.value } : s,
-                  ),
-                )
-              }
-              className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-black"
-            />
-          </div>
-        </div>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-xs border-collapse min-w-[480px]">
-            <thead>
-              <tr>
-                <th className={thClass}>Keterangan</th>
-                <th className={thClass}>Nominal</th>
-                <th className={`${thClass} w-10`} />
-              </tr>
-            </thead>
-            <tbody>
-              {supplier.items.map((item) => (
-                <tr key={item.key}>
-                  <td className={tdClass}>
-                    <input
-                      type="text"
-                      value={item.keterangan}
-                      onChange={(e) =>
-                        setSuppliers((prev) =>
-                          prev.map((s) =>
-                            s.key !== supplier.key
-                              ? s
-                              : {
-                                  ...s,
-                                  items: s.items.map((i) =>
-                                    i.key === item.key
-                                      ? { ...i, keterangan: e.target.value }
-                                      : i,
-                                  ),
-                                },
-                          ),
-                        )
-                      }
-                      className="w-full min-w-[160px] px-2 py-1.5 border border-slate-200 rounded text-xs text-black"
-                      placeholder="Contoh: Semen 50 sak"
-                    />
-                  </td>
-                  <td className={tdClass}>
-                    <CurrencyInput
-                      compact
-                      name={`${idPrefix}-nominal-${item.key}`}
-                      value={item.nominal === '' ? 0 : item.nominal}
-                      onValueChange={(_, value) =>
-                        setSuppliers((prev) =>
-                          prev.map((s) =>
-                            s.key !== supplier.key
-                              ? s
-                              : {
-                                  ...s,
-                                  items: s.items.map((i) =>
-                                    i.key === item.key
-                                      ? { ...i, nominal: value > 0 ? value : '' }
-                                      : i,
-                                  ),
-                                },
-                          ),
-                        )
-                      }
-                      placeholder="0"
-                    />
-                  </td>
-                  <td className={tdClass}>
-                    <button
-                      type="button"
-                      disabled={supplier.items.length <= 1}
-                      onClick={() =>
-                        setSuppliers((prev) =>
-                          prev.map((s) =>
-                            s.key !== supplier.key
-                              ? s
-                              : {
-                                  ...s,
-                                  items: s.items.filter((i) => i.key !== item.key),
-                                },
-                          ),
-                        )
-                      }
-                      className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
-                      title="Hapus item"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        ))}
+
         <button
           type="button"
           onClick={() =>
             setSuppliers((prev) =>
               prev.map((s) =>
-                s.key === supplier.key
-                  ? { ...s, items: [...s.items, newMaterialItem()] }
-                  : s,
+                s.key === supplier.key ? { ...s, bons: [...s.bons, newMaterialBon()] } : s,
               ),
             )
           }
-          className="text-xs font-bold text-orange-700 hover:underline"
+          className="inline-flex items-center gap-1 text-xs font-bold text-orange-700 hover:underline"
         >
-          + Tambah item
+          <Plus size={14} />
+          Tambah bon
         </button>
+
+        {supplierMissingFotoBon(supplier) !== null && (
+          <p className="text-[10px] text-amber-700 font-medium">
+            Bon {supplierMissingFotoBon(supplier)} wajib dilampirkan foto.
+          </p>
+        )}
+
         <p className="text-xs font-semibold text-orange-900">
           Total belanja supplier ini: {formatRupiah(supplierMaterialTotal(supplier))}
         </p>
@@ -404,7 +921,8 @@ const MaterialSuppliersEditor = ({
       Total semua belanja material: {formatRupiah(allMaterialTotal(suppliers))}
     </p>
   </div>
-);
+  );
+};
 
 const UpahTukangEditor = ({
   upahTanggalDari,
@@ -596,9 +1114,17 @@ const PengurangPlafonBanner = ({
 interface SpkPembayaranPanelProps {
   spk: SpkData;
   canAjukan: boolean;
+  /** Hanya tampilkan modal ajukan kasbon (shortcut dari tabel SPK). */
+  kasbonOnly?: boolean;
+  onKasbonModalClose?: () => void;
 }
 
-const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
+const SpkPembayaranPanel = ({
+  spk,
+  canAjukan,
+  kasbonOnly = false,
+  onKasbonModalClose,
+}: SpkPembayaranPanelProps) => {
   const { user } = useAuth();
   const { canUpdate: canUpdateSpk } = usePermission('SPK');
   const canEditKasbon = canUpdateSpk && user?.role !== 'MANDOR';
@@ -624,7 +1150,7 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
   const { data: pembayaranList = [], isLoading } = useGetSpkPembayaranBySpk(spk.id);
   const { data: tukangList = [] } = useGetTukangList(
     undefined,
-    kasbonModalOpen || upahEditModalOpen,
+    kasbonModalOpen || upahEditModalOpen || kasbonOnly,
   );
   const createMutation = useCreateSpkPembayaranRequest();
   const updateKasbonMutation = useUpdateSpkKasbon();
@@ -740,26 +1266,56 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     setUpahTotalNominal('');
   };
 
+  const closeKasbonCreateModal = () => {
+    setKasbonModalOpen(false);
+    if (kasbonOnly) onKasbonModalClose?.();
+  };
+
+  useEffect(() => {
+    if (!kasbonOnly) return;
+    if (!canAjukan) {
+      alert('Anda tidak dapat mengajukan kasbon untuk SPK ini.');
+      onKasbonModalClose?.();
+      return;
+    }
+    resetKasbonForm();
+    setKasbonModalOpen(true);
+  }, [kasbonOnly, canAjukan, spk.id]);
+
   const handleAjukanKasbon = async () => {
-    const materialSectionUsed = materialSuppliers.some(
-      (s) =>
-        s.namaSupplier.trim() ||
-        s.items.some((i) => i.keterangan.trim() || i.nominal !== ''),
-    );
+    const materialSectionUsed = materialSuppliers.some(supplierIsUsed);
     const upahSectionUsed =
       upahTotalPreview > 0 || upahBaris.some((r) => r.nik.trim() || r.nama.trim());
 
-    const materialBaris = materialSectionUsed
+    if (materialSectionUsed) {
+      const usedSuppliers = materialSuppliers.filter(supplierIsUsed);
+      for (const s of usedSuppliers) {
+        const bonNo = supplierMissingFotoBon(s);
+        if (bonNo !== null) {
+          alert(
+            `Supplier "${s.namaSupplier.trim() || 'tanpa nama'}" — Bon ${bonNo} wajib dilampirkan foto bon.`,
+          );
+          return;
+        }
+      }
+    }
+
+    const materialBarisPreview = materialSectionUsed
       ? flattenMaterialSuppliers(materialSuppliers)
       : null;
     const upahBarisBody = upahSectionUsed ? parseUpahBarisBody(upahBaris) : null;
     const upahTotal = upahTotalPreview;
 
+    if (!pengurangCheck.allowed) {
+      alert(pengurangCheck.reason ?? 'Tidak dapat mengajukan kasbon.');
+      return;
+    }
+
     if (!materialSectionUsed && !upahSectionUsed) {
       alert('Isi minimal bagian material atau upah tukang.');
       return;
     }
-    if (materialSectionUsed && !materialBaris) {
+    if (materialSectionUsed && !materialBarisPreview) {
       alert(
         'Setiap supplier wajib memiliki nama, tanggal, dan minimal satu item dengan keterangan serta nominal.',
       );
@@ -795,7 +1351,8 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     const targetLabel = pengurangCheck.targetTermin
       ? SPK_KASBON_TARGET_LABEL[pengurangCheck.targetTermin]
       : '';
-    const materialTotal = materialBaris?.reduce((sum, b) => sum + b.nominal, 0) ?? 0;
+    const materialTotal =
+      materialBarisPreview?.reduce((sum, b) => sum + b.nominal, 0) ?? 0;
     const grandTotal = materialTotal + (upahSectionUsed ? upahTotal : 0);
 
     if (grandTotal <= 0) {
@@ -817,8 +1374,10 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     }
 
     const parts: string[] = [];
-    if (materialSectionUsed && materialBaris) {
-      parts.push(`Material ${formatRupiah(materialTotal)} (${materialBaris.length} item)`);
+    if (materialSectionUsed && materialBarisPreview) {
+      parts.push(
+        `Material ${formatRupiah(materialTotal)} (${materialBarisPreview.length} item)`,
+      );
     }
     if (upahSectionUsed && upahBarisBody) {
       parts.push(
@@ -835,7 +1394,15 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     }
 
     try {
-      if (materialSectionUsed && materialBaris) {
+      if (materialSectionUsed) {
+        const uploadedSuppliers = await uploadMaterialSupplierFotos(materialSuppliers);
+        const materialBaris = flattenMaterialSuppliers(uploadedSuppliers);
+        if (!materialBaris) {
+          alert(
+            'Setiap supplier wajib memiliki nama, tanggal, dan minimal satu item dengan keterangan serta nominal.',
+          );
+          return;
+        }
         await createMutation.mutateAsync({
           spkId: spk.id,
           body: { jenis: 'KASBON', kasbonBaris: materialBaris },
@@ -853,7 +1420,7 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
           },
         });
       }
-      setKasbonModalOpen(false);
+      closeKasbonCreateModal();
       resetKasbonForm();
       alert('Pengajuan kasbon berhasil dikirim ke finance.');
     } catch (err: unknown) {
@@ -876,6 +1443,122 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
       ),
     );
   };
+
+  const kasbonCreateModalBody = (
+    <div className="space-y-5">
+      {!pengurangCheck.allowed && pengurangCheck.reason && (
+        <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {pengurangCheck.reason}
+        </p>
+      )}
+      {pengurangCheck.targetTermin && (
+        <>
+          <p className="text-xs text-orange-800 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
+            Total pengajuan (material + upah) akan mengurangi nominal{' '}
+            <strong>{SPK_KASBON_TARGET_LABEL[pengurangCheck.targetTermin]}</strong> (FIFO).
+          </p>
+          <PengurangPlafonBanner
+            nilaiKontrak={spk.nilaiKontrak}
+            rows={pengurangRows}
+            termin={pengurangCheck.targetTermin}
+            additionalNominal={combinedSubmitTotal}
+          />
+        </>
+      )}
+
+      <p className="text-[11px] text-slate-500">
+        Isi bagian <strong>material</strong> dan/atau <strong>upah tukang</strong> sesuai kebutuhan (minimal salah satu).
+      </p>
+
+      <CollapsibleDetailSection
+        title="Material"
+        subtitle="Kosongkan/tutup jika tidak ada belanja material"
+        className="border-orange-200"
+        badge={
+          materialTotalPreview > 0 ? (
+            <span className="text-[10px] font-bold text-orange-800 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full tabular-nums">
+              {formatRupiah(materialTotalPreview)}
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium text-slate-400">Belum diisi</span>
+          )
+        }
+      >
+        <MaterialSuppliersEditor
+          suppliers={materialSuppliers}
+          setSuppliers={setMaterialSuppliers}
+          idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
+        />
+      </CollapsibleDetailSection>
+
+      <CollapsibleDetailSection
+        title="Upah Tukang"
+        subtitle="Kosongkan/tutup jika tidak ada pembayaran upah"
+        className="border-teal-200"
+        badge={
+          upahTotalPreview > 0 ? (
+            <span className="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-full tabular-nums">
+              {formatRupiah(upahTotalPreview)}
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium text-slate-400">Belum diisi</span>
+          )
+        }
+      >
+        <UpahTukangEditor
+          upahTanggalDari={upahTanggalDari}
+          setUpahTanggalDari={setUpahTanggalDari}
+          upahTanggalSampai={upahTanggalSampai}
+          setUpahTanggalSampai={setUpahTanggalSampai}
+          upahBaris={upahBaris}
+          setUpahBaris={setUpahBaris}
+          upahTotalNominal={upahTotalNominal}
+          setUpahTotalNominal={setUpahTotalNominal}
+          tukangList={tukangList}
+          onSelectTukang={handleSelectTukang}
+          idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
+        />
+      </CollapsibleDetailSection>
+
+      <p className="text-sm font-bold text-slate-800 border-t border-slate-200 pt-3">
+        Total diajukan: {formatRupiah(combinedSubmitTotal)}
+        {materialTotalPreview > 0 && upahTotalPreview > 0 && (
+          <span className="block text-xs font-medium text-slate-500 mt-0.5">
+            Material {formatRupiah(materialTotalPreview)} + Upah {formatRupiah(upahTotalPreview)}
+          </span>
+        )}
+      </p>
+
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={closeKasbonCreateModal}
+          className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+        >
+          Batal
+        </button>
+        <button
+          type="button"
+          disabled={
+            createMutation.isPending ||
+            kasbonCreateOverPlafon ||
+            !pengurangCheck.allowed
+          }
+          onClick={handleAjukanKasbon}
+          title={
+            kasbonCreateOverPlafon
+              ? 'Total kasbon melebihi sisa plafon termin'
+              : !pengurangCheck.allowed
+                ? pengurangCheck.reason
+                : undefined
+          }
+          className="px-4 py-2 text-sm font-bold bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+        >
+          Ajukan ke Finance
+        </button>
+      </div>
+    </div>
+  );
 
   const rowHasBukti = (row: SpkPembayaranData) =>
     !!row.buktiPembayaran || (row.buktiPembayaranList?.length ?? 0) > 0;
@@ -1002,14 +1685,24 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     if (!editingKasbon) return;
 
     if (editingKasbonIsBatch) {
-      const baris = flattenMaterialSuppliers(materialSuppliers);
-      if (!baris) {
+      const usedSuppliers = materialSuppliers.filter(supplierIsUsed);
+      for (const s of usedSuppliers) {
+        const bonNo = supplierMissingFotoBon(s);
+        if (bonNo !== null) {
+          alert(
+            `Supplier "${s.namaSupplier.trim() || 'tanpa nama'}" — Bon ${bonNo} wajib dilampirkan foto bon.`,
+          );
+          return;
+        }
+      }
+      const barisPreview = flattenMaterialSuppliers(materialSuppliers);
+      if (!barisPreview) {
         alert(
           'Setiap supplier wajib memiliki nama, tanggal, dan minimal satu item dengan keterangan serta nominal.',
         );
         return;
       }
-      const total = baris.reduce((sum, b) => sum + b.nominal, 0);
+      const total = barisPreview.reduce((sum, b) => sum + b.nominal, 0);
       if (editingKasbon.mengurangiTermin) {
         const plafon = validatePengurangTerminNominal(
           spk.nilaiKontrak,
@@ -1025,12 +1718,20 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
       }
       if (
         !window.confirm(
-          `Simpan perubahan kasbon?\nTotal: ${formatRupiah(total)} (${baris.length} item)`,
+          `Simpan perubahan kasbon?\nTotal: ${formatRupiah(total)} (${barisPreview.length} item)`,
         )
       ) {
         return;
       }
       try {
+        const uploadedSuppliers = await uploadMaterialSupplierFotos(materialSuppliers);
+        const baris = flattenMaterialSuppliers(uploadedSuppliers);
+        if (!baris) {
+          alert(
+            'Setiap supplier wajib memiliki nama, tanggal, dan minimal satu item dengan keterangan serta nominal.',
+          );
+          return;
+        }
         await updateKasbonMutation.mutateAsync({
           id: editingKasbon.id,
           body: { kasbonBaris: baris },
@@ -1160,6 +1861,26 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
     </span>
   );
 
+  if (kasbonOnly) {
+    return (
+      <Modal
+        isOpen={kasbonModalOpen}
+        onClose={closeKasbonCreateModal}
+        title={`Ajukan Kasbon — ${spk.noSpk}`}
+        size="lg"
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
+            <Loader2 size={18} className="animate-spin" />
+            Memuat data pembayaran...
+          </div>
+        ) : (
+          kasbonCreateModalBody
+        )}
+      </Modal>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 py-2 text-xs text-slate-500">
@@ -1242,15 +1963,20 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
       </div>
 
       {kasbonItems.length > 0 && (
-        <>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">
-            Kasbon ({kasbonItems.length})
-          </p>
-          <div className="overflow-x-auto rounded-lg border border-orange-200">
-            <table className="w-full text-xs border-collapse min-w-[720px]">
+        <div className="rounded-xl border border-orange-200 overflow-hidden bg-orange-50/15">
+          <div className="px-3 py-2 bg-orange-50 border-b border-orange-100 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold text-orange-900 uppercase tracking-wide">
+              Kasbon ({kasbonItems.length})
+            </p>
+            <p className="text-[10px] text-orange-700/80 font-medium">
+              Dikelompokkan per supplier &amp; bon
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse min-w-[680px]">
               <thead>
                 <tr>
-                  <th className={thClass}>Keterangan</th>
+                  <th className={thClass}>Rincian belanja</th>
                   <th className={thClass}>Tanggal PO</th>
                   <th className={thClass}>Mengurangi</th>
                   <th className={thClass}>Nominal</th>
@@ -1267,43 +1993,32 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
                   const batch = isBatchKasbon(row);
                   const buktiCount =
                     (row.buktiPembayaranList?.length ?? 0) || (row.buktiPembayaran ? 1 : 0);
+                  const tanggalSummary = batch
+                    ? kasbonTanggalPoSummary(row.kasbonBaris!)
+                    : {
+                        label: formatDate(row.tanggalPo ?? row.createdAt),
+                        title: undefined as string | undefined,
+                      };
                   return (
                     <tr key={row.id} className={JENIS_UI_COLOR.KASBON.row}>
-                      <td className={`${tdClass} max-w-[280px]`}>
-                        {batch ? (
-                          <ul className="space-y-0.5">
-                            {(row.kasbonBaris ?? []).map((b) => (
-                              <li key={b.id} className="text-[10px] leading-tight">
-                                {b.namaSupplier ? (
-                                  <span className="font-semibold text-slate-800">
-                                    {b.namaSupplier}
-                                    {' · '}
-                                  </span>
-                                ) : null}
-                                <span className="font-medium text-slate-800">{b.keterangan}</span>
-                                <span className="text-slate-500">
-                                  {' '}
-                                  · {formatDate(b.tanggalPo)} ·{' '}
-                                </span>
-                                <span className="font-bold text-orange-800">
-                                  {formatRupiah(b.nominal)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
+                      <td className={`${tdClass} align-top`}>
+                        {batch && row.kasbonBaris?.length ? (
+                          <KasbonBatchDetailView baris={row.kasbonBaris} />
                         ) : (
                           <span className="font-medium text-slate-800">{row.keterangan}</span>
                         )}
                         {buktiCount > 0 && paid && batch && (
-                          <p className="text-[9px] text-slate-500 mt-1">
-                            {buktiCount} bukti transfer (gabungan)
+                          <p className="text-[9px] text-slate-500 mt-2 pt-2 border-t border-slate-100">
+                            {buktiCount} bukti transfer 
                           </p>
                         )}
                       </td>
-                      <td className={`${tdClass} whitespace-nowrap text-slate-600`}>
-                        {batch
-                          ? `${row.kasbonBaris!.length} item`
-                          : formatDate(row.tanggalPo ?? row.createdAt)}
+                      <td
+                        className={`${tdClass} whitespace-nowrap text-slate-600`}
+                        title={tanggalSummary.title}
+                      >
+                        {tanggalSummary.label}
+                        
                       </td>
                       <td className={tdClass}>
                         {row.mengurangiTermin
@@ -1370,15 +2085,17 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       )}
 
       {upahItems.length > 0 && (
-        <>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1 mt-3">
-            Upah Tukang ({upahItems.length})
-          </p>
-          <div className="overflow-x-auto rounded-lg border border-teal-200">
+        <div className="rounded-xl border border-teal-200 overflow-hidden bg-teal-50/15 mt-3">
+          <div className="px-3 py-2 bg-teal-50 border-b border-teal-100">
+            <p className="text-[11px] font-bold text-teal-900 uppercase tracking-wide">
+              Upah Tukang ({upahItems.length})
+            </p>
+          </div>
+          <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse min-w-[860px]">
               <thead>
                 <tr>
@@ -1415,7 +2132,7 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
                         </ul>
                         {buktiCount > 0 && paid && (
                           <p className="text-[9px] text-slate-500 mt-1">
-                            {buktiCount} bukti transfer (gabungan)
+                            {buktiCount} bukti transfer 
                           </p>
                         )}
                       </td>
@@ -1484,7 +2201,7 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       )}
 
       {pengurangCheck.targetTermin && canAjukan && (
@@ -1508,88 +2225,11 @@ const SpkPembayaranPanel = ({ spk, canAjukan }: SpkPembayaranPanelProps) => {
 
       <Modal
         isOpen={kasbonModalOpen}
-        onClose={() => setKasbonModalOpen(false)}
+        onClose={closeKasbonCreateModal}
         title="Ajukan Kasbon"
         size="lg"
       >
-        <div className="space-y-5">
-          {pengurangCheck.targetTermin && (
-            <>
-              <p className="text-xs text-orange-800 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
-                Total pengajuan (material + upah) akan mengurangi nominal{' '}
-                <strong>{SPK_KASBON_TARGET_LABEL[pengurangCheck.targetTermin]}</strong> (FIFO).
-              </p>
-              <PengurangPlafonBanner
-                nilaiKontrak={spk.nilaiKontrak}
-                rows={pengurangRows}
-                termin={pengurangCheck.targetTermin}
-                additionalNominal={combinedSubmitTotal}
-              />
-            </>
-          )}
-
-          <section>
-            <h4 className="text-xs font-bold text-orange-800 uppercase tracking-wide mb-2">
-              Material
-            </h4>
-            <MaterialSuppliersEditor
-              suppliers={materialSuppliers}
-              setSuppliers={setMaterialSuppliers}
-              idPrefix="kasbon-create"
-            />
-          </section>
-
-          <section className="pt-2 border-t border-slate-200">
-            <h4 className="text-xs font-bold text-teal-800 uppercase tracking-wide mb-2">
-              Upah Tukang
-            </h4>
-            <UpahTukangEditor
-              upahTanggalDari={upahTanggalDari}
-              setUpahTanggalDari={setUpahTanggalDari}
-              upahTanggalSampai={upahTanggalSampai}
-              setUpahTanggalSampai={setUpahTanggalSampai}
-              upahBaris={upahBaris}
-              setUpahBaris={setUpahBaris}
-              upahTotalNominal={upahTotalNominal}
-              setUpahTotalNominal={setUpahTotalNominal}
-              tukangList={tukangList}
-              onSelectTukang={handleSelectTukang}
-              idPrefix="kasbon-create"
-            />
-          </section>
-
-          <p className="text-sm font-bold text-slate-800 border-t border-slate-200 pt-3">
-            Total diajukan: {formatRupiah(combinedSubmitTotal)}
-            {materialTotalPreview > 0 && upahTotalPreview > 0 && (
-              <span className="block text-xs font-medium text-slate-500 mt-0.5">
-                Material {formatRupiah(materialTotalPreview)} + Upah {formatRupiah(upahTotalPreview)}
-              </span>
-            )}
-          </p>
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setKasbonModalOpen(false)}
-              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              disabled={createMutation.isPending || kasbonCreateOverPlafon}
-              onClick={handleAjukanKasbon}
-              title={
-                kasbonCreateOverPlafon
-                  ? 'Total kasbon melebihi sisa plafon termin'
-                  : undefined
-              }
-              className="px-4 py-2 text-sm font-bold bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
-            >
-              Ajukan ke Finance
-            </button>
-          </div>
-        </div>
+        {kasbonCreateModalBody}
       </Modal>
 
       <Modal

@@ -10,6 +10,10 @@ interface Column {
   nowrap?: boolean;
   /** Tailwind min-width class, e.g. `min-w-[260px]` */
   minWidth?: string;
+  /** Extra classes on header and body cells for this column. */
+  className?: string;
+  /** Default true — set false to allow multi-line column headers. */
+  headerNowrap?: boolean;
 }
 
 interface DataTableProps {
@@ -34,14 +38,19 @@ interface DataTableProps {
   /** Custom client-side search; when set, replaces default column accessor matching. */
   filterRow?: (row: any, searchTerm: string) => boolean;
   searchPlaceholder?: string;
+  /** Tighter cell padding for wide tables. */
+  dense?: boolean;
 }
 
 const DataTable = ({
   title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
   serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange,
   toolbarPrefix, pageSize = 10, pageSizeOptions = [10, 25, 50, 100], onPageSizeChange,
-  filterRow, searchPlaceholder = 'Cari data...',
+  filterRow, searchPlaceholder = 'Cari data...', dense = false,
 }: DataTableProps) => {
+
+  const cellPad = dense ? 'px-3 py-2.5' : 'px-6 py-4';
+  const headPad = dense ? 'px-3 py-3' : 'px-6 py-3.5';
 
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -138,20 +147,20 @@ const DataTable = ({
       </div>
 
       <div className="overflow-auto custom-scrollbar max-h-[65vh]">
-        <table className="w-full text-sm text-left border-collapse">
+        <table className="w-full text-sm text-left border-collapse table-auto">
           <thead className="sticky top-0 z-20 shadow-sm ring-1 ring-slate-200">
             <tr className="bg-slate-50 text-slate-500 text-[11px] uppercase font-bold tracking-wider">
               {expandedRowRender && <th className="px-4 py-3.5 w-10 text-center bg-slate-50"></th>}
               {columns.map((col, index) => (
                 <th
                   key={index}
-                  className={`px-6 py-3.5 whitespace-nowrap bg-slate-50 ${col.minWidth ?? ''}`}
+                  className={`${headPad} bg-slate-50 align-bottom ${col.minWidth ?? ''} ${col.className ?? ''} ${col.headerNowrap === false ? 'whitespace-normal leading-snug' : 'whitespace-nowrap'}`}
                 >
                   {col.header}
                 </th>
               ))}
               {hasActions && (
-                <th className="px-6 py-3.5 text-center whitespace-nowrap w-24 bg-slate-50">Aksi</th>
+                <th className={`${headPad} text-center whitespace-nowrap w-20 bg-slate-50`}>Aksi</th>
               )}
             </tr>
           </thead>
@@ -176,13 +185,13 @@ const DataTable = ({
                       {columns.map((col, colIndex) => (
                         <td
                           key={colIndex}
-                          className={`px-6 py-4 text-slate-700 font-medium align-top ${col.minWidth ?? ''} ${col.nowrap === false ? 'whitespace-normal' : 'whitespace-nowrap'}`}
+                          className={`${cellPad} text-slate-700 font-medium align-top ${col.minWidth ?? ''} ${col.className ?? ''} ${col.nowrap === false ? 'whitespace-normal' : 'whitespace-nowrap'}`}
                         >
                           {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                         </td>
                       ))}
                       {hasActions && (
-                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <td className={cellPad} onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             {onDetail && (
                               <button

@@ -13,6 +13,7 @@ export interface SpkPembayaranKasbonBarisData {
   keterangan: string;
   tanggalPo: string;
   nominal: number;
+  fotoBon: string | null;
 }
 
 export interface SpkPembayaranUpahBarisData {
@@ -87,6 +88,7 @@ export interface SpkPembayaranKasbonBarisBody {
   keterangan: string;
   tanggalPo: string;
   nominal: number;
+  fotoBon?: string | null;
 }
 
 export type CreateSpkPembayaranBody =
@@ -131,6 +133,15 @@ export const spkPembayaranService = {
         hasPrevPage: boolean;
       };
     };
+  },
+
+  uploadFotoBon: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('foto_bon', file);
+    const response = await api.post('/spk-pembayaran/upload-foto-bon', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return (response.data.data as { fotoBon: string }).fotoBon;
   },
 
   createRequest: async (spkId: number, body: CreateSpkPembayaranBody) => {

@@ -1,5 +1,5 @@
 import type { SpkNominalInput, SpkPembayaranCalcRow, SpkPembayaranJenis } from './spkPembayaran';
-import { sumKasbonForTermin } from './spkPembayaran';
+import { sumKasbonForTermin, sumPengurangJenisForTermin } from './spkPembayaran';
 
 export interface SpkPembayaranKalkulasiBaris {
   label: string;
@@ -20,10 +20,15 @@ export function buildSpkPembayaranKalkulasi(
   switch (jenis) {
     case 'TERMIN_55': {
       const bruto = kontrak * 0.5;
+      const totalKasbon = sumPengurangJenisForTermin(pembayaranList, 'TERMIN_55', 'KASBON');
+      const totalUpah = sumPengurangJenisForTermin(pembayaranList, 'TERMIN_55', 'UPAH');
       const kasbon = sumKasbonForTermin(pembayaranList, 'TERMIN_55');
       baris.push({ label: '50%', nilai: bruto, tipe: 'positif' });
-      if (kasbon > 0) {
-        baris.push({ label: 'Total kasbon & upah (termin 55%)', nilai: kasbon, tipe: 'negatif' });
+      if (totalKasbon > 0) {
+        baris.push({ label: 'Total kasbon', nilai: totalKasbon, tipe: 'negatif' });
+      }
+      if (totalUpah > 0) {
+        baris.push({ label: 'Total upah', nilai: totalUpah, tipe: 'negatif' });
       }
       baris.push({
         label: 'Nominal',
@@ -34,10 +39,15 @@ export function buildSpkPembayaranKalkulasi(
     }
     case 'TERMIN_100': {
       const bruto = kontrak * 0.45;
+      const totalKasbon = sumPengurangJenisForTermin(pembayaranList, 'TERMIN_100', 'KASBON');
+      const totalUpah = sumPengurangJenisForTermin(pembayaranList, 'TERMIN_100', 'UPAH');
       const kasbon = sumKasbonForTermin(pembayaranList, 'TERMIN_100');
       baris.push({ label: '45%', nilai: bruto, tipe: 'positif' });
-      if (kasbon > 0) {
-        baris.push({ label: 'Total kasbon & upah (termin 100%)', nilai: kasbon, tipe: 'negatif' });
+      if (totalKasbon > 0) {
+        baris.push({ label: 'Total kasbon', nilai: totalKasbon, tipe: 'negatif' });
+      }
+      if (totalUpah > 0) {
+        baris.push({ label: 'Total upah', nilai: totalUpah, tipe: 'negatif' });
       }
       baris.push({
         label: 'Nominal',
