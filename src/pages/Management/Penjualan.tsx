@@ -2813,7 +2813,7 @@ const Penjualan = () => {
               <div className="mb-8 p-3 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] text-slate-600 leading-relaxed">
                 <p className="font-bold text-slate-800 mb-2 uppercase tracking-widest">Catatan:</p>
                 <ul className="list-disc pl-5 space-y-2">
-                  <li>Harga jual pembelian unit rumah sudah termasuk biaya AJB, Sertipikat, IMB, Listrik, BPHTB, Biaya Proses KPR dan Notaris.</li>
+                  <li>Harga jual pembelian unit rumah sudah termasuk biaya AJB, Sertipikat, IMB, Listrik, BPHTB,  dan Notaris.</li>
                   <li>Harga jual khusus pembelian kavling belum termasuk biaya BPHTB, PPJB, AJB, Sertipikat dan Biaya Mutasi PBB.</li>
                   <li>Apabila terjadi pembatalan, uang tanda jadi (Booking Fee) tidak dapat dikembalikan / hangus.</li>
                 </ul>
