@@ -4,6 +4,8 @@ export interface TukangData {
   id: number;
   nik: string;
   nama: string;
+  mandorId: number | null;
+  mandorUsername?: string | null;
   createdAt: string;
   updatedAt: string;
 }

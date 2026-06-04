@@ -9,6 +9,7 @@ import type {
 export interface SpkPembayaranKasbonBarisData {
   id: number;
   spkPembayaranId: number;
+  namaSupplier: string;
   keterangan: string;
   tanggalPo: string;
   nominal: number;
@@ -79,10 +80,10 @@ export interface SpkPembayaranUpahBarisBody {
   tukangId?: number | null;
   nik: string;
   nama: string;
-  nominal: number;
 }
 
 export interface SpkPembayaranKasbonBarisBody {
+  namaSupplier: string;
   keterangan: string;
   tanggalPo: string;
   nominal: number;
@@ -97,6 +98,7 @@ export type CreateSpkPembayaranBody =
       tanggalDari: string;
       tanggalSampai: string;
       baris: SpkPembayaranUpahBarisBody[];
+      upahNominal: number;
     };
 
 export type UpdateSpkKasbonBody =
@@ -107,6 +109,7 @@ export interface UpdateSpkUpahBody {
   tanggalDari: string;
   tanggalSampai: string;
   baris: SpkPembayaranUpahBarisBody[];
+  upahNominal: number;
 }
 
 export const spkPembayaranService = {

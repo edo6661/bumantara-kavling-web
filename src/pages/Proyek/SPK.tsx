@@ -38,6 +38,7 @@ import {
 } from "../../hooks/queries/useSpk";
 import type { GetSpkParams, SpkData } from '../../services/spk.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
+import CollapsibleDetailSection from '../../components/shared/CollapsibleDetailSection';
 import type { SpkKavlingItem } from '../../services/spk.service';
 import type { KavlingData } from '../../services/kavling.service';
 import type { BankRekeningPt } from '../../services/bankRekening.service';
@@ -291,10 +292,6 @@ const FormSection = ({
 const detailThClass =
   'px-2.5 py-1.5 text-left text-[10px] font-bold text-slate-500 uppercase bg-slate-50 border border-slate-200 whitespace-nowrap';
 const detailTdClass = 'px-2.5 py-1.5 border border-slate-200 text-xs text-slate-800 align-middle';
-
-const DetailSectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h4 className="text-xs font-bold text-slate-800 mb-1.5">{children}</h4>
-);
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -911,254 +908,224 @@ const SPK = () => {
         size="lg"
       >
         {detailItem && (
-          <div className="space-y-4">
-            <section>
-              <DetailSectionTitle>Informasi SPK</DetailSectionTitle>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-xs border-collapse min-w-[520px]">
-                <thead>
-                  <tr className="bg-slate-800 text-white">
-                    <th className="px-2.5 py-1.5 text-left text-[10px] font-bold uppercase">No. SPK</th>
-                    <th className="px-2.5 py-1.5 text-left text-[10px] font-bold uppercase">Judul Pekerjaan</th>
-                    <th className="px-2.5 py-1.5 text-left text-[10px] font-bold uppercase">Tanggal</th>
-                    <th className="px-2.5 py-1.5 text-right text-[10px] font-bold uppercase">Nilai Kontrak</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="bg-white">
-                    <td className={`${detailTdClass} font-mono font-bold`} title={detailItem.noSpk}>
-                      {formatShortNoSpk(detailItem.noSpk)}
-                    </td>
-                    <td className={detailTdClass}>{detailItem.judulPekerjaan}</td>
-                    <td className={`${detailTdClass} whitespace-nowrap`}>{formatDate(detailItem.tanggalSpk)}</td>
-                    <td className={`${detailTdClass} text-right font-bold text-emerald-700 whitespace-nowrap`}>
-                      {formatRupiah(detailItem.nilaiKontrak)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+          <div className="space-y-3 max-h-[min(72vh,640px)] overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">No. SPK</p>
+                <p className="font-mono font-bold text-slate-900 mt-0.5" title={detailItem.noSpk}>
+                  {formatShortNoSpk(detailItem.noSpk)}
+                </p>
               </div>
-            </section>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Mandor</p>
+                <p className="font-semibold text-slate-800 mt-0.5">{detailItem.mandor.username}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Progress</p>
+                <p className="font-bold text-indigo-700 mt-0.5">{Number(detailItem.progress ?? 0)}%</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai Kontrak</p>
+                <p className="font-bold text-emerald-700 mt-0.5">{formatRupiah(detailItem.nilaiKontrak)}</p>
+              </div>
+            </div>
 
-            <section>
-              <DetailSectionTitle>Keuangan &amp; Kontrak</DetailSectionTitle>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-xs border-collapse min-w-[640px]">
-                <thead>
-                  <tr>
-                    <th className={detailThClass}>Mandor</th>
-                    <th className={detailThClass}>Sisa Nilai Kontrak</th>
-                    <th className={detailThClass}>Sudah Dibayar</th>
-                    <th className={detailThClass}>Nilai Kontrak</th>
-                    <th className={detailThClass}>Jatuh Tempo</th>
-                    <th className={detailThClass}>KSO (Rek PT)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="bg-white">
-                    <td className={`${detailTdClass} font-semibold`}>{detailItem.mandor.username}</td>
-                    <td className={`${detailTdClass} font-bold whitespace-nowrap ${
+            <CollapsibleDetailSection
+              title="Informasi & Keuangan"
+              subtitle={detailItem.judulPekerjaan}
+              defaultOpen
+            >
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-500 font-semibold">Judul pekerjaan</dt>
+                  <dd className="text-slate-800 font-medium">{detailItem.judulPekerjaan}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500 font-semibold">Tanggal SPK</dt>
+                  <dd className="text-slate-800">{formatDate(detailItem.tanggalSpk)}</dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500 font-semibold">Jatuh tempo</dt>
+                  <dd className="text-slate-800">
+                    {detailItem.jatuhTempo ? formatDate(detailItem.jatuhTempo) : '—'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500 font-semibold">Sudah dibayar</dt>
+                  <dd className="font-semibold text-emerald-700">
+                    {detailItem.nilaiSudahDibayarkan == null
+                      ? '—'
+                      : formatRupiah(detailItem.nilaiSudahDibayarkan)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-slate-500 font-semibold">Sisa nilai</dt>
+                  <dd
+                    className={`font-semibold ${
                       detailItem.sisaNilaiKontrak != null && detailItem.sisaNilaiKontrak > 0
                         ? 'text-red-600'
-                        : 'text-slate-400'
-                    }`}>
-                      {detailItem.sisaNilaiKontrak == null ? '—' : formatRupiah(detailItem.sisaNilaiKontrak)}
-                    </td>
-                    <td className={`${detailTdClass} font-bold whitespace-nowrap ${
-                      detailItem.nilaiSudahDibayarkan != null && detailItem.nilaiSudahDibayarkan > 0
-                        ? 'text-emerald-700'
-                        : 'text-slate-400'
-                    }`}>
-                      {detailItem.nilaiSudahDibayarkan == null ? '—' : formatRupiah(detailItem.nilaiSudahDibayarkan)}
-                    </td>
-                    <td className={`${detailTdClass} whitespace-nowrap`}>
-                      {formatRupiah(detailItem.nilaiKontrak)}
-                    </td>
-                    <td className={detailTdClass}>
-                      {detailItem.jatuhTempo ? formatDate(detailItem.jatuhTempo) : '—'}
-                    </td>
-                    <td className={detailTdClass}>
-                      {detailItem.bankRekeningPtId
-                        ? bankLabelById.get(detailItem.bankRekeningPtId) ?? `ID ${detailItem.bankRekeningPtId}`
-                        : '—'}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              </div>
-            </section>
+                        : 'text-slate-500'
+                    }`}
+                  >
+                    {detailItem.sisaNilaiKontrak == null
+                      ? '—'
+                      : formatRupiah(detailItem.sisaNilaiKontrak)}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-500 font-semibold">KSO (Rek PT)</dt>
+                  <dd className="text-slate-800">
+                    {detailItem.bankRekeningPtId
+                      ? bankLabelById.get(detailItem.bankRekeningPtId) ??
+                        `ID ${detailItem.bankRekeningPtId}`
+                      : '—'}
+                  </dd>
+                </div>
+              </dl>
+            </CollapsibleDetailSection>
 
-            <section>
-              <DetailSectionTitle>Progress &amp; Dokumen</DetailSectionTitle>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-xs border-collapse">
-                <thead>
-                  <tr>
-                    <th className={detailThClass}>Progress SPK</th>
-                    {canEditSpkProgress && <th className={detailThClass}>Progress SPK</th>}
-                    <th className={detailThClass}>Dokumen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="bg-white">
-                    <td className={detailTdClass}>
-                      <div className="flex items-center gap-2 min-w-[140px]">
-                        <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${detailItem.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`}
-                            style={{ width: `${Number(detailItem.progress ?? 0)}%` }}
-                          />
-                        </div>
-                        <span className="font-bold text-indigo-800 whitespace-nowrap">
-                          {Number(detailItem.progress ?? 0)}%
-                        </span>
-                      </div>
-                    </td>
-                    
-                    {canEditSpkProgress && (
-                      <td className={detailTdClass}>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            maxLength={3}
-                            value={spkProgressInput}
-                            onChange={(e) => {
-                              const digits = e.target.value.replace(/\D/g, '').slice(0, 3);
-                              if (digits === '') {
-                                setSpkProgressInput('');
-                                return;
-                              }
-                              setSpkProgressInput(String(clampPercent(parseInt(digits, 10))));
-                            }}
-                            onBlur={() => {
-                              if (spkProgressInput === '') {
-                                setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
-                                return;
-                              }
-                              setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
-                            }}
-                            className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-center outline-none focus:ring-1 focus:ring-indigo-400"
-                          />
-                          <span className="text-[10px] font-bold text-slate-500">%</span>
-                          <button
-                            type="button"
-                            className="px-2 py-1 text-[10px] font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700"
-                            onClick={async () => {
-                              const parsed =
-                                spkProgressInput === ''
-                                  ? clampPercent(Number(detailItem.progress ?? 0))
-                                  : clampPercent(parseInt(spkProgressInput, 10));
-                              try {
-                                await updateMutation.mutateAsync({
-                                  id: detailItem.id,
-                                  data: { progressOverride: parsed },
-                                });
-                              } catch (err: unknown) {
-                                alert(handleApiError(err).message);
-                              }
-                            }}
-                          >
-                            Simpan
-                          </button>
-                          {/* <button
-                            type="button"
-                            className="px-2 py-1 text-[10px] font-bold rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
-                            onClick={async () => {
-                              try {
-                                await updateMutation.mutateAsync({
-                                  id: detailItem.id,
-                                  data: { progressOverride: null },
-                                });
-                              } catch (err: unknown) {
-                                alert(handleApiError(err).message);
-                              }
-                            }}
-                          >
-                            Reset ke 0%
-                          </button> */}
-                        </div>
-                      </td>
-                    )}
-                    <td className={detailTdClass}>
-                      {detailItem.fileSpk ? (
-                        <a
-                          href={detailItem.fileSpk}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:underline"
-                        >
-                          <FileText size={12} />
-                          PDF
-                          <ExternalLink size={10} />
-                        </a>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <CollapsibleDetailSection
+              title="Progress & Dokumen"
+              subtitle={`Progress ${Number(detailItem.progress ?? 0)}%`}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 max-w-[200px] bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${detailItem.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`}
+                      style={{ width: `${Number(detailItem.progress ?? 0)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-indigo-800">
+                    {Number(detailItem.progress ?? 0)}%
+                  </span>
+                </div>
+                {canEditSpkProgress && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Override</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={3}
+                      value={spkProgressInput}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 3);
+                        if (digits === '') {
+                          setSpkProgressInput('');
+                          return;
+                        }
+                        setSpkProgressInput(String(clampPercent(parseInt(digits, 10))));
+                      }}
+                      onBlur={() => {
+                        if (spkProgressInput === '') {
+                          setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
+                          return;
+                        }
+                        setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
+                      }}
+                      className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-center"
+                    />
+                    <span className="text-[10px] font-bold text-slate-500">%</span>
+                    <button
+                      type="button"
+                      className="px-2.5 py-1 text-[10px] font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                      onClick={async () => {
+                        const parsed =
+                          spkProgressInput === ''
+                            ? clampPercent(Number(detailItem.progress ?? 0))
+                            : clampPercent(parseInt(spkProgressInput, 10));
+                        try {
+                          await updateMutation.mutateAsync({
+                            id: detailItem.id,
+                            data: { progressOverride: parsed },
+                          });
+                        } catch (err: unknown) {
+                          alert(handleApiError(err).message);
+                        }
+                      }}
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Dokumen SPK</p>
+                  {detailItem.fileSpk ? (
+                    <a
+                      href={detailItem.fileSpk}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"
+                    >
+                      <FileText size={14} />
+                      Buka PDF
+                      <ExternalLink size={12} />
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400">Belum ada dokumen</span>
+                  )}
+                </div>
               </div>
-            </section>
+            </CollapsibleDetailSection>
 
             {detailItem.kavlingItems.length > 0 && (
-              <section>
-                <DetailSectionTitle>Kavling SPK</DetailSectionTitle>
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-xs border-collapse min-w-[320px]">
-                  <thead className="sticky top-0 z-10">
-                    <tr>
-                      <th className={detailThClass}>Blok</th>
-                      <th className={detailThClass}>Unit</th>
-                      <th className={detailThClass}>LT</th>
-                      <th className={detailThClass}>LB</th>
-                      <th className={detailThClass}>Customer</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...detailItem.kavlingItems]
-                      .sort(compareKavlingBlokUnit)
-                      .map((k) => (
-                        <tr key={k.kavlingId} className="bg-white hover:bg-slate-50/80">
-                          <td className={detailTdClass}>{k.blok}</td>
-                          <td className={detailTdClass}>{k.nomorUnit}</td>
-                          <td className={detailTdClass}>{k.luasTanah ?? 0}</td>
-                          <td className={detailTdClass}>{k.luasBangunan ?? 0}</td>
-                          <td className={detailTdClass}>{k.customerNama || '—'}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-                </div>
-              </section>
-            )}
-
-            {detailItem.notesPekerjaan && (
-              <section>
-                <DetailSectionTitle>Catatan Pekerjaan</DetailSectionTitle>
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
-                  <table className="w-full text-xs border-collapse">
-                    <tbody>
+              <CollapsibleDetailSection
+                title="Kavling SPK"
+                subtitle={`${detailItem.kavlingItems.length} unit`}
+                badge={
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                    {detailItem.kavlingItems.length}
+                  </span>
+                }
+              >
+                <div className="overflow-x-auto rounded-lg border border-slate-200 max-h-48 overflow-y-auto">
+                  <table className="w-full text-xs border-collapse min-w-[280px]">
+                    <thead className="sticky top-0 z-10 bg-slate-50">
                       <tr>
-                        <td className={`${detailTdClass} whitespace-pre-wrap leading-relaxed`}>
-                          {detailItem.notesPekerjaan}
-                        </td>
+                        <th className={detailThClass}>Blok</th>
+                        <th className={detailThClass}>Unit</th>
+                        <th className={detailThClass}>LT</th>
+                        <th className={detailThClass}>LB</th>
+                        <th className={detailThClass}>Customer</th>
                       </tr>
+                    </thead>
+                    <tbody>
+                      {[...detailItem.kavlingItems]
+                        .sort(compareKavlingBlokUnit)
+                        .map((k) => (
+                          <tr key={k.kavlingId} className="bg-white hover:bg-slate-50/80">
+                            <td className={detailTdClass}>{k.blok}</td>
+                            <td className={detailTdClass}>{k.nomorUnit}</td>
+                            <td className={detailTdClass}>{k.luasTanah ?? 0}</td>
+                            <td className={detailTdClass}>{k.luasBangunan ?? 0}</td>
+                            <td className={detailTdClass}>{k.customerNama || '—'}</td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
-              </section>
+              </CollapsibleDetailSection>
             )}
 
-            <section>
-              <DetailSectionTitle>Pengajuan Pembayaran</DetailSectionTitle>
+            {detailItem.notesPekerjaan && (
+              <CollapsibleDetailSection title="Catatan Pekerjaan">
+                <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  {detailItem.notesPekerjaan}
+                </p>
+              </CollapsibleDetailSection>
+            )}
+
+            <CollapsibleDetailSection
+              title="Pengajuan Pembayaran"
+              subtitle="Termin, kasbon, upah"
+              defaultOpen
+            >
               <SpkPembayaranPanel
                 spk={detailItem}
                 canAjukan={canAjukanPembayaranFor(detailItem)}
               />
-            </section>
+            </CollapsibleDetailSection>
           </div>
         )}
       </Modal>

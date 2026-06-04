@@ -78,6 +78,7 @@ const menuItems = [
     icon: <FolderKanban size={20} strokeWidth={1.5} />,
     submenus: [
       { title: 'SPK', path: '/proyek/spk', resource: 'SPK' },
+      { title: 'Tukang', path: '/proyek/tukang', resource: 'SPK' },
       { title: 'Progress', path: '/proyek/progress', resource: 'PROGRESS_PROYEK' },
     ],
   },
