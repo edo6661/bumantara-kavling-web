@@ -3,10 +3,8 @@
 @theme {
   --font-sans: "Montserrat", system-ui, sans-serif;
   --font-heading: "", var(--font-sans);
-
-  --radius-btn: 8px; /* Sedikit lebih membulat untuk kesan modern */
+  --radius-btn: 10px;
   --radius-card: 16px;
-
   --color-sidebar-bg: var(--sidebar-bg);
   --color-sidebar-text: var(--sidebar-text);
   --color-sidebar-border: var(--sidebar-border);
@@ -17,36 +15,34 @@
 }
 
 :root {
-  --theme-background: #fdfdfd;
   --section-padding-y: 6rem;
-  --transition-base: all 0.3s ease-in-out;
+  --transition-base: all 0.25s ease-in-out;
 
-  /* Background dibuat sedikit abu-abu sangat muda (slate-50) agar card putih lebih kontras */
-  --theme-background: #f8fafc;
+  /* Page background - very light gray for card contrast */
+  --theme-background: #f6f8fa;
   --theme-foreground: #0f172a;
 
-  /* Sidebar Black & White Theme */
-  --sidebar-bg: #ffffff;
-  --sidebar-text: #000000;
-  --sidebar-border: #e2e8f0;
-  --sidebar-hover-bg: #f1f5f9;
-  --sidebar-active-bg: #0f172a;
-  --sidebar-active-text: #ffffff;
-  --sidebar-submenu-bg: #f8fafc;
+  /* Sidebar - dark theme */
+  --sidebar-bg: #0f1117;
+  --sidebar-text: #cbd5e1;
+  --sidebar-border: rgba(255,255,255,0.06);
+  --sidebar-hover-bg: rgba(255,255,255,0.06);
+  --sidebar-active-bg: rgba(59,130,246,0.15);
+  --sidebar-active-text: #93c5fd;
+  --sidebar-submenu-bg: rgba(255,255,255,0.03);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --theme-background: #020617;
-    --theme-foreground: #f8fafc;
-
-    --sidebar-bg: #020617;
-    --sidebar-text: #f8fafc;
-    --sidebar-border: #1e293b;
-    --sidebar-hover-bg: #0f172a;
-    --sidebar-active-bg: #f8fafc;
-    --sidebar-active-text: #020617;
-    --sidebar-submenu-bg: #020617;
+    --theme-background: #0a0c10;
+    --theme-foreground: #f1f5f9;
+    --sidebar-bg: #07090e;
+    --sidebar-text: #94a3b8;
+    --sidebar-border: rgba(255,255,255,0.05);
+    --sidebar-hover-bg: rgba(255,255,255,0.05);
+    --sidebar-active-bg: rgba(59,130,246,0.2);
+    --sidebar-active-text: #93c5fd;
+    --sidebar-submenu-bg: rgba(255,255,255,0.02);
   }
 }
 
@@ -64,20 +60,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   letter-spacing: -0.02em;
 }
 
-/* Custom Scrollbar Premium */
+/* Premium custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -87,21 +78,36 @@ h6 {
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 999px;
-  border: 2px solid var(--theme-background); /* Memberikan efek padding */
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
+/* Dark sidebar scrollbar */
+.dark-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+}
+
+.dark-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}
+
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-.shadow-sm {
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.02);
+/* Card hover elevation */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
 }

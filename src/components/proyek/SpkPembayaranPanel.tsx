@@ -6,7 +6,9 @@ import CurrencyInput from '../shared/CurrencyInput';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../shared/BuktiFileThumbnail';
 import { formatRupiah, formatDate } from '../../utils/formatters';
 import { handleApiError } from '../../utils/errorHandler';
+import { useQueryClient } from '@tanstack/react-query';
 import {
+  clearKasbonDraftCache,
   useCreateSpkPembayaranRequest,
   useDeleteSpkPengurangan,
   useGetKasbonDraft,
@@ -435,12 +437,14 @@ const thClass =
 const tdClass = 'px-2.5 py-1.5 border border-slate-200 text-xs text-slate-800 align-middle';
 
 const toCalcRows = (list: SpkPembayaranData[]) =>
-  list.map((p) => ({
-    jenis: p.jenis,
-    status: p.status,
-    nominal: p.nominal,
-    mengurangiTermin: p.mengurangiTermin,
-  }));
+  list
+    .filter((p) => p.status !== 'DRAFT')
+    .map((p) => ({
+      jenis: p.jenis,
+      status: p.status,
+      nominal: p.nominal,
+      mengurangiTermin: p.mengurangiTermin,
+    }));
 
 const KalkulasiSingkat = ({
   jenis,
@@ -515,12 +519,10 @@ const MaterialSuppliersEditor = ({
   suppliers,
   setSuppliers,
   idPrefix,
-  onAfterBonProcessed,
 }: {
   suppliers: MaterialSupplierForm[];
   setSuppliers: React.Dispatch<React.SetStateAction<MaterialSupplierForm[]>>;
   idPrefix: string;
-  onAfterBonProcessed?: (nextSuppliers: MaterialSupplierForm[]) => void;
 }) => {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [ocrLoadingKey, setOcrLoadingKey] = useState<string | null>(null);
@@ -594,7 +596,6 @@ const MaterialSuppliersEditor = ({
       });
 
       setSuppliers(nextSuppliers);
-      onAfterBonProcessed?.(nextSuppliers);
     } catch (err) {
       alert(handleApiError(err).message);
     } finally {
@@ -1161,7 +1162,10 @@ const SpkPembayaranPanel = ({
 }: SpkPembayaranPanelProps) => {
   const { user } = useAuth();
   const { canUpdate: canUpdateSpk } = usePermission('SPK');
-  const canEditKasbon = canUpdateSpk && user?.role !== 'MANDOR';
+  const isMandor = user?.role === 'MANDOR';
+  const isAssignedMandor =
+    isMandor && user?.id != null && Number(spk.mandorId) === Number(user.id);
+  const canManagePengurangan = canUpdateSpk || isAssignedMandor;
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [kasbonModalOpen, setKasbonModalOpen] = useState(false);
@@ -1183,14 +1187,24 @@ const SpkPembayaranPanel = ({
   const [draftAutoSaveStatus, setDraftAutoSaveStatus] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle');
-  const draftHydratedRef = useRef(false);
-  const draftAutosaveInFlightRef = useRef(false);
+  const hydratedDraftKeyRef = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const kasbonCreateModalOpen = kasbonModalOpen || kasbonOnly;
 
   const { data: pembayaranList = [], isLoading } = useGetSpkPembayaranBySpk(spk.id);
-  const { data: kasbonDraft, isFetched: kasbonDraftFetched } = useGetKasbonDraft(
-    spk.id,
-    kasbonModalOpen || kasbonOnly,
-  );
+  const {
+    data: kasbonDraft,
+    isFetched: kasbonDraftFetched,
+    isFetching: kasbonDraftFetching,
+  } = useGetKasbonDraft(spk.id, kasbonCreateModalOpen);
+
+  const hasActiveDraft =
+    kasbonDraftFetched &&
+    !kasbonDraftFetching &&
+    !!kasbonDraft?.kasbonBaris?.length;
+
+  const isKasbonDraftLoading = kasbonCreateModalOpen && (!kasbonDraftFetched || kasbonDraftFetching);
   const { data: tukangList = [] } = useGetTukangList(
     undefined,
     kasbonModalOpen || upahEditModalOpen || kasbonOnly,
@@ -1202,18 +1216,23 @@ const SpkPembayaranPanel = ({
   const updateUpahMutation = useUpdateSpkUpah();
   const deleteMutation = useDeleteSpkPengurangan();
 
-  const calcRows = toCalcRows(pembayaranList);
+  const submittedPembayaranList = useMemo(
+    () => pembayaranList.filter((p) => p.status !== 'DRAFT'),
+    [pembayaranList],
+  );
+  const calcRows = toCalcRows(submittedPembayaranList);
+
   const pengurangRows: SpkPengurangTerminRow[] = useMemo(
     () =>
-      pembayaranList.map((p) => ({
+      submittedPembayaranList.map((p) => ({
         id: p.id,
         jenis: p.jenis,
         nominal: p.nominal,
         mengurangiTermin: p.mengurangiTermin,
       })),
-    [pembayaranList],
+    [submittedPembayaranList],
   );
-  const statusRows = pembayaranList.map((p) => ({
+  const statusRows = submittedPembayaranList.map((p) => ({
     id: p.id,
     jenis: p.jenis,
     status: p.status,
@@ -1226,8 +1245,8 @@ const SpkPembayaranPanel = ({
     progress: Number(spk.progress ?? 0),
   };
 
-  const kasbonItems = pembayaranList.filter((p) => p.jenis === 'KASBON');
-  const upahItems = pembayaranList.filter((p) => p.jenis === 'UPAH');
+  const kasbonItems = submittedPembayaranList.filter((p) => p.jenis === 'KASBON');
+  const upahItems = submittedPembayaranList.filter((p) => p.jenis === 'UPAH');
   const pengurangCheck = canRequestKasbon(statusRows, spk.nilaiKontrak);
 
   const materialTotalPreview = useMemo(
@@ -1310,12 +1329,19 @@ const SpkPembayaranPanel = ({
     setUpahBaris([newUpahBaris()]);
     setUpahTotalNominal('');
     setDraftAutoSaveStatus('idle');
-    draftHydratedRef.current = false;
+    hydratedDraftKeyRef.current = null;
+  };
+
+  const openKasbonCreateModal = () => {
+    clearKasbonDraftCache(queryClient, spk.id);
+    resetKasbonForm();
+    setKasbonModalOpen(true);
   };
 
   const closeKasbonCreateModal = () => {
     setKasbonModalOpen(false);
-    draftHydratedRef.current = false;
+    hydratedDraftKeyRef.current = null;
+    clearKasbonDraftCache(queryClient, spk.id);
     if (kasbonOnly) onKasbonModalClose?.();
   };
 
@@ -1379,24 +1405,6 @@ const SpkPembayaranPanel = ({
     [saveDraftMutation, spk.id],
   );
 
-  const autoSaveDraftAfterBon = useCallback(
-    async (nextSuppliers: MaterialSupplierForm[]) => {
-      if (draftAutosaveInFlightRef.current) return;
-
-      draftAutosaveInFlightRef.current = true;
-      setDraftAutoSaveStatus('saving');
-      try {
-        const ok = await persistKasbonDraft(nextSuppliers, { silent: true, syncForm: true });
-        if (!ok) {
-          setDraftAutoSaveStatus('idle');
-        }
-      } finally {
-        draftAutosaveInFlightRef.current = false;
-      }
-    },
-    [persistKasbonDraft],
-  );
-
   useEffect(() => {
     if (!kasbonOnly) return;
     if (!canAjukan) {
@@ -1404,23 +1412,31 @@ const SpkPembayaranPanel = ({
       onKasbonModalClose?.();
       return;
     }
+    clearKasbonDraftCache(queryClient, spk.id);
     resetKasbonForm();
     setKasbonModalOpen(true);
-  }, [kasbonOnly, canAjukan, spk.id]);
+  }, [kasbonOnly, canAjukan, spk.id, queryClient]);
 
   useEffect(() => {
-    if (!kasbonModalOpen && !kasbonOnly) {
-      draftHydratedRef.current = false;
+    if (!kasbonCreateModalOpen) {
+      hydratedDraftKeyRef.current = null;
       return;
     }
-    if (draftHydratedRef.current) return;
-    if (!kasbonDraftFetched) return;
+    if (!kasbonDraftFetched || kasbonDraftFetching) return;
+
+    const draftKey = kasbonDraft?.kasbonBaris?.length
+      ? `draft-${kasbonDraft!.id}`
+      : 'empty';
+    if (hydratedDraftKeyRef.current === draftKey) return;
 
     if (kasbonDraft?.kasbonBaris?.length) {
       setMaterialSuppliers(kasbonBarisToSuppliers(kasbonDraft.kasbonBaris));
+    } else if (hydratedDraftKeyRef.current !== 'empty') {
+      setMaterialSuppliers([newMaterialSupplier()]);
+      setDraftAutoSaveStatus('idle');
     }
-    draftHydratedRef.current = true;
-  }, [kasbonModalOpen, kasbonOnly, kasbonDraft, kasbonDraftFetched]);
+    hydratedDraftKeyRef.current = draftKey;
+  }, [kasbonCreateModalOpen, kasbonDraft, kasbonDraftFetched, kasbonDraftFetching]);
 
   const handleAjukanKasbon = async () => {
     const materialSectionUsed = materialSuppliers.some(supplierIsUsed);
@@ -1543,11 +1559,20 @@ const SpkPembayaranPanel = ({
           );
           return;
         }
-        await saveDraftMutation.mutateAsync({
-          spkId: spk.id,
-          body: { kasbonBaris: materialBaris },
-        });
-        await submitDraftMutation.mutateAsync({ spkId: spk.id });
+        if (kasbonDraft?.status === 'DRAFT') {
+          await saveDraftMutation.mutateAsync({
+            spkId: spk.id,
+            body: { kasbonBaris: materialBaris },
+          });
+          await submitDraftMutation.mutateAsync({ spkId: spk.id });
+        } else {
+          await createMutation.mutateAsync({
+            spkId: spk.id,
+            body: { jenis: 'KASBON', kasbonBaris: materialBaris },
+          });
+        }
+      } else if (kasbonDraft?.status === 'DRAFT') {
+        await deleteMutation.mutateAsync({ id: kasbonDraft.id, spkId: spk.id });
       }
       if (upahSectionUsed && upahBarisBody) {
         await createMutation.mutateAsync({
@@ -1561,6 +1586,7 @@ const SpkPembayaranPanel = ({
           },
         });
       }
+      clearKasbonDraftCache(queryClient, spk.id);
       closeKasbonCreateModal();
       resetKasbonForm();
       alert('Pengajuan kasbon berhasil dikirim ke finance.');
@@ -1595,15 +1621,15 @@ const SpkPembayaranPanel = ({
 
   const kasbonCreateModalBody = (
     <div className="space-y-5">
-      {kasbonDraft?.kasbonBaris?.length ? (
+      {hasActiveDraft ? (
         <p className="text-xs text-indigo-800 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
           Ada <strong>draft kasbon</strong> tersimpan untuk SPK ini. Isi form sudah dimuat dari draft.
-          Setiap bon yang selesai di-upload akan <strong>otomatis disimpan</strong> ke draft yang sama.
+          Klik <strong>Simpan Draft</strong> setelah mengubah data, atau <strong>Ajukan</strong> jika sudah lengkap.
         </p>
       ) : (
         <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-          Setiap bon yang selesai di-upload akan <strong>otomatis disimpan sebagai draft</strong>.
-          Lanjutkan ke supplier berikutnya, lalu klik Ajukan ketika sudah lengkap.
+          Isi bon/material terlebih dahulu. Klik <strong>Simpan Draft</strong> untuk menyimpan sementara,
+          atau <strong>Ajukan</strong> langsung jika sudah lengkap.
         </p>
       )}
       {draftAutoSaveStatus === 'saving' && (
@@ -1613,13 +1639,11 @@ const SpkPembayaranPanel = ({
         </p>
       )}
       {draftAutoSaveStatus === 'saved' && (
-        <p className="text-xs text-emerald-700 font-medium">
-          Draft tersimpan otomatis. Bon berikutnya akan digabung ke draft ini.
-        </p>
+        <p className="text-xs text-emerald-700 font-medium">Draft berhasil disimpan.</p>
       )}
       {draftAutoSaveStatus === 'error' && (
         <p className="text-xs text-red-700 font-medium">
-          Gagal menyimpan draft otomatis. Gunakan tombol Simpan Draft atau coba upload ulang.
+          Gagal menyimpan draft. Periksa isian bon lalu coba lagi.
         </p>
       )}
       {!pengurangCheck.allowed && pengurangCheck.reason && (
@@ -1684,7 +1708,6 @@ const SpkPembayaranPanel = ({
           suppliers={materialSuppliers}
           setSuppliers={setMaterialSuppliers}
           idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
-          onAfterBonProcessed={(nextSuppliers) => void autoSaveDraftAfterBon(nextSuppliers)}
         />
       </CollapsibleDetailSection>
 
@@ -1739,7 +1762,8 @@ const SpkPembayaranPanel = ({
           disabled={
             saveDraftMutation.isPending ||
             submitDraftMutation.isPending ||
-            createMutation.isPending
+            createMutation.isPending ||
+            deleteMutation.isPending
           }
           onClick={() => void handleSimpanDraftKasbon()}
           className="px-4 py-2 text-sm font-bold bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50"
@@ -1752,6 +1776,7 @@ const SpkPembayaranPanel = ({
             createMutation.isPending ||
             saveDraftMutation.isPending ||
             submitDraftMutation.isPending ||
+            deleteMutation.isPending ||
             kasbonCreateOverPlafon ||
             !pengurangCheck.allowed
           }
@@ -1774,12 +1799,38 @@ const SpkPembayaranPanel = ({
   const rowHasBukti = (row: SpkPembayaranData) =>
     !!row.buktiPembayaran || (row.buktiPembayaranList?.length ?? 0) > 0;
 
-  const canEditKasbonRow = (row: SpkPembayaranData) =>
-    canEditKasbon && !rowHasBukti(row) && row.status !== 'SUDAH_DIBAYAR';
+  const isPaidPengurangan = (row: SpkPembayaranData) => row.status === 'SUDAH_DIBAYAR';
 
-  const canEditUpahRow = (row: SpkPembayaranData) => canEditKasbonRow(row);
+  const isDraftPengurangan = (row: SpkPembayaranData) => row.status === 'DRAFT';
 
-  const canDeletePenguranganRow = (row: SpkPembayaranData) => canEditKasbonRow(row);
+  /** Selaras dengan badge UI: bukan Draft/Terbayar = tampil "Menunggu". */
+  const isMenungguPengurangan = (row: SpkPembayaranData) =>
+    !isPaidPengurangan(row) && !isDraftPengurangan(row);
+
+  const getPenguranganRowBlockReason = (row: SpkPembayaranData): string | null => {
+    if (!canManagePengurangan) return 'Anda tidak memiliki akses mengubah pengajuan ini.';
+    if (isPaidPengurangan(row)) return 'Pengajuan sudah terbayar.';
+    if (rowHasBukti(row)) return 'Sudah ada bukti transfer — tidak dapat diubah/dihapus.';
+    if (isDraftPengurangan(row)) return 'Draft hanya dapat dihapus, tidak diedit.';
+    return null;
+  };
+
+  const getPenguranganRowActions = (row: SpkPembayaranData) => {
+    if (!canManagePengurangan || rowHasBukti(row) || isPaidPengurangan(row)) {
+      return { editable: false, deletable: false };
+    }
+    if (isMenungguPengurangan(row)) {
+      return { editable: true, deletable: true };
+    }
+    if (isDraftPengurangan(row)) {
+      const isOwnDraft = Number(row.diajukanOlehId) === Number(user?.id);
+      return {
+        editable: false,
+        deletable: isAssignedMandor ? isOwnDraft : canUpdateSpk,
+      };
+    }
+    return { editable: false, deletable: false };
+  };
 
   const handleHapusPengurangan = async (
     row: SpkPembayaranData,
@@ -1818,6 +1869,7 @@ const SpkPembayaranPanel = ({
     setKasbonEditModalOpen(false);
     setEditingKasbon(null);
     setEditingKasbonIsBatch(false);
+    setMaterialSuppliers([newMaterialSupplier()]);
   };
 
   const openEditUpah = (row: SpkPembayaranData) => {
@@ -2080,10 +2132,10 @@ const SpkPembayaranPanel = ({
         title={`Ajukan Kasbon — ${spk.noSpk}`}
         size="lg"
       >
-        {isLoading ? (
+        {isLoading || isKasbonDraftLoading ? (
           <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
             <Loader2 size={18} className="animate-spin" />
-            Memuat data pembayaran...
+            {isKasbonDraftLoading ? 'Memuat draft kasbon...' : 'Memuat data pembayaran...'}
           </div>
         ) : (
           kasbonCreateModalBody
@@ -2115,10 +2167,7 @@ const SpkPembayaranPanel = ({
                   type="button"
                   disabled={!pengurangCheck.allowed || createMutation.isPending}
                   title={pengurangCheck.reason}
-                  onClick={() => {
-                    resetKasbonForm();
-                    setKasbonModalOpen(true);
-                  }}
+                  onClick={openKasbonCreateModal}
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-40"
                 >
                   <Plus size={12} />
@@ -2201,15 +2250,15 @@ const SpkPembayaranPanel = ({
                   <th className={thClass}>Nominal</th>
                   <th className={thClass}>Status</th>
                   <th className={`${thClass} w-16`}>Bukti</th>
-                  {canEditKasbon && <th className={`${thClass} w-20`}>Aksi</th>}
+                  {canManagePengurangan && <th className={`${thClass} w-20`}>Aksi</th>}
                 </tr>
               </thead>
               <tbody>
                 {kasbonItems.map((row) => {
-                  const paid = row.status === 'SUDAH_DIBAYAR';
-                  const isDraft = row.status === 'DRAFT';
-                  const editable = canEditKasbonRow(row);
-                  const deletable = canDeletePenguranganRow(row);
+                  const paid = isPaidPengurangan(row);
+                  const isDraft = isDraftPengurangan(row);
+                  const { editable, deletable } = getPenguranganRowActions(row);
+                  const blockReason = getPenguranganRowBlockReason(row);
                   const batch = isBatchKasbon(row);
                   const buktiCount =
                     (row.buktiPembayaranList?.length ?? 0) || (row.buktiPembayaran ? 1 : 0);
@@ -2272,7 +2321,7 @@ const SpkPembayaranPanel = ({
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
-                      {canEditKasbon && (
+                      {canManagePengurangan && (
                         <td className={tdClass}>
                           {editable || deletable ? (
                             <div className="flex items-center gap-0.5">
@@ -2299,7 +2348,16 @@ const SpkPembayaranPanel = ({
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span
+                              className="text-[9px] text-slate-500 leading-tight max-w-[72px] inline-block"
+                              title={blockReason ?? undefined}
+                            >
+                              {isMenungguPengurangan(row) && blockReason
+                                ? blockReason.includes('bukti')
+                                  ? 'Ada bukti'
+                                  : 'Terkunci'
+                                : '—'}
+                            </span>
                           )}
                         </td>
                       )}
@@ -2329,15 +2387,15 @@ const SpkPembayaranPanel = ({
                   <th className={thClass}>Total</th>
                   <th className={thClass}>Status</th>
                   <th className={`${thClass} w-16`}>Bukti</th>
-                  {canEditKasbon && <th className={`${thClass} w-20`}>Aksi</th>}
+                  {canManagePengurangan && <th className={`${thClass} w-20`}>Aksi</th>}
                 </tr>
               </thead>
               <tbody>
                 {upahItems.map((row) => {
-                  const paid = row.status === 'SUDAH_DIBAYAR';
-                  const isDraft = row.status === 'DRAFT';
-                  const editable = canEditUpahRow(row);
-                  const deletable = canDeletePenguranganRow(row);
+                  const paid = isPaidPengurangan(row);
+                  const isDraft = isDraftPengurangan(row);
+                  const { editable, deletable } = getPenguranganRowActions(row);
+                  const blockReason = getPenguranganRowBlockReason(row);
                   const buktiCount =
                     (row.buktiPembayaranList?.length ?? 0) || (row.buktiPembayaran ? 1 : 0);
                   return (
@@ -2393,7 +2451,7 @@ const SpkPembayaranPanel = ({
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
-                      {canEditKasbon && (
+                      {canManagePengurangan && (
                         <td className={tdClass}>
                           {editable || deletable ? (
                             <div className="flex items-center gap-0.5">
@@ -2420,7 +2478,16 @@ const SpkPembayaranPanel = ({
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span
+                              className="text-[9px] text-slate-500 leading-tight max-w-[72px] inline-block"
+                              title={blockReason ?? undefined}
+                            >
+                              {isMenungguPengurangan(row) && blockReason
+                                ? blockReason.includes('bukti')
+                                  ? 'Ada bukti'
+                                  : 'Terkunci'
+                                : '—'}
+                            </span>
                           )}
                         </td>
                       )}
@@ -2458,7 +2525,14 @@ const SpkPembayaranPanel = ({
         title="Ajukan Kasbon"
         size="lg"
       >
-        {kasbonCreateModalBody}
+        {isKasbonDraftLoading ? (
+          <div className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
+            <Loader2 size={18} className="animate-spin" />
+            Memuat draft kasbon...
+          </div>
+        ) : (
+          kasbonCreateModalBody
+        )}
       </Modal>
 
       <Modal

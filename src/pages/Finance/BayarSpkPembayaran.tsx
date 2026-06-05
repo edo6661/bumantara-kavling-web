@@ -114,7 +114,10 @@ const BayarSpkPembayaran = () => {
     status: statusFilter === 'ALL' ? 'ALL' : (statusFilter as 'MENUNGGU_PEMBAYARAN' | 'SUDAH_DIBAYAR'),
   });
 
-  const items = response?.items ?? [];
+  const items = useMemo(
+    () => (response?.items ?? []).filter((row) => row.status !== 'DRAFT'),
+    [response?.items],
+  );
   const meta = response?.meta;
   const bayarMutation = useBayarSpkPembayaran();
   const addBuktiMutation = useAddBuktiSpkPembayaran();
@@ -162,6 +165,7 @@ const BayarSpkPembayaran = () => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       for (const row of groupItems) {
+        if (row.status === 'DRAFT') continue;
         if (checked) next.add(row.id);
         else next.delete(row.id);
       }
@@ -239,6 +243,14 @@ const BayarSpkPembayaran = () => {
   };
 
   const openUpload = (row: SpkPembayaranData, mode: UploadMode) => {
+    if (row.status === 'DRAFT') {
+      alert('Pengajuan masih draft dan belum diajukan oleh mandor.');
+      return;
+    }
+    if (mode === 'bayar' && row.status !== 'MENUNGGU_PEMBAYARAN') {
+      alert('Hanya pengajuan yang menunggu pembayaran yang dapat diproses.');
+      return;
+    }
     setUploadMode(mode);
     setUploadTarget(row);
     fileInputRef.current?.click();
@@ -297,7 +309,9 @@ const BayarSpkPembayaran = () => {
 
   const renderItemRow = (row: SpkPembayaranData) => {
     const colors = JENIS_UI_COLOR[row.jenis];
+    const isDraft = row.status === 'DRAFT';
     const paid = row.status === 'SUDAH_DIBAYAR';
+    const canPay = row.status === 'MENUNGGU_PEMBAYARAN';
     const checked = selectedIds.has(row.id);
     const buktiList =
       row.buktiPembayaranList && row.buktiPembayaranList.length > 0
@@ -315,8 +329,9 @@ const BayarSpkPembayaran = () => {
           <input
             type="checkbox"
             checked={checked}
+            disabled={isDraft}
             onChange={() => toggleSelect(row.id)}
-            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-40"
             aria-label={`Pilih pembayaran ${getItemLabel(row)}`}
           />
         </td>
@@ -326,7 +341,11 @@ const BayarSpkPembayaran = () => {
         <td className="px-4 py-2.5 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
         <td className="px-4 py-2.5">
           <div className="flex flex-col gap-1">
-            {paid ? (
+            {isDraft ? (
+              <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-slate-100 text-slate-700 rounded w-fit">
+                Draft
+              </span>
+            ) : paid ? (
               <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-green-100 text-green-700 rounded w-fit">
                 <CheckCircle2 size={10} /> Terbayar
               </span>
@@ -386,7 +405,7 @@ const BayarSpkPembayaran = () => {
           )}
         </td>
         <td className="px-4 py-2.5">
-          {!paid && (
+          {canPay && (
             <button
               type="button"
               title="Bayar"

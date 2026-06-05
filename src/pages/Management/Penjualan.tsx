@@ -1507,21 +1507,25 @@ const Penjualan = () => {
 
   
   return (
-    <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
+    <div className="space-y-4 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
 
+      
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
-          className="p-3 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
+          className="px-5 py-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/40 transition-colors"
           onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg ring-1 ring-indigo-100">
-              <PieChart size={18} strokeWidth={2.5} />
+            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+              <PieChart size={16} strokeWidth={2} />
             </div>
-            <h3 className="font-bold text-slate-900 tracking-tight">Ringkasan Penjualan</h3>
+            <div>
+              <h3 className="font-bold text-slate-900 text-[14px] tracking-tight">Ringkasan Penjualan</h3>
+              <p className="text-[11px] text-slate-400">Statistik transaksi keseluruhan</p>
+            </div>
           </div>
-          <button className="text-slate-400 hover:text-indigo-600 transition-colors">
-            {isSummaryExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          <button className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+            {isSummaryExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
         </div>
 
