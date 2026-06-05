@@ -320,34 +320,6 @@ const BayarSpkPembayaran = () => {
             aria-label={`Pilih pembayaran ${getItemLabel(row)}`}
           />
         </td>
-        <td className="px-4 py-2.5">
-          <span
-            className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded border ${colors.badge}`}
-          >
-            {row.jenis === 'KASBON' ? 'Kasbon' : row.jenis === 'UPAH' ? 'Upah' : row.jenis.replace('_', ' ')}
-          </span>
-        </td>
-        <td className="px-4 py-2.5 text-xs text-slate-700 max-w-[280px]">
-          <p>{getItemLabel(row)}</p>
-          {row.jenis === 'UPAH' && (row.upahBaris?.length ?? 0) > 0 && (
-            <ul className="mt-1 space-y-0.5 text-[10px] text-slate-500">
-              {row.upahBaris!.map((b) => (
-                <li key={b.id}>
-                  {b.nama} ({b.nik}) — {formatRupiah(b.nominal)}
-                </li>
-              ))}
-            </ul>
-          )}
-          {row.jenis === 'KASBON' && (row.kasbonBaris?.length ?? 0) > 0 && (
-            <ul className="mt-1 space-y-0.5 text-[10px] text-slate-500">
-              {row.kasbonBaris!.map((b) => (
-                <li key={b.id}>
-                  {b.keterangan} · PO {formatDate(b.tanggalPo)} — {formatRupiah(b.nominal)}
-                </li>
-              ))}
-            </ul>
-          )}
-        </td>
         <td className={`px-4 py-2.5 text-sm font-bold ${colors.text} whitespace-nowrap`}>
           {formatRupiah(row.nominal)}
         </td>
@@ -639,7 +611,7 @@ const BayarSpkPembayaran = () => {
                               Detail pembayaran — {group.noSpk}
                             </p>
                             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                              <table className="w-full min-w-[760px]">
+                              <table className="w-full min-w-[520px]">
                                 <thead>
                                   <tr className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
                                     <th className="px-4 py-2 w-10" onClick={(e) => e.stopPropagation()}>
@@ -656,8 +628,6 @@ const BayarSpkPembayaran = () => {
                                         aria-label={`Pilih semua pembayaran ${group.noSpk}`}
                                       />
                                     </th>
-                                    <th className="px-4 py-2 text-left">Jenis</th>
-                                    <th className="px-4 py-2 text-left">Keterangan / Termin</th>
                                     <th className="px-4 py-2 text-left">Nominal</th>
                                     <th className="px-4 py-2 text-left">Tanggal Diajukan</th>
                                     <th className="px-4 py-2 text-left">Status</th>

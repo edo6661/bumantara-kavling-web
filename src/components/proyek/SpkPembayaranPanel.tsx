@@ -1111,12 +1111,23 @@ const PengurangPlafonBanner = ({
   );
 };
 
+const compareKavlingBlokUnit = (
+  a: { blok: string; nomorUnit: string },
+  b: { blok: string; nomorUnit: string },
+) => {
+  const blokCmp = a.blok.localeCompare(b.blok, undefined, { numeric: true, sensitivity: 'base' });
+  if (blokCmp !== 0) return blokCmp;
+  return a.nomorUnit.localeCompare(b.nomorUnit, undefined, { numeric: true, sensitivity: 'base' });
+};
+
 interface SpkPembayaranPanelProps {
   spk: SpkData;
   canAjukan: boolean;
   /** Hanya tampilkan modal ajukan kasbon (shortcut dari tabel SPK). */
   kasbonOnly?: boolean;
   onKasbonModalClose?: () => void;
+  /** Hanya histori pengajuan kasbon & upah (expand baris tabel SPK). */
+  historiOnly?: boolean;
 }
 
 const SpkPembayaranPanel = ({
@@ -1124,6 +1135,7 @@ const SpkPembayaranPanel = ({
   canAjukan,
   kasbonOnly = false,
   onKasbonModalClose,
+  historiOnly = false,
 }: SpkPembayaranPanelProps) => {
   const { user } = useAuth();
   const { canUpdate: canUpdateSpk } = usePermission('SPK');
@@ -1464,6 +1476,26 @@ const SpkPembayaranPanel = ({
             additionalNominal={combinedSubmitTotal}
           />
         </>
+      )}
+
+      {spk.kavlingItems.length > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+            Kavling SPK
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {[...spk.kavlingItems]
+              .sort(compareKavlingBlokUnit)
+              .map((k) => (
+                <span
+                  key={k.kavlingId}
+                  className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-slate-200 text-xs font-bold text-slate-800"
+                >
+                  Blok {k.blok} · Unit {k.nomorUnit}
+                </span>
+              ))}
+          </div>
+        </div>
       )}
 
       <p className="text-[11px] text-slate-500">
@@ -1892,75 +1924,83 @@ const SpkPembayaranPanel = ({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-          Termin &amp; Retensi
-        </p>
-        {canAjukan && (
-          <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              disabled={!pengurangCheck.allowed || createMutation.isPending}
-              title={pengurangCheck.reason}
-              onClick={() => {
-                resetKasbonForm();
-                setKasbonModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-40"
-            >
-              <Plus size={12} />
-              Ajukan Kasbon
-            </button>
+      {!historiOnly && (
+        <>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+              Termin &amp; Retensi
+            </p>
+            {canAjukan && (
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  disabled={!pengurangCheck.allowed || createMutation.isPending}
+                  title={pengurangCheck.reason}
+                  onClick={() => {
+                    resetKasbonForm();
+                    setKasbonModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-40"
+                >
+                  <Plus size={12} />
+                  Ajukan Kasbon
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 mb-3">
-        <table className="w-full text-xs border-collapse min-w-[640px]">
-          <thead>
-            <tr>
-              <th className={thClass}>Jenis</th>
-              <th className={thClass}>Nominal</th>
-              <th className={thClass}>Status</th>
-              <th className={`${thClass} w-16`}>Bukti</th>
-              <th className={`${thClass} w-24`}>Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {TERMIN_JENIS_ORDER.map((jenis) => {
-              const existing = pembayaranList.find((p) => p.jenis === jenis);
-              const nominal = calcSpkPembayaranNominal(jenis, spkInput, calcRows);
-              const colors = JENIS_UI_COLOR[jenis];
-              return (
-                <tr key={jenis} className={`hover:bg-slate-50/80 ${colors.row}`}>
-                  <td className={tdClass}>
-                    {renderJenisBadge(jenis)}
-                  </td>
-                  <td className={tdClass}>
-                    <p className={`font-bold whitespace-nowrap ${colors.text}`}>
-                      {formatRupiah(existing?.nominal ?? nominal)}
-                    </p>
-                    <KalkulasiSingkat jenis={jenis} spk={spk} pembayaranList={pembayaranList} />
-                  </td>
-                  <td className={tdClass}>{renderStatus(existing, jenis)}</td>
-                  <td className={tdClass}>
-                    {existing?.buktiPembayaran ? (
-                      <BuktiFileThumbnail
-                        url={existing.buktiPembayaran}
-                        onClick={() => setPreviewUrl(existing.buktiPembayaran!)}
-                        className="w-10 h-7"
-                      />
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                  <td className={tdClass}>{renderTerminAksi(existing, jenis)}</td>
+          <div className="overflow-x-auto rounded-lg border border-slate-200 mb-3">
+            <table className="w-full text-xs border-collapse min-w-[640px]">
+              <thead>
+                <tr>
+                  <th className={thClass}>Jenis</th>
+                  <th className={thClass}>Nominal</th>
+                  <th className={thClass}>Status</th>
+                  <th className={`${thClass} w-16`}>Bukti</th>
+                  <th className={`${thClass} w-24`}>Aksi</th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {TERMIN_JENIS_ORDER.map((jenis) => {
+                  const existing = pembayaranList.find((p) => p.jenis === jenis);
+                  const nominal = calcSpkPembayaranNominal(jenis, spkInput, calcRows);
+                  const colors = JENIS_UI_COLOR[jenis];
+                  return (
+                    <tr key={jenis} className={`hover:bg-slate-50/80 ${colors.row}`}>
+                      <td className={tdClass}>
+                        {renderJenisBadge(jenis)}
+                      </td>
+                      <td className={tdClass}>
+                        <p className={`font-bold whitespace-nowrap ${colors.text}`}>
+                          {formatRupiah(existing?.nominal ?? nominal)}
+                        </p>
+                        <KalkulasiSingkat jenis={jenis} spk={spk} pembayaranList={pembayaranList} />
+                      </td>
+                      <td className={tdClass}>{renderStatus(existing, jenis)}</td>
+                      <td className={tdClass}>
+                        {existing?.buktiPembayaran ? (
+                          <BuktiFileThumbnail
+                            url={existing.buktiPembayaran}
+                            onClick={() => setPreviewUrl(existing.buktiPembayaran!)}
+                            className="w-10 h-7"
+                          />
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className={tdClass}>{renderTerminAksi(existing, jenis)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {historiOnly && kasbonItems.length === 0 && upahItems.length === 0 && (
+        <p className="text-xs text-slate-500 italic py-2">Belum ada pengajuan kasbon.</p>
+      )}
 
       {kasbonItems.length > 0 && (
         <div className="rounded-xl border border-orange-200 overflow-hidden bg-orange-50/15">
@@ -2204,7 +2244,7 @@ const SpkPembayaranPanel = ({
         </div>
       )}
 
-      {pengurangCheck.targetTermin && canAjukan && (
+      {!historiOnly && pengurangCheck.targetTermin && canAjukan && (
         <p className="text-[10px] text-slate-500 mt-2">
           Kasbon/upah berikutnya akan mengurangi{' '}
           <span className="font-semibold text-orange-700">

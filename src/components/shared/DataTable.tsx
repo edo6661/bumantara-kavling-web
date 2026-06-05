@@ -25,6 +25,7 @@ interface DataTableProps {
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
   expandedRowRender?: (row: any) => React.ReactNode;
+  onRowClick?: (row: any) => void;
   serverSide?: boolean;
   searchTerm?: string;
   onSearchChange?: (val: string) => void;
@@ -40,13 +41,15 @@ interface DataTableProps {
   searchPlaceholder?: string;
   /** Tighter cell padding for wide tables. */
   dense?: boolean;
+  /** Always show action buttons instead of revealing on row hover. */
+  alwaysShowActions?: boolean;
 }
 
 const DataTable = ({
-  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender,
+  title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender, onRowClick,
   serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange,
   toolbarPrefix, pageSize = 10, pageSizeOptions = [10, 25, 50, 100], onPageSizeChange,
-  filterRow, searchPlaceholder = 'Cari data...', dense = false,
+  filterRow, searchPlaceholder = 'Cari data...', dense = false, alwaysShowActions = false,
 }: DataTableProps) => {
 
   const cellPad = dense ? 'px-3 py-2.5' : 'px-6 py-4';
@@ -173,9 +176,11 @@ const DataTable = ({
                 return (
                   <React.Fragment key={rowIndex}>
                     <tr
-                      onClick={() => { if (expandedRowRender) toggleRow(rowId); }}
-
-                      className={`transition-all duration-200 group ${expandedRowRender ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
+                      onClick={() => {
+                        if (expandedRowRender) toggleRow(rowId);
+                        else onRowClick?.(row);
+                      }}
+                      className={`transition-all duration-200 group ${expandedRowRender || onRowClick ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
                         <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
@@ -192,7 +197,7 @@ const DataTable = ({
                       ))}
                       {hasActions && (
                         <td className={cellPad} onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className={`flex justify-center gap-2 ${alwaysShowActions ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity duration-200'}`}>
                             {onDetail && (
                               <button
                                 onClick={() => onDetail(row)}

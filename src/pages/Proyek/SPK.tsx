@@ -397,6 +397,7 @@ const SPK = () => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<SpkData | null>(null);
   const [kasbonQuickSpk, setKasbonQuickSpk] = useState<SpkData | null>(null);
+  const [historiKasbonSpk, setHistoriKasbonSpk] = useState<SpkData | null>(null);
   const [formData, setFormData] = useState<SpkFormState>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -950,6 +951,8 @@ const SPK = () => {
         onEdit={canManageSpk ? openEditModal : undefined}
         onDetail={openDetail}
         onDelete={canManageSpk ? handleDelete : undefined}
+        alwaysShowActions
+        onRowClick={setHistoriKasbonSpk}
       />
       {fetchingSpk && spkResponse && (
         <p className="text-center text-xs text-slate-400 -mt-1 pb-2">Memuat ulang data...</p>
@@ -963,6 +966,27 @@ const SPK = () => {
           onKasbonModalClose={() => setKasbonQuickSpk(null)}
         />
       )}
+
+      <Modal
+        isOpen={!!historiKasbonSpk}
+        onClose={() => setHistoriKasbonSpk(null)}
+        title={
+          historiKasbonSpk
+            ? `Histori Pengajuan Kasbon — ${historiKasbonSpk.noSpk}`
+            : 'Histori Pengajuan Kasbon'
+        }
+        size="lg"
+      >
+        {historiKasbonSpk && (
+          <div className="max-h-[min(72vh,640px)] overflow-y-auto pr-1">
+            <SpkPembayaranPanel
+              spk={historiKasbonSpk}
+              canAjukan={canAjukanPembayaranFor(historiKasbonSpk)}
+              historiOnly
+            />
+          </div>
+        )}
+      </Modal>
 
       {/* ── Detail Modal ─────────────────────────────────────────────────────── */}
       <Modal
