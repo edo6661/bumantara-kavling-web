@@ -7,6 +7,7 @@ export interface ProgressPenjualanData {
   biayaNotaris: number | null;
   berkasCustomerValid: boolean;
   fileSp3k: string | null;
+  fileSuratPernyataanAkadKredit: string | null;
   fileSalinanAjb: string | null;
   filePpjb: string | null;
   nilaiAjb: number | null;
@@ -51,6 +52,7 @@ export const progressPenjualanService = {
     penjualanId: number,
     docType:
       | "fileSp3k"
+      | "fileSuratPernyataanAkadKredit"
       | "fileSalinanAjb"
       | "filePpjb"
       | "fileAjb"

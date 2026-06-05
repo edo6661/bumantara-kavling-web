@@ -1385,8 +1385,13 @@ const ProgressPenjualan = () => {
                       <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Tahap SP3K & Biaya Notaris</h4>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
+                        <div className="space-y-4">
                           {renderFileBox("Dokumen SP3K Bank", "fileSp3k", progressData.fileSp3k)}
+                          {renderFileBox(
+                            "Surat Kesiapan Akad Kredit",
+                            "fileSuratPernyataanAkadKredit",
+                            progressData.fileSuratPernyataanAkadKredit,
+                          )}
                         </div>
 
                         <div className="space-y-4">
