@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, FileText, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import Modal from '../shared/Modal';
 import CollapsibleDetailSection from '../shared/CollapsibleDetailSection';
@@ -9,7 +9,10 @@ import { handleApiError } from '../../utils/errorHandler';
 import {
   useCreateSpkPembayaranRequest,
   useDeleteSpkPengurangan,
+  useGetKasbonDraft,
   useGetSpkPembayaranBySpk,
+  useSaveKasbonDraft,
+  useSubmitKasbonDraft,
   useUpdateSpkKasbon,
   useUpdateSpkUpah,
 } from '../../hooks/queries/useSpkPembayaran';
@@ -512,10 +515,12 @@ const MaterialSuppliersEditor = ({
   suppliers,
   setSuppliers,
   idPrefix,
+  onAfterBonProcessed,
 }: {
   suppliers: MaterialSupplierForm[];
   setSuppliers: React.Dispatch<React.SetStateAction<MaterialSupplierForm[]>>;
   idPrefix: string;
+  onAfterBonProcessed?: (nextSuppliers: MaterialSupplierForm[]) => void;
 }) => {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [ocrLoadingKey, setOcrLoadingKey] = useState<string | null>(null);
@@ -558,7 +563,6 @@ const MaterialSuppliersEditor = ({
   };
 
   const handleBonPhoto = async (supplierKey: string, bonKey: string, file: File) => {
-    attachFotoBon(supplierKey, bonKey, file);
     setOcrLoadingKey(bonKey);
     try {
       const extracted = await ocrService.extractKasbonBon(file);
@@ -566,13 +570,31 @@ const MaterialSuppliersEditor = ({
         alert(
           'Bon tidak terbaca dengan jelas. Pastikan foto fokus, tidak blur, dan semua baris terlihat.',
         );
+        attachFotoBon(supplierKey, bonKey, file);
         return;
       }
-      setSuppliers((prev) =>
-        prev.map((s) =>
-          s.key === supplierKey ? applyKasbonBonOcr(s, bonKey, extracted) : s,
-        ),
-      );
+
+      const previewUrl = URL.createObjectURL(file);
+      const nextSuppliers = suppliers.map((s) => {
+        if (s.key !== supplierKey) return s;
+        const withFoto = {
+          ...s,
+          bons: s.bons.map((b) => {
+            if (b.key !== bonKey) return b;
+            revokeBonPreview(b);
+            return {
+              ...b,
+              fotoBonFile: file,
+              fotoBonUrl: null,
+              fotoBonPreview: previewUrl,
+            };
+          }),
+        };
+        return applyKasbonBonOcr(withFoto, bonKey, extracted);
+      });
+
+      setSuppliers(nextSuppliers);
+      onAfterBonProcessed?.(nextSuppliers);
     } catch (err) {
       alert(handleApiError(err).message);
     } finally {
@@ -1158,13 +1180,24 @@ const SpkPembayaranPanel = ({
   const [upahTanggalSampai, setUpahTanggalSampai] = useState(() => todayIso());
   const [upahBaris, setUpahBaris] = useState<UpahBarisForm[]>(() => [newUpahBaris()]);
   const [upahTotalNominal, setUpahTotalNominal] = useState<number | ''>('');
+  const [draftAutoSaveStatus, setDraftAutoSaveStatus] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle');
+  const draftHydratedRef = useRef(false);
+  const draftAutosaveInFlightRef = useRef(false);
 
   const { data: pembayaranList = [], isLoading } = useGetSpkPembayaranBySpk(spk.id);
+  const { data: kasbonDraft, isFetched: kasbonDraftFetched } = useGetKasbonDraft(
+    spk.id,
+    kasbonModalOpen || kasbonOnly,
+  );
   const { data: tukangList = [] } = useGetTukangList(
     undefined,
     kasbonModalOpen || upahEditModalOpen || kasbonOnly,
   );
   const createMutation = useCreateSpkPembayaranRequest();
+  const saveDraftMutation = useSaveKasbonDraft();
+  const submitDraftMutation = useSubmitKasbonDraft();
   const updateKasbonMutation = useUpdateSpkKasbon();
   const updateUpahMutation = useUpdateSpkUpah();
   const deleteMutation = useDeleteSpkPengurangan();
@@ -1276,12 +1309,93 @@ const SpkPembayaranPanel = ({
     setUpahTanggalSampai(todayIso());
     setUpahBaris([newUpahBaris()]);
     setUpahTotalNominal('');
+    setDraftAutoSaveStatus('idle');
+    draftHydratedRef.current = false;
   };
 
   const closeKasbonCreateModal = () => {
     setKasbonModalOpen(false);
+    draftHydratedRef.current = false;
     if (kasbonOnly) onKasbonModalClose?.();
   };
+
+  const persistKasbonDraft = useCallback(
+    async (
+      suppliers: MaterialSupplierForm[],
+      options?: { silent?: boolean; syncForm?: boolean },
+    ): Promise<boolean> => {
+      const silent = options?.silent ?? false;
+      const syncForm = options?.syncForm ?? true;
+
+      if (!suppliers.some(supplierIsUsed)) {
+        if (!silent) {
+          alert('Tidak ada bon/material yang diisi untuk disimpan sebagai draft.');
+        }
+        return false;
+      }
+
+      const usedSuppliers = suppliers.filter(supplierIsUsed);
+      for (const s of usedSuppliers) {
+        const bonNo = supplierMissingFotoBon(s);
+        if (bonNo !== null) {
+          if (!silent) {
+            alert(
+              `Supplier "${s.namaSupplier.trim() || 'tanpa nama'}" — Bon ${bonNo} wajib dilampirkan foto bon.`,
+            );
+          }
+          return false;
+        }
+      }
+
+      try {
+        const uploadedSuppliers = await uploadMaterialSupplierFotos(suppliers);
+        const baris = flattenMaterialSuppliers(uploadedSuppliers);
+        if (!baris) {
+          if (!silent) {
+            alert(
+              'Setiap supplier wajib memiliki nama, tanggal, dan minimal satu item dengan keterangan serta nominal.',
+            );
+          }
+          return false;
+        }
+
+        await saveDraftMutation.mutateAsync({
+          spkId: spk.id,
+          body: { kasbonBaris: baris },
+        });
+        if (syncForm) {
+          setMaterialSuppliers(uploadedSuppliers);
+        }
+        setDraftAutoSaveStatus('saved');
+        return true;
+      } catch (err: unknown) {
+        setDraftAutoSaveStatus('error');
+        if (!silent) {
+          alert(handleApiError(err).message);
+        }
+        return false;
+      }
+    },
+    [saveDraftMutation, spk.id],
+  );
+
+  const autoSaveDraftAfterBon = useCallback(
+    async (nextSuppliers: MaterialSupplierForm[]) => {
+      if (draftAutosaveInFlightRef.current) return;
+
+      draftAutosaveInFlightRef.current = true;
+      setDraftAutoSaveStatus('saving');
+      try {
+        const ok = await persistKasbonDraft(nextSuppliers, { silent: true, syncForm: true });
+        if (!ok) {
+          setDraftAutoSaveStatus('idle');
+        }
+      } finally {
+        draftAutosaveInFlightRef.current = false;
+      }
+    },
+    [persistKasbonDraft],
+  );
 
   useEffect(() => {
     if (!kasbonOnly) return;
@@ -1293,6 +1407,20 @@ const SpkPembayaranPanel = ({
     resetKasbonForm();
     setKasbonModalOpen(true);
   }, [kasbonOnly, canAjukan, spk.id]);
+
+  useEffect(() => {
+    if (!kasbonModalOpen && !kasbonOnly) {
+      draftHydratedRef.current = false;
+      return;
+    }
+    if (draftHydratedRef.current) return;
+    if (!kasbonDraftFetched) return;
+
+    if (kasbonDraft?.kasbonBaris?.length) {
+      setMaterialSuppliers(kasbonBarisToSuppliers(kasbonDraft.kasbonBaris));
+    }
+    draftHydratedRef.current = true;
+  }, [kasbonModalOpen, kasbonOnly, kasbonDraft, kasbonDraftFetched]);
 
   const handleAjukanKasbon = async () => {
     const materialSectionUsed = materialSuppliers.some(supplierIsUsed);
@@ -1415,10 +1543,11 @@ const SpkPembayaranPanel = ({
           );
           return;
         }
-        await createMutation.mutateAsync({
+        await saveDraftMutation.mutateAsync({
           spkId: spk.id,
-          body: { jenis: 'KASBON', kasbonBaris: materialBaris },
+          body: { kasbonBaris: materialBaris },
         });
+        await submitDraftMutation.mutateAsync({ spkId: spk.id });
       }
       if (upahSectionUsed && upahBarisBody) {
         await createMutation.mutateAsync({
@@ -1440,6 +1569,14 @@ const SpkPembayaranPanel = ({
     }
   };
 
+  const handleSimpanDraftKasbon = async () => {
+    setDraftAutoSaveStatus('saving');
+    const ok = await persistKasbonDraft(materialSuppliers, { silent: false, syncForm: true });
+    if (ok) {
+      alert('Draft kasbon berhasil disimpan. Anda bisa lanjut kumpulkan bon lain lalu ajukan.');
+    }
+  };
+
   const handleSelectTukang = (key: string, tukangId: number | '') => {
     const selected = tukangList.find((t) => t.id === Number(tukangId));
     setUpahBaris((prev) =>
@@ -1458,6 +1595,33 @@ const SpkPembayaranPanel = ({
 
   const kasbonCreateModalBody = (
     <div className="space-y-5">
+      {kasbonDraft?.kasbonBaris?.length ? (
+        <p className="text-xs text-indigo-800 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+          Ada <strong>draft kasbon</strong> tersimpan untuk SPK ini. Isi form sudah dimuat dari draft.
+          Setiap bon yang selesai di-upload akan <strong>otomatis disimpan</strong> ke draft yang sama.
+        </p>
+      ) : (
+        <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+          Setiap bon yang selesai di-upload akan <strong>otomatis disimpan sebagai draft</strong>.
+          Lanjutkan ke supplier berikutnya, lalu klik Ajukan ketika sudah lengkap.
+        </p>
+      )}
+      {draftAutoSaveStatus === 'saving' && (
+        <p className="text-xs text-slate-600 flex items-center gap-1.5">
+          <Loader2 size={14} className="animate-spin shrink-0" />
+          Menyimpan draft...
+        </p>
+      )}
+      {draftAutoSaveStatus === 'saved' && (
+        <p className="text-xs text-emerald-700 font-medium">
+          Draft tersimpan otomatis. Bon berikutnya akan digabung ke draft ini.
+        </p>
+      )}
+      {draftAutoSaveStatus === 'error' && (
+        <p className="text-xs text-red-700 font-medium">
+          Gagal menyimpan draft otomatis. Gunakan tombol Simpan Draft atau coba upload ulang.
+        </p>
+      )}
       {!pengurangCheck.allowed && pengurangCheck.reason && (
         <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           {pengurangCheck.reason}
@@ -1520,6 +1684,7 @@ const SpkPembayaranPanel = ({
           suppliers={materialSuppliers}
           setSuppliers={setMaterialSuppliers}
           idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
+          onAfterBonProcessed={(nextSuppliers) => void autoSaveDraftAfterBon(nextSuppliers)}
         />
       </CollapsibleDetailSection>
 
@@ -1572,7 +1737,21 @@ const SpkPembayaranPanel = ({
         <button
           type="button"
           disabled={
+            saveDraftMutation.isPending ||
+            submitDraftMutation.isPending ||
+            createMutation.isPending
+          }
+          onClick={() => void handleSimpanDraftKasbon()}
+          className="px-4 py-2 text-sm font-bold bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50"
+        >
+          Simpan Draft
+        </button>
+        <button
+          type="button"
+          disabled={
             createMutation.isPending ||
+            saveDraftMutation.isPending ||
+            submitDraftMutation.isPending ||
             kasbonCreateOverPlafon ||
             !pengurangCheck.allowed
           }
@@ -2028,6 +2207,7 @@ const SpkPembayaranPanel = ({
               <tbody>
                 {kasbonItems.map((row) => {
                   const paid = row.status === 'SUDAH_DIBAYAR';
+                  const isDraft = row.status === 'DRAFT';
                   const editable = canEditKasbonRow(row);
                   const deletable = canDeletePenguranganRow(row);
                   const batch = isBatchKasbon(row);
@@ -2071,10 +2251,14 @@ const SpkPembayaranPanel = ({
                       <td className={tdClass}>
                         <span
                           className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded ${
-                            paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'
+                            isDraft
+                              ? 'bg-slate-100 text-slate-700'
+                              : paid
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {paid ? 'Terbayar' : 'Menunggu'}
+                          {isDraft ? 'Draft' : paid ? 'Terbayar' : 'Menunggu'}
                         </span>
                       </td>
                       <td className={tdClass}>
@@ -2151,6 +2335,7 @@ const SpkPembayaranPanel = ({
               <tbody>
                 {upahItems.map((row) => {
                   const paid = row.status === 'SUDAH_DIBAYAR';
+                  const isDraft = row.status === 'DRAFT';
                   const editable = canEditUpahRow(row);
                   const deletable = canDeletePenguranganRow(row);
                   const buktiCount =
@@ -2187,10 +2372,14 @@ const SpkPembayaranPanel = ({
                       <td className={tdClass}>
                         <span
                           className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded ${
-                            paid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'
+                            isDraft
+                              ? 'bg-slate-100 text-slate-700'
+                              : paid
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {paid ? 'Terbayar' : 'Menunggu'}
+                          {isDraft ? 'Draft' : paid ? 'Terbayar' : 'Menunggu'}
                         </span>
                       </td>
                       <td className={tdClass}>

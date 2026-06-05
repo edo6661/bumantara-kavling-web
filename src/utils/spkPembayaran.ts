@@ -1,6 +1,6 @@
 export type SpkTerminPembayaranJenis = 'TERMIN_55' | 'TERMIN_100' | 'RETENSI';
 export type SpkPembayaranJenis = SpkTerminPembayaranJenis | 'KASBON' | 'UPAH';
-export type SpkPembayaranStatus = 'MENUNGGU_PEMBAYARAN' | 'SUDAH_DIBAYAR';
+export type SpkPembayaranStatus = 'MENUNGGU_PEMBAYARAN' | 'SUDAH_DIBAYAR' | 'DRAFT';
 export type SpkKasbonTargetTermin = 'TERMIN_55' | 'TERMIN_100';
 
 export const SPK_PROGRESS_TERMIN_55 = 55;
@@ -225,12 +225,14 @@ export function canRequestKasbon(
   brutoTermin?: number;
   terpakai?: number;
 } {
-  const calcRows: SpkPembayaranCalcRow[] = pembayaranList.map((p) => ({
-    jenis: p.jenis,
-    status: p.status,
-    nominal: p.nominal ?? 0,
-    mengurangiTermin: p.mengurangiTermin,
-  }));
+  const calcRows: SpkPembayaranCalcRow[] = pembayaranList
+    .filter((p) => p.status !== 'DRAFT')
+    .map((p) => ({
+      jenis: p.jenis,
+      status: p.status,
+      nominal: p.nominal ?? 0,
+      mengurangiTermin: p.mengurangiTermin,
+    }));
   const target = getKasbonTargetTermin(calcRows);
   if (!target) {
     return {
@@ -241,12 +243,14 @@ export function canRequestKasbon(
   }
 
   if (nilaiKontrak != null && nilaiKontrak > 0) {
-    const rows: SpkPengurangTerminRow[] = pembayaranList.map((p) => ({
-      id: p.id,
-      jenis: p.jenis,
-      nominal: p.nominal ?? 0,
-      mengurangiTermin: p.mengurangiTermin,
-    }));
+    const rows: SpkPengurangTerminRow[] = pembayaranList
+      .filter((p) => p.status !== 'DRAFT')
+      .map((p) => ({
+        id: p.id,
+        jenis: p.jenis,
+        nominal: p.nominal ?? 0,
+        mengurangiTermin: p.mengurangiTermin,
+      }));
     const cap = getPengurangTerminCapacity(nilaiKontrak, rows, target);
     if (cap.sisa <= 0) {
       return {
@@ -271,12 +275,14 @@ export function canRequestSpkPembayaran(
   spk: SpkNominalInput & { progress: number },
   pembayaranList: SpkPembayaranStatusRow[],
 ): { allowed: boolean; reason?: string; nominal: number } {
-  const calcRows: SpkPembayaranCalcRow[] = pembayaranList.map((p) => ({
-    jenis: p.jenis,
-    status: p.status,
-    nominal: p.nominal ?? 0,
-    mengurangiTermin: p.mengurangiTermin,
-  }));
+  const calcRows: SpkPembayaranCalcRow[] = pembayaranList
+    .filter((p) => p.status !== 'DRAFT')
+    .map((p) => ({
+      jenis: p.jenis,
+      status: p.status,
+      nominal: p.nominal ?? 0,
+      mengurangiTermin: p.mengurangiTermin,
+    }));
 
   if (jenis === 'KASBON' || jenis === 'UPAH') {
     const check = canRequestKasbon(pembayaranList);

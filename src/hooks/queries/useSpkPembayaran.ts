@@ -5,6 +5,7 @@ import {
 } from '../../services/spkPembayaran.service';
 import type {
   CreateSpkPembayaranBody,
+  SaveSpkKasbonDraftBody,
   UpdateSpkKasbonBody,
   UpdateSpkUpahBody,
 } from '../../services/spkPembayaran.service';
@@ -13,6 +14,8 @@ import { SPK_KEYS } from './useSpk';
 export const SPK_PEMBAYARAN_KEYS = {
   all: ['spk-pembayaran'] as const,
   bySpk: (spkId: number) => [...SPK_PEMBAYARAN_KEYS.all, 'spk', spkId] as const,
+  kasbonDraft: (spkId: number) =>
+    [...SPK_PEMBAYARAN_KEYS.all, 'spk', spkId, 'kasbon-draft'] as const,
   list: (params?: SpkPembayaranListParams) =>
     [...SPK_PEMBAYARAN_KEYS.all, 'list', params] as const,
 };
@@ -22,6 +25,14 @@ export const useGetSpkPembayaranBySpk = (spkId: number | null) => {
     queryKey: SPK_PEMBAYARAN_KEYS.bySpk(spkId!),
     queryFn: () => spkPembayaranService.getBySpkId(spkId!),
     enabled: !!spkId,
+  });
+};
+
+export const useGetKasbonDraft = (spkId: number | null, enabled = true) => {
+  return useQuery({
+    queryKey: SPK_PEMBAYARAN_KEYS.kasbonDraft(spkId!),
+    queryFn: () => spkPembayaranService.getKasbonDraft(spkId!),
+    enabled: !!spkId && enabled,
   });
 };
 
@@ -39,9 +50,39 @@ export const useCreateSpkPembayaranRequest = () => {
       spkPembayaranService.createRequest(spkId, body),
     onSuccess: (_, { spkId }) => {
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.kasbonDraft(spkId) });
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(spkId) });
+    },
+  });
+};
+
+export const useSaveKasbonDraft = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ spkId, body }: { spkId: number; body: SaveSpkKasbonDraftBody }) =>
+      spkPembayaranService.saveKasbonDraft(spkId, body),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.kasbonDraft(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(data.spkId) });
+    },
+  });
+};
+
+export const useSubmitKasbonDraft = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ spkId }: { spkId: number }) => spkPembayaranService.submitKasbonDraft(spkId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.kasbonDraft(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(data.spkId) });
     },
   });
 };

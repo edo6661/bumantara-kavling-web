@@ -107,6 +107,10 @@ export type UpdateSpkKasbonBody =
   | { kasbonBaris: SpkPembayaranKasbonBarisBody[] }
   | { keterangan: string; nominal: number; tanggalPo: string };
 
+export interface SaveSpkKasbonDraftBody {
+  kasbonBaris: SpkPembayaranKasbonBarisBody[];
+}
+
 export interface UpdateSpkUpahBody {
   tanggalDari: string;
   tanggalSampai: string;
@@ -118,6 +122,21 @@ export const spkPembayaranService = {
   getBySpkId: async (spkId: number): Promise<SpkPembayaranData[]> => {
     const response = await api.get(`/spk-pembayaran/spk/${spkId}`);
     return response.data.data;
+  },
+
+  getKasbonDraft: async (spkId: number): Promise<SpkPembayaranData | null> => {
+    const response = await api.get(`/spk-pembayaran/spk/${spkId}/kasbon-draft`);
+    return response.data.data as SpkPembayaranData | null;
+  },
+
+  saveKasbonDraft: async (spkId: number, body: SaveSpkKasbonDraftBody) => {
+    const response = await api.put(`/spk-pembayaran/spk/${spkId}/kasbon-draft`, body);
+    return response.data.data as SpkPembayaranData;
+  },
+
+  submitKasbonDraft: async (spkId: number) => {
+    const response = await api.post(`/spk-pembayaran/spk/${spkId}/kasbon-draft/submit`);
+    return response.data.data as SpkPembayaranData;
   },
 
   getPaginated: async (params: SpkPembayaranListParams = {}) => {
