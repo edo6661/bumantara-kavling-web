@@ -10,7 +10,8 @@ import PenjualanDetailModal from "../../components/penjualan/PenjualanDetailModa
 import {
   FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn, Eye,
   ChevronDown, ChevronUp, Filter, ArrowUpDown, PieChart, CheckCircle2, Wallet,
-  Edit2, Building2, Plus, MoreVertical
+  Edit2, Building2, Plus, MoreVertical, MessageCircle,
+  X
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
@@ -2916,7 +2917,7 @@ const Penjualan = () => {
         )}
 
         <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
-          <button onClick={() => setPrintData(null)} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-100 transition-colors shadow-sm">Tutup</button>
+          
 
           {printType === 'kwitansi' && (
             <button onClick={() => {
@@ -2928,15 +2929,15 @@ const Penjualan = () => {
               setIsTtdModalOpen(true);
               setTimeout(() => sigCanvas.current?.clear(), 100);
             }} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-blue-700 transition-colors shadow-md flex items-center gap-2">
-              <PenTool size={16} /> Tanda Tangan
+              <PenTool size={16} /> 
             </button>
           )}
 
           <button onClick={handleShareWA} className="px-6 py-2.5 bg-emerald-500 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-emerald-600 shadow-md shadow-emerald-500/20 flex items-center gap-2 transition-colors">
-            Kirim via WA
+            <MessageCircle size={16} />
           </button>
           <button onClick={handlePrintPDF} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-slate-800 flex items-center gap-2 transition-colors shadow-md">
-            <Printer size={16} /> Download PDF
+            <Printer size={16} /> 
           </button>
         </div>
       </Modal>
@@ -3007,7 +3008,9 @@ const Penjualan = () => {
 
           <div className="flex justify-end gap-3 w-full pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
             <a href={previewImage || '#'} target="_blank" rel="noreferrer" className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all cursor-pointer shadow-sm">Buka Tab Baru</a>
-            <button onClick={() => setPreviewImage(null)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all cursor-pointer shadow-md">Tutup</button>
+            <button onClick={() => setPreviewImage(null)} className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all cursor-pointer shadow-md">
+              <X size={16} />
+            </button>
           </div>
         </div>
       </Modal>
