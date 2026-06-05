@@ -136,8 +136,6 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
     return false;
   };
-
-  // <-- Tambah fungsi handleLogout
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
@@ -158,41 +156,37 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       </AnimatePresence>
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
+        className={`fixed inset-y-0 left-0 z-50 bg-white/80 backdrop-blur-xl border-r border-slate-200/60 flex flex-col transition-all duration-300 ease-in-out shrink-0 md:static md:translate-x-0 
           ${isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
           ${!isExpanded ? 'w-72 md:w-20' : 'w-72'} 
         `}
       >
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="hidden md:flex absolute -right-3 top-7 z-50 bg-white border border-slate-200 text-slate-400 hover:text-slate-900 shadow-sm rounded-full p-1 cursor-pointer transition-transform duration-300 hover:scale-110"
+          className="hidden md:flex absolute -right-3.5 top-8 z-50 bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 shadow-sm rounded-full p-1.5 cursor-pointer transition-all duration-300"
         >
-          <ChevronRight size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+          <ChevronRight size={14} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
         </button>
 
-        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-8 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
+        <div className={`h-20 flex items-center shrink-0 transition-all duration-300 px-6 justify-between ${!isExpanded ? 'md:px-0 md:justify-center' : ''}`}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="min-w-9 w-9 h-9 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">
+            <div className="min-w-8 w-8 h-8 bg-gradient-to-br from-slate-800 to-black rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md shrink-0">
               B
             </div>
-            <span className={`font-heading font-extrabold text-xl tracking-tighter text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
-              Bumantaraz
+            <span className={`font-heading font-extrabold text-xl tracking-tight text-slate-900 transition-all duration-300 whitespace-nowrap overflow-hidden opacity-100 w-auto ${!isExpanded ? 'md:opacity-0 md:w-0' : ''}`}>
+              Bumantara
             </span>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="md:hidden p-2 text-slate-400 hover:text-black hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
+            className="md:hidden p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all cursor-pointer shrink-0"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar overflow-x-hidden">
-          <p className={`px-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap overflow-hidden mb-4 opacity-100 h-auto ${!isExpanded ? 'md:opacity-0 md:h-0 md:mb-0' : ''}`}>
-            Main Menu
-          </p>
-
-          <nav className="space-y-1">
+        <div className="flex-1 overflow-y-auto py-4 px-3 custom-scrollbar overflow-x-hidden">
+          <nav className="space-y-1.5">
             {filteredMenuItems.map((item) => {
               if (!item) return null;
               const hasSubmenus = !!item.submenus;
@@ -206,21 +200,21 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                       <button
                         onClick={() => handleMenuClick(item.title)}
                         title={!isExpanded ? item.title : undefined}
-                        className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between 
+                        className={`w-full flex items-center py-2.5 rounded-lg transition-all duration-200 group cursor-pointer px-3 justify-between 
                           ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
-                          ${isActive ? 'text-slate-900 font-bold bg-slate-50 md:bg-transparent' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                          ${isActive ? 'bg-slate-50/80 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
                       >
                         <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 ${isActive ? 'text-black' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
+                          <span className={`shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600 transition-colors'}`}>
                             {item.icon}
                           </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                          <span className={`text-sm font-medium tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
                             {item.title}
                           </span>
                         </div>
                         <ChevronDown
                           size={14}
-                          className={`transition-all duration-300 shrink-0 text-slate-300 group-hover:text-slate-500 opacity-100 w-auto
+                          className={`transition-all duration-300 shrink-0 text-slate-400 group-hover:text-slate-600 opacity-100 w-auto
                             ${isOpenMenu ? 'rotate-180' : ''}
                             ${!isExpanded ? 'md:opacity-0 md:w-0 overflow-hidden' : ''}`}
                         />
@@ -230,23 +224,21 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                         ${isOpenMenu ? 'max-h-64 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}
                         ${!isExpanded ? 'md:max-h-0 md:opacity-0 md:mt-0 md:mb-0' : ''}
                       `}>
-                        <div className="ml-6 pl-4 border-l-2 border-slate-100 space-y-1">
-                          {item.submenus!.map((sub) => {
-                            return (
-                              <NavLink
-                                key={sub.title}
-                                to={sub.path}
-                                className={({ isActive: linkActive }) => `
-                                  flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
-                                  ${linkActive
-                                    ? 'bg-black text-white shadow-md shadow-black/10'
-                                    : 'text-slate-500 hover:text-slate-900 hover:translate-x-1'}
-                                `}
-                              >
-                                {sub.title}
-                              </NavLink>
-                            );
-                          })}
+                        <div className="ml-[1.15rem] pl-4 border-l border-slate-200 space-y-1">
+                          {item.submenus!.map((sub) => (
+                            <NavLink
+                              key={sub.title}
+                              to={sub.path}
+                              className={({ isActive: linkActive }) => `
+                                flex items-center gap-2 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-200 whitespace-nowrap
+                                ${linkActive
+                                  ? 'bg-slate-100 text-slate-900 font-semibold'
+                                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50/50'}
+                              `}
+                            >
+                              {sub.title}
+                            </NavLink>
+                          ))}
                         </div>
                       </div>
                     </>
@@ -255,23 +247,28 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                       to={item.path!}
                       title={!isExpanded ? item.title : undefined}
                       className={({ isActive: linkActive }) =>
-                        `w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between
+                        `w-full flex items-center py-2.5 rounded-lg transition-all duration-200 group cursor-pointer px-3 justify-between relative overflow-hidden
                         ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
                         ${linkActive
-                          ? `bg-black text-white shadow-lg shadow-black/20 font-bold translate-x-1 ${!isExpanded ? 'md:translate-x-0 md:bg-slate-100 md:text-black md:shadow-none' : ''}`
+                          ? `bg-slate-50 text-slate-900 font-semibold ${!isExpanded ? 'md:bg-slate-100' : ''}`
                           : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                         }`
                       }
                     >
                       {({ isActive: linkActive }) => (
-                        <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 transition-colors ${linkActive ? 'text-white ' + (!isExpanded ? 'md:text-black' : '') : 'text-slate-400 group-hover:text-slate-600'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
-                            {item.title}
-                          </span>
-                        </div>
+                        <>
+                          {linkActive && isExpanded && (
+                            <motion.div layoutId="sidebar-active" className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-slate-900 rounded-r-full" />
+                          )}
+                          <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
+                            <span className={`shrink-0 transition-colors ${linkActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                              {item.icon}
+                            </span>
+                            <span className={`text-sm tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+                              {item.title}
+                            </span>
+                          </div>
+                        </>
                       )}
                     </NavLink>
                   )}
@@ -281,20 +278,19 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
           </nav>
         </div>
 
-        {/* <-- TAMBAH BAGIAN INI: Tombol Logout di bagian paling bawah Sidebar --> */}
-        <div className="shrink-0 p-4 border-t border-slate-200/60 bg-white">
+        <div className="shrink-0 p-4 border-t border-slate-200/50 bg-transparent">
           <button
             onClick={handleLogout}
             title={!isExpanded ? "Keluar Sistem" : undefined}
-            className={`w-full flex items-center py-3 rounded-xl transition-all duration-300 group cursor-pointer px-4 justify-between text-red-500 hover:bg-red-50 hover:text-red-700
+            className={`w-full flex items-center py-2.5 rounded-lg transition-all duration-200 group cursor-pointer px-3 text-slate-500 hover:bg-red-50 hover:text-red-600
               ${!isExpanded ? 'md:px-0 md:justify-center' : ''}
             `}
           >
             <div className={`flex items-center gap-3 ${!isExpanded ? 'md:gap-0' : ''}`}>
               <span className="shrink-0 transition-colors">
-                <LogOut size={20} strokeWidth={1.5} />
+                <LogOut size={18} strokeWidth={1.5} />
               </span>
-              <span className={`text-sm tracking-tight font-bold whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
+              <span className={`text-sm font-medium tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100 w-auto ml-3 ${!isExpanded ? 'md:opacity-0 md:w-0 md:ml-0' : ''}`}>
                 Keluar
               </span>
             </div>
