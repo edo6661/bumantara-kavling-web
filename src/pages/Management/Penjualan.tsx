@@ -1250,16 +1250,19 @@ const Penjualan = () => {
       );
     }
 
-    return (
-      <div className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
-        <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
-          <h4 className="text-sm font-bold text-slate-800">Manajemen Dokumen Penjualan & Tagihan Awal</h4>
+   return (
+      <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200/80 shadow-inner animate-in fade-in duration-300 mt-2 mx-2 mb-4">
+        <div className="flex justify-between items-center mb-5 border-b border-slate-200/60 pb-3">
+          <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+            <FileText size={16} className="text-indigo-500" />
+            Manajemen Dokumen & Penagihan
+          </h4>
           {row.isPendingBatal ? (
-            <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm">
-              <Clock size={12} className="animate-spin" /> Sedang Diajukan Pembatalan
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
+              <Clock size={12} className="animate-spin" /> Pending Batal
             </div>
           ) : (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {((row.status === 'BOOKED' || row.status === 'PROSES')) && (
                 <button
                   onClick={() => {
@@ -1267,145 +1270,126 @@ const Penjualan = () => {
                     setCancelData({ id: row.id!, alasanBatal: '' });
                     setIsCancelModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors shadow-sm"
+                  className="flex items-center gap-1 px-2.5 py-1  text-red-600 bg-red-50 hover:bg-red-100  rounded-md text-[11px] font-medium transition-colors"
                 >
-                  <Ban size={12} /> Ajukan Pembatalan
+                  <Ban size={12} /> Ajukan Batal
                 </button>
               )}
-              <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm border ${row.status === 'BATAL' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                Status: {row.status}
-              </span>
             </div>
           )}
         </div>
 
-        <div className="space-y-3">
-            <h5 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Booking Fee & SPR</h5>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => {
-                  setPrintType('invoice');
-                  setPrintTitle('Booking Fee');
-                  setPrintData({ ...row, nominalCetak: row.bookingFee, pembuat: row.createdBy || 'Admin' });
-                }}
-                className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer shadow-sm"
-              >
-                <FileText size={14} /> Invoice
-              </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <h5 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2.5">Opsi Dokumen</h5>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    setPrintType('invoice');
+                    setPrintTitle('Booking Fee');
+                    setPrintData({ ...row, nominalCetak: row.bookingFee, pembuat: row.createdBy || 'Admin' });
+                  }}
+                  className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
+                >
+                  <FileText size={14} className="text-slate-400" /> Invoice
+                </button>
 
-              {row.fileBuktiBooking ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setPrintType('kwitansi');
-                      setPrintTitle('Booking Fee');
-                      setPrintData({ ...row, nominalCetak: row.bookingFee, pembuat: row.createdBy || 'Admin' });
-                    }}
-                    className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-colors cursor-pointer shadow-md shadow-slate-900/10"
-                  >
-                    <Receipt size={14} /> Kwitansi
-                  </button>
-                  {row.fileSpr ? (
-                    <>
-                      <a
-                        href={row.fileSpr}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer shadow-sm"
-                      >
-                        <FileText size={14} /> Lihat SPR
-                      </a>
+                {row.fileBuktiBooking ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        setPrintType('kwitansi');
+                        setPrintTitle('Booking Fee');
+                        setPrintData({ ...row, nominalCetak: row.bookingFee, pembuat: row.createdBy || 'Admin' });
+                      }}
+                      className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-all shadow-sm cursor-pointer"
+                    >
+                      <Receipt size={14} /> Kwitansi
+                    </button>
+                    
+                    {row.fileSpr ? (
+                      <div className="w-full flex gap-2 mt-1">
+                        <a
+                          href={row.fileSpr}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                        >
+                          <FileText size={14} /> Lihat SPR
+                        </a>
 
-                      {row.caraPembayaran === 'KPR' && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setBankData({
-                                id: row.id!,
-                                bank: row.bank || '',
-                                bankKprNamaRekening: row.bankKprNamaRekening || '',
-                                bankKprAtasNamaRekening: row.bankKprAtasNamaRekening || '',
-                                bankKprNoRekening: row.bankKprNoRekening || '',
-                              });
-                              setIsBankModalOpen(true);
-                            }}
-                            className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer shadow-sm"
-                          >
-                            <Building2 size={14} /> {row.bank ? 'Edit Bank' : 'Isi Bank KPR'}
-                          </button>
-                          <button
-                            onClick={() => openSkemaModal(row, true)}
-                            className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold rounded-xl hover:bg-orange-500 hover:text-white transition-colors cursor-pointer shadow-sm"
-                          >
-                            <PenTool size={14} /> Tambah Biaya
-                          </button>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex gap-2 flex-1 w-full">
+                        {row.caraPembayaran === 'KPR' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setBankData({ id: row.id!, bank: row.bank || '', bankKprNamaRekening: row.bankKprNamaRekening || '', bankKprAtasNamaRekening: row.bankKprAtasNamaRekening || '', bankKprNoRekening: row.bankKprNoRekening || '' });
+                                setIsBankModalOpen(true);
+                              }}
+                              className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
+                            >
+                              <Building2 size={14} /> Bank KPR
+                            </button>
+                            <button
+                              onClick={() => openSkemaModal(row, true)}
+                              className="flex justify-center items-center p-2.5 bg-amber-50 border border-amber-100 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
+                              title="Revisi Biaya SPR"
+                            >
+                              <PenTool size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : (
                       <button
                         onClick={() => openSkemaModal(row)}
-                        className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all cursor-pointer shadow-md shadow-indigo-600/20"
+                        className="w-full flex justify-center items-center gap-1.5 px-3 py-2.5 mt-1 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm cursor-pointer"
                       >
-                        Buat SPR
+                        <Plus size={14} /> Buat Dokumen SPR
                       </button>
-
-                      {/* <button
-                        onClick={() => handleQuickGenerateSPR(row.id!)}
-                        disabled={updateMutation.isPending}
-                        className="flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-black transition-all cursor-pointer shadow-md disabled:opacity-50"
-                      >
-                        Generate Cepat
-                      </button> */}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <label className={`flex-1 flex justify-center items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
-                  <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Booking"}
-                  <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
-                </label>
-              )}
-            </div>
-
-            {row.fileBuktiBooking && (
-              <div className="mt-4 border-t border-slate-200 pt-3">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bukti Transfer Booking Fee</p>
-
-                  <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
-                    {uploadBuktiMutation.isPending ? 'Mengunggah...' : 'Ganti Bukti'}
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="hidden"
-                      onChange={(e) => handleUploadBukti(row.id!, 'booking', e)}
-                      disabled={uploadBuktiMutation.isPending}
-                    />
+                    )}
+                  </>
+                ) : (
+                  <label className={`flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Transfer"}
+                    <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
                   </label>
-                </div>
-
-                <div
-                  onClick={() => setPreviewImage(row.fileBuktiBooking as string)}
-                  className="relative w-24 h-16 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100 ring-1 ring-slate-900/5 flex justify-center items-center"
-                  title="Klik untuk perbesar"
-                >
-                  {row.fileBuktiBooking.split('?')[0].toLowerCase().endsWith('.pdf') || row.fileBuktiBooking.includes('application/pdf') ? (
-                    <div className="text-red-500"><FileText size={24} /></div>
-                  ) : (
-                    <img
-                      src={`${row.fileBuktiBooking}?t=${new Date(row.updatedAt!).getTime()}`}
-                      alt="Bukti Booking"
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <ZoomIn size={14} className="text-white" />
-                  </div>
-                </div>
+                )}
               </div>
-            )}
+            </div>
+          </div>
+
+          {row.fileBuktiBooking && (
+            <div className="pl-0 md:pl-6 md:border-l border-slate-200/60 flex flex-col justify-center">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Bukti Transfer (BF)</p>
+                <label className={`text-[10px] font-bold text-indigo-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {uploadBuktiMutation.isPending ? 'Proses...' : 'Ganti File'}
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
+                </label>
+              </div>
+
+              <div
+                onClick={() => setPreviewImage(row.fileBuktiBooking as string)}
+                className="relative w-full h-24 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-white flex justify-center items-center"
+                title="Klik untuk perbesar"
+              >
+                {row.fileBuktiBooking.split('?')[0].toLowerCase().endsWith('.pdf') || row.fileBuktiBooking.includes('application/pdf') ? (
+                  <div className="flex flex-col items-center gap-2 text-rose-500">
+                    <FileText size={28} />
+                    <span className="text-[10px] font-bold text-slate-500">Lihat PDF</span>
+                  </div>
+                ) : (
+                  <>
+                    <img src={`${row.fileBuktiBooking}?t=${new Date(row.updatedAt!).getTime()}`} alt="Bukti Booking" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                      <div className="bg-white/90 p-1.5 rounded-full backdrop-blur-sm"><ZoomIn size={16} className="text-slate-900" /></div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1542,38 +1526,53 @@ const Penjualan = () => {
         </div>
 
         {isSummaryExpanded && (
-          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50/50">
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-slate-400 group-hover:bg-slate-600 transition-colors"></div>
-              <div className="flex items-center gap-3 mb-3 pl-2">
-                <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center"><Wallet size={16} className="text-slate-600" /></div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Transaksi</p>
+          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50">
+            <div className="bg-white border border-slate-200/60 p-4 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2.5 rounded-xl bg-slate-100 group-hover:scale-105 transition-transform">
+                  <Wallet size={18} className="text-slate-700" />
+                </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 pl-2 tabular-nums">{meta?.totalItems || 0}</p>
+              <div>
+                <p className="text-3xl font-black text-slate-900 tabular-nums tracking-tight">{meta?.totalItems || 0}</p>
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1">Total Transaksi</p>
+              </div>
             </div>
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 group-hover:bg-blue-600 transition-colors"></div>
-              <div className="flex items-center gap-3 mb-3 pl-2">
-                <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Booked / Proses</p>
+            
+            <div className="bg-white border border-slate-200/60 p-4 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2.5 rounded-xl bg-blue-50 group-hover:scale-105 transition-transform">
+                  <Clock size={18} className="text-blue-600" />
+                </div>
               </div>
-              <p className="text-3xl font-black text-blue-700 pl-2 tabular-nums">{(summary['BOOKED'] || 0) + (summary['PROSES'] || 0)}</p>
+              <div>
+                <p className="text-3xl font-black text-blue-700 tabular-nums tracking-tight">{(summary['BOOKED'] || 0) + (summary['PROSES'] || 0)}</p>
+                <p className="text-[11px] font-bold text-blue-500 uppercase tracking-widest mt-1">Booked / Proses</p>
+              </div>
             </div>
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400 group-hover:bg-emerald-600 transition-colors"></div>
-              <div className="flex items-center gap-3 mb-3 pl-2">
-                <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center"><CheckCircle2 size={16} className="text-emerald-600" /></div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Lunas</p>
+
+            <div className="bg-white border border-slate-200/60 p-4 rounded-2xl shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2.5 rounded-xl bg-emerald-50 group-hover:scale-105 transition-transform">
+                  <CheckCircle2 size={18} className="text-emerald-600" />
+                </div>
               </div>
-              <p className="text-3xl font-black text-emerald-700 pl-2 tabular-nums">{summary['LUNAS'] || 0}</p>
+              <div>
+                <p className="text-3xl font-black text-emerald-700 tabular-nums tracking-tight">{summary['LUNAS'] || 0}</p>
+                <p className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest mt-1">Lunas / Selesai</p>
+              </div>
             </div>
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-red-400 group-hover:bg-red-600 transition-colors"></div>
-              <div className="flex items-center gap-3 mb-3 pl-2">
-                <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center"><Ban size={16} className="text-red-600" /></div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Batal</p>
+
+            <div className="bg-white border border-slate-200/60 p-4 rounded-2xl shadow-sm hover:shadow-md hover:border-red-300 transition-all duration-300 flex flex-col justify-between group cursor-pointer">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2.5 rounded-xl bg-red-50 group-hover:scale-105 transition-transform">
+                  <Ban size={18} className="text-red-600" />
+                </div>
               </div>
-              <p className="text-3xl font-black text-red-700 pl-2 tabular-nums">{summary['BATAL'] || 0}</p>
+              <div>
+                <p className="text-3xl font-black text-red-600 tabular-nums tracking-tight">{summary['BATAL'] || 0}</p>
+                <p className="text-[11px] font-bold text-red-500 uppercase tracking-widest mt-1">Batal</p>
+              </div>
             </div>
           </div>
         )}
@@ -1659,9 +1658,9 @@ const Penjualan = () => {
         <form onSubmit={handleSubmit} className="space-y-2">
 
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
-            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm ring-1 ring-indigo-100">1</div>
-              <h4 className="text-base font-bold text-slate-900">Data Pembeli & Marketing</h4>
+          <div className="flex items-center gap-3 mb-5 pb-3">
+              <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">1</div>
+              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Data Pembeli & Marketing</h4>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-1">
@@ -1725,9 +1724,9 @@ const Penjualan = () => {
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
-            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm ring-1 ring-indigo-100">2</div>
-              <h4 className="text-base font-bold text-slate-900">Data Kavling</h4>
+          <div className="flex items-center gap-3 mb-5 pb-3">
+              <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">2</div>
+              <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Pilihan Unit Kavling</h4>
             </div>
 
             <div className="space-y-2">
