@@ -4,6 +4,7 @@ import { authService } from '../services/auth.service';
 import type { Perumahan } from '../types/models/perumahan';
 import type { ActionResult } from '../types/common';
 import { storage } from '../utils/storage';
+import { disconnectSocket, refreshSocketAuth } from '../lib/socket';
 import { handleApiError } from '../utils/errorHandler';
 import type { User } from '../types/models/user';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
 
   const logout = useCallback(() => {
+    disconnectSocket();
     storage.clearAuth();
     setIsAuthenticated(false);
     setSelectedPerumahanState(null);
@@ -41,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated(true);
         setSelectedPerumahanState(perumahan);
         setUser(response.data.user);
+        refreshSocketAuth();
         return { success: true };
       }
       return { success: false, message: response.message || 'Login gagal.' };

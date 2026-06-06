@@ -4,6 +4,7 @@ import {
   type CreateTagihanDTO,
   type UpdateTagihanDTO,
 } from "../../services/tagihan.service";
+import { invalidateSidebarBadges } from "./useSidebarBadges";
 
 export const TAGIHAN_KEYS = {
   all: ["tagihans"] as const,
@@ -128,6 +129,7 @@ export const useApproveTagihan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+      invalidateSidebarBadges(queryClient);
     },
   });
 };

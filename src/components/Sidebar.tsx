@@ -18,6 +18,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { canReadResource } from '../utils/permissions';
+import { useSidebarBadges } from '../hooks/queries/useSidebarBadges';
+import SidebarBadge from './ui/SidebarBadge';
 
 const menuItems = [
   {
@@ -98,6 +100,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { getBadgeForPath, getSectionBadge } = useSidebarBadges();
 
   const filteredMenuItems = menuItems.map(item => {
     if (!item.submenus) {
@@ -218,6 +221,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
               const hasSubmenus = !!item.submenus;
               const isActive = checkActive(item.path, item.submenus);
               const isOpenMenu = openMenus[item.title];
+              const sectionBadge = getSectionBadge(item.title);
 
               return (
                 <div key={item.title}>
@@ -235,43 +239,54 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                           }
                         `}
                       >
-                        <div className={`flex items-center gap-3 ${isCollapsed ? 'md:gap-0' : ''}`}>
-                          <span className={`shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                        <div className={`flex items-center gap-3 min-w-0 ${isCollapsed ? 'md:gap-0' : ''}`}>
+                          <span className={`relative shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'}`}>
                             {item.icon}
+                            {isCollapsed && sectionBadge > 0 && (
+                              <SidebarBadge count={sectionBadge} variant="compact" />
+                            )}
                           </span>
                           <span className={`text-[13px] font-medium tracking-tight whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'md:w-0 md:opacity-0 md:overflow-hidden' : 'w-auto opacity-100'}`}>
                             {item.title}
                           </span>
                         </div>
-                        <ChevronDown
-                          size={13}
-                          className={`
-                            transition-all duration-200 shrink-0 text-slate-600 group-hover:text-slate-400
-                            ${isOpenMenu ? 'rotate-180 text-slate-400' : ''}
-                            ${isCollapsed ? 'md:hidden' : ''}
-                          `}
-                        />
+                        <div className={`flex items-center gap-2 shrink-0 ${isCollapsed ? 'md:hidden' : ''}`}>
+                          {!isCollapsed && sectionBadge > 0 && (
+                            <SidebarBadge count={sectionBadge} />
+                          )}
+                          <ChevronDown
+                            size={13}
+                            className={`
+                              transition-all duration-200 text-slate-600 group-hover:text-slate-400
+                              ${isOpenMenu ? 'rotate-180 text-slate-400' : ''}
+                            `}
+                          />
+                        </div>
                       </button>
 
                       {/* Submenu */}
                       <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpenMenu && !isCollapsed ? 'max-h-72 opacity-100' : 'max-h-0 opacity-0'}`}>
                         <div className="ml-4 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
-                          {item.submenus!.map((sub) => (
-                            <NavLink
-                              key={sub.title}
-                              to={sub.path}
-                              className={({ isActive: linkActive }) => `
-                                flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200
-                                ${linkActive
-                                  ? 'bg-blue-500/20 text-blue-300 font-semibold'
-                                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 hover:translate-x-0.5'
-                                }
-                              `}
-                            >
-                              <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
-                              {sub.title}
-                            </NavLink>
-                          ))}
+                          {item.submenus!.map((sub) => {
+                            const badgeCount = getBadgeForPath(sub.path);
+                            return (
+                              <NavLink
+                                key={sub.title}
+                                to={sub.path}
+                                className={({ isActive: linkActive }) => `
+                                  flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200
+                                  ${linkActive
+                                    ? 'bg-blue-500/20 text-blue-300 font-semibold'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 hover:translate-x-0.5'
+                                  }
+                                `}
+                              >
+                                <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
+                                <span className="flex-1 truncate">{sub.title}</span>
+                                <SidebarBadge count={badgeCount} />
+                              </NavLink>
+                            );
+                          })}
                         </div>
                       </div>
                     </>

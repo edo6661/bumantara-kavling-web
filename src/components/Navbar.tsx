@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
-import { Menu, Building, Bell, Trash2, Search, ChevronDown } from 'lucide-react';
+import { Menu, Building, ChevronDown } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useGetPerumahan } from '../hooks/queries/usePerumahan';
-import { useAdminSocket } from '../hooks/useAdminSocket';
+import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -34,9 +33,18 @@ const routeLabels: Record<string, string> = {
   '/finance/bayar-notaris': 'Bayar Notaris',
   '/finance/bayar-kpr': 'Bayar Bank KPR',
   '/proyek/spk': 'SPK Proyek',
+  '/proyek/approve-kasbon': 'Approve Pembayaran SPK',
   '/proyek/tukang': 'Data Tukang',
   '/proyek/progress': 'Progress Proyek',
 };
+
+const NOTIFICATION_ROLES = new Set([
+  'ADMIN',
+  'SUPERADMIN',
+  'FINANCE',
+  'PENGAWAS',
+  'MANDOR',
+]);
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
   const location = useLocation();
@@ -45,26 +53,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
 
   const profileInitials = user?.username?.trim().slice(0, 2).toUpperCase() || 'U';
   const { data: perumahanList } = useGetPerumahan();
-  const showNotifications = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
-  const { notifications, unreadCount, markAllAsRead, clearNotifications } = useAdminSocket();
-
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setIsNotifOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const toggleNotif = () => {
-    setIsNotifOpen(!isNotifOpen);
-    if (!isNotifOpen && unreadCount > 0) markAllAsRead();
-  };
+  const showNotifications = !!user && NOTIFICATION_ROLES.has(user.role);
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -88,9 +77,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
 
   return (
     <header className="h-[64px] flex items-center justify-between px-4 md:px-6 bg-white border-b border-slate-100 sticky top-0 z-30 shrink-0">
-      {/* Left section */}
       <div className="flex items-center gap-3">
-        {/* Mobile menu toggle */}
         <button
           onClick={onMenuClick}
           className="md:hidden p-2 -ml-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl cursor-pointer transition-colors"
@@ -98,7 +85,6 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           <Menu size={20} />
         </button>
 
-        {/* Mobile brand logo */}
         <div className="flex items-center gap-2 md:hidden">
           {selectedPerumahan?.logo ? (
             <img src={selectedPerumahan.logo} alt="Logo" className="h-7 object-contain" />
@@ -112,7 +98,6 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           </span>
         </div>
 
-        {/* Desktop page title with breadcrumb */}
         <div className="hidden md:flex flex-col justify-center">
           {breadcrumb && (
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-none mb-0.5">
@@ -125,10 +110,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
         </div>
       </div>
 
-      {/* Right section */}
       <div className="flex items-center gap-2">
-
-        {/* Perumahan selector */}
         {selectedPerumahan && perumahanList && (
           <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 hover:border-slate-300 transition-colors group">
             {selectedPerumahan.logo ? (
@@ -152,75 +134,8 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           </div>
         )}
 
-        {/* Notifications */}
-        {showNotifications && (
-          <div className="relative" ref={notifRef}>
-            <button
-              onClick={toggleNotif}
-              className="relative w-9 h-9 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-            >
-              <Bell size={18} />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-              )}
-            </button>
+        {showNotifications && <NotificationBell />}
 
-            {/* Notification dropdown */}
-            {isNotifOpen && (
-              <div className="absolute right-0 mt-2 w-[340px] sm:w-[380px] bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-[14px]">Notifikasi</h3>
-                    {unreadCount > 0 && (
-                      <p className="text-[11px] text-slate-400">{unreadCount} belum dibaca</p>
-                    )}
-                  </div>
-                  {notifications.length > 0 && (
-                    <button
-                      onClick={clearNotifications}
-                      className="text-[11px] font-semibold text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1 cursor-pointer"
-                    >
-                      <Trash2 size={12} />
-                      Hapus semua
-                    </button>
-                  )}
-                </div>
-
-                <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
-                  {notifications.length === 0 ? (
-                    <div className="p-10 flex flex-col items-center justify-center text-center">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-                        <Bell size={20} className="text-slate-300" />
-                      </div>
-                      <p className="text-slate-500 text-[13px] font-medium">Tidak ada notifikasi</p>
-                      <p className="text-slate-400 text-[12px] mt-1">Anda sudah up-to-date!</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-50">
-                      {notifications.map(notif => (
-                        <div
-                          key={notif.id}
-                          className={`px-4 py-3 hover:bg-slate-50 transition-colors ${!notif.isRead ? 'bg-blue-50/40' : ''}`}
-                        >
-                          <div className="flex justify-between items-start gap-2 mb-1">
-                            <p className="text-[13px] font-semibold text-slate-800 leading-tight">{notif.title}</p>
-                            {!notif.isRead && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1" />}
-                          </div>
-                          <p className="text-[12px] text-slate-500 leading-relaxed">{notif.message}</p>
-                          <p className="text-[10px] font-semibold text-slate-400 mt-1.5 uppercase tracking-wider">
-                            {notif.createdAt?.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Profile avatar */}
         <button
           type="button"
           onClick={() => navigate('/profile')}
