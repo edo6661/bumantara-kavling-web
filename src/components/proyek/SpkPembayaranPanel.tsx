@@ -1523,11 +1523,17 @@ const SpkPembayaranPanel = ({
     }
   };
 
+  const isSavingDraft =
+    draftAutoSaveStatus === 'saving' || saveDraftMutation.isPending;
+
   const handleSimpanDraftKasbon = async () => {
+    if (isSavingDraft) return;
     setDraftAutoSaveStatus('saving');
     const ok = await persistKasbonDraft(materialSuppliers, { silent: false, syncForm: true });
     if (ok) {
       alert('Draft kasbon berhasil disimpan. Anda bisa lanjut kumpulkan bon lain lalu ajukan.');
+    } else {
+      setDraftAutoSaveStatus((status) => (status === 'saving' ? 'idle' : status));
     }
   };
 
@@ -1688,21 +1694,28 @@ const SpkPembayaranPanel = ({
         <button
           type="button"
           disabled={
-            saveDraftMutation.isPending ||
+            isSavingDraft ||
             submitDraftMutation.isPending ||
             createMutation.isPending ||
             deleteMutation.isPending
           }
           onClick={() => void handleSimpanDraftKasbon()}
-          className="px-4 py-2 text-sm font-bold bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:pointer-events-none"
         >
-          Simpan
+          {isSavingDraft ? (
+            <>
+              <Loader2 size={16} className="animate-spin shrink-0" />
+              Menyimpan...
+            </>
+          ) : (
+            'Simpan Draft'
+          )}
         </button>
         <button
           type="button"
           disabled={
             createMutation.isPending ||
-            saveDraftMutation.isPending ||
+            isSavingDraft ||
             submitDraftMutation.isPending ||
             deleteMutation.isPending ||
             kasbonCreateOverPlafon ||

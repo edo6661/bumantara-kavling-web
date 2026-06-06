@@ -87,6 +87,9 @@ const getItemLabel = (row: SpkPembayaranData) => {
 const formatKsoShortLabel = (atasNama: string) =>
   atasNama.trim().split(/\s+/).pop() ?? atasNama;
 
+const getPengajuanTimestamp = (row: SpkPembayaranData) =>
+  new Date(row.createdAt).getTime();
+
 const BayarSpkPembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,7 +150,11 @@ const BayarSpkPembayaran = () => {
         });
       }
     }
-    return Array.from(map.values()).sort((a, b) => a.noSpk.localeCompare(b.noSpk));
+    return Array.from(map.values()).sort((a, b) => {
+      const aLatest = Math.max(...a.items.map(getPengajuanTimestamp));
+      const bLatest = Math.max(...b.items.map(getPengajuanTimestamp));
+      return bLatest - aLatest || a.noSpk.localeCompare(b.noSpk);
+    });
   }, [items]);
 
   const selectedItems = useMemo(
@@ -659,17 +666,11 @@ const BayarSpkPembayaran = () => {
                                 </thead>
                                 <tbody>
                                   {group.items
-                                    .sort((a, b) => {
-                                      const order: Record<string, number> = {
-                                        KASBON: 0,
-                                        TERMIN_55: 1,
-                                        TERMIN_100: 2,
-                                        RETENSI: 3,
-                                      };
-                                      return (
-                                        (order[a.jenis] ?? 9) - (order[b.jenis] ?? 9) || a.id - b.id
-                                      );
-                                    })
+                                    .sort(
+                                      (a, b) =>
+                                        getPengajuanTimestamp(b) - getPengajuanTimestamp(a) ||
+                                        b.id - a.id,
+                                    )
                                     .map(renderItemRow)}
                                 </tbody>
                               </table>
