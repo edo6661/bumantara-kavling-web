@@ -826,7 +826,9 @@ const MaterialSuppliersEditor = ({
               + Tambah item
             </button>
             <p className="text-[10px] font-semibold text-orange-800">
-              Subtotal bon ini: {formatRupiah(bonMaterialTotal(bon))}
+              Subtotal bon ini: <span className='text-red-500'>
+              {formatRupiah(bonMaterialTotal(bon))}
+              </span>
             </p>
           </div>
         ))}
@@ -843,7 +845,7 @@ const MaterialSuppliersEditor = ({
           className="inline-flex items-center gap-1 text-xs font-bold text-orange-700 hover:underline"
         >
           <Plus size={14} />
-          Tambah bon
+          Tambah bon di supplier yang sama
         </button>
 
         {supplierMissingFotoBon(supplier) !== null && (
@@ -853,7 +855,9 @@ const MaterialSuppliersEditor = ({
         )}
 
         <p className="text-xs font-semibold text-orange-900">
-          Total belanja supplier ini: {formatRupiah(supplierMaterialTotal(supplier))}
+          Total belanja supplier ini: <span className='text-red-500'>
+          {formatRupiah(supplierMaterialTotal(supplier))}
+          </span>
         </p>
       </div>
     ))}
@@ -1692,7 +1696,7 @@ const SpkPembayaranPanel = ({
           onClick={() => void handleSimpanDraftKasbon()}
           className="px-4 py-2 text-sm font-bold bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50"
         >
-          Simpan Draft
+          Simpan
         </button>
         <button
           type="button"
