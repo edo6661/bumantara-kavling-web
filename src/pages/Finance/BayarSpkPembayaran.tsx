@@ -115,7 +115,10 @@ const BayarSpkPembayaran = () => {
   });
 
   const items = useMemo(
-    () => (response?.items ?? []).filter((row) => row.status !== 'DRAFT'),
+    () =>
+      (response?.items ?? []).filter(
+        (row) => row.status !== 'DRAFT' && row.status !== 'MENUNGGU_PERSETUJUAN',
+      ),
     [response?.items],
   );
   const meta = response?.meta;

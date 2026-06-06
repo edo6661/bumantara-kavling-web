@@ -24,6 +24,7 @@ const CONFIGURABLE_ROLES = [
   { id: "CUSTOMER", name: "Customer Portal" },
   { id: "BANK", name: "Bank" },
   { id: "MANDOR", name: "Mandor Lapangan" },
+  { id: "PENGAWAS", name: "Pengawas Lapangan" },
 ];
 
 type PermissionMatrix = Record<string, { canCreate: boolean; canRead: boolean; canUpdate: boolean; canDelete: boolean }>;

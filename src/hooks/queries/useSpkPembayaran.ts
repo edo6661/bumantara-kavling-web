@@ -197,3 +197,16 @@ export const useSetBsiCmsDilaporkan = () => {
     },
   });
 };
+
+export const useApproveSpkPembayaran = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: number }) => spkPembayaranService.approve(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.detail(data.spkId) });
+    },
+  });
+};

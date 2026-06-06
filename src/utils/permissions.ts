@@ -26,6 +26,12 @@ const MANDOR_ROLE_DEFAULTS: Record<string, PermissionFlags> = {
   PROGRESS_PROYEK: { canCreate: false, canRead: true, canUpdate: true, canDelete: false },
 };
 
+/** Default akses pengawas — selaras dengan rolePermissionSeed & API backend */
+const PENGAWAS_ROLE_DEFAULTS: Record<string, PermissionFlags> = {
+  SPK: { canCreate: false, canRead: true, canUpdate: true, canDelete: false },
+  PROGRESS_PROYEK: { canCreate: false, canRead: true, canUpdate: false, canDelete: false },
+};
+
 export function resolvePermission(
   user: User | null | undefined,
   resource?: string,
@@ -49,6 +55,10 @@ export function resolvePermission(
 
   if (user?.role === 'MANDOR') {
     return MANDOR_ROLE_DEFAULTS[normalized] ?? NO_ACCESS;
+  }
+
+  if (user?.role === 'PENGAWAS') {
+    return PENGAWAS_ROLE_DEFAULTS[normalized] ?? NO_ACCESS;
   }
 
   return NO_ACCESS;

@@ -67,6 +67,7 @@ const UserManagement = () => {
         if (val === "MARKETING") bgClass = "bg-amber-100 text-amber-800 border-amber-200";
         if (val === "BANK") bgClass = "bg-teal-100 text-teal-800 border-teal-200";
         if (val === "MANDOR") bgClass = "bg-orange-100 text-orange-800 border-orange-200";
+        if (val === "PENGAWAS") bgClass = "bg-sky-100 text-sky-800 border-sky-200";
 
         return <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>{val}</span>;
       },
@@ -287,6 +288,7 @@ const UserManagement = () => {
                   { value: "CUSTOMER", label: "Customer" },
                   { value: "BANK", label: "Bank" },
                   { value: "MANDOR", label: "Mandor" },
+                  { value: "PENGAWAS", label: "Pengawas" },
                 ]}
               />
               {formData.role === "MANDOR" && (

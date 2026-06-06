@@ -21,8 +21,12 @@ interface SpkPembayaranStatusChipsProps {
 const SpkPembayaranStatusChips = ({ items, showBuktiLinks = false }: SpkPembayaranStatusChipsProps) => {
   const kasbonItems = items.filter((p) => p.jenis === 'KASBON');
   const upahItems = items.filter((p) => p.jenis === 'UPAH');
-  const kasbonMenunggu = kasbonItems.filter((p) => p.status === 'MENUNGGU_PEMBAYARAN').length;
-  const upahMenunggu = upahItems.filter((p) => p.status === 'MENUNGGU_PEMBAYARAN').length;
+  const kasbonMenunggu = kasbonItems.filter(
+    (p) => p.status === 'MENUNGGU_PEMBAYARAN' || p.status === 'MENUNGGU_PERSETUJUAN',
+  ).length;
+  const upahMenunggu = upahItems.filter(
+    (p) => p.status === 'MENUNGGU_PEMBAYARAN' || p.status === 'MENUNGGU_PERSETUJUAN',
+  ).length;
 
   return (
     <div className="flex flex-wrap gap-1">

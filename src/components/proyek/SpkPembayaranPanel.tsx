@@ -42,6 +42,14 @@ import {
   type SpkTerminPembayaranJenis,
 } from '../../utils/spkPembayaran';
 import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi';
+import {
+  groupKasbonBarisForDisplay,
+  kasbonSupplierDisplayName,
+  kasbonTanggalPoSummary,
+  KASBON_NAMA_SUPPLIER_DEFAULT,
+  normalizeMaterialNamaSupplier,
+  toKasbonDateIso,
+} from '../../utils/kasbonBarisDisplay';
 import { ocrService } from '../../services/ocr.service';
 import { spkPembayaranService } from '../../services/spkPembayaran.service';
 
@@ -49,12 +57,9 @@ const TERMIN_JENIS_ORDER: SpkTerminPembayaranJenis[] = ['TERMIN_55', 'TERMIN_100
 
 const todayIso = () => new Date().toISOString().split('T')[0]!;
 
-/** Bon tanpa header nama toko — dipakai di form & DB. */
-const KASBON_NAMA_SUPPLIER_DEFAULT = '-';
-
-const normalizeMaterialNamaSupplier = (value: string) => {
-  const trimmed = value.trim();
-  return trimmed || KASBON_NAMA_SUPPLIER_DEFAULT;
+const toDateInputValue = (dateStr: string | null | undefined) => {
+  const iso = toKasbonDateIso(dateStr);
+  return iso || todayIso();
 };
 
 interface UpahBarisForm {
@@ -93,13 +98,6 @@ const upahBarisFromPembayaran = (row: SpkPembayaranData): UpahBarisForm[] =>
     nik: b.nik,
     nama: b.nama,
   }));
-
-const toDateInputValue = (dateStr: string | null | undefined) => {
-  if (!dateStr) return todayIso();
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return todayIso();
-  return d.toISOString().split('T')[0]!;
-};
 
 interface MaterialItemForm {
   key: string;
@@ -271,80 +269,6 @@ const kasbonBarisToSuppliers = (
   }
   const groups = Array.from(supplierMap.values());
   return groups.length ? groups : [newMaterialSupplier()];
-};
-
-type KasbonDisplayItem = { id: number; keterangan: string; nominal: number };
-
-type KasbonDisplayBon = {
-  tanggalPo: string;
-  tanggalIso: string;
-  fotoBon: string | null;
-  items: KasbonDisplayItem[];
-  subtotal: number;
-};
-
-type KasbonDisplaySupplier = {
-  namaSupplier: string;
-  bons: KasbonDisplayBon[];
-  total: number;
-};
-
-const kasbonSupplierDisplayName = (nama: string) =>
-  nama === KASBON_NAMA_SUPPLIER_DEFAULT ? '-' : nama;
-
-const groupKasbonBarisForDisplay = (
-  baris: NonNullable<SpkPembayaranData['kasbonBaris']>,
-): KasbonDisplaySupplier[] => {
-  const supplierMap = new Map<string, KasbonDisplaySupplier>();
-
-  for (const b of baris) {
-    const nama = normalizeMaterialNamaSupplier(b.namaSupplier || '');
-    let supplier = supplierMap.get(nama);
-    if (!supplier) {
-      supplier = { namaSupplier: nama, bons: [], total: 0 };
-      supplierMap.set(nama, supplier);
-    }
-
-    const tanggalIso = toDateInputValue(b.tanggalPo);
-    const foto = b.fotoBon ?? '';
-    const bonKey = `${tanggalIso}\0${foto}`;
-    let bon = supplier.bons.find(
-      (x) => `${x.tanggalIso}\0${x.fotoBon ?? ''}` === bonKey,
-    );
-    if (!bon) {
-      bon = {
-        tanggalPo: b.tanggalPo,
-        tanggalIso,
-        fotoBon: b.fotoBon,
-        items: [],
-        subtotal: 0,
-      };
-      supplier.bons.push(bon);
-    }
-
-    bon.items.push({
-      id: b.id,
-      keterangan: b.keterangan,
-      nominal: b.nominal,
-    });
-    bon.subtotal += b.nominal;
-    supplier.total += b.nominal;
-  }
-
-  return Array.from(supplierMap.values());
-};
-
-const kasbonTanggalPoSummary = (baris: NonNullable<SpkPembayaranData['kasbonBaris']>) => {
-  const isoDays = [...new Set(baris.map((b) => toDateInputValue(b.tanggalPo)))].filter(Boolean).sort();
-  if (isoDays.length === 0) return { label: '—', title: undefined as string | undefined };
-  if (isoDays.length === 1) {
-    return { label: formatDate(isoDays[0]!), title: undefined };
-  }
-  const title = isoDays.map((d) => formatDate(d)).join(', ');
-  return {
-    label: `${formatDate(isoDays[0]!)} – ${formatDate(isoDays[isoDays.length - 1]!)}`,
-    title,
-  };
 };
 
 const KasbonBatchDetailView = ({
@@ -1316,7 +1240,7 @@ const SpkPembayaranPanel = ({
     }
     try {
       await createMutation.mutateAsync({ spkId: spk.id, body: { jenis } });
-      alert('Pengajuan pembayaran berhasil dikirim ke finance.');
+      alert('Pengajuan pembayaran berhasil dikirim ke pengawas.');
     } catch (err: unknown) {
       alert(handleApiError(err).message);
     }
@@ -1589,7 +1513,7 @@ const SpkPembayaranPanel = ({
       clearKasbonDraftCache(queryClient, spk.id);
       closeKasbonCreateModal();
       resetKasbonForm();
-      alert('Pengajuan kasbon berhasil dikirim ke finance.');
+      alert('Pengajuan kasbon berhasil dikirim ke pengawas.');
     } catch (err: unknown) {
       alert(handleApiError(err).message);
     }
@@ -1790,7 +1714,7 @@ const SpkPembayaranPanel = ({
           }
           className="px-4 py-2 text-sm font-bold bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
         >
-          Ajukan ke Finance
+          Ajukan
         </button>
       </div>
     </div>
@@ -1802,6 +1726,13 @@ const SpkPembayaranPanel = ({
   const isPaidPengurangan = (row: SpkPembayaranData) => row.status === 'SUDAH_DIBAYAR';
 
   const isDraftPengurangan = (row: SpkPembayaranData) => row.status === 'DRAFT';
+
+  const getPenguranganStatusLabel = (row: SpkPembayaranData) => {
+    if (row.status === 'DRAFT') return 'Draft';
+    if (row.status === 'SUDAH_DIBAYAR') return 'Terbayar';
+    if (row.status === 'MENUNGGU_PERSETUJUAN') return 'Menunggu Pengawas';
+    return 'Menunggu Finance';
+  };
 
   /** Selaras dengan badge UI: bukan Draft/Terbayar = tampil "Menunggu". */
   const isMenungguPengurangan = (row: SpkPembayaranData) =>
@@ -2307,7 +2238,7 @@ const SpkPembayaranPanel = ({
                                 : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {isDraft ? 'Draft' : paid ? 'Terbayar' : 'Menunggu'}
+                          {getPenguranganStatusLabel(row)}
                         </span>
                       </td>
                       <td className={tdClass}>
@@ -2437,7 +2368,7 @@ const SpkPembayaranPanel = ({
                                 : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {isDraft ? 'Draft' : paid ? 'Terbayar' : 'Menunggu'}
+                          {getPenguranganStatusLabel(row)}
                         </span>
                       </td>
                       <td className={tdClass}>

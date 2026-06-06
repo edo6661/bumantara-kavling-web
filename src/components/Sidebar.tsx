@@ -81,6 +81,7 @@ const menuItems = [
     icon: <FolderKanban size={18} strokeWidth={1.75} />,
     submenus: [
       { title: 'SPK', path: '/proyek/spk', resource: 'SPK' },
+      { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
       { title: 'Tukang', path: '/proyek/tukang', resource: 'SPK' },
       { title: 'Progress Proyek', path: '/proyek/progress', resource: 'PROGRESS_PROYEK' },
     ],
@@ -100,10 +101,15 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
   const filteredMenuItems = menuItems.map(item => {
     if (!item.submenus) {
-      if (item.path === '/' && user?.role === 'MANDOR') return null;
+      if (item.path === '/' && (user?.role === 'MANDOR' || user?.role === 'PENGAWAS')) {
+        return null;
+      }
       return item;
     }
     const filteredSubmenus = item.submenus.filter(sub => {
+      if ('pengawasOnly' in sub && sub.pengawasOnly) {
+        return user?.role === 'PENGAWAS' || user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
+      }
       if (!sub.resource) return true;
       return canReadResource(user, sub.resource);
     });

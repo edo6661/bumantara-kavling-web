@@ -308,7 +308,7 @@ const DEFAULT_PAGE_SIZE = 10;
 const SPK = () => {
   const { user, selectedPerumahan } = useAuth();
   const { canRead: canReadSpk } = usePermission('SPK');
-  const canManageSpk = user?.role !== 'MANDOR';
+  const canManageSpk = user?.role !== 'MANDOR' && user?.role !== 'PENGAWAS';
   const canEditSpkProgress = canManageSpk;
 
   const canAjukanPembayaranFor = (spk: SpkData) => {
@@ -1112,7 +1112,7 @@ const SPK = () => {
                         }
                         setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
                       }}
-                      className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-center"
+                      className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-center text-black"
                     />
                     <span className="text-[10px] font-bold text-slate-500">%</span>
                     <button

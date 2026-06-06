@@ -1,6 +1,10 @@
 export type SpkTerminPembayaranJenis = 'TERMIN_55' | 'TERMIN_100' | 'RETENSI';
 export type SpkPembayaranJenis = SpkTerminPembayaranJenis | 'KASBON' | 'UPAH';
-export type SpkPembayaranStatus = 'MENUNGGU_PEMBAYARAN' | 'SUDAH_DIBAYAR' | 'DRAFT';
+export type SpkPembayaranStatus =
+  | 'MENUNGGU_PEMBAYARAN'
+  | 'MENUNGGU_PERSETUJUAN'
+  | 'SUDAH_DIBAYAR'
+  | 'DRAFT';
 export type SpkKasbonTargetTermin = 'TERMIN_55' | 'TERMIN_100';
 
 export const SPK_PROGRESS_TERMIN_55 = 55;
@@ -48,6 +52,13 @@ export const JENIS_UI_COLOR: Record<
     row: 'bg-teal-50/60',
     text: 'text-teal-800',
   },
+};
+
+export const SPK_PEMBAYARAN_STATUS_LABEL: Record<SpkPembayaranStatus, string> = {
+  MENUNGGU_PERSETUJUAN: 'Menunggu Pengawas',
+  MENUNGGU_PEMBAYARAN: 'Menunggu Finance',
+  SUDAH_DIBAYAR: 'Sudah Dibayar',
+  DRAFT: 'Draft',
 };
 
 export interface SpkNominalInput {

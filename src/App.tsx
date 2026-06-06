@@ -22,6 +22,7 @@ const AgentRegisterSuccess = lazy(() => import('./pages/Public/AgentRegisterSucc
 const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
 const PerusahaanAgent = lazy(() => import('./pages/Marketing/PerusahaanAgent'));
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
+const ApproveSpkKasbon = lazy(() => import('./pages/Proyek/ApproveSpkKasbon'));
 const Tukang = lazy(() => import('./pages/Proyek/Tukang'));
 const Progress = lazy(() => import('./pages/Proyek/Progress'));
 const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
@@ -55,6 +56,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (user?.role === 'AGENT') return <Navigate to="/agent-portal" replace />;
   if (user?.role === 'MANDOR' && location.pathname === '/') {
     return <Navigate to="/proyek/progress" replace />;
+  }
+  if (user?.role === 'PENGAWAS' && location.pathname === '/') {
+    return <Navigate to="/proyek/approve-kasbon" replace />;
   }
 
   return <>{children}</>;
@@ -134,6 +138,7 @@ const App = () => {
                 <Route path="marketing/fee-agent" element={<PermissionGuard resource="FEE_AGENT"><FeeAgent /></PermissionGuard>} />
                 <Route path="marketing/perusahaan" element={<PermissionGuard resource="AGENT"><PerusahaanAgent /></PermissionGuard>} />
                 <Route path="proyek/spk" element={<PermissionGuard resource="SPK"><SPK /></PermissionGuard>} />
+                <Route path="proyek/approve-kasbon" element={<PermissionGuard resource="SPK"><ApproveSpkKasbon /></PermissionGuard>} />
                 <Route path="proyek/tukang" element={<PermissionGuard resource="SPK"><Tukang /></PermissionGuard>} />
                 <Route path="proyek/progress" element={<PermissionGuard resource="PROGRESS_PROYEK"><Progress /></PermissionGuard>} />
               </Route>

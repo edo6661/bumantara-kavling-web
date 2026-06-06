@@ -44,8 +44,11 @@ export interface SpkPembayaranData {
   bsiCmsDilaporkan: boolean;
   bsiCmsDilaporkanAt: string | null;
   diajukanOlehId: number;
+  disetujuiOlehId: number | null;
+  tanggalDisetujui: string | null;
   dibayarOlehId: number | null;
   diajukanOleh: { id: number; username: string };
+  disetujuiOleh: { id: number; username: string } | null;
   dibayarOleh: { id: number; username: string } | null;
   createdAt: string;
   updatedAt: string;
@@ -216,5 +219,10 @@ export const spkPembayaranService = {
       dilaporkan,
     });
     return response.data.data as SpkPembayaranData[];
+  },
+
+  approve: async (id: number) => {
+    const response = await api.patch(`/spk-pembayaran/${id}/approve`);
+    return response.data.data as SpkPembayaranData;
   },
 };

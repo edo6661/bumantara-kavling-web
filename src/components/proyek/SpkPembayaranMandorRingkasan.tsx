@@ -51,7 +51,7 @@ const SpkPembayaranMandorRingkasan = ({ mandorSpks }: SpkPembayaranMandorRingkas
 
   const { data, isLoading } = useGetSpkPembayaranList({ page: 1, limit: 500, status: 'ALL' });
 
-  const { paid, waiting } = useMemo(() => {
+  const { paid, waitingFinance, waitingPengawas } = useMemo(() => {
     const items = (data?.items ?? []).filter((p) => spkIds.has(p.spkId));
     const noSpkById = new Map(mandorSpks.map((s) => [s.id, s.noSpk]));
     const enrich = (p: SpkPembayaranData) => ({
@@ -60,7 +60,8 @@ const SpkPembayaranMandorRingkasan = ({ mandorSpks }: SpkPembayaranMandorRingkas
     });
     return {
       paid: items.filter((p) => p.status === 'SUDAH_DIBAYAR').map(enrich),
-      waiting: items.filter((p) => p.status === 'MENUNGGU_PEMBAYARAN').map(enrich),
+      waitingFinance: items.filter((p) => p.status === 'MENUNGGU_PEMBAYARAN').map(enrich),
+      waitingPengawas: items.filter((p) => p.status === 'MENUNGGU_PERSETUJUAN').map(enrich),
     };
   }, [data?.items, mandorSpks, spkIds]);
 
@@ -75,7 +76,7 @@ const SpkPembayaranMandorRingkasan = ({ mandorSpks }: SpkPembayaranMandorRingkas
     );
   }
 
-  if (paid.length === 0 && waiting.length === 0) {
+  if (paid.length === 0 && waitingFinance.length === 0 && waitingPengawas.length === 0) {
     return (
       <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-xs text-indigo-800">
         <strong>Pembayaran SPK</strong> — ajukan termin di menu{' '}
@@ -108,11 +109,28 @@ const SpkPembayaranMandorRingkasan = ({ mandorSpks }: SpkPembayaranMandorRingkas
         </div>
       )}
 
-      {waiting.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-900">
-          <p className="font-bold mb-1">Menunggu pembayaran finance ({waiting.length})</p>
+      {waitingPengawas.length > 0 && (
+        <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 text-xs text-sky-900">
+          <p className="font-bold mb-1">Menunggu persetujuan pengawas ({waitingPengawas.length})</p>
           <ul className="space-y-1 text-[11px]">
-            {waiting.map((row) => (
+            {waitingPengawas.map((row) => (
+              <li key={row.id}>
+                SPK {row.noSpk} ·{' '}
+                {row.jenis === 'KASBON'
+                  ? `Kasbon: ${row.keterangan ?? '-'}`
+                  : SPK_PEMBAYARAN_JENIS_LABEL[row.jenis]}{' '}
+                · {formatRupiah(row.nominal)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {waitingFinance.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-900">
+          <p className="font-bold mb-1">Menunggu pembayaran finance ({waitingFinance.length})</p>
+          <ul className="space-y-1 text-[11px]">
+            {waitingFinance.map((row) => (
               <li key={row.id}>
                 SPK {row.noSpk} ·{' '}
         {row.jenis === 'KASBON'

@@ -41,7 +41,13 @@ const Login = () => {
     }
     const result = await login(formData.email, formData.password, selectedPerumahan);
     if (result.success) {
-      const redirectTo = storage.getUser()?.role === 'MANDOR' ? '/proyek/progress' : from;
+      const role = storage.getUser()?.role;
+      const redirectTo =
+        role === 'MANDOR'
+          ? '/proyek/progress'
+          : role === 'PENGAWAS'
+            ? '/proyek/approve-kasbon'
+            : from;
       navigate(redirectTo, { replace: true });
     } else {
       if (result.errors && Array.isArray(result.errors)) {
