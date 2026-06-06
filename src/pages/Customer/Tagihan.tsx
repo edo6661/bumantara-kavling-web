@@ -931,8 +931,28 @@ const Tagihan = () => {
     const element = document.getElementById('print-area');
     if (!element) return;
 
+    const PDF_CAPTURE_WIDTH = 800;
+    const originalWidth = element.style.width;
+    const originalMaxWidth = element.style.maxWidth;
+
+    const parentOverrides: { el: HTMLElement; overflow: string; maxHeight: string }[] = [];
+    let parent = element.parentElement;
+    while (parent) {
+      parentOverrides.push({
+        el: parent,
+        overflow: parent.style.overflow,
+        maxHeight: parent.style.maxHeight,
+      });
+      parent.style.overflow = 'visible';
+      parent.style.maxHeight = 'none';
+      parent = parent.parentElement;
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      element.style.width = `${PDF_CAPTURE_WIDTH}px`;
+      element.style.maxWidth = `${PDF_CAPTURE_WIDTH}px`;
+
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const scrollWidth = element.scrollWidth;
       const scrollHeight = element.scrollHeight;
@@ -946,7 +966,7 @@ const Tagihan = () => {
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left',
-        }
+        },
       });
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -960,6 +980,13 @@ const Tagihan = () => {
     } catch (error) {
       console.error('Gagal membuat PDF:', error);
       alert('Terjadi kesalahan saat memproses PDF.');
+    } finally {
+      element.style.width = originalWidth;
+      element.style.maxWidth = originalMaxWidth;
+      parentOverrides.forEach(({ el, overflow, maxHeight }) => {
+        el.style.overflow = overflow;
+        el.style.maxHeight = maxHeight;
+      });
     }
   };
 
