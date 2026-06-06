@@ -201,7 +201,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                 Bumantaraz
               </p>
               <p className="text-[10px] text-slate-400 font-medium whitespace-nowrap tracking-widest uppercase">
-                Property Manager
+                Sistem Internal
               </p>
             </div>
           </div>

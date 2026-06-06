@@ -318,11 +318,11 @@ const ApproveSpkKasbon = () => {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase">SPK</p>
-                <p className="font-semibold">{detailRow.spk?.noSpk}</p>
+                <p className="font-semibold text-black">{detailRow.spk?.noSpk}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase">Mandor</p>
-                <p className="font-semibold">{detailRow.spk?.mandor?.username}</p>
+                <p className="font-semibold text-black">{detailRow.spk?.mandor?.username}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase">Nominal</p>
