@@ -1299,12 +1299,12 @@ const Tagihan = () => {
                         <span>Harga Jual Unit</span>
                         <span className="text-slate-800 text-xs">{formatRupiah(printData.hargaJual || 0)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      {/* <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
                         <span>Sisa Belum Dibayar</span>
                         <span className="text-red-600 text-xs">
                           {formatRupiah(printData.status === 'LUNAS' ? printData.sisaBelumDibayar : Math.max(0, (printData.sisaBelumDibayar || 0) - (printData.nominalCetak || 0)))}
                         </span>
-                      </div>
+                      </div> */}
                     </div>
                   )}
 
