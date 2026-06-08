@@ -121,7 +121,11 @@ const Dashboard = () => {
       <div className="relative z-10 max-w-[1600px] mx-auto px-5 py-6 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
         {/* ── Header ──────────────────────────────────────────── */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
+        {/* Top decorative gradient strip */}
+        <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+        
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 px-6 py-5">
           <div className="flex items-center gap-4">
             {/* Accent line */}
             <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 shrink-0" />
@@ -140,7 +144,7 @@ const Dashboard = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Date chip */}
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-2xl text-sm text-slate-500 shadow-sm shadow-slate-200/80 border border-slate-100">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-2xl text-sm text-slate-500 border border-slate-100">
               <Clock size={13} className="text-blue-400" />
               <span className="font-semibold text-[12px]">
                 {new Date().toLocaleDateString('id-ID', {
@@ -159,6 +163,8 @@ const Dashboard = () => {
             />
           </div>
         </div>
+      </div>
+
 
         {/* ── Alert Banner ───────────────────────────────────── */}
         <KpiAlertBanner alerts={kpiAlerts} />

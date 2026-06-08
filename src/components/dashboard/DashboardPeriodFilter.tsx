@@ -24,7 +24,7 @@ export default function DashboardPeriodFilter({
   return (
     <div className="flex flex-wrap items-center gap-2.5">
       {/* KPI period toggle */}
-      <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-sm shadow-slate-100/80 gap-0.5">
+      <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm shadow-slate-100/80 gap-0.5">
         <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.15em] px-2 select-none">
           KPI
         </span>
@@ -44,8 +44,8 @@ export default function DashboardPeriodFilter({
       </div>
 
       {/* Trend months toggle */}
-      <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-sm shadow-slate-100/80 gap-0.5">
-        <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.15em] px-2 select-none">
+      <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-sm shadow-slate-100/80 gap-0.5">
+      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] px-2 select-none">
           Tren
         </span>
         {TREND_MONTHS.map((m) => (
