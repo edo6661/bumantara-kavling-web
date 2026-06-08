@@ -510,10 +510,7 @@ const Dashboard = () => {
                           {agent.closing} closing
                         </p>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-[9px] text-slate-400 uppercase tracking-wider font-semibold">Fee</p>
-                        <p className="text-[12px] font-black text-slate-900">{agent.feeStatus}</p>
-                      </div>
+                 
                     </div>
                   ))
                 ) : (

@@ -123,8 +123,8 @@ const ApprovePembayaran = () => {
       render: (val: number) => <span className="font-black text-slate-900">{formatRupiah(val)}</span>
     },
     {
-      header: 'Tanggal',
-      accessor: 'updatedAt',
+      header: 'Jatuh Tempo',
+      accessor: 'jatuhTempo',
       render: (val: string) => <span className="text-xs font-medium text-slate-600">{formatDate(val)}</span>
     },
     {
