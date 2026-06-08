@@ -49,7 +49,7 @@ const DataTable = ({
   title, columns, data, onAdd, onDetail, onEdit, onDelete, expandedRowRender, onRowClick,
   serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange,
   toolbarPrefix, pageSize = 10, pageSizeOptions = [10, 25, 50, 100], onPageSizeChange,
-  filterRow, searchPlaceholder = 'Cari data...', dense = false, alwaysShowActions = false,
+  filterRow, searchPlaceholder = 'Cari...', dense = false, alwaysShowActions = false,
 }: DataTableProps) => {
 
   const cellPad = dense ? 'px-3 py-2.5' : 'px-6 py-4';

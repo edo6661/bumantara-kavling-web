@@ -171,7 +171,7 @@ const Penjualan = () => {
   const { selectedPerumahan } = useAuth();
   // const queryClient = useQueryClient();
 
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
   const [biayaTambahanList, setBiayaTambahanList] = useState<BiayaTambahan[]>([]);
@@ -1507,7 +1507,32 @@ const Penjualan = () => {
 
   
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
+    <div className="min-h-screen bg-[#f7f8fc]">
+      {/* Top ambient gradient (diambil dari referensi Dashboard) */}
+      <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-50/60 to-transparent pointer-events-none z-0" />
+
+      <div className="relative z-10 max-w-[1600px] mx-auto px-5 py-6 space-y-6 animate-in fade-in duration-500">
+        
+        {/* Header Halaman ala Dashboard */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
+          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 px-6 py-5">
+            <div className="flex items-center gap-4">
+              <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 shrink-0" />
+              <div>
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
+                  Manajemen Properti
+                </p>
+                <h1 className="text-[26px] font-black text-slate-900 tracking-tight leading-none">
+                  Data Penjualan
+                </h1>
+                <p className="text-[12px] text-slate-400 mt-1.5 font-medium">
+                  Kelola transaksi, dokumen SPR, dan status pembayaran customer
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>                        
 
       
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
@@ -1599,7 +1624,7 @@ const Penjualan = () => {
         </div>
 
         {isFilterExpanded && (
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 bg-slate-50/50">
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 bg-slate-50/50 gap-4">
             <div className="relative group">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block group-focus-within:text-indigo-600 transition-colors">Status Transaksi</label>
               <select
@@ -1613,7 +1638,7 @@ const Penjualan = () => {
                 <option value="LUNAS">Lunas</option>
                 <option value="BATAL">Batal</option>
               </select>
-              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><ChevronDown size={16} /></div>
+              <div className="absolute right-3 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><ChevronDown size={16} /></div>
             </div>
 
             <div className="relative group">
@@ -1628,8 +1653,8 @@ const Penjualan = () => {
                 <option value="hargaJual:desc">Harga Jual: Tinggi ke Rendah</option>
                 <option value="nama:asc">Nama Customer: A - Z</option>
               </select>
-              <ArrowUpDown size={16} className="absolute left-3.5 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
-              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><ChevronDown size={16} /></div>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+              <div className="absolute right-3 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><ChevronDown size={16} /></div>
             </div>
           </div>
         )}
@@ -3124,6 +3149,7 @@ const Penjualan = () => {
         </form>
       </Modal>
 
+    </div>
     </div>
   );
 };

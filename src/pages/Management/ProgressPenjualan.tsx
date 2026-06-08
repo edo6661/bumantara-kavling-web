@@ -165,7 +165,7 @@ const ProgressPenjualan = () => {
           onChange={handleCaraPembayaranChange}
           aria-label="Filter cara pembayaran"
         >
-          <option value="">Semua Pembayaran</option>
+          <option value="">Semua</option>
           <option value="CASH_KERAS">Cash Keras</option>
           <option value="CASH_BERTAHAP">Cash Bertahap</option>
           <option value="KPR">KPR</option>
@@ -1177,10 +1177,36 @@ const ProgressPenjualan = () => {
   if (loadingPenjualan || loadingCustomers) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <DataTable
-        title="Progress Penjualan"
-        columns={columns}
+    <div className="min-h-screen bg-[#f7f8fc] relative">
+      {/* Top ambient gradient */}
+      <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-50/60 to-transparent pointer-events-none z-0" />
+
+      <div className="relative z-10 max-w-[1600px] mx-auto px-5 py-6 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        
+        {/* Header Halaman Dashboard */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
+          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 px-6 py-5">
+            <div className="flex items-center gap-4">
+              <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 shrink-0" />
+              <div>
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
+                  Manajemen Dokumen
+                </p>
+                <h1 className="text-[26px] font-black text-slate-900 tracking-tight leading-none">
+                  Progress Penjualan
+                </h1>
+                <p className="text-[12px] text-slate-400 mt-1.5 font-medium">
+                  Pantau kelengkapan berkas, sertifikat, dan legalitas tiap kavling customer
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DataTable
+          title="Progress"
+          columns={columns}       
         data={penjualanData}
         serverSide={true}
         toolbarPrefix={tableToolbar}
@@ -1196,18 +1222,23 @@ const ProgressPenjualan = () => {
 
       <Modal isOpen={!!modalStep} onClose={() => { setModalStep(null); setSelectedPenjualan(null); }} title="Kelola Progress Dokumen Penjualan">
         {selectedPenjualan && (
-          <div className="space-y-6">
-            <div className="p-4 bg-slate-900 rounded-xl text-white shadow-md flex justify-between items-center">
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Skema Pembayaran</p>
-                <p className="text-xl font-black">{selectedPenjualan.caraPembayaran?.replace(/_/g, ' ')}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Customer / Kavling</p>
-                <p className="text-sm font-bold text-white">{selectedPenjualan.nama}</p>
-                <p className="text-xs text-slate-400">Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}</p>
-              </div>
+         <div className="space-y-6">
+          <div className="p-5 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl text-white shadow-lg shadow-slate-900/20 flex justify-between items-center relative overflow-hidden border border-slate-700">
+            {/* Ornamen background opsional */}
+            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+              <Landmark size={80} />
             </div>
+            
+            <div className="relative z-10">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Skema Pembayaran</p>
+              <p className="text-2xl font-black tracking-tight text-white">{selectedPenjualan.caraPembayaran?.replace(/_/g, ' ')}</p>
+            </div>
+            <div className="text-right relative z-10">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Customer / Kavling</p>
+              <p className="text-base font-bold text-white tracking-wide">{selectedPenjualan.nama}</p>
+              <p className="text-xs text-blue-300 font-medium mt-0.5">Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}</p>
+            </div>
+          </div>
 
             {loadingProgress ? (
               <div className="py-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
@@ -1626,6 +1657,7 @@ const ProgressPenjualan = () => {
       </Modal>
 
     </div>
+  </div>
   );
 };
 
