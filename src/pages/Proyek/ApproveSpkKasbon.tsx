@@ -359,8 +359,8 @@ const ApproveSpkKasbon = () => {
                     <tbody>
                       {detailRow.upahBaris.map((baris) => (
                         <tr key={baris.id} className="border-t border-teal-50">
-                          <td className="px-3 py-2 font-mono">{baris.nik}</td>
-                          <td className="px-3 py-2">{baris.nama}</td>
+                          <td className="px-3 py-2 font-mono text-black">{baris.nik}</td>
+                          <td className="px-3 py-2 text-black">{baris.nama}</td>
                         </tr>
                       ))}
                     </tbody>
