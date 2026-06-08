@@ -160,6 +160,27 @@ export const kavlingService = {
     URL.revokeObjectURL(url);
   },
 
+  exportPengeluaranExcel: async (params?: ExportKavlingParams): Promise<void> => {
+    const response = await api.get("/kavling/export/pengeluaran/excel", {
+      params,
+      responseType: "blob",
+    });
+    const blob = new Blob([response.data], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fallback = `Pengeluaran_Kavling_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = parseFilenameFromDisposition(
+      response.headers["content-disposition"] as string | undefined,
+      fallback,
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  },
+
   uploadSertifikatTambahanDocument: async (
     id: number,
     urutan: number,

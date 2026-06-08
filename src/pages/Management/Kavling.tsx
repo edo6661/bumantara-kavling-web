@@ -131,6 +131,7 @@ const Kavling = () => {
   const [selectedDocKavling, setSelectedDocKavling] = useState<KavlingData | null>(null);
   const [docModalStep, setDocModalStep] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingPengeluaran, setIsExportingPengeluaran] = useState(false);
 
   const handleExportExcel = async () => {
     setIsExporting(true);
@@ -147,6 +148,24 @@ const Kavling = () => {
       alert(message);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportPengeluaranExcel = async () => {
+    setIsExportingPengeluaran(true);
+    try {
+      await kavlingService.exportPengeluaranExcel({
+        search: search || undefined,
+        perumahanId: selectedPerumahan ? Number(selectedPerumahan.id) : undefined,
+        status: statusFilter !== '' ? statusFilter : undefined,
+        jenisKavling: jenisKavlingFilter !== '' ? jenisKavlingFilter as JenisKavling : undefined,
+        orderBy: orderBy !== '' ? orderBy : undefined,
+      });
+    } catch (error: unknown) {
+      const { message } = handleApiError(error);
+      alert(message);
+    } finally {
+      setIsExportingPengeluaran(false);
     }
   };
 
@@ -615,7 +634,16 @@ const Kavling = () => {
               <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={handleExportPengeluaranExcel}
+              disabled={isExportingPengeluaran}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
+            >
+              <FileSpreadsheet size={18} />
+              {isExportingPengeluaran ? 'Mengekspor...' : 'Export Pengeluaran'}
+            </button>
             <button
               type="button"
               onClick={handleExportExcel}
