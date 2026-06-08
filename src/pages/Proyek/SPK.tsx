@@ -979,7 +979,7 @@ const SPK = () => {
         size="lg"
       >
         {historiKasbonSpk && (
-          <div className="max-h-[min(72vh,640px)] overflow-y-auto pr-1">
+          <div className="max-h-[min(74vh,660px)] overflow-y-auto pr-1 -mr-1">
             <SpkPembayaranPanel
               spk={historiKasbonSpk}
               canAjukan={canAjukanPembayaranFor(historiKasbonSpk)}
@@ -997,77 +997,79 @@ const SPK = () => {
         size="lg"
       >
         {detailItem && (
-          <div className="space-y-3 max-h-[min(72vh,640px)] overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">No. SPK</p>
-                <p className="font-mono font-bold text-slate-900 mt-0.5" title={detailItem.noSpk}>
+          <div className="space-y-4 max-h-[min(74vh,660px)] overflow-y-auto pr-1 -mr-1">
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm text-xs">
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">No. SPK</p>
+                <p className="font-mono font-black text-slate-900 text-sm tracking-tight" title={detailItem.noSpk}>
                   {formatShortNoSpk(detailItem.noSpk)}
                 </p>
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Mandor</p>
-                <p className="font-semibold text-slate-800 mt-0.5">{detailItem.mandor.username}</p>
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mandor</p>
+                <p className="font-bold text-slate-800">{detailItem.mandor.username}</p>
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Progress</p>
-                <p className="font-bold text-blue-700 mt-0.5">{Number(detailItem.progress ?? 0)}%</p>
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Progress</p>
+                <div className="flex items-center gap-1.5">
+                  <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${Number(detailItem.progress ?? 0) === 100 ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                      style={{ width: `${Number(detailItem.progress ?? 0)}%` }}
+                    />
+                  </div>
+                  <p className="font-black text-blue-700 shrink-0">{Number(detailItem.progress ?? 0)}%</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai Kontrak</p>
-                <p className="font-bold text-emerald-700 mt-0.5">{formatRupiah(detailItem.nilaiKontrak)}</p>
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nilai Kontrak</p>
+                <p className="font-black text-emerald-700 text-sm">{formatRupiah(detailItem.nilaiKontrak)}</p>
               </div>
             </div>
 
             <CollapsibleDetailSection
               title="Informasi & Keuangan"
               subtitle={detailItem.judulPekerjaan}
-              defaultOpen
             >
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                <div className="sm:col-span-2">
-                  <dt className="text-slate-500 font-semibold">Judul pekerjaan</dt>
-                  <dd className="text-slate-800 font-medium">{detailItem.judulPekerjaan}</dd>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="sm:col-span-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Judul pekerjaan</dt>
+                  <dd className="text-slate-800 font-semibold leading-relaxed">{detailItem.judulPekerjaan}</dd>
                 </div>
-                <div>
-                  <dt className="text-slate-500 font-semibold">Tanggal SPK</dt>
-                  <dd className="text-slate-800">{formatDate(detailItem.tanggalSpk)}</dd>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tanggal SPK</dt>
+                  <dd className="text-slate-800 font-medium">{formatDate(detailItem.tanggalSpk)}</dd>
                 </div>
-                <div>
-                  <dt className="text-slate-500 font-semibold">Jatuh tempo</dt>
-                  <dd className="text-slate-800">
-                    {detailItem.jatuhTempo ? formatDate(detailItem.jatuhTempo) : '—'}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Jatuh tempo</dt>
+                  <dd className="text-slate-800 font-medium">
+                    {detailItem.jatuhTempo ? formatDate(detailItem.jatuhTempo) : <span className="text-slate-300">—</span>}
                   </dd>
                 </div>
-                <div>
-                  <dt className="text-slate-500 font-semibold">Sudah dibayar</dt>
-                  <dd className="font-semibold text-emerald-700">
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                  <dt className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Sudah dibayar</dt>
+                  <dd className="font-black text-emerald-700">
                     {detailItem.nilaiSudahDibayarkan == null
-                      ? '—'
+                      ? <span className="text-slate-300 font-medium">—</span>
                       : formatRupiah(detailItem.nilaiSudahDibayarkan)}
                   </dd>
                 </div>
-                <div>
-                  <dt className="text-slate-500 font-semibold">Sisa nilai</dt>
-                  <dd
-                    className={`font-semibold ${
-                      detailItem.sisaNilaiKontrak != null && detailItem.sisaNilaiKontrak > 0
-                        ? 'text-red-600'
-                        : 'text-slate-500'
-                    }`}
-                  >
+                <div className={`p-3 rounded-xl border ${detailItem.sisaNilaiKontrak != null && detailItem.sisaNilaiKontrak > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                  <dt className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${detailItem.sisaNilaiKontrak != null && detailItem.sisaNilaiKontrak > 0 ? 'text-red-500' : 'text-slate-400'}`}>Sisa nilai</dt>
+                  <dd className={`font-black ${detailItem.sisaNilaiKontrak != null && detailItem.sisaNilaiKontrak > 0 ? 'text-red-600' : 'text-slate-400'}`}>
                     {detailItem.sisaNilaiKontrak == null
-                      ? '—'
+                      ? <span className="text-slate-300 font-medium">—</span>
                       : formatRupiah(detailItem.sisaNilaiKontrak)}
                   </dd>
                 </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-slate-500 font-semibold">KSO (Rek PT)</dt>
-                  <dd className="text-slate-800">
+                <div className="sm:col-span-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">KSO (Rek PT)</dt>
+                  <dd className="text-slate-800 font-medium">
                     {detailItem.bankRekeningPtId
                       ? bankLabelById.get(detailItem.bankRekeningPtId) ??
                         `ID ${detailItem.bankRekeningPtId}`
-                      : '—'}
+                      : <span className="text-slate-300">—</span>}
                   </dd>
                 </div>
               </dl>
@@ -1090,32 +1092,34 @@ const SPK = () => {
                   </span>
                 </div>
                 {canEditSpkProgress && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase">Override</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={3}
-                      value={spkProgressInput}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '').slice(0, 3);
-                        if (digits === '') {
-                          setSpkProgressInput('');
-                          return;
-                        }
-                        setSpkProgressInput(String(clampPercent(parseInt(digits, 10))));
-                      }}
-                      onBlur={() => {
-                        if (spkProgressInput === '') {
-                          setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
-                          return;
-                        }
-                        setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
-                      }}
-                      className="w-12 px-1.5 py-1 bg-white border border-slate-200 rounded text-xs font-bold text-center text-black"
-                    />
-                    <span className="text-[10px] font-bold text-slate-500">%</span>
+                  <div className="flex items-center gap-2 flex-wrap p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Override %</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={3}
+                        value={spkProgressInput}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 3);
+                          if (digits === '') {
+                            setSpkProgressInput('');
+                            return;
+                          }
+                          setSpkProgressInput(String(clampPercent(parseInt(digits, 10))));
+                        }}
+                        onBlur={() => {
+                          if (spkProgressInput === '') {
+                            setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
+                            return;
+                          }
+                          setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
+                        }}
+                        className="w-14 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-center text-black focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400"
+                      />
+                      <span className="text-[10px] font-bold text-slate-400">%</span>
+                    </div>
                     <button
                       type="button"
                       className="px-2.5 py-1 text-[10px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700"

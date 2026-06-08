@@ -1034,31 +1034,37 @@ const PengurangPlafonBanner = ({
   });
 
   return (
-    <p
-      className={`text-xs rounded-lg px-3 py-2 border ${
-        cap.allowed || additionalNominal <= 0
-          ? 'text-slate-700 bg-slate-50 border-slate-200'
-          : 'text-red-800 bg-red-50 border-red-200'
-      }`}
-    >
-      Plafon {SPK_KASBON_TARGET_LABEL[termin]}: <strong>{formatRupiah(cap.bruto)}</strong>
-      {' · '}Terpakai (kasbon & upah): <strong>{formatRupiah(cap.terpakai)}</strong>
-      {' · '}Sisa: <strong>{formatRupiah(cap.sisa)}</strong>
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+      <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Plafon</p>
+        <p className="font-black text-slate-800">{formatRupiah(cap.bruto)}</p>
+      </div>
+      <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Terpakai</p>
+        <p className="font-black text-slate-800">{formatRupiah(cap.terpakai)}</p>
+      </div>
+      <div className={`p-2.5 rounded-lg border ${cap.allowed || additionalNominal <= 0 ? 'bg-slate-50 border-slate-200' : 'bg-red-50 border-red-200'}`}>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sisa</p>
+        <p className={`font-black ${cap.allowed || additionalNominal <= 0 ? 'text-slate-800' : 'text-red-600'}`}>{formatRupiah(cap.sisa)}</p>
+      </div>
       {additionalNominal > 0 && (
         <>
-          {' · '}Nominal ini: <strong>{formatRupiah(additionalNominal)}</strong>
-          {' · '}Sisanya :{' '}
-          <strong className={cap.allowed ? 'text-emerald-700' : 'text-red-700'}>
-            {formatRupiah(Math.max(0, cap.sisaSetelah))}
-          </strong>
+          <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-100">
+            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Nominal ini</p>
+            <p className="font-black text-blue-700">{formatRupiah(additionalNominal)}</p>
+          </div>
+          <div className={`p-2.5 rounded-lg border col-span-2 sm:col-span-2 ${cap.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-200'}`}>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sisa setelah</p>
+            <div className="flex items-center gap-2">
+              <p className={`font-black ${cap.allowed ? 'text-emerald-700' : 'text-red-600'}`}>{formatRupiah(Math.max(0, cap.sisaSetelah))}</p>
+              {!cap.allowed && (
+                <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Melebihi plafon</span>
+              )}
+            </div>
+          </div>
         </>
       )}
-      {!cap.allowed && additionalNominal > 0 && (
-        <span className="block mt-1 font-semibold text-red-700">
-          Melebihi plafon termin.
-        </span>
-      )}
-    </p>
+    </div>
   );
 };
 
@@ -1556,77 +1562,63 @@ const SpkPembayaranPanel = ({
   const kasbonCreateModalBody = (
     <div className="space-y-5">
       {hasActiveDraft ? (
-        <p className="text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-          Ada <strong>draft kasbon</strong> tersimpan untuk SPK ini. Isi form sudah dimuat dari draft.
-          Klik <strong>Simpan Draft</strong> setelah mengubah data, atau <strong>Ajukan</strong> jika sudah lengkap.
-        </p>
+        <div className="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
+          <div className="w-6 h-6 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-black mt-0.5">D</div>
+          <p className="text-xs text-blue-800 leading-relaxed">
+            Ada <strong>draft kasbon</strong> tersimpan. Isi form sudah dimuat — klik <strong>Simpan Draft</strong> setelah ubah data, atau <strong>Ajukan</strong> jika sudah lengkap.
+          </p>
+        </div>
       ) : (
-        <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-          Isi bon/material terlebih dahulu. Klik <strong>Simpan Draft</strong> untuk menyimpan sementara,
-          atau <strong>Ajukan</strong> langsung jika sudah lengkap.
-        </p>
+        <>
+        </>
       )}
       {draftAutoSaveStatus === 'saving' && (
-        <p className="text-xs text-slate-600 flex items-center gap-1.5">
-          <Loader2 size={14} className="animate-spin shrink-0" />
-          Menyimpan draft...
-        </p>
+        <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
+          <Loader2 size={13} className="animate-spin shrink-0 text-slate-500" />
+          <p className="text-xs text-slate-500">Menyimpan draft...</p>
+        </div>
       )}
       {draftAutoSaveStatus === 'saved' && (
-        <p className="text-xs text-emerald-700 font-medium">Draft berhasil disimpan.</p>
+        <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <p className="text-xs text-emerald-700 font-semibold">Draft berhasil disimpan.</p>
+        </div>
       )}
       {draftAutoSaveStatus === 'error' && (
-        <p className="text-xs text-red-700 font-medium">
-          Gagal menyimpan draft. Periksa isian bon lalu coba lagi.
-        </p>
+        <div className="flex items-center gap-2 px-3 py-2 bg-red-50 rounded-lg border border-red-100">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+          <p className="text-xs text-red-700 font-semibold">Gagal simpan draft. Periksa isian bon lalu coba lagi.</p>
+        </div>
       )}
       {!pengurangCheck.allowed && pengurangCheck.reason && (
         <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           {pengurangCheck.reason}
         </p>
       )}
-      {pengurangCheck.targetTermin && (
-        <>
-          <p className="text-xs text-orange-800 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
-            Total pengajuan (material + upah) akan mengurangi nominal{' '}
-            <strong>{SPK_KASBON_TARGET_LABEL[pengurangCheck.targetTermin]}</strong> (FIFO).
-          </p>
-          <PengurangPlafonBanner
-            nilaiKontrak={spk.nilaiKontrak}
-            rows={pengurangRows}
-            termin={pengurangCheck.targetTermin}
-            additionalNominal={combinedSubmitTotal}
-          />
-        </>
-      )}
+      
 
       {spk.kavlingItems.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2.5">
             Kavling SPK
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {[...spk.kavlingItems]
               .sort(compareKavlingBlokUnit)
               .map((k) => (
                 <span
                   key={k.kavlingId}
-                  className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-slate-200 text-xs font-bold text-slate-800"
+                  className="inline-flex items-center px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-slate-700 shadow-sm"
                 >
-                  Blok {k.blok} · Unit {k.nomorUnit}
+                  {k.blok}-{k.nomorUnit}
                 </span>
               ))}
           </div>
         </div>
       )}
 
-      <p className="text-[11px] text-slate-500">
-        Isi bagian <strong>material</strong> dan/atau <strong>upah tukang</strong> sesuai kebutuhan (minimal salah satu).
-      </p>
-
       <CollapsibleDetailSection
         title="Material"
-        subtitle="Kosongkan/tutup jika tidak ada belanja material"
         className="border-orange-200"
         badge={
           materialTotalPreview > 0 ? (
@@ -1647,7 +1639,6 @@ const SpkPembayaranPanel = ({
 
       <CollapsibleDetailSection
         title="Upah Tukang"
-        subtitle="Kosongkan/tutup jika tidak ada pembayaran upah"
         className="border-teal-200"
         badge={
           upahTotalPreview > 0 ? (
@@ -1674,65 +1665,70 @@ const SpkPembayaranPanel = ({
         />
       </CollapsibleDetailSection>
 
-      <p className="text-sm font-bold text-slate-800 border-t border-slate-200 pt-3">
-        Total diajukan: {formatRupiah(combinedSubmitTotal)}
-        {materialTotalPreview > 0 && upahTotalPreview > 0 && (
-          <span className="block text-xs font-medium text-slate-500 mt-0.5">
-            Material {formatRupiah(materialTotalPreview)} + Upah {formatRupiah(upahTotalPreview)}
-          </span>
-        )}
-      </p>
+      <div className="border-t border-slate-100 pt-4 space-y-3">
+        <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total diajukan</p>
+            <p className="text-base font-black text-slate-900 mt-0.5">{formatRupiah(combinedSubmitTotal)}</p>
+            {materialTotalPreview > 0 && upahTotalPreview > 0 && (
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Material {formatRupiah(materialTotalPreview)} + Upah {formatRupiah(upahTotalPreview)}
+              </p>
+            )}
+          </div>
+        </div>
 
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={closeKasbonCreateModal}
-          className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-        >
-          Batal
-        </button>
-        <button
-          type="button"
-          disabled={
-            isSavingDraft ||
-            submitDraftMutation.isPending ||
-            createMutation.isPending ||
-            deleteMutation.isPending
-          }
-          onClick={() => void handleSimpanDraftKasbon()}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-bold bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:pointer-events-none"
-        >
-          {isSavingDraft ? (
-            <>
-              <Loader2 size={16} className="animate-spin shrink-0" />
-              Menyimpan...
-            </>
-          ) : (
-            'Simpan Draft'
-          )}
-        </button>
-        <button
-          type="button"
-          disabled={
-            createMutation.isPending ||
-            isSavingDraft ||
-            submitDraftMutation.isPending ||
-            deleteMutation.isPending ||
-            kasbonCreateOverPlafon ||
-            !pengurangCheck.allowed
-          }
-          onClick={handleAjukanKasbon}
-          title={
-            kasbonCreateOverPlafon
-              ? 'Total kasbon melebihi sisa plafon termin'
-              : !pengurangCheck.allowed
-                ? pengurangCheck.reason
-                : undefined
-          }
-          className="px-4 py-2 text-sm font-bold bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
-        >
-          Ajukan
-        </button>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={closeKasbonCreateModal}
+            className="px-4 py-2.5 text-sm font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            disabled={
+              isSavingDraft ||
+              submitDraftMutation.isPending ||
+              createMutation.isPending ||
+              deleteMutation.isPending
+            }
+            onClick={() => void handleSimpanDraftKasbon()}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold bg-slate-800 text-white rounded-xl hover:bg-slate-900 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+          >
+            {isSavingDraft ? (
+              <>
+                <Loader2 size={15} className="animate-spin shrink-0" />
+                Menyimpan...
+              </>
+            ) : (
+              'Simpan Draft'
+            )}
+          </button>
+          <button
+            type="button"
+            disabled={
+              createMutation.isPending ||
+              isSavingDraft ||
+              submitDraftMutation.isPending ||
+              deleteMutation.isPending ||
+              kasbonCreateOverPlafon ||
+              !pengurangCheck.allowed
+            }
+            onClick={handleAjukanKasbon}
+            title={
+              kasbonCreateOverPlafon
+                ? 'Total kasbon melebihi sisa plafon termin'
+                : !pengurangCheck.allowed
+                  ? pengurangCheck.reason
+                  : undefined
+            }
+            className="px-5 py-2.5 text-sm font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-all shadow-sm hover:shadow-orange-200 hover:shadow-md active:scale-95"
+          >
+            Ajukan
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2105,10 +2101,13 @@ const SpkPembayaranPanel = ({
     <>
       {!historiOnly && (
         <>
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-              Termin &amp; Retensi
-            </p>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+              <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest">
+                Termin &amp; Retensi
+              </p>
+            </div>
             {canAjukan && (
               <div className="flex flex-wrap gap-1.5">
                 <button
@@ -2116,9 +2115,9 @@ const SpkPembayaranPanel = ({
                   disabled={!pengurangCheck.allowed || createMutation.isPending}
                   title={pengurangCheck.reason}
                   onClick={openKasbonCreateModal}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-40 shadow-sm transition-all active:scale-95"
                 >
-                  <Plus size={12} />
+                  <Plus size={11} />
                   Ajukan Kasbon
                 </button>
               </div>
@@ -2179,15 +2178,19 @@ const SpkPembayaranPanel = ({
       )}
 
       {kasbonItems.length > 0 && (
-        <div className="rounded-xl border border-orange-200 overflow-hidden bg-orange-50/15">
-          <div className="px-3 py-2 bg-orange-50 border-b border-orange-100 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-bold text-orange-900 uppercase tracking-wide">
-              Kasbon ({kasbonItems.length})
-            </p>
-            <p className="text-[10px] text-orange-700/80 font-medium">
-              Dikelompokkan per supplier &amp; bon
+        <div className="rounded-2xl border border-orange-200 overflow-hidden bg-white">
+          <div className="px-4 py-3 bg-orange-50 border-b border-orange-100 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+              <p className="text-[11px] font-black text-orange-900 uppercase tracking-widest">
+                Kasbon ({kasbonItems.length})
+              </p>
+            </div>
+            <p className="text-[10px] text-orange-600 font-medium bg-orange-100 px-2 py-0.5 rounded-full">
+              Per supplier &amp; bon
             </p>
           </div>
+      
           <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse min-w-[680px]">
               <thead>
@@ -2319,12 +2322,14 @@ const SpkPembayaranPanel = ({
       )}
 
       {upahItems.length > 0 && (
-        <div className="rounded-xl border border-teal-200 overflow-hidden bg-teal-50/15 mt-3">
-          <div className="px-3 py-2 bg-teal-50 border-b border-teal-100">
-            <p className="text-[11px] font-bold text-teal-900 uppercase tracking-wide">
+        <div className="rounded-2xl border border-teal-200 overflow-hidden bg-white mt-4">
+          <div className="px-4 py-3 bg-teal-50 border-b border-teal-100 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+            <p className="text-[11px] font-black text-teal-900 uppercase tracking-widest">
               Upah Tukang ({upahItems.length})
             </p>
           </div>
+      
           <div className="overflow-x-auto">
             <table className="w-full text-xs border-collapse min-w-[860px]">
               <thead>
