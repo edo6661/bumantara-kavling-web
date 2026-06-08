@@ -101,7 +101,7 @@ const ApprovePembayaran = () => {
       render: (_: any, row: any) => (
         <div className="flex flex-col">
           <span className="font-bold text-slate-900">{row.namaCustomer}</span>
-          <span className="text-[10px] text-slate-500"> {row.perumahan} Blok {row.blok}-{row.nomorUnit}</span>
+          <span className="text-[10px] text-slate-500">  {row.blok}-{row.nomorUnit}</span>
         </div>
       )
     },
