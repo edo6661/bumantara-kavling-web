@@ -130,7 +130,7 @@ const Administrasi = () => {
   };
 
   const filterSelectClass =
-    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer';
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
 
   const tableToolbar = (
     <div className="relative group w-full sm:w-52">
@@ -144,7 +144,7 @@ const Administrasi = () => {
         <option value="nama:asc">Nama Customer (A-Z)</option>
         <option value="blokNomorUnit:asc">Blok & No Unit (A-Z)</option>
       </select>
-      <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+      <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
       <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
     </div>
   );
@@ -209,7 +209,7 @@ const Administrasi = () => {
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); openEditModal(row); }}
-            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
             title="Edit Administrasi"
           >
             <Edit2 size={16} />
@@ -225,7 +225,7 @@ const Administrasi = () => {
             onClick={(e) => { e.stopPropagation(); handleGenerateAccount(row); }}
             className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount
               ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700'
-              : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'
+              : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'
               }`}
             title={row.hasAccount ? "Reset Kredensial (Password)" : "Buat Akun Portal (Generate)"}
           >
@@ -645,8 +645,8 @@ const Administrasi = () => {
               return (
                 <div
                   key={type}
-                  className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-indigo-400
-                    ${isDrag ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-200'}
+                  className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-blue-400
+                    ${isDrag ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 hover:border-blue-200'}
                   `}
                   tabIndex={0}
                   onDragEnter={(e) => handleDrag(e, type)}
@@ -660,9 +660,9 @@ const Administrasi = () => {
                       <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{type.replace('file', '')}</h5>
                       <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
                     </div>
-                    <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+                    <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 cursor-pointer'}`}>
                       {isUploading ? (
-                        <><Loader2 size={14} className="animate-spin text-indigo-600" /> Mengunggah...</>
+                        <><Loader2 size={14} className="animate-spin text-blue-600" /> Mengunggah...</>
                       ) : (
                         <><UploadCloud size={14} /> {fileUrl ? 'Ganti File' : 'Upload File'}</>
                       )}
@@ -670,11 +670,11 @@ const Administrasi = () => {
                     </label>
                   </div>
 
-                  <div className={`w-full h-48 sm:h-56 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-indigo-400 border-dashed' : 'border-slate-200'}`}>
+                  <div className={`w-full h-48 sm:h-56 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-blue-400 border-dashed' : 'border-slate-200'}`}>
                     {isUploading && (
                       <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-                        <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
-                        <span className="text-xs font-bold text-indigo-600 animate-pulse">Sedang mengunggah...</span>
+                        <Loader2 size={32} className="animate-spin text-blue-600 mb-3" />
+                        <span className="text-xs font-bold text-blue-600 animate-pulse">Sedang mengunggah...</span>
                       </div>
                     )}
                     {fileUrl ? (
@@ -809,7 +809,7 @@ const Administrasi = () => {
 
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <ImageIcon size={16} className="text-indigo-600" /> Lampiran Dokumen Administrasi
+                <ImageIcon size={16} className="text-blue-600" /> Lampiran Dokumen Administrasi
               </h4>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {(['fileKtp', 'fileKk', 'fileNpwp'] as const).map((type) => {

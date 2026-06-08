@@ -323,7 +323,7 @@ const PortalDashboard = () => {
 
         <section className="space-y-6">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 px-2">
-            <Home className="text-indigo-600" size={20} /> Unit & Tagihan Saya
+            <Home className="text-blue-600" size={20} /> Unit & Tagihan Saya
           </h2>
 
           {transaksi.length === 0 ? (

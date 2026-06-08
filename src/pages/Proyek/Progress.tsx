@@ -77,7 +77,7 @@ const TAHAPAN_COLOR_MAP: Record<(typeof TAHAPAN_LIST)[number], string> = {
   Pondasi:    'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100',
   Kolom:      'text-orange-600 bg-orange-50 border-orange-200 hover:bg-orange-100',
   Dinding:    'text-rose-600 bg-rose-50 border-rose-200 hover:bg-rose-100',
-  Atap:       'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100',
+  Atap:       'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100',
   Lantai:     'text-teal-600 bg-teal-50 border-teal-200 hover:bg-teal-100',
   Plafon:     'text-cyan-600 bg-cyan-50 border-cyan-200 hover:bg-cyan-100',
   Pipa:       'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100',
@@ -193,7 +193,7 @@ const Progress = () => {
               Blok {row.blok}-{row.nomorUnit}
             </span>
             {spkInfo && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-md mt-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded-md mt-1">
                 SPK {spkInfo.noSpk}
               </span>
             )}
@@ -354,7 +354,7 @@ const TahapanDirectEditModal: React.FC<TahapanDirectEditModalProps> = ({
     return (
       <Modal isOpen onClose={onClose} title={`Tahapan: ${namaTahapan}`} size="md">
         <div className="py-16 flex flex-col items-center justify-center">
-          <Loader2 size={28} className="animate-spin text-indigo-500 mb-3" />
+          <Loader2 size={28} className="animate-spin text-blue-500 mb-3" />
           <p className="text-sm font-semibold text-slate-500">Memuat detail tahapan...</p>
         </div>
       </Modal>
@@ -407,7 +407,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
       <Modal isOpen={isOpen} onClose={onClose} title="Kelola Progress Lapangan" size="lg">
         {isLoading ? (
           <div className="py-16 flex flex-col items-center justify-center">
-            <Loader2 size={28} className="animate-spin text-indigo-500 mb-3" />
+            <Loader2 size={28} className="animate-spin text-blue-500 mb-3" />
             <p className="text-sm font-semibold text-slate-500">Memuat detail proyek...</p>
           </div>
         ) : (
@@ -426,14 +426,14 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
 
             {/* Mandor & Total Progress side by side */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className={`p-4 border rounded-2xl ${mandorName ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-4 border rounded-2xl ${mandorName ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-200'}`}>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Mandor Proyek</p>
                 {mandorName ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-indigo-200 flex items-center justify-center shrink-0">
-                      <span className="text-[11px] font-black text-indigo-800">{mandorName.slice(0,2).toUpperCase()}</span>
+                    <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center shrink-0">
+                      <span className="text-[11px] font-black text-blue-800">{mandorName.slice(0,2).toUpperCase()}</span>
                     </div>
-                    <p className="font-bold text-indigo-900">{mandorName}</p>
+                    <p className="font-bold text-blue-900">{mandorName}</p>
                   </div>
                 ) : (
                   <div>
@@ -445,8 +445,8 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
                 )}
               </div>
 
-              <div className="p-4 border border-indigo-100 rounded-2xl bg-indigo-50/40">
-                <p className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest mb-2">Total Progress Unit</p>
+              <div className="p-4 border border-blue-100 rounded-2xl bg-blue-50/40">
+                <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-2">Total Progress Unit</p>
                 <TotalProgressOverrideControls
                   kavlingId={proyek.kavlingId}
                   canEdit={canEditTotalProgress}
@@ -530,7 +530,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
                             {canUpload ? (
                               <button
                                 onClick={() => setSelectedTahapanToEdit(tahapan)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wide rounded-lg hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wide rounded-lg hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
                               >
                                 <Edit2 size={11} /> Input
                               </button>
@@ -748,8 +748,8 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
       {canUpload && (
         <form onSubmit={handleSave} className="space-y-5">
           {/* Persentase */}
-          <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-            <label className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mb-3 block">
+          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+            <label className="text-[11px] font-bold text-blue-700 uppercase tracking-widest mb-3 block">
               Update Persentase Pembangunan
             </label>
             <div className="flex items-center gap-3">
@@ -760,7 +760,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
                 step="1"
                 value={formData.persentase}
                 onChange={(e) => syncPersentaseFromSlider(e.target.value)}
-                className="flex-1 h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                className="flex-1 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <div className="flex items-center gap-1.5">
                 <input
@@ -776,15 +776,15 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
                     const parsed = parsePersentaseInput(persentaseInput);
                     if (parsed !== null) setPersentaseInput(String(parsed));
                   }}
-                  className="w-14 px-2 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-black text-indigo-700 text-center outline-none focus:ring-2 focus:ring-indigo-400/30"
+                  className="w-14 px-2 py-1.5 bg-white border border-blue-200 rounded-lg text-sm font-black text-blue-700 text-center outline-none focus:ring-2 focus:ring-blue-400/30"
                 />
-                <span className="font-bold text-indigo-600 text-sm">%</span>
+                <span className="font-bold text-blue-600 text-sm">%</span>
               </div>
             </div>
             {/* Visual progress */}
-            <div className="mt-3 bg-indigo-100/70 rounded-full h-2 overflow-hidden">
+            <div className="mt-3 bg-blue-100/70 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-indigo-600 h-full rounded-full transition-all duration-300"
+                className="bg-blue-600 h-full rounded-full transition-all duration-300"
                 style={{ width: `${formData.persentase}%` }}
               />
             </div>
@@ -806,7 +806,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
             <textarea
               value={formData.deskripsi}
               onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
-              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/20 focus:border-indigo-400 transition-all min-h-[90px] text-slate-900 resize-none"
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400 transition-all min-h-[90px] text-slate-900 resize-none"
               placeholder={`Catatan kondisi pengerjaan ${namaTahapan}...`}
             />
           </div>
@@ -822,10 +822,10 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
               onDragOver={handleDrag}
               onDrop={handleDrop}
               className={`relative border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center text-center transition-all
-                ${dragActive ? 'border-indigo-400 bg-indigo-50' : 'border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400'}
+                ${dragActive ? 'border-blue-400 bg-blue-50' : 'border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-slate-400'}
               `}
             >
-              <UploadCloud size={24} className={`mb-2 transition-colors ${dragActive ? 'text-indigo-500' : 'text-slate-400'}`} />
+              <UploadCloud size={24} className={`mb-2 transition-colors ${dragActive ? 'text-blue-500' : 'text-slate-400'}`} />
               <p className="text-xs font-semibold text-slate-600 mb-0.5">Tarik &amp; lepas gambar ke sini</p>
               <p className="text-[10px] text-slate-400 mb-3">Bisa memilih lebih dari 1 file</p>
               <label className="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer hover:bg-slate-50 transition shadow-sm">
@@ -868,7 +868,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
             <button
               type="submit"
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm transition disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-sm transition disabled:opacity-50 cursor-pointer"
             >
               {isSaving ? (
                 <><Loader2 size={15} className="animate-spin" /> Menyimpan...</>
@@ -915,7 +915,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
                     {formatDate(log.tanggal)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black bg-blue-50 text-blue-700 border border-blue-100">
                       {log.persentase}%
                     </span>
                   </td>

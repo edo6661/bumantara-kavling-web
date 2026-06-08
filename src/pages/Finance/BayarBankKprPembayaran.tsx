@@ -308,7 +308,7 @@ const BayarBankKprPembayaran = () => {
             type="checkbox"
             checked={checked}
             onChange={() => toggleSelect(row.id)}
-            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             aria-label={`Pilih pembayaran ${BANK_KPR_PEMBAYARAN_JENIS_LABEL[row.jenis]}`}
           />
         </td>
@@ -443,7 +443,7 @@ const BayarBankKprPembayaran = () => {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-indigo-900 text-white rounded-xl shadow-lg">
+        <div className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-blue-900 text-white rounded-xl shadow-lg">
           <span className="text-sm font-semibold">{selectedIds.size} pembayaran dipilih</span>
           <div className="flex flex-wrap gap-2">
             <button
@@ -470,7 +470,7 @@ const BayarBankKprPembayaran = () => {
             <button
               type="button"
               onClick={openBsiBatchPreview}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase bg-white text-indigo-900 rounded-lg hover:bg-indigo-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase bg-white text-blue-900 rounded-lg hover:bg-blue-50"
             >
               <FileDown size={14} />
               Convert to BSI Batch Payment
@@ -531,14 +531,14 @@ const BayarBankKprPembayaran = () => {
                     <Fragment key={group.penjualanId}>
                       <tr
                         className={`cursor-pointer transition-colors ${
-                          expanded ? 'bg-indigo-50/80' : 'bg-white hover:bg-slate-50'
+                          expanded ? 'bg-blue-50/80' : 'bg-white hover:bg-slate-50'
                         }`}
                         onClick={() => toggleExpand(group.penjualanId)}
                       >
                         <td className={tdParentClass}>
                           <ChevronRight
                             size={18}
-                            className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-indigo-600' : ''}`}
+                            className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-blue-600' : ''}`}
                           />
                         </td>
                
@@ -591,7 +591,7 @@ const BayarBankKprPembayaran = () => {
                                         onChange={(e) =>
                                           toggleSelectGroup(group.items, e.target.checked)
                                         }
-                                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                         aria-label={`Pilih semua pembayaran ${group.noTransaksi}`}
                                       />
                                     </th>
@@ -641,7 +641,7 @@ const BayarBankKprPembayaran = () => {
                 <select
                   value={limit}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-sm"
+                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm"
                   aria-label="Jumlah data per halaman"
                 >
                   {PAGE_SIZE_OPTIONS.map((size) => (

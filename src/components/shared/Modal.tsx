@@ -47,19 +47,20 @@ const Modal = ({ isOpen, onClose, title, children, size }: ModalProps) => {
             transition={{ type: "spring", damping: 25, stiffness: 350 }}
             className={`relative bg-white rounded-2xl w-full ${sizeClass[size ?? 'lg']} max-h-[90vh] flex flex-col shadow-2xl shadow-slate-900/20 ring-1 ring-slate-900/5 overflow-hidden`}
           >
-            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white/90 backdrop-blur-md shrink-0 z-10">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-white shrink-0 z-10">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 tracking-tight">{title}</h3>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">{title}</h3>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
               >
-                <X size={20} strokeWidth={2.5} />
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto custom-scrollbar bg-slate-50/50">
+            <div className="p-5 overflow-y-auto custom-scrollbar bg-slate-50/30">
+
               {children}
             </div>
           </motion.div>

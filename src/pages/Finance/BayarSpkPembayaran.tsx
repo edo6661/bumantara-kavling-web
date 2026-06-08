@@ -341,7 +341,7 @@ const BayarSpkPembayaran = () => {
             checked={checked}
             disabled={isDraft}
             onChange={() => toggleSelect(row.id)}
-            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-40"
+            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
             aria-label={`Pilih pembayaran ${getItemLabel(row)}`}
           />
         </td>
@@ -432,7 +432,7 @@ const BayarSpkPembayaran = () => {
               title="Tambah Bukti"
               onClick={() => openUpload(row, 'add-bukti')}
               disabled={addBuktiMutation.isPending}
-              className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold uppercase bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 whitespace-nowrap"
+              className="flex items-center gap-1 px-2.5 py-1 text-[9px] font-bold uppercase bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
             >
               <UploadCloud size={11} />
               
@@ -509,7 +509,7 @@ const BayarSpkPembayaran = () => {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-indigo-900 text-white rounded-xl shadow-lg">
+        <div className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-blue-900 text-white rounded-xl shadow-lg">
           <span className="text-sm font-semibold">
             {selectedIds.size} pembayaran dipilih
           </span>
@@ -538,7 +538,7 @@ const BayarSpkPembayaran = () => {
             <button
               type="button"
               onClick={openBsiBatchPreview}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase bg-white text-indigo-900 rounded-lg hover:bg-indigo-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase bg-white text-blue-900 rounded-lg hover:bg-blue-50"
             >
               <FileDown size={14} />
               Convert to BSI Batch Payment
@@ -586,14 +586,14 @@ const BayarSpkPembayaran = () => {
                     <Fragment key={group.spkId}>
                       <tr
                         className={`cursor-pointer transition-colors ${
-                          expanded ? 'bg-indigo-50/80' : 'bg-white hover:bg-slate-50'
+                          expanded ? 'bg-blue-50/80' : 'bg-white hover:bg-slate-50'
                         }`}
                         onClick={() => toggleExpand(group.spkId)}
                       >
                         <td className={tdParentClass}>
                           <ChevronRight
                             size={18}
-                            className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-indigo-600' : ''}`}
+                            className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-blue-600' : ''}`}
                           />
                         </td>
                         <td className={`${tdParentClass} font-bold text-slate-900 whitespace-nowrap`}>
@@ -653,7 +653,7 @@ const BayarSpkPembayaran = () => {
                                         onChange={(e) =>
                                           toggleSelectGroup(group.items, e.target.checked)
                                         }
-                                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                         aria-label={`Pilih semua pembayaran ${group.noSpk}`}
                                       />
                                     </th>

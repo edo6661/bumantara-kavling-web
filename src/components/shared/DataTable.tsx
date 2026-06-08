@@ -133,7 +133,7 @@ const DataTable = ({
               placeholder={searchPlaceholder}
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
             />
           </div>
 
@@ -180,7 +180,7 @@ const DataTable = ({
                         if (expandedRowRender) toggleRow(rowId);
                         else onRowClick?.(row);
                       }}
-                      className={`transition-all duration-200 group ${expandedRowRender || onRowClick ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-indigo-50/30' : 'bg-white'}`}
+                      className={`transition-all duration-200 group ${expandedRowRender || onRowClick ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-blue-50/30' : 'bg-white'}`}
                     >
                       {expandedRowRender && (
                         <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">
@@ -210,7 +210,7 @@ const DataTable = ({
                             {onEdit && (
                               <button
                                 onClick={() => onEdit(row)}
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
                                 title="Edit"
                               >
                                 <Edit2 size={16} />
@@ -271,7 +271,7 @@ const DataTable = ({
                 <select
                   value={pageSize}
                   onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer shadow-sm"
+                  className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm"
                   aria-label="Jumlah data per halaman"
                 >
                   {pageSizeOptions.map((size) => (

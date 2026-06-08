@@ -194,7 +194,7 @@ const ApprovePembayaran = () => {
           onClick={() => setIsFilterExpanded(!isFilterExpanded)}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg ring-1 ring-indigo-200">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg ring-1 ring-blue-200">
               <Filter size={18} strokeWidth={2.5} />
             </div>
             <h3 className="font-bold text-slate-900 tracking-tight">Filter & Urutkan Pembayaran</h3>
@@ -209,11 +209,11 @@ const ApprovePembayaran = () => {
 
             {/* Filter Status */}
             <div className="relative group">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-indigo-600 transition-colors">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-blue-600 transition-colors">
                 Status Pembayaran
               </label>
               <select
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer"
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
               >
@@ -222,42 +222,42 @@ const ApprovePembayaran = () => {
                 <option value="LUNAS">Lunas (Disetujui)</option>
                 <option value="BELUM_BAYAR">Belum Bayar</option>
               </select>
-              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500">
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-blue-500">
                 <ChevronDown size={16} />
               </div>
             </div>
 
             {/* Filter Tanggal */}
             <div className="relative group">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-indigo-600 transition-colors">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-blue-600 transition-colors">
                 Tanggal Pembayaran / Upload
               </label>
               <div className="relative">
                 <input
                   type="date"
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm cursor-pointer"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm cursor-pointer"
                   value={dateFilter}
                   onChange={handleDateFilterChange}
                 />
-                <Calendar size={16} className="absolute left-3.5 top-[11px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+                <Calendar size={16} className="absolute left-3.5 top-[11px] pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
               </div>
             </div>
 
             {/* Sorting */}
             <div className="relative group">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-indigo-600 transition-colors">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-blue-600 transition-colors">
                 Urutkan Waktu
               </label>
               <select
-                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer"
+                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer"
                 value={orderBy}
                 onChange={handleSortChange}
               >
                 <option value="updatedAt:desc">Terbaru (Paling Atas)</option>
                 <option value="updatedAt:asc">Terlama (Paling Atas)</option>
               </select>
-              <ArrowUpDown size={16} className="absolute left-3.5 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
-              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500">
+              <ArrowUpDown size={16} className="absolute left-3.5 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-blue-500">
                 <ChevronDown size={16} />
               </div>
             </div>

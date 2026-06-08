@@ -73,7 +73,7 @@ const PenjualanDetailModal = ({
               </div>
               <div>
                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Agent Marketing</p>
-                <p className="text-sm font-bold text-indigo-600">{detailData.agent}</p>
+                <p className="text-sm font-bold text-blue-600">{detailData.agent}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Domisili</p>
@@ -148,8 +148,8 @@ const PenjualanDetailModal = ({
                   <>
                     <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-bold text-indigo-400">Biaya KPR (6%)</span>
-                        <span className="text-sm font-bold text-indigo-400 tabular-nums">{formatRupiah(detailData.biayaKpr || 0)}</span>
+                        <span className="text-sm font-bold text-blue-400">Biaya KPR (6%)</span>
+                        <span className="text-sm font-bold text-blue-400 tabular-nums">{formatRupiah(detailData.biayaKpr || 0)}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono">
                         <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal × 6%
@@ -158,8 +158,8 @@ const PenjualanDetailModal = ({
 
                     <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-bold text-indigo-400">Plafon Kredit</span>
-                        <span className="text-sm font-bold text-indigo-400 tabular-nums">{formatRupiah(detailData.plafonKredit || 0)}</span>
+                        <span className="text-sm font-bold text-blue-400">Plafon Kredit</span>
+                        <span className="text-sm font-bold text-blue-400 tabular-nums">{formatRupiah(detailData.plafonKredit || 0)}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono">
                         <strong className="text-slate-400">Kalkulasi:</strong> Plafon Awal + Biaya KPR
@@ -190,8 +190,8 @@ const PenjualanDetailModal = ({
                     </div>
                     <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-2">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-bold text-indigo-400">Plafon ACC Bank</span>
-                        <span className="text-sm font-bold text-indigo-400 tabular-nums">{formatRupiah(detailData.plafonAcc || 0)}</span>
+                        <span className="text-sm font-bold text-blue-400">Plafon ACC Bank</span>
+                        <span className="text-sm font-bold text-blue-400 tabular-nums">{formatRupiah(detailData.plafonAcc || 0)}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-mono">
                         <strong className="text-slate-400">Info:</strong> Nilai ACC yang disetujui pihak Bank KPR

@@ -395,7 +395,7 @@ const KalkulasiSingkat = ({
               b.tipe === 'negatif'
                 ? 'text-red-600'
                 : b.tipe === 'hasil'
-                  ? 'text-indigo-600'
+                  ? 'text-blue-600'
                   : 'text-slate-600'
             }`}
           >
@@ -1556,7 +1556,7 @@ const SpkPembayaranPanel = ({
   const kasbonCreateModalBody = (
     <div className="space-y-5">
       {hasActiveDraft ? (
-        <p className="text-xs text-indigo-800 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+        <p className="text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
           Ada <strong>draft kasbon</strong> tersimpan untuk SPK ini. Isi form sudah dimuat dari draft.
           Klik <strong>Simpan Draft</strong> setelah mengubah data, atau <strong>Ajukan</strong> jika sudah lengkap.
         </p>
@@ -2048,7 +2048,7 @@ const SpkPembayaranPanel = ({
           disabled={!check.allowed || createMutation.isPending}
           title={check.reason}
           onClick={() => handleAjukanTermin(jenis)}
-          className="px-2.5 py-1 text-[10px] font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 whitespace-nowrap"
+          className="px-2.5 py-1 text-[10px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 whitespace-nowrap"
         >
           Ajukan
         </button>
@@ -2278,7 +2278,7 @@ const SpkPembayaranPanel = ({
                                   type="button"
                                   title="Edit kasbon"
                                   onClick={() => openEditKasbon(row)}
-                                  className="p-1 rounded text-indigo-600 hover:bg-indigo-50"
+                                  className="p-1 rounded text-blue-600 hover:bg-blue-50"
                                 >
                                   <Pencil size={14} />
                                 </button>
@@ -2408,7 +2408,7 @@ const SpkPembayaranPanel = ({
                                   type="button"
                                   title="Edit upah"
                                   onClick={() => openEditUpah(row)}
-                                  className="p-1 rounded text-indigo-600 hover:bg-indigo-50"
+                                  className="p-1 rounded text-blue-600 hover:bg-blue-50"
                                 >
                                   <Pencil size={14} />
                                 </button>
@@ -2563,7 +2563,7 @@ const SpkPembayaranPanel = ({
                   ? 'Total kasbon melebihi sisa plafon termin'
                   : undefined
               }
-              className="px-4 py-2 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               Simpan
             </button>
@@ -2621,7 +2621,7 @@ const SpkPembayaranPanel = ({
               title={
                 upahEditOverPlafon ? 'Total upah melebihi sisa plafon termin' : undefined
               }
-              className="px-4 py-2 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               Simpan
             </button>

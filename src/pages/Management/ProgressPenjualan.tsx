@@ -140,7 +140,7 @@ const ProgressPenjualan = () => {
   };
 
   const filterSelectClass =
-    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer';
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
 
   const tableToolbar = (
     <>
@@ -155,7 +155,7 @@ const ProgressPenjualan = () => {
           <option value="blokNomorUnit:asc">Blok & No Unit (A-Z)</option>
           <option value="nama:asc">Nama Customer (A-Z)</option>
         </select>
-        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
         <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
       </div>
       <div className="relative group w-full sm:w-44">
@@ -170,7 +170,7 @@ const ProgressPenjualan = () => {
           <option value="CASH_BERTAHAP">Cash Bertahap</option>
           <option value="KPR">KPR</option>
         </select>
-        <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
         <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
       </div>
     </>
@@ -351,8 +351,8 @@ const ProgressPenjualan = () => {
 
     return (
       <div
-        className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-indigo-400
-          ${isDrag ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-200'}
+        className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-blue-400
+          ${isDrag ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 hover:border-blue-200'}
         `}
         tabIndex={0}
         onDragEnter={(e) => handleDrag(e, uploadKey)}
@@ -369,13 +369,13 @@ const ProgressPenjualan = () => {
           <div className="flex flex-col">
             <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
             {urutan > 1 && (
-              <span className="text-[9px] text-indigo-600 font-bold">Sertifikat Tanah ke-{urutan}</span>
+              <span className="text-[9px] text-blue-600 font-bold">Sertifikat Tanah ke-{urutan}</span>
             )}
             <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
           </div>
-          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 cursor-pointer'}`}>
             {isUploading ? (
-              <><Loader2 size={14} className="animate-spin text-indigo-600" /> Mengunggah...</>
+              <><Loader2 size={14} className="animate-spin text-blue-600" /> Mengunggah...</>
             ) : (
               <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
             )}
@@ -387,11 +387,11 @@ const ProgressPenjualan = () => {
           </label>
         </div>
 
-        <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-indigo-400 border-dashed' : 'border-slate-200'}`}>
+        <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-blue-400 border-dashed' : 'border-slate-200'}`}>
           {isUploading && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-              <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
-              <span className="text-xs font-bold text-indigo-600 animate-pulse">Sedang mengunggah...</span>
+              <Loader2 size={32} className="animate-spin text-blue-600 mb-3" />
+              <span className="text-xs font-bold text-blue-600 animate-pulse">Sedang mengunggah...</span>
             </div>
           )}
           {url ? (
@@ -849,7 +849,7 @@ const ProgressPenjualan = () => {
               </span>
             </span>
             {isKodeBilling && slotKodeBilling && (
-              <span className="text-[9px] font-bold text-indigo-600 mt-0.5 font-mono">
+              <span className="text-[9px] font-bold text-blue-600 mt-0.5 font-mono">
                 Kode: {slotKodeBilling}
               </span>
             )}
@@ -868,7 +868,7 @@ const ProgressPenjualan = () => {
             <label
               className={`p-1.5 rounded-lg transition-all z-30 cursor-pointer flex items-center gap-1 ${
                 isKodeBilling
-                  ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                  ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                   : 'bg-blue-50 text-blue-500 hover:text-blue-700 hover:bg-blue-100'
               }`}
               title={
@@ -940,7 +940,7 @@ const ProgressPenjualan = () => {
             return (
               <div
                 key={`${item.docId}-${idx}`}
-                className="h-32 w-full max-w-[240px] rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative group/item bg-white transition-all hover:border-indigo-200"
+                className="h-32 w-full max-w-[240px] rounded-lg border-2 border-slate-200 flex items-center justify-center overflow-hidden relative group/item bg-white transition-all hover:border-blue-200"
               >
                 {isPdf ? (
                   <iframe src={item.url} title={`${doc.nama}-${idx}`} className="w-full h-full border-none pointer-events-none" />
@@ -1082,8 +1082,8 @@ const ProgressPenjualan = () => {
 
     return (
       <div
-        className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-indigo-400
-          ${isDrag ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-indigo-200'}
+        className={`bg-white p-4 rounded-xl border flex flex-col gap-3 transition-all relative overflow-hidden outline-none focus-within:ring-2 focus-within:ring-blue-400
+          ${isDrag ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 hover:border-blue-200'}
         `}
         tabIndex={0}
         onDragEnter={(e) => handleDrag(e, docType)}
@@ -1101,9 +1101,9 @@ const ProgressPenjualan = () => {
             <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
             <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
           </div>
-          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 cursor-pointer'}`}>
             {isUploading ? (
-              <><Loader2 size={14} className="animate-spin text-indigo-600" /> Mengunggah...</>
+              <><Loader2 size={14} className="animate-spin text-blue-600" /> Mengunggah...</>
             ) : (
               <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
             )}
@@ -1115,11 +1115,11 @@ const ProgressPenjualan = () => {
           </label>
         </div>
 
-        <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-indigo-400 border-dashed' : 'border-slate-200'}`}>
+        <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-blue-400 border-dashed' : 'border-slate-200'}`}>
           {isUploading && (
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-              <Loader2 size={32} className="animate-spin text-indigo-600 mb-3" />
-              <span className="text-xs font-bold text-indigo-600 animate-pulse">Sedang mengunggah...</span>
+              <Loader2 size={32} className="animate-spin text-blue-600 mb-3" />
+              <span className="text-xs font-bold text-blue-600 animate-pulse">Sedang mengunggah...</span>
             </div>
           )}
           {url ? (
@@ -1149,7 +1149,7 @@ const ProgressPenjualan = () => {
     <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 mt-6">
       <div className="flex justify-between items-center border-b border-slate-200 pb-3 mb-4">
         <h5 className="text-sm font-bold text-slate-800">Checklist BAST / Komplain Customer</h5>
-        <button type="button" onClick={() => setChecklist([...checklist, { key: '', value: '' }])} className="flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition cursor-pointer">
+        <button type="button" onClick={() => setChecklist([...checklist, { key: '', value: '' }])} className="flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition cursor-pointer">
           <Plus size={14} /> Tambah Ceklis
         </button>
       </div>
@@ -1159,8 +1159,8 @@ const ProgressPenjualan = () => {
         ) : (
           checklist.map((c, idx) => (
             <div key={idx} className="flex items-start gap-2">
-              <input type="text" placeholder="Bagian (Contoh: Cat Dinding)" value={c.key} onChange={(e) => { const newArr = [...checklist]; newArr[idx].key = e.target.value; setChecklist(newArr); }} className="w-1/3 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-black" />
-              <input type="text" placeholder="Catatan / Status (Contoh: Ada retak rambut sedikit)" value={c.value} onChange={(e) => { const newArr = [...checklist]; newArr[idx].value = e.target.value; setChecklist(newArr); }} className="w-2/3 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-indigo-500 text-black" />
+              <input type="text" placeholder="Bagian (Contoh: Cat Dinding)" value={c.key} onChange={(e) => { const newArr = [...checklist]; newArr[idx].key = e.target.value; setChecklist(newArr); }} className="w-1/3 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-black" />
+              <input type="text" placeholder="Catatan / Status (Contoh: Ada retak rambut sedikit)" value={c.value} onChange={(e) => { const newArr = [...checklist]; newArr[idx].value = e.target.value; setChecklist(newArr); }} className="w-2/3 px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-black" />
               <button type="button" onClick={() => setChecklist(checklist.filter((_, i) => i !== idx))} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition cursor-pointer shrink-0"><Trash2 size={14} /></button>
             </div>
           ))
@@ -1185,10 +1185,10 @@ const ProgressPenjualan = () => {
         
         {/* Header Halaman Dashboard */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
-          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-blue-500 to-violet-500" />
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 px-6 py-5">
             <div className="flex items-center gap-4">
-              <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 shrink-0" />
+              <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 shrink-0" />
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
                   Manajemen Dokumen
@@ -1241,7 +1241,7 @@ const ProgressPenjualan = () => {
           </div>
 
             {loadingProgress ? (
-              <div className="py-12 flex justify-center"><div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
+              <div className="py-12 flex justify-center"><div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div></div>
             ) : progressData ? (
               <div className="space-y-6">
 
@@ -1250,9 +1250,9 @@ const ProgressPenjualan = () => {
                     <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-slate-100 pb-3 mb-4 gap-3">
                         <h4 className="text-sm font-bold text-slate-800">Tahap 1: Validasi Berkas KPR</h4>
-                        <label className="flex items-center gap-2 cursor-pointer bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors w-fit">
-                          <input type="checkbox" checked={progressData.berkasCustomerValid} onChange={(e) => updateMutation.mutate({ id: progressData.penjualanId, data: { berkasCustomerValid: e.target.checked } })} className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer" />
-                          <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mt-0.5">Tandai Valid & Siap KPR</span>
+                        <label className="flex items-center gap-2 cursor-pointer bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors w-fit">
+                          <input type="checkbox" checked={progressData.berkasCustomerValid} onChange={(e) => updateMutation.mutate({ id: progressData.penjualanId, data: { berkasCustomerValid: e.target.checked } })} className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" />
+                          <span className="text-[11px] font-bold text-blue-700 uppercase tracking-widest mt-0.5">Tandai Valid & Siap KPR</span>
                         </label>
                       </div>
 
@@ -1294,8 +1294,8 @@ const ProgressPenjualan = () => {
                               >
                                 {isUploading && (
                                   <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-                                    <Loader2 size={24} className="animate-spin text-indigo-600 mb-2" />
-                                    <span className="text-[10px] font-bold text-indigo-600 animate-pulse">Mengunggah...</span>
+                                    <Loader2 size={24} className="animate-spin text-blue-600 mb-2" />
+                                    <span className="text-[10px] font-bold text-blue-600 animate-pulse">Mengunggah...</span>
                                   </div>
                                 )}
                                 {fileUrl ? (
@@ -1395,7 +1395,7 @@ const ProgressPenjualan = () => {
                       {Array.from({ length: jumlahSertifikatTanah }, (_, idx) => idx + 1).map((urutan) => (
                         <div key={urutan} className={isMultiSertifikat ? 'mb-6 last:mb-0' : ''}>
                           {isMultiSertifikat && (
-                            <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide mb-3">
+                            <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-3">
                               Sertifikat Tanah ke-{urutan}
                             </p>
                           )}
@@ -1471,11 +1471,11 @@ const ProgressPenjualan = () => {
 
                       <div className="pt-6 mt-6 border-t border-slate-100">
                         <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1 flex items-center gap-2">
-                          <PlusCircle size={14} className="text-indigo-600" /> Dokumen PPh SP3K
+                          <PlusCircle size={14} className="text-blue-600" /> Dokumen PPh SP3K
                         </h4>
                         {sp3kUnitLabel && (
                           <p className="text-[10px] text-slate-500 mb-3 font-medium">
-                            <span className="text-indigo-600 font-bold">{sp3kUnitLabel}</span>
+                            <span className="text-blue-600 font-bold">{sp3kUnitLabel}</span>
                           </p>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1636,7 +1636,7 @@ const ProgressPenjualan = () => {
             onChange={(e) => setPdfPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleConfirmPdfPassword()}
             placeholder="Password PDF (kosongkan jika tidak ada)"
-            className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900"
+            className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-900"
             autoFocus
           />
           <div className="flex gap-2 pt-2">
@@ -1648,7 +1648,7 @@ const ProgressPenjualan = () => {
             </button>
             <button
               onClick={handleConfirmPdfPassword}
-              className="flex-1 px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition cursor-pointer"
+              className="flex-1 px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition cursor-pointer"
             >
               Upload PDF
             </button>

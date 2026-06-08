@@ -89,7 +89,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           {selectedPerumahan?.logo ? (
             <img src={selectedPerumahan.logo} alt="Logo" className="h-7 object-contain" />
           ) : (
-            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+            <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">
               B
             </div>
           )}
@@ -140,7 +140,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           type="button"
           onClick={() => navigate('/profile')}
           title="Profil saya"
-          className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-[12px] cursor-pointer hover:shadow-lg hover:shadow-blue-500/30 hover:scale-105 transition-all duration-200"
+          className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-[12px] cursor-pointer hover:shadow-lg hover:shadow-blue-500/30 hover:scale-105 transition-all duration-200"
         >
           {profileInitials}
         </button>

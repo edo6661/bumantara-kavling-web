@@ -23,10 +23,10 @@ const AgentLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-indigo-50 p-4 font-sans">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-indigo-100 p-8">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50 p-4 font-sans">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-blue-100 p-8">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 mb-4">
+          <div className="w-14 h-14 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center text-white shadow-lg shadow-blue-600/30 mb-4">
             <Briefcase size={28} />
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Portal Agent</h1>
@@ -59,7 +59,7 @@ const AgentLogin = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-indigo-600 text-white font-bold text-sm py-3.5 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 mt-4 disabled:opacity-50 cursor-pointer"
+            className="w-full bg-blue-600 text-white font-bold text-sm py-3.5 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 mt-4 disabled:opacity-50 cursor-pointer"
           >
             {isLoading ? 'Memverifikasi...' : 'Masuk ke Portal'}
           </button>

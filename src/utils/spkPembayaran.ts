@@ -28,9 +28,9 @@ export const JENIS_UI_COLOR: Record<
   { badge: string; row: string; text: string }
 > = {
   TERMIN_55: {
-    badge: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    row: 'bg-indigo-50/60',
-    text: 'text-indigo-700',
+    badge: 'bg-blue-100 text-blue-800 border-blue-200',
+    row: 'bg-blue-50/60',
+    text: 'text-blue-700',
   },
   TERMIN_100: {
     badge: 'bg-violet-100 text-violet-800 border-violet-200',

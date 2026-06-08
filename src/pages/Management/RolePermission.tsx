@@ -56,7 +56,7 @@ const RolePermission = () => {
       accessor: "name",
       render: (val: string, row: any) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700">
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
             <ShieldAlert size={16} />
           </div>
           <div>
@@ -180,24 +180,24 @@ const RolePermission = () => {
                     const isAllChecked = data.canCreate && data.canRead && data.canUpdate && data.canDelete;
 
                     return (
-                      <tr key={res} className="hover:bg-indigo-50/30 transition-colors">
+                      <tr key={res} className="hover:bg-blue-50/30 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs font-bold text-slate-700">{res}</td>
                         <td className="px-4 py-3 text-center">
-                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={data.canRead} onChange={(e) => handleMatrixChange(res, "canRead", e.target.checked)} />
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500" checked={data.canRead} onChange={(e) => handleMatrixChange(res, "canRead", e.target.checked)} />
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={data.canCreate} onChange={(e) => handleMatrixChange(res, "canCreate", e.target.checked)} />
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500" checked={data.canCreate} onChange={(e) => handleMatrixChange(res, "canCreate", e.target.checked)} />
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={data.canUpdate} onChange={(e) => handleMatrixChange(res, "canUpdate", e.target.checked)} />
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500" checked={data.canUpdate} onChange={(e) => handleMatrixChange(res, "canUpdate", e.target.checked)} />
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked={data.canDelete} onChange={(e) => handleMatrixChange(res, "canDelete", e.target.checked)} />
+                          <input type="checkbox" className="w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500" checked={data.canDelete} onChange={(e) => handleMatrixChange(res, "canDelete", e.target.checked)} />
                         </td>
                         <td className="px-4 py-3 text-center border-l border-slate-100 bg-slate-50">
                           <input
                             type="checkbox"
-                            className="w-4 h-4 cursor-pointer text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                            className="w-4 h-4 cursor-pointer text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                             checked={isAllChecked}
                             onChange={(e) => handleSelectAllRow(res, e.target.checked)}
                             title="Beri semua akses untuk modul ini"
@@ -223,7 +223,7 @@ const RolePermission = () => {
             <button
               type="submit"
               disabled={isSaving}
-              className="flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 px-8 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
             >
               <Save size={16} />
               {isSaving ? "Menyimpan Massal..." : "Simpan Konfigurasi"}

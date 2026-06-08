@@ -616,8 +616,8 @@ const Penjualan = () => {
                 }
               }}
               className={`p-1.5 rounded-lg transition-all cursor-pointer border flex items-center justify-center ${isActive
-                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
-                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 shadow-sm'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 shadow-sm'
                 }`}
               title="Opsi"
             >
@@ -635,7 +635,7 @@ const Penjualan = () => {
                 />
                 {/* MODIFIKASI: Ubah class absolute menjadi fixed, hapus top-full dan right-0, lalu tambahkan inline style */}
                 <div
-                  className="fixed w-36 bg-indigo-600 rounded-xl shadow-xl shadow-indigo-600/40 border border-indigo-500 py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+                  className="fixed w-36 bg-blue-600 rounded-xl shadow-xl shadow-blue-600/40 border border-blue-500 py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
                   style={{
                     top: dropdownPos.dropUp ? 'auto' : `${dropdownPos.top + 8}px`,
                     bottom: dropdownPos.dropUp ? `${window.innerHeight - dropdownPos.top + 8}px` : 'auto',
@@ -649,14 +649,14 @@ const Penjualan = () => {
                         setActiveActionId(null);
                         openDetailModal(row);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
                     >
                       <Eye size={14} /> Detail
                     </button>
                   )}
 
                   {row.hargaJual && row.fileBuktiBooking && (
-                    <div className="h-px bg-indigo-500/50 mx-2 my-0.5" />
+                    <div className="h-px bg-blue-500/50 mx-2 my-0.5" />
                   )}
 
                   {row.fileBuktiBooking && (
@@ -666,7 +666,7 @@ const Penjualan = () => {
                         setActiveActionId(null);
                         openModal(row);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-indigo-500 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
                     >
                       <Edit2 size={14} /> Edit
                     </button>
@@ -1254,7 +1254,7 @@ const Penjualan = () => {
       <div className="p-5 bg-slate-50/50 rounded-xl border border-slate-200/80 shadow-inner animate-in fade-in duration-300 mt-2 mx-2 mb-4">
         <div className="flex justify-between items-center mb-5 border-b border-slate-200/60 pb-3">
           <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-            <FileText size={16} className="text-indigo-500" />
+            <FileText size={16} className="text-blue-500" />
             Manajemen Dokumen & Penagihan
           </h4>
           {row.isPendingBatal ? (
@@ -1314,7 +1314,7 @@ const Penjualan = () => {
                           href={row.fileSpr}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                          className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
                         >
                           <FileText size={14} /> Lihat SPR
                         </a>
@@ -1343,14 +1343,14 @@ const Penjualan = () => {
                     ) : (
                       <button
                         onClick={() => openSkemaModal(row)}
-                        className="w-full flex justify-center items-center gap-1.5 px-3 py-2.5 mt-1 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm cursor-pointer"
+                        className="w-full flex justify-center items-center gap-1.5 px-3 py-2.5 mt-1 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm cursor-pointer"
                       >
                         <Plus size={14} /> Buat Dokumen SPR
                       </button>
                     )}
                   </>
                 ) : (
-                  <label className={`flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                  <label className={`flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                     <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Transfer"}
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
                   </label>
@@ -1363,7 +1363,7 @@ const Penjualan = () => {
             <div className="pl-0 md:pl-6 md:border-l border-slate-200/60 flex flex-col justify-center">
               <div className="flex justify-between items-center mb-2">
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Bukti Transfer (BF)</p>
-                <label className={`text-[10px] font-bold text-indigo-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
                   {uploadBuktiMutation.isPending ? 'Proses...' : 'Ganti File'}
                   <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
                 </label>
@@ -1515,10 +1515,10 @@ const Penjualan = () => {
         
         {/* Header Halaman ala Dashboard */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
-          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-blue-500 to-violet-500" />
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 px-6 py-5">
             <div className="flex items-center gap-4">
-              <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 shrink-0" />
+              <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 shrink-0" />
               <div>
                 <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
                   Manajemen Properti
@@ -1541,7 +1541,7 @@ const Penjualan = () => {
           onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
               <PieChart size={16} strokeWidth={2} />
             </div>
             <div>
@@ -1549,7 +1549,7 @@ const Penjualan = () => {
               <p className="text-[11px] text-slate-400">Statistik transaksi keseluruhan</p>
             </div>
           </div>
-          <button className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+          <button className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
             {isSummaryExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
         </div>
@@ -1626,9 +1626,9 @@ const Penjualan = () => {
         {isFilterExpanded && (
           <div className="p-4 grid grid-cols-1 md:grid-cols-2 bg-slate-50/50 gap-4">
             <div className="relative group">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block group-focus-within:text-indigo-600 transition-colors">Status Transaksi</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block group-focus-within:text-blue-600 transition-colors">Status Transaksi</label>
               <select
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer"
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
               >
@@ -1638,13 +1638,13 @@ const Penjualan = () => {
                 <option value="LUNAS">Lunas</option>
                 <option value="BATAL">Batal</option>
               </select>
-              <div className="absolute right-3 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><ChevronDown size={16} /></div>
+              <div className="absolute right-3 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-blue-500"><ChevronDown size={16} /></div>
             </div>
 
             <div className="relative group">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block group-focus-within:text-indigo-600 transition-colors">Urutkan Berdasarkan</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block group-focus-within:text-blue-600 transition-colors">Urutkan Berdasarkan</label>
               <select
-                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer"
+                className="w-full px-4 pl-10 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer"
                 value={orderBy}
                 onChange={handleSortChange}
               >
@@ -1653,8 +1653,8 @@ const Penjualan = () => {
                 <option value="hargaJual:desc">Harga Jual: Tinggi ke Rendah</option>
                 <option value="nama:asc">Nama Customer: A - Z</option>
               </select>
-              <ArrowUpDown size={16} className="absolute left-3.5 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
-              <div className="absolute right-3 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><ChevronDown size={16} /></div>
+              <ArrowUpDown size={16} className="absolute left-3.5 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
+              <div className="absolute right-3 top-[38px] pointer-events-none text-slate-400 group-focus-within:text-blue-500"><ChevronDown size={16} /></div>
             </div>
           </div>
         )}
@@ -1663,7 +1663,7 @@ const Penjualan = () => {
         <button
           onClick={handleBulkGenerateSPR}
           disabled={isGeneratingBulk}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl shadow-md hover:bg-indigo-700 disabled:opacity-50 transition-all cursor-pointer"
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold text-sm rounded-xl shadow-md hover:bg-blue-700 disabled:opacity-50 transition-all cursor-pointer"
         >
           <FileText size={16} />
           {isGeneratingBulk ? "Memproses Generate Massal... Mohon Tunggu" : "Generate Cepat Semua SPR"}
@@ -1693,7 +1693,7 @@ const Penjualan = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-1">
-              <div className="md:col-span-2 p-3 bg-indigo-50/40 rounded-xl border border-indigo-100/60 mb-2">
+              <div className="md:col-span-2 p-3 bg-blue-50/40 rounded-xl border border-blue-100/60 mb-2">
                 {!isNewAgent ? (
                   <Select
                     label="Agent Marketing"
@@ -1732,7 +1732,7 @@ const Penjualan = () => {
                         setIsNewAgent(false);
                         setFormData((prev) => ({ ...prev, agent: '' }));
                       }}
-                      className="absolute right-2 top-0 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
+                      className="absolute right-2 top-0 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
                     >
                       Batal Tambah
                     </button>
@@ -1856,8 +1856,8 @@ const Penjualan = () => {
             </div>
           </div>
           {isEditing && (
-            <div className="bg-indigo-50/40 p-4 rounded-2xl border border-indigo-100 mt-4">
-              <h4 className="text-base font-bold text-slate-900 mb-4 border-b border-indigo-100 pb-2">2. Metode & Kalkulasi Pembayaran</h4>
+            <div className="bg-blue-50/40 p-4 rounded-2xl border border-blue-100 mt-4">
+              <h4 className="text-base font-bold text-slate-900 mb-4 border-b border-blue-100 pb-2">2. Metode & Kalkulasi Pembayaran</h4>
               <div className="pt-2">
                 <Select
                   label="Metode Pembayaran Utama"
@@ -1908,7 +1908,7 @@ const Penjualan = () => {
                         <span className="text-sm font-bold text-orange-500">- Booking Fee</span>
                         <button
                           type="button"
-                          className="w-7 h-7 flex items-center justify-center bg-slate-50 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 text-black/50 transition-colors rounded-lg font-bold shadow-sm cursor-pointer"
+                          className="w-7 h-7 flex items-center justify-center bg-slate-50 border border-slate-200 hover:border-blue-300 hover:text-blue-600 text-black/50 transition-colors rounded-lg font-bold shadow-sm cursor-pointer"
                           onClick={handleAddBiayaTambahan}
                           title="Tambah Biaya Lainnya"
                         >
@@ -1932,7 +1932,7 @@ const Penjualan = () => {
                             type="text"
                             value={biaya.nama}
                             onChange={(e) => handleChangeBiayaTambahanNama(biaya.id, e.target.value)}
-                            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 w-full max-w-[100px] sm:max-w-[110px] shadow-sm transition-all"
+                            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 w-full max-w-[100px] sm:max-w-[110px] shadow-sm transition-all"
                             placeholder="Nama Biaya"
                           />
                           <button
@@ -1976,7 +1976,7 @@ const Penjualan = () => {
 
                     {(formData.caraPembayaran === 'KPR') && (
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mt-4 space-y-2">
-                        <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi KPR</h5>
+                        <h5 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi KPR</h5>
 
                         <div className="flex items-center justify-between">
                           <div className="w-full">
@@ -1995,7 +1995,7 @@ const Penjualan = () => {
                         <div className="flex items-center justify-between mt-3">
                           <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1.5">
                             <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
-                            <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
+                            <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
                               Default (6%): Rp {formatTanpaDesimal((formData.plafonAwal || 0) * 0.06)}
                             </span>
                           </div>
@@ -2011,7 +2011,7 @@ const Penjualan = () => {
 
                         <div className="pt-3 border-t border-slate-200">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-indigo-700 w-full">Plafon Kredit</span>
+                            <span className="text-sm font-bold text-blue-700 w-full">Plafon Kredit</span>
                             <div className="w-40 sm:w-44 shrink-0">
                               <CurrencyInput
                                 name="plafonKredit"
@@ -2097,7 +2097,7 @@ const Penjualan = () => {
 
                         <div className="pt-3 border-t border-slate-200">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-bold text-indigo-700 w-full">Plafon ACC Bank</span>
+                            <span className="text-sm font-bold text-blue-700 w-full">Plafon ACC Bank</span>
                             <div className="w-40 sm:w-44 shrink-0">
                               <CurrencyInput
                                 name="plafonAcc"
@@ -2141,7 +2141,7 @@ const Penjualan = () => {
 
                     {(isCashBertahap(formData.caraPembayaran)) && (
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mt-4 space-y-2">
-                        <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
+                        <h5 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
 
                         <div className="flex items-center justify-between">
                           <div className="w-full flex items-center gap-3">
@@ -2156,7 +2156,7 @@ const Penjualan = () => {
                                   const rawValue = e.target.value.replace(/[^0-9]/g, '');
                                   handleCurrencyChange('persentaseDp', rawValue ? Number(rawValue) : 0);
                                 }}
-                                className="w-full pl-3 pr-8 py-2 text-sm font-black text-indigo-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                                className="w-full pl-3 pr-8 py-2 text-sm font-black text-blue-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
                               />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">%</span>
                             </div>
@@ -2211,17 +2211,17 @@ const Penjualan = () => {
                                   if (val > 12) val = 12;
                                   handleCurrencyChange('termin', val);
                                 }}
-                                className="w-full pl-3 pr-14 py-2 text-sm font-black text-indigo-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm text-right"
+                                className="w-full pl-3 pr-14 py-2 text-sm font-black text-blue-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm text-right"
                                 placeholder="1-12"
                               />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">Bulan</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                          <div className="flex items-center justify-between bg-blue-50 p-3 rounded-xl border border-blue-100">
                             <div className="w-full">
-                              <span className="text-sm font-bold text-indigo-700 block">Cicilan Per Bulan</span>
-                              <span className="text-[10px] font-medium text-indigo-500 mt-1 block">
+                              <span className="text-sm font-bold text-blue-700 block">Cicilan Per Bulan</span>
+                              <span className="text-[10px] font-medium text-blue-500 mt-1 block">
                                 Estimasi: {(() => {
                                   const termin = formData.termin || 3;
                                   const start = new Date();
@@ -2300,7 +2300,7 @@ const Penjualan = () => {
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50 active:scale-95"
+              className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 cursor-pointer disabled:opacity-50 active:scale-95"
             >
               {createMutation.isPending || updateMutation.isPending ? 'Memproses...' : isEditing ? 'Simpan Perubahan' : 'Booking Unit'}
             </button>
@@ -2312,9 +2312,9 @@ const Penjualan = () => {
         {selectedPenjualan && (
           <form onSubmit={handleSkemaSubmit} className="space-y-2">
 
-            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-3 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-50 to-blue-50 p-3 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10"><Building2 size={80} /></div>
-              <h4 className="text-[11px] font-bold text-indigo-800 uppercase tracking-widest mb-4 border-b border-indigo-200/50 pb-3">Informasi Pembeli & Kavling</h4>
+              <h4 className="text-[11px] font-bold text-blue-800 uppercase tracking-widest mb-4 border-b border-blue-200/50 pb-3">Informasi Pembeli & Kavling</h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-2 relative z-10">
                 <div>
@@ -2326,7 +2326,7 @@ const Penjualan = () => {
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Detail Unit</p>
                   <p className="text-sm font-bold text-slate-900">{selectedPenjualan.perumahan} - Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}</p>
                   <p className="text-xs text-slate-600 font-medium mt-1">Tipe {selectedPenjualan.tipe} (LB: {selectedPenjualan.luasBangunan} / LT: {selectedPenjualan.luasTanah})</p>
-                  <div className="mt-3 inline-block px-3 py-1.5 bg-indigo-600 text-white text-sm font-black rounded-lg tabular-nums shadow-sm">
+                  <div className="mt-3 inline-block px-3 py-1.5 bg-blue-600 text-white text-sm font-black rounded-lg tabular-nums shadow-sm">
                     {formatRupiah(selectedPenjualan.hargaDasar || 0)}
                   </div>
                 </div>
@@ -2382,7 +2382,7 @@ const Penjualan = () => {
                     <span className="text-sm font-bold text-orange-500">- Booking Fee</span>
                     <button
                       type="button"
-                      className="w-7 h-7 flex items-center justify-center bg-slate-50 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 text-black/50 transition-colors rounded-lg font-bold shadow-sm cursor-pointer"
+                      className="w-7 h-7 flex items-center justify-center bg-slate-50 border border-slate-200 hover:border-blue-300 hover:text-blue-600 text-black/50 transition-colors rounded-lg font-bold shadow-sm cursor-pointer"
                       onClick={handleAddBiayaTambahan}
                       title="Tambah Biaya Lainnya"
                     >
@@ -2407,7 +2407,7 @@ const Penjualan = () => {
                         onChange={(e) => handleChangeBiayaTambahanNama(biaya.id, e.target.value)}
 
 
-                        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 w-full max-w-[100px] sm:max-w-[110px] shadow-sm transition-all"
+                        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 w-full max-w-[100px] sm:max-w-[110px] shadow-sm transition-all"
                         placeholder="Nama Biaya"
                       />
                       <button
@@ -2451,7 +2451,7 @@ const Penjualan = () => {
 
                 {(formData.caraPembayaran === 'KPR') && (
                   <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mt-4 space-y-2">
-                    <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi KPR</h5>
+                    <h5 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi KPR</h5>
 
                     <div className="flex items-center justify-between">
                       <div className="w-full">
@@ -2470,7 +2470,7 @@ const Penjualan = () => {
                     <div className="flex items-center justify-between mt-3">
                       <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1.5">
                         <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
-                        <span className="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
+                        <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
                           Default (6%): Rp {formatTanpaDesimal((formData.plafonAwal || 0) * 0.06)}
                         </span>
                       </div>
@@ -2486,7 +2486,7 @@ const Penjualan = () => {
 
                     <div className="pt-3 border-t border-slate-200">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-indigo-700 w-full">Plafon Kredit</span>
+                        <span className="text-sm font-bold text-blue-700 w-full">Plafon Kredit</span>
                         <div className="w-40 sm:w-44 shrink-0">
                           <CurrencyInput
                             name="plafonKredit"
@@ -2600,7 +2600,7 @@ const Penjualan = () => {
 
                 {(isCashBertahap(formData.caraPembayaran)) && (
                   <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 mt-4 space-y-2">
-                    <h5 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
+                    <h5 className="text-[10px] font-bold text-blue-600 uppercase tracking-widest border-b border-slate-200 pb-2">Kalkulasi Cash Bertahap</h5>
 
                     <div className="flex items-center justify-between">
                       <div className="w-full flex items-center gap-3">
@@ -2615,7 +2615,7 @@ const Penjualan = () => {
                               const rawValue = e.target.value.replace(/[^0-9]/g, '');
                               handleCurrencyChange('persentaseDp', rawValue ? Number(rawValue) : 0);
                             }}
-                            className="w-full pl-3 pr-8 py-2 text-sm font-black text-indigo-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                            className="w-full pl-3 pr-8 py-2 text-sm font-black text-blue-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">%</span>
                         </div>
@@ -2672,17 +2672,17 @@ const Penjualan = () => {
                               if (val > 12) val = 12;
                               handleCurrencyChange('termin', val);
                             }}
-                            className="w-full pl-3 pr-14 py-2 text-sm font-black text-indigo-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm text-right"
+                            className="w-full pl-3 pr-14 py-2 text-sm font-black text-blue-700 bg-white border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-sm text-right"
                             placeholder="1-12"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">Bulan</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                      <div className="flex items-center justify-between bg-blue-50 p-3 rounded-xl border border-blue-100">
                         <div className="w-full">
-                          <span className="text-sm font-bold text-indigo-700 block">Cicilan Per Bulan</span>
-                          <span className="text-[10px] font-medium text-indigo-500 mt-1 block">
+                          <span className="text-sm font-bold text-blue-700 block">Cicilan Per Bulan</span>
+                          <span className="text-[10px] font-medium text-blue-500 mt-1 block">
                             Estimasi: {(() => {
                               const termin = formData.termin || 3;
                               const start = new Date();
@@ -2776,7 +2776,7 @@ const Penjualan = () => {
                 <button
                   type="submit"
                   disabled={updateMutation.isPending}
-                  className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50 active:scale-95"
+                  className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 cursor-pointer disabled:opacity-50 active:scale-95"
                 >
                   {updateMutation.isPending ? 'Memproses...' : 'Simpan & Proses SPR'}
                 </button>
@@ -2811,7 +2811,7 @@ const Penjualan = () => {
                   {selectedPerumahan?.logo ? (
                     <img src={selectedPerumahan.logo} alt="Logo" className="h-14 object-contain mb-2" crossOrigin="anonymous" />
                   ) : (
-                    <h3 className="m-0 text-2xl font-black text-indigo-700 tracking-tight mb-1">BUMANTARA</h3>
+                    <h3 className="m-0 text-2xl font-black text-blue-700 tracking-tight mb-1">BUMANTARA</h3>
                   )}
                 </div>
               </div>
@@ -2866,7 +2866,7 @@ const Penjualan = () => {
                           {printType === 'kwitansi' ? 'Pembayaran Ditransfer Ke:' : 'Transfer Pembayaran Ke:'}
                         </span>
                         <p className="text-sm font-bold text-slate-900 uppercase mb-1">Bank {rekening.namaBank}</p>
-                        <p className="text-xl font-black text-indigo-700 my-0.5 font-mono tracking-tight tabular-nums">{rekening.noRekening}</p>
+                        <p className="text-xl font-black text-blue-700 my-0.5 font-mono tracking-tight tabular-nums">{rekening.noRekening}</p>
                         <p className="text-[11px] font-bold text-slate-500 uppercase mt-2">A/N: {rekening.atasNama}</p>
                       </div>
                     );
@@ -2990,7 +2990,7 @@ const Penjualan = () => {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Harga Jual</p>
-                  <p className="text-sm font-bold text-indigo-600 tabular-nums">{formatRupiah(selectedCancelRow.hargaJual)}</p>
+                  <p className="text-sm font-bold text-blue-600 tabular-nums">{formatRupiah(selectedCancelRow.hargaJual)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Metode</p>
@@ -3053,7 +3053,7 @@ const Penjualan = () => {
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1 mb-2 block">Area Tanda Tangan</label>
             
             {/* 1. Tambahkan w-full dan h-48 di div pembungkusnya untuk memberikan ukuran tinggi yang pasti */}
-            <div className="border-2 border-dashed border-indigo-200 rounded-2xl bg-white overflow-hidden shadow-inner w-full h-48">
+            <div className="border-2 border-dashed border-blue-200 rounded-2xl bg-white overflow-hidden shadow-inner w-full h-48">
               
               {/* 2. Hapus width dan height dari canvasProps */}
               <SignatureCanvas 
@@ -3070,7 +3070,7 @@ const Penjualan = () => {
 
           <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
             <button onClick={() => setIsTtdModalOpen(false)} disabled={uploadSignatureMutation.isPending} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-bold cursor-pointer hover:bg-slate-100 transition-colors shadow-sm disabled:opacity-50">Batal</button>
-            <button onClick={saveSignature} disabled={uploadSignatureMutation.isPending} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all active:scale-95 disabled:opacity-50">
+            <button onClick={saveSignature} disabled={uploadSignatureMutation.isPending} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50">
               {uploadSignatureMutation.isPending ? "Menyimpan..." : "Simpan Tanda Tangan"}
             </button>
           </div>
@@ -3141,7 +3141,7 @@ const Penjualan = () => {
             <button
               type="submit"
               disabled={updateMutation.isPending}
-              className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all active:scale-95 disabled:opacity-50"
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm cursor-pointer hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
             >
               {updateMutation.isPending ? "Menyimpan..." : "Simpan Bank KPR"}
             </button>

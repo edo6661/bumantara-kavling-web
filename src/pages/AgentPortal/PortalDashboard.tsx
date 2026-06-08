@@ -121,8 +121,8 @@ const AgentPortalDashboard = () => {
     <div className="min-h-screen bg-slate-50 font-sans pb-12">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-4 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-2">
-          <Briefcase className="text-indigo-600" size={24} />
-          <h1 className="text-lg font-black text-slate-900 tracking-tight">Agent<span className="text-indigo-600">Portal</span></h1>
+          <Briefcase className="text-blue-600" size={24} />
+          <h1 className="text-lg font-black text-slate-900 tracking-tight">Agent<span className="text-blue-600">Portal</span></h1>
         </div>
         <button onClick={logout} className="flex items-center gap-2 text-sm font-bold text-red-500 hover:text-red-700 transition-colors cursor-pointer">
           <LogOut size={16} /> Keluar
@@ -142,21 +142,21 @@ const AgentPortalDashboard = () => {
           </div>
         )}
         {/* Ringkasan Profil */}
-        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 p-8 rounded-2xl shadow-lg text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-600 p-8 rounded-2xl shadow-lg text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <span className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm border border-white/20 mb-3 inline-block">
               Agent {agentData.type}
             </span>
             <h2 className="text-3xl font-black mb-1">{agentData.nama}</h2>
-            <p className="text-indigo-100 font-medium tracking-wide">NIK: {agentData.nik}</p>
+            <p className="text-blue-100 font-medium tracking-wide">NIK: {agentData.nik}</p>
           </div>
           <div className="flex gap-4 w-full md:w-auto">
             <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/20 flex-1 md:w-32 text-center">
-              <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mb-1">Total Closing</p>
+              <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mb-1">Total Closing</p>
               <p className="text-2xl font-black">{totalPenjualan}</p>
             </div>
             <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/20 flex-1 md:w-32 text-center">
-              <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mb-1">Status Lunas</p>
+              <p className="text-[10px] font-bold text-blue-100 uppercase tracking-widest mb-1">Status Lunas</p>
               <p className="text-2xl font-black">{penjualanLunas}</p>
             </div>
           </div>
@@ -183,7 +183,7 @@ const AgentPortalDashboard = () => {
             {agentData.pics && agentData.pics.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                 <h3 className="font-bold text-slate-800 mb-4 border-b border-slate-100 pb-4 flex items-center gap-2">
-                  <Users size={16} className="text-indigo-600" /> Tim / PIC Agent
+                  <Users size={16} className="text-blue-600" /> Tim / PIC Agent
                 </h3>
                 <div className="space-y-3">
                   {agentData.pics.map((pic: any, idx: number) => (
@@ -201,7 +201,7 @@ const AgentPortalDashboard = () => {
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4 flex items-center gap-2">
-                <UploadCloud size={18} className="text-indigo-600" /> Upload Kelengkapan Berkas
+                <UploadCloud size={18} className="text-blue-600" /> Upload Kelengkapan Berkas
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -240,7 +240,7 @@ const AgentPortalDashboard = () => {
                           href={agentData.defaultSuratPernyataan}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-2 w-full px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-indigo-100"
+                          className="mt-2 w-full px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-blue-100"
                         >
                           Unduh Template
                         </a>
@@ -254,7 +254,7 @@ const AgentPortalDashboard = () => {
             {/* Riwayat Penjualan */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
               <h3 className="font-bold text-slate-800 mb-4 border-b border-slate-100 pb-4 flex items-center gap-2">
-                <ShoppingCart size={18} className="text-indigo-600" /> Riwayat Transaksi (Closing)
+                <ShoppingCart size={18} className="text-blue-600" /> Riwayat Transaksi (Closing)
               </h3>
 
               {agentData.penjualan && agentData.penjualan.length > 0 ? (
@@ -305,7 +305,7 @@ const AgentPortalDashboard = () => {
       {/* Modal Account Settings */}
       <Modal isOpen={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} title="Pengaturan Akun Portal">
         <form onSubmit={handleAccountSubmit} className="space-y-4">
-          <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 mb-4">
+          <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 mb-4">
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
               Anda dapat memperbarui email untuk login dan password Anda di sini. Kosongkan kolom password jika tidak ingin mengubahnya.
             </p>
@@ -356,7 +356,7 @@ const AgentPortalDashboard = () => {
             <button
               type="submit"
               disabled={updateAccountMutation.isPending}
-              className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-md transition cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-md transition cursor-pointer disabled:opacity-50"
             >
               {updateAccountMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
             </button>

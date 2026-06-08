@@ -161,7 +161,7 @@ const CustomerKavling = () => {
   };
 
   const filterSelectClass =
-    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer';
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
 
   const tableToolbar = (
     <>
@@ -178,7 +178,7 @@ const CustomerKavling = () => {
           <option value="totalHargaJual:desc">Harga Jual (Tertinggi)</option>
           <option value="totalHargaJual:asc">Harga Jual (Terendah)</option>
         </select>
-        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
         <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
       </div>
    
@@ -207,7 +207,7 @@ const CustomerKavling = () => {
           style = 'bg-blue-100 text-blue-800';
         } else if (key === 'KPR') {
           label = 'KPR';
-          style = 'bg-indigo-100 text-indigo-800';
+          style = 'bg-blue-100 text-blue-800';
         }
         return (
           <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${style}`}>
@@ -606,9 +606,9 @@ const CustomerKavling = () => {
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Total Subsidi & Bonus (Pajak)</span>
                 <span className="font-black text-red-600">- {formatRupiah(formData.pjTotalSubsidi)}</span>
               </div>
-              <div className="md:col-span-2 bg-indigo-50 p-5 rounded-xl flex justify-between items-center border border-indigo-200 mb-4 shadow-sm">
-                <span className="text-sm font-bold text-indigo-800 uppercase tracking-widest">Nilai Penyerahan (Pajak)</span>
-                <span className="text-2xl font-black text-indigo-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
+              <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl flex justify-between items-center border border-blue-200 mb-4 shadow-sm">
+                <span className="text-sm font-bold text-blue-800 uppercase tracking-widest">Nilai Penyerahan (Pajak)</span>
+                <span className="text-2xl font-black text-blue-900">{formatRupiah(formData.pjNilaiPenyerahan)}</span>
               </div>
               <SectionTitle title="Detail Pajak" />
               <CurrencyInput label="PPN" name="pjPpn" value={formData.pjPpn} onValueChange={handleCurrencyChange} />

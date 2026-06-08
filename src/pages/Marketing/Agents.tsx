@@ -200,7 +200,7 @@ const Agents = () => {
   };
 
   const filterSelectClass =
-    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none transition-all shadow-sm cursor-pointer';
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
 
   const tableToolbar = (
     <>
@@ -214,7 +214,7 @@ const Agents = () => {
           <option value="">Agent Terbaru</option>
           <option value="nama:asc">Nama Agent (A-Z)</option>
         </select>
-        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
         <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
       </div>
       
@@ -229,7 +229,7 @@ const Agents = () => {
           <option value="PRIBADI">Pribadi</option>
           <option value="PERUSAHAAN">Perusahaan</option>
         </select>
-        <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-indigo-500" />
+        <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
         <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
       </div>
     </>
@@ -263,7 +263,7 @@ const Agents = () => {
         <div className="flex flex-col gap-1 items-start">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{val}</span>
           {val === 'PERUSAHAAN' && row.perusahaanAgent && (
-            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded w-fit border border-indigo-100">
+            <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded w-fit border border-blue-100">
               {row.perusahaanAgent.nama}
             </span>
           )}
@@ -298,7 +298,7 @@ const Agents = () => {
           <button onClick={(e) => { e.stopPropagation(); openDetailModal(row); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer" title="Detail">
             <Eye size={16} />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); openModal(row); }} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer" title="Edit">
+          <button onClick={(e) => { e.stopPropagation(); openModal(row); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer" title="Edit">
             <Edit2 size={16} />
           </button>
           <button onClick={(e) => { e.stopPropagation(); openUploadModal(row); }} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer" title="Upload Dokumen Agent">
@@ -308,7 +308,7 @@ const Agents = () => {
             onClick={(e) => { e.stopPropagation(); handleGenerateAccount(row); }}
             className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount
               ? 'text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700'
-              : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+              : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
             title={row.hasAccount ? "Reset Kredensial (Password)" : "Buat Akun Portal Agent"}
           >
             <Key size={16} />
@@ -1013,9 +1013,9 @@ const Agents = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
                 {/* 👇 DETAIL PERUSAHAAN 👇 */}
                 {selectedAgentDetail.type === 'PERUSAHAAN' && selectedAgentDetail.perusahaanAgent && (
-                  <div className="md:col-span-2 p-3 bg-indigo-50 border border-indigo-100 rounded-xl mb-2">
-                    <p className="text-[10px] text-indigo-500 uppercase font-bold mb-1">Perusahaan Induk</p>
-                    <p className="text-sm font-black text-indigo-900">{selectedAgentDetail.perusahaanAgent.nama}</p>
+                  <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-xl mb-2">
+                    <p className="text-[10px] text-blue-500 uppercase font-bold mb-1">Perusahaan Induk</p>
+                    <p className="text-sm font-black text-blue-900">{selectedAgentDetail.perusahaanAgent.nama}</p>
                   </div>
                 )}
                 <div>
@@ -1057,7 +1057,7 @@ const Agents = () => {
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nomor Rekening</p>
-                    <p className="text-lg font-black text-indigo-600 font-mono tabular-nums">{selectedAgentDetail.noRekening || '-'}</p>
+                    <p className="text-lg font-black text-blue-600 font-mono tabular-nums">{selectedAgentDetail.noRekening || '-'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Atas Nama (A/N)</p>
@@ -1107,7 +1107,7 @@ const Agents = () => {
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Kontak Tim / PIC Pendukung</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {selectedAgentDetail.pics.map((pic, idx) => (
-                    <div key={pic.id || idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                    <div key={pic.id || idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-sm hover:border-blue-100 transition-colors">
                       <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
                       <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
                       <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>

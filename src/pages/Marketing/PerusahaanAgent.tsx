@@ -86,7 +86,7 @@ const PerusahaanAgent = () => {
         val ? (
           <button
             onClick={(e) => { e.stopPropagation(); setPreviewImage(val); }}
-            className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg border border-indigo-200 hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 hover:bg-blue-100 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
             <Eye size={12} /> 
           </button>
@@ -100,7 +100,7 @@ const PerusahaanAgent = () => {
       accessor: "id",
       render: (_: unknown, row: PerusahaanAgentData) => (
         <div className="flex items-center gap-1.5">
-          <button onClick={() => openModal(row)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all cursor-pointer" title="Edit">
+          <button onClick={() => openModal(row)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer" title="Edit">
             <Edit2 size={16} />
           </button>
           <label className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer" title="Upload Akte">

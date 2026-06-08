@@ -243,14 +243,14 @@ const ApproveSpkKasbon = () => {
                     <Fragment key={group.spkId}>
                       <tr
                         className={`cursor-pointer transition-colors ${
-                          expanded ? 'bg-indigo-50/80' : 'bg-white hover:bg-slate-50'
+                          expanded ? 'bg-blue-50/80' : 'bg-white hover:bg-slate-50'
                         }`}
                         onClick={() => toggleExpand(group.spkId)}
                       >
                         <td className={tdClass}>
                           <ChevronRight
                             size={18}
-                            className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-indigo-600' : ''}`}
+                            className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-blue-600' : ''}`}
                           />
                         </td>
                         <td className={`${tdClass} font-bold text-slate-900`}>{group.noSpk}</td>
@@ -326,7 +326,7 @@ const ApproveSpkKasbon = () => {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase">Nominal</p>
-                <p className="font-bold text-indigo-700">{formatRupiah(detailRow.nominal)}</p>
+                <p className="font-bold text-blue-700">{formatRupiah(detailRow.nominal)}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase">Status</p>

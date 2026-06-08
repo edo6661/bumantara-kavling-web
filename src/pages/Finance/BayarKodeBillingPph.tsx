@@ -117,7 +117,7 @@ const BayarKodeBillingPph = () => {
       header: 'Kode Billing PPh',
       accessor: 'kodeBilling',
       render: (val: string) => (
-        <span className="font-mono font-bold text-indigo-700 text-sm tracking-wide">{val}</span>
+        <span className="font-mono font-bold text-blue-700 text-sm tracking-wide">{val}</span>
       ),
     },
     {
@@ -127,7 +127,7 @@ const BayarKodeBillingPph = () => {
         <button
           type="button"
           onClick={() => setPreviewUrl(val)}
-          className="p-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg transition"
+          className="p-1.5 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition"
           title="Lihat PDF Billing"
         >
           <FileText size={16} />
@@ -188,7 +188,7 @@ const BayarKodeBillingPph = () => {
         <button
           type="button"
           onClick={() => setPreviewUrl(val)}
-          className="relative w-12 h-8 rounded border border-slate-200 overflow-hidden cursor-zoom-in hover:border-indigo-400 transition"
+          className="relative w-12 h-8 rounded border border-slate-200 overflow-hidden cursor-zoom-in hover:border-blue-400 transition"
           title="Lihat bukti pembayaran"
         >
           {val.split('?')[0].toLowerCase().endsWith('.pdf') ? (
@@ -215,7 +215,7 @@ const BayarKodeBillingPph = () => {
             type="button"
             onClick={() => handleUploadClick(row.id)}
             disabled={uploadMutation.isPending && uploadTargetId === row.id}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-bold uppercase rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold uppercase rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
           >
             {uploadMutation.isPending && uploadTargetId === row.id ? (
               <><Loader2 size={12} className="animate-spin" /> Mengunggah...</>
@@ -248,7 +248,7 @@ const BayarKodeBillingPph = () => {
           onClick={() => setIsFilterExpanded(!isFilterExpanded)}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg ring-1 ring-indigo-200">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg ring-1 ring-blue-200">
               <Filter size={18} strokeWidth={2.5} />
             </div>
             <h3 className="font-bold text-slate-900 tracking-tight">Filter & Urutkan Kode Billing PPh</h3>
@@ -265,7 +265,7 @@ const BayarKodeBillingPph = () => {
                 Status Pembayaran
               </label>
               <select
-                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none shadow-sm cursor-pointer"
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none shadow-sm cursor-pointer"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
               >
@@ -280,7 +280,7 @@ const BayarKodeBillingPph = () => {
                 Urutkan
               </label>
               <select
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none shadow-sm cursor-pointer"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none shadow-sm cursor-pointer"
                 value={orderBy}
                 onChange={handleSortChange}
               >

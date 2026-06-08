@@ -441,7 +441,7 @@ const Notaris = () => {
                 <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Daftar PIC / Staf Tambahan</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {selectedNotarisDetail.pics.slice(1).map((pic, idx) => (
-                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                    <div key={pic.id || idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:border-blue-100 transition-colors">
                       <p className="text-sm font-bold text-slate-800 mb-1">{pic.nama}</p>
                       <p className="text-xs text-slate-500 tabular-nums mb-1">📞 {pic.noHp}</p>
                       <p className="text-xs text-slate-400 truncate">📍 {pic.alamat || '-'}</p>

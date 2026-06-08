@@ -95,19 +95,19 @@ const CustomerDetail = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto">
       {/* Header Halaman */}
-      <div className="bg-indigo-600 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-lg">
+      <div className="bg-blue-600 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-lg">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center text-white backdrop-blur-sm">
             <User size={32} />
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{customer.nama}</h1>
-            <p className="text-indigo-200 font-medium mt-1">NIK: {customer.nikKtp}</p>
+            <p className="text-blue-200 font-medium mt-1">NIK: {customer.nikKtp}</p>
           </div>
         </div>
         <button
           onClick={handleDownloadAll}
-          className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-700 font-bold rounded-xl hover:bg-indigo-50 transition-colors shadow-sm cursor-pointer w-full md:w-auto justify-center"
+          className="flex items-center gap-2 px-6 py-3 bg-white text-blue-700 font-bold rounded-xl hover:bg-blue-50 transition-colors shadow-sm cursor-pointer w-full md:w-auto justify-center"
         >
           <Download size={18} /> Download Semua Berkas
         </button>
@@ -117,7 +117,7 @@ const CustomerDetail = () => {
         <div className="md:col-span-1 space-y-6">
           <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3 mb-4 flex items-center gap-2">
-              <User size={14} className="text-indigo-600" /> Informasi Pribadi
+              <User size={14} className="text-blue-600" /> Informasi Pribadi
             </h3>
             <div className="space-y-4">
               <div>
@@ -146,7 +146,7 @@ const CustomerDetail = () => {
         {/* Kolom Berkas */}
         <div className="md:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3 mb-5 flex items-center gap-2">
-            <FileText size={18} className="text-indigo-600" /> Berkas Administrasi KPR
+            <FileText size={18} className="text-blue-600" /> Berkas Administrasi KPR
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
@@ -174,7 +174,7 @@ const CustomerDetail = () => {
                   )}
                 </div>
                 {doc.url && (
-                  <a href={getDownloadUrl(doc.url)} download className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-indigo-100">
+                  <a href={getDownloadUrl(doc.url)} download className="mt-3 w-full py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-blue-100">
                     Unduh File
                   </a>
                 )}
@@ -198,7 +198,7 @@ const CustomerDetail = () => {
                     <img src={fileUrl} alt={doc.nama} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   )}
                 </div>
-                <a href={getDownloadUrl(fileUrl)} download className="mt-3 w-full py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-indigo-100">
+                <a href={getDownloadUrl(fileUrl)} download className="mt-3 w-full py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-widest text-center rounded-lg transition-colors border border-blue-100">
                   Unduh File
                 </a>
               </div>

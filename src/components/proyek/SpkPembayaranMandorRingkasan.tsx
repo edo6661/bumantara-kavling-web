@@ -78,9 +78,9 @@ const SpkPembayaranMandorRingkasan = ({ mandorSpks }: SpkPembayaranMandorRingkas
 
   if (paid.length === 0 && waitingFinance.length === 0 && waitingPengawas.length === 0) {
     return (
-      <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-xs text-indigo-800">
+      <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-800">
         <strong>Pembayaran SPK</strong> — ajukan termin di menu{' '}
-        <Link to="/proyek/spk" className="font-bold underline hover:text-indigo-900">
+        <Link to="/proyek/spk" className="font-bold underline hover:text-blue-900">
           SPK
         </Link>{' '}
         (buka detail SPK → Pengajuan Pembayaran).
@@ -145,7 +145,7 @@ const SpkPembayaranMandorRingkasan = ({ mandorSpks }: SpkPembayaranMandorRingkas
 
       <p className="text-[11px] text-slate-500">
         Rincian perhitungan & pengajuan termin:{' '}
-        <Link to="/proyek/spk" className="font-bold text-indigo-600 hover:underline">
+        <Link to="/proyek/spk" className="font-bold text-blue-600 hover:underline">
           halaman SPK
         </Link>
         .

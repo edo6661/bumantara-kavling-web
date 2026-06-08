@@ -20,9 +20,9 @@ interface KpiCardProps {
 
 const severityConfig = {
   normal: {
-    iconGradient: 'from-blue-500 to-indigo-600',
+    iconGradient: 'from-blue-500 to-blue-600',
     iconShadow: 'shadow-blue-400/25',
-    accentBar: 'bg-gradient-to-b from-blue-500 to-indigo-600',
+    accentBar: 'bg-gradient-to-b from-blue-500 to-blue-600',
     actionBg: 'bg-slate-50 text-slate-600 hover:bg-slate-100',
     actionDot: 'bg-slate-400',
     ring: 'ring-blue-100',

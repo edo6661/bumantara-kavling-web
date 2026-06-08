@@ -17,7 +17,7 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
       {label && (
         <label
           className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 
-            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-indigo-600'}`}
+            ${props.disabled ? 'text-slate-400' : 'text-slate-500 group-focus-within:text-blue-600'}`}
         >
           {label}
         </label>
@@ -29,7 +29,7 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
             ${props.disabled ? '' : 'cursor-pointer'}
             ${error
               ? 'border-red-300 bg-red-50/50 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 text-slate-900'
-              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 text-slate-900 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-slate-300 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-slate-900 shadow-sm'
             }`}
           {...props}
         >
@@ -40,7 +40,7 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
             </option>
           ))}
         </select>
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400 peer-focus:text-indigo-500 peer-disabled:opacity-40 transition-colors">
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-400 peer-focus:text-blue-500 peer-disabled:opacity-40 transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
           </svg>

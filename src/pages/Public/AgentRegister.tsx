@@ -121,10 +121,10 @@ const AgentRegister = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-indigo-50 p-4 font-sans py-12">
-      <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl border border-indigo-100 p-8">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50 p-4 font-sans py-12">
+      <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl border border-blue-100 p-8">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 mb-4">
+          <div className="w-14 h-14 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center text-white shadow-lg shadow-blue-600/30 mb-4">
             <UserPlus size={28} />
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Daftar Agent Marketing</h1>
@@ -251,11 +251,11 @@ const AgentRegister = () => {
                 id="agreement"
                 checked={isAgreed}
                 readOnly
-                className="mt-0.5 w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 pointer-events-none"
+                className="mt-0.5 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 pointer-events-none"
               />
               <label className="text-xs text-slate-600 leading-relaxed pointer-events-none">
                 Dengan mencentang kotak ini dan memberikan tanda tangan di bawah, saya menyatakan bahwa saya telah membaca, memahami, dan menyetujui seluruh isi dari{' '}
-                <span className="text-indigo-600 font-bold underline">
+                <span className="text-blue-600 font-bold underline">
                   Surat Pernyataan Sales Marketing
                 </span>.
               </label>
@@ -274,13 +274,13 @@ const AgentRegister = () => {
             </div>
           </div>
 
-          <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold text-sm py-3.5 rounded-xl hover:bg-indigo-700 transition-all shadow-md mt-6 disabled:opacity-50 cursor-pointer">
+          <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white font-bold text-sm py-3.5 rounded-xl hover:bg-blue-700 transition-all shadow-md mt-6 disabled:opacity-50 cursor-pointer">
             {isLoading ? 'Memproses Registrasi...' : 'Daftar Sekarang'}
           </button>
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-6 font-medium">
-          Sudah punya akun? <Link to="/agent-login" className="text-indigo-600 hover:underline font-bold">Login di sini</Link>
+          Sudah punya akun? <Link to="/agent-login" className="text-blue-600 hover:underline font-bold">Login di sini</Link>
         </p>
       </div>
 
@@ -355,7 +355,7 @@ const AgentRegister = () => {
                 setIsAgreed(true);
                 setIsModalOpen(false);
               }}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 cursor-pointer shadow-md"
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 cursor-pointer shadow-md"
             >
               Saya Mengerti & Setuju
             </button>

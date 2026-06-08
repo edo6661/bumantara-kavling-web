@@ -193,7 +193,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         {/* Logo header */}
         <div className={`h-[64px] flex items-center shrink-0 px-5 border-b border-white/5 ${isCollapsed ? 'md:px-0 md:justify-center' : ''}`}>
           <div className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? 'md:gap-0' : ''}`}>
-            <div className="min-w-9 w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-lg shadow-blue-500/25 shrink-0">
+            <div className="min-w-9 w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-lg shadow-blue-500/25 shrink-0">
               <Building2 size={18} />
             </div>
             <div className={`overflow-hidden transition-all duration-300 ${isCollapsed ? 'md:w-0 md:opacity-0' : 'w-auto opacity-100'}`}>
@@ -326,7 +326,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
           {/* User card */}
           {!isCollapsed && (
             <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-xl bg-white/5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
                 {user?.username?.trim().slice(0, 2).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 min-w-0">

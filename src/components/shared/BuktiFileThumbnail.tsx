@@ -27,7 +27,7 @@ const BuktiFileThumbnail = ({
         e.stopPropagation();
         onClick();
       }}
-      className={`relative rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in hover:border-indigo-400 transition shrink-0 bg-slate-50 ${className}`}
+      className={`relative rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in hover:border-blue-400 transition shrink-0 bg-slate-50 ${className}`}
       title="Perbesar bukti"
     >
       {isPdf ? (

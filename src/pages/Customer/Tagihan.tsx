@@ -721,7 +721,7 @@ const Tagihan = () => {
                     <td className="p-3 font-bold text-slate-800 text-xs">{c.pembayaran}</td>
                     <td className="p-3 align-top">
                       <span
-                        className="inline-flex px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide bg-indigo-50 text-indigo-800 border border-indigo-100"
+                        className="inline-flex px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide bg-blue-50 text-blue-800 border border-blue-100"
                         title="Alokasi pembayaran untuk perhitungan sisa DP / cicilan"
                       >
                         {tagihanTujuanShortLabel[effectiveTagihanTujuan(c)]}

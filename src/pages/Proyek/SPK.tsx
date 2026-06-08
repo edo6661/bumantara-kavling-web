@@ -117,7 +117,7 @@ const BlokCheckbox = ({ checked, indeterminate, disabled, onChange }: BlokCheckb
       checked={checked}
       disabled={disabled}
       onChange={onChange}
-      className="w-4 h-4 rounded border-gray-300 text-indigo-600 shrink-0 disabled:cursor-not-allowed"
+      className="w-4 h-4 rounded border-gray-300 text-blue-600 shrink-0 disabled:cursor-not-allowed"
     />
   );
 };
@@ -227,7 +227,7 @@ const SpkKavlingCell = ({ items }: { items: SpkData['kavlingItems'] }) => {
                 e.stopPropagation();
                 setExpanded((prev) => !prev);
               }}
-              className="text-[10px] font-bold text-indigo-600 whitespace-nowrap hover:text-indigo-800 hover:underline cursor-pointer"
+              className="text-[10px] font-bold text-blue-600 whitespace-nowrap hover:text-blue-800 hover:underline cursor-pointer"
               aria-expanded={expanded}
             >
               {expanded
@@ -279,7 +279,6 @@ const initialFormState = (): SpkFormState => ({
   existingFileSpk: null,
 });
 
-// ── Section wrapper untuk form modal ──────────────────────────────────────────
 const FormSection = ({
   title,
   icon,
@@ -289,12 +288,12 @@ const FormSection = ({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-    <div className="flex items-center gap-2.5 px-5 py-3.5 bg-slate-50 border-b border-slate-200">
-      {icon && <span className="text-slate-500">{icon}</span>}
-      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">{title}</h4>
+  <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+    <div className="flex items-center gap-2.5 px-5 py-3.5 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
+      {icon && <span className="text-blue-500">{icon}</span>}
+      <h4 className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{title}</h4>
     </div>
-    <div className="p-5">{children}</div>
+    <div className="p-5 space-y-1">{children}</div>
   </div>
 );
 
@@ -340,7 +339,7 @@ const SPK = () => {
 
   const { data: spkAllList = [] } = useGetSpk({ limit: 500 });
 
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [kavlingPickerSearch, setKavlingPickerSearch] = useState('');
 
   const spkSummary = meta?.summary ?? {
@@ -600,7 +599,7 @@ const SPK = () => {
           <div className="flex items-center gap-1.5 w-[5.5rem]">
             <div className="flex-1 min-w-0 bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                className={`h-full rounded-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-blue-500'}`}
                 style={{ width: `${persentase}%` }}
               />
             </div>
@@ -650,7 +649,7 @@ const SPK = () => {
           href={val}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors"
+          className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-1 rounded-lg hover:bg-blue-100 transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
           <FileText size={11} />
@@ -681,7 +680,7 @@ const SPK = () => {
       <select
         value={orderBy}
         onChange={handleOrderByChange}
-        className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none shadow-sm cursor-pointer"
+        className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none shadow-sm cursor-pointer"
         aria-label="Urutkan berdasarkan mandor"
       >
         <option value="mandor:asc">Mandor A → Z</option>
@@ -850,83 +849,85 @@ const SPK = () => {
     <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
-        <div
-          className="p-3 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/50 transition-colors"
-          onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg ring-1 ring-indigo-100">
-              <PieChart size={18} strokeWidth={2.5} />
-            </div>
-            <h3 className="font-bold text-slate-900 tracking-tight">
+      <div
+        className="px-5 py-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/60 transition-colors"
+        onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-50 text-blue-600 rounded-xl ring-1 ring-blue-100">
+            <PieChart size={18} strokeWidth={2.5} />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-900 tracking-tight text-sm">
               {isMandorRole ? 'Ringkasan SPK Saya' : 'Ringkasan SPK'}
             </h3>
+            <p className="text-[11px] text-slate-400 mt-0.5">Klik untuk {isSummaryExpanded ? 'menyembunyikan' : 'menampilkan'}</p>
           </div>
-          <button
-            type="button"
-            className="text-slate-400 hover:text-indigo-600 transition-colors"
-            aria-expanded={isSummaryExpanded}
-            aria-label={isSummaryExpanded ? 'Tutup ringkasan' : 'Buka ringkasan'}
-          >
-            {isSummaryExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </button>
         </div>
+        <div className={`p-1.5 rounded-lg border transition-all ${isSummaryExpanded ? 'bg-blue-50 border-blue-100 text-blue-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+          {isSummaryExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </div>
+      </div>
 
         {isSummaryExpanded && (
-          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50/50">
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-slate-400 group-hover:bg-slate-600 transition-colors" />
-              <div className="flex items-center gap-3 mb-3 pl-2">
-                <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gradient-to-br from-slate-50 to-white">
+            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-slate-100 rounded-full -translate-y-8 translate-x-8 group-hover:bg-slate-200 transition-colors" />
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                   <HardHat size={16} className="text-slate-600" />
                 </div>
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total SPK</p>
               </div>
-              <p className="text-3xl font-black text-slate-900 pl-2 tabular-nums">{spkSummary.totalSpk}</p>
-              <p className="text-[11px] text-slate-500 pl-2 mt-1 font-medium">
+              <p className="text-3xl font-black text-slate-900 tabular-nums">{spkSummary.totalSpk}</p>
+              <p className="text-[11px] text-slate-400 mt-1.5 font-medium">
                 {spkSummary.progressSelesai} selesai (100%)
               </p>
             </div>
 
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 group-hover:bg-blue-600 transition-colors" />
-              <div className="flex items-center gap-3 mb-3 pl-2">
-                <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center">
+
+            <div className="bg-white border border-blue-100 p-4 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-full -translate-y-8 translate-x-8 group-hover:bg-blue-100 transition-colors" />
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
                   <Building2 size={16} className="text-blue-600" />
                 </div>
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Kavling</p>
               </div>
-              <p className="text-3xl font-black text-blue-700 pl-2 tabular-nums">{spkSummary.totalKavling}</p>
-              <p className="text-[11px] text-slate-500 pl-2 mt-1 font-medium truncate" title={formatRupiah(spkSummary.totalNilaiKontrak)}>
+              <p className="text-3xl font-black text-blue-700 tabular-nums">{spkSummary.totalKavling}</p>
+              <p className="text-[11px] text-slate-400 mt-1.5 font-medium truncate" title={formatRupiah(spkSummary.totalNilaiKontrak)}>
                 Kontrak {formatRupiah(spkSummary.totalNilaiKontrak)}
               </p>
             </div>
 
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-400 group-hover:bg-emerald-600 transition-colors" />
-              <div className="flex items-center gap-3 mb-3 pl-2">
-                <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center">
+
+            <div className="bg-white border border-emerald-100 p-4 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-full -translate-y-8 translate-x-8 group-hover:bg-emerald-100 transition-colors" />
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
                   <CheckCircle2 size={16} className="text-emerald-600" />
                 </div>
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sudah Dibayar</p>
               </div>
-              <p className="text-xl font-black text-emerald-700 pl-2 tabular-nums leading-tight">
+              <p className="text-xl font-black text-emerald-700 tabular-nums leading-tight">
                 {formatRupiah(spkSummary.totalSudahDibayar)}
               </p>
             </div>
 
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-1 h-full bg-red-400 group-hover:bg-red-600 transition-colors" />
-              <div className="flex items-center gap-3 mb-3 pl-2">
-                <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
+
+            <div className="bg-white border border-red-100 p-4 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-red-50 rounded-full -translate-y-8 translate-x-8 group-hover:bg-red-100 transition-colors" />
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
                   <AlertCircle size={16} className="text-red-600" />
                 </div>
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sisa Nilai</p>
               </div>
-              <p className="text-xl font-black text-red-700 pl-2 tabular-nums leading-tight">
+              <p className="text-xl font-black text-red-700 tabular-nums leading-tight">
                 {formatRupiah(spkSummary.totalSisaNilai)}
               </p>
             </div>
+
           </div>
         )}
       </div>
@@ -1010,7 +1011,7 @@ const SPK = () => {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Progress</p>
-                <p className="font-bold text-indigo-700 mt-0.5">{Number(detailItem.progress ?? 0)}%</p>
+                <p className="font-bold text-blue-700 mt-0.5">{Number(detailItem.progress ?? 0)}%</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Nilai Kontrak</p>
@@ -1080,11 +1081,11 @@ const SPK = () => {
                 <div className="flex items-center gap-2">
                   <div className="flex-1 max-w-[200px] bg-slate-100 rounded-full h-2 overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${detailItem.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-600'}`}
+                      className={`h-full rounded-full ${detailItem.progress === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
                       style={{ width: `${Number(detailItem.progress ?? 0)}%` }}
                     />
                   </div>
-                  <span className="text-xs font-bold text-indigo-800">
+                  <span className="text-xs font-bold text-blue-800">
                     {Number(detailItem.progress ?? 0)}%
                   </span>
                 </div>
@@ -1117,7 +1118,7 @@ const SPK = () => {
                     <span className="text-[10px] font-bold text-slate-500">%</span>
                     <button
                       type="button"
-                      className="px-2.5 py-1 text-[10px] font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                      className="px-2.5 py-1 text-[10px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700"
                       onClick={async () => {
                         const parsed =
                           spkProgressInput === ''
@@ -1144,7 +1145,7 @@ const SPK = () => {
                       href={detailItem.fileSpk}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
                     >
                       <FileText size={14} />
                       Buka PDF
@@ -1277,13 +1278,13 @@ const SPK = () => {
                   name="notesPekerjaan"
                   value={formData.notesPekerjaan}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm min-h-[80px] text-black focus:outline-none focus:ring-2 focus:ring-indigo-400/20 focus:border-indigo-400 transition-all resize-none"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm min-h-[80px] text-black focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400 transition-all resize-none"
                   placeholder="Catatan tambahan pekerjaan..."
                 />
               </div>
               {editingId && (
                 <div className="md:col-span-2 flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
-                  <span className="mt-0.5 shrink-0 w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[10px] font-black">i</span>
+                  <span className="mt-0.5 shrink-0 w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[10px] font-black leading-none">i</span>
                   <p className="text-xs text-blue-800 leading-relaxed">
                     Sisa nilai kontrak dihitung otomatis dari setiap pembayaran (termin, retensi, kasbon) yang sudah diproses finance.
                   </p>
@@ -1303,7 +1304,7 @@ const SPK = () => {
                 value={kavlingPickerSearch}
                 onChange={(e) => setKavlingPickerSearch(e.target.value)}
                 placeholder="Cari blok, unit, LT/LB, atau customer..."
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20 focus:border-indigo-400"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400"
               />
             </div>
             {errors.kavlingIds && (
@@ -1312,7 +1313,8 @@ const SPK = () => {
                 {errors.kavlingIds}
               </p>
             )}
-            <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-xl bg-white divide-y divide-slate-100">
+            <div className="max-h-72 overflow-y-auto border border-slate-200 rounded-xl bg-white divide-y divide-slate-100 shadow-inner">
+
               {filteredKavlingBlokGroups.length === 0 ? (
                 <p className="p-4 text-xs text-slate-400 italic text-center">
                   {kavlingBlokGroups.length === 0
@@ -1330,7 +1332,8 @@ const SPK = () => {
                   const blokCheckboxDisabled = selectableIds.length === 0;
                   return (
                     <div key={group.blok}>
-                      <div className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-50/90">
+                      <div className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-50 sticky top-0 z-10 border-b border-slate-100">
+
                         <BlokCheckbox
                           checked={blokState === 'all'}
                           indeterminate={blokState === 'partial'}
@@ -1376,7 +1379,7 @@ const SPK = () => {
                               checked={formData.kavlingIds.includes(k.kavlingId)}
                               disabled={k.disabled}
                               onChange={() => toggleKavling(k.kavlingId, k.disabled)}
-                              className="w-4 h-4 rounded border-gray-300 text-indigo-600 shrink-0 mt-0.5 disabled:cursor-not-allowed"
+                              className="w-4 h-4 rounded border-gray-300 text-blue-600 shrink-0 mt-0.5 disabled:cursor-not-allowed"
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -1441,7 +1444,7 @@ const SPK = () => {
                       href={formData.existingFileSpk}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-indigo-600 font-semibold mt-1 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold mt-1 hover:underline"
                     >
                       <ExternalLink size={11} />
                       Pratinjau dokumen tersimpan
@@ -1462,19 +1465,18 @@ const SPK = () => {
               </div>
             )}
           </FormSection>
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={closeModal}
-              className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+              className="px-5 py-2.5 text-sm font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+              className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm hover:shadow-blue-200 hover:shadow-md active:scale-95"
             >
               {isSaving ? 'Menyimpan...' : editingId ? 'Simpan Perubahan' : 'Buat SPK'}
             </button>

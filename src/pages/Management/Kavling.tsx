@@ -274,7 +274,7 @@ const Kavling = () => {
         const label = JENIS_KAVLING_LABELS[val] ?? val;
         const isRuko = val === 'RUKO';
         return (
-          <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${isRuko ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-indigo-100 text-indigo-800 border-indigo-200'}`}>
+          <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${isRuko ? 'bg-purple-100 text-purple-800 border-purple-200' : 'bg-blue-100 text-blue-800 border-blue-200'}`}>
             {label}
           </span>
         );
@@ -510,15 +510,15 @@ const Kavling = () => {
       uploadDocMutation.isPending || uploadTambahanDocMutation.isPending;
 
     return (
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-indigo-200">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3 transition-all hover:border-blue-200">
         <div className="flex justify-between items-center">
           <div className="flex flex-col">
             <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
             {urutan > 1 && (
-              <span className="text-[9px] font-bold text-indigo-600">Sertifikat Tanah ke-{urutan}</span>
+              <span className="text-[9px] font-bold text-blue-600">Sertifikat Tanah ke-{urutan}</span>
             )}
           </div>
-          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 cursor-pointer'}`}>
+          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 cursor-pointer'}`}>
             <UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}
             <input
               type="file"
@@ -569,7 +569,7 @@ const Kavling = () => {
         {Array.from({ length: jumlah }, (_, idx) => idx + 1).map((urutan) => (
           <div key={`${docType}-${urutan}`}>
             {jumlah > 1 && (
-              <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wide mb-3">
+              <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-3">
                 Sertifikat Tanah ke-{urutan}
               </p>
             )}
@@ -743,7 +743,7 @@ const Kavling = () => {
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tipe</p>
                 <p className="text-sm font-bold text-white">{selectedDocKavling.namaTipe}</p>
                 {(selectedDocKavling.jumlahSertifikatTanah ?? 1) > 1 && (
-                  <p className="text-[10px] text-indigo-300 font-bold mt-1">
+                  <p className="text-[10px] text-blue-300 font-bold mt-1">
                     {selectedDocKavling.jumlahSertifikatTanah} sertifikat tanah
                   </p>
                 )}

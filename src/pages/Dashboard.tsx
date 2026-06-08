@@ -123,12 +123,12 @@ const Dashboard = () => {
         {/* ── Header ──────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
         {/* Top decorative gradient strip */}
-        <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+        <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-blue-500 to-violet-500" />
         
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 px-6 py-5">
           <div className="flex items-center gap-4">
             {/* Accent line */}
-            <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 shrink-0" />
+            <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 shrink-0" />
             <div>
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
                 {getGreeting()}
@@ -357,7 +357,7 @@ const Dashboard = () => {
                               className={`h-1.5 rounded-full transition-all duration-500 ${
                                 prog.isLate
                                   ? 'bg-gradient-to-r from-red-400 to-rose-500'
-                                  : 'bg-gradient-to-r from-blue-400 to-indigo-500'
+                                  : 'bg-gradient-to-r from-blue-400 to-blue-500'
                               }`}
                               style={{ width: `${Math.min(prog.progress, 100)}%` }}
                             />
