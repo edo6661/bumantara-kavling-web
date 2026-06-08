@@ -510,7 +510,6 @@ const Dashboard = () => {
                           {agent.closing} closing
                         </p>
                       </div>
-                 
                     </div>
                   ))
                 ) : (
