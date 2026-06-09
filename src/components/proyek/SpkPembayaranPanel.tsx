@@ -1442,7 +1442,7 @@ const SpkPembayaranPanel = ({
         return false;
       }
 
-      const usedSuppliers = suppliers.filter(supplierIsUsed);
+      // const usedSuppliers = suppliers.filter(supplierIsUsed);
 
       try {
         const uploadedSuppliers = await uploadMaterialSupplierFotos(suppliers);
