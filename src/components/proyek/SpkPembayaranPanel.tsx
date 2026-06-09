@@ -141,6 +141,26 @@ const newMaterialSupplier = (): MaterialSupplierForm => ({
   bons: [newMaterialBon()],
 });
 
+interface LegacyKasbonRowForm {
+  key: string;
+  keterangan: string;
+  nominal: number | '';
+  tanggalPo: string;
+}
+
+const newLegacyKasbonRow = (): LegacyKasbonRowForm => ({
+  key: `${Date.now()}-${Math.random()}`,
+  keterangan: '',
+  nominal: '',
+  tanggalPo: todayIso(),
+});
+
+const LEGACY_KASBON_KETERANGAN_SUGGESTIONS = [
+  'Material mandor',
+  'Material kantor',
+  'Tenaga',
+];
+
 const bonHasFoto = (bon: MaterialBonForm) =>
   !!bon.fotoBonFile || !!bon.fotoBonUrl?.trim();
 
@@ -166,11 +186,6 @@ const supplierMaterialTotal = (supplier: MaterialSupplierForm) =>
 const supplierIsUsed = (supplier: MaterialSupplierForm) =>
   supplier.namaSupplier.trim() !== '' || supplier.bons.some(bonHasContent);
 
-const supplierMissingFotoBon = (supplier: MaterialSupplierForm) => {
-  const idx = supplier.bons.findIndex((b) => bonHasContent(b) && !bonHasFoto(b));
-  return idx >= 0 ? idx + 1 : null;
-};
-
 const allMaterialTotal = (suppliers: MaterialSupplierForm[]) =>
   suppliers.reduce((sum, s) => sum + supplierMaterialTotal(s), 0);
 
@@ -184,7 +199,7 @@ const flattenMaterialSuppliers = (
     const namaSupplier = normalizeMaterialNamaSupplier(supplier.namaSupplier);
     for (const bon of supplier.bons) {
       if (!bonHasContent(bon)) continue;
-      if (!bon.tanggal || !bonHasFoto(bon)) return null;
+      if (!bon.tanggal) return null;
       const fotoBon = bon.fotoBonUrl?.trim() || null;
       let hasItem = false;
       for (const item of bon.items) {
@@ -439,6 +454,124 @@ const applyKasbonBonOcr = (
   }),
 });
 
+const LegacyKasbonCreateEditor = ({
+  rows,
+  setRows,
+  idPrefix,
+}: {
+  rows: LegacyKasbonRowForm[];
+  setRows: React.Dispatch<React.SetStateAction<LegacyKasbonRowForm[]>>;
+  idPrefix: string;
+}) => (
+  <div className="space-y-3">
+    <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
+      Mode sementara untuk sinkronisasi data kasbon manual. Cukup isi{' '}
+      <strong>keterangan</strong> dan <strong>nominal</strong> — tanpa foto bon. Setiap baris
+      menjadi satu pengajuan kasbon terpisah.
+    </p>
+    <div className="flex flex-wrap gap-1.5">
+      {LEGACY_KASBON_KETERANGAN_SUGGESTIONS.map((label) => (
+        <button
+          key={label}
+          type="button"
+          onClick={() =>
+            setRows((prev) => [...prev, { ...newLegacyKasbonRow(), keterangan: label }])
+          }
+          className="px-2.5 py-1 text-[10px] font-bold rounded-full border border-amber-200 bg-white text-amber-800 hover:bg-amber-50"
+        >
+          + {label}
+        </button>
+      ))}
+    </div>
+    <div className="overflow-x-auto rounded-lg border border-amber-200">
+      <table className="w-full text-xs border-collapse min-w-[520px]">
+        <thead>
+          <tr>
+            <th className={thClass}>Keterangan</th>
+            <th className={thClass}>Tanggal</th>
+            <th className={thClass}>Nominal</th>
+            <th className={`${thClass} w-10`} />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key}>
+              <td className={tdClass}>
+                <input
+                  type="text"
+                  value={row.keterangan}
+                  onChange={(e) =>
+                    setRows((prev) =>
+                      prev.map((r) =>
+                        r.key === row.key ? { ...r, keterangan: e.target.value } : r,
+                      ),
+                    )
+                  }
+                  className="w-full min-w-[160px] px-2 py-1.5 border border-slate-200 rounded text-xs text-black"
+                  placeholder="Contoh: Material mandor"
+                />
+              </td>
+              <td className={tdClass}>
+                <input
+                  type="date"
+                  value={row.tanggalPo}
+                  onChange={(e) =>
+                    setRows((prev) =>
+                      prev.map((r) =>
+                        r.key === row.key ? { ...r, tanggalPo: e.target.value } : r,
+                      ),
+                    )
+                  }
+                  className="w-full min-w-[120px] px-2 py-1.5 border border-slate-200 rounded text-xs text-black"
+                />
+              </td>
+              <td className={tdClass}>
+                <CurrencyInput
+                  name={`${idPrefix}-legacy-${row.key}`}
+                  value={row.nominal === '' ? 0 : row.nominal}
+                  onValueChange={(_, value) =>
+                    setRows((prev) =>
+                      prev.map((r) =>
+                        r.key === row.key ? { ...r, nominal: value > 0 ? value : '' } : r,
+                      ),
+                    )
+                  }
+                  placeholder="0"
+                  compact
+                />
+              </td>
+              <td className={tdClass}>
+                <button
+                  type="button"
+                  disabled={rows.length <= 1}
+                  onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
+                  className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-30"
+                  title="Hapus baris"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <button
+      type="button"
+      onClick={() => setRows((prev) => [...prev, newLegacyKasbonRow()])}
+      className="text-xs font-bold text-amber-700 hover:underline"
+    >
+      + Tambah baris
+    </button>
+    <p className="text-sm font-bold text-amber-800">
+      Total:{' '}
+      {formatRupiah(
+        rows.reduce((sum, r) => sum + (r.nominal === '' ? 0 : Number(r.nominal)), 0),
+      )}
+    </p>
+  </div>
+);
+
 const MaterialSuppliersEditor = ({
   suppliers,
   setSuppliers,
@@ -618,7 +751,7 @@ const MaterialSuppliersEditor = ({
                     ) : (
                       <Camera size={14} />
                     )}
-                    Foto bon
+                    Foto bon (opsional)
                   </button>
                 ) : (
                   <button
@@ -848,11 +981,9 @@ const MaterialSuppliersEditor = ({
           Tambah bon di supplier yang sama
         </button>
 
-        {supplierMissingFotoBon(supplier) !== null && (
-          <p className="text-[10px] text-amber-700 font-medium">
-            Bon {supplierMissingFotoBon(supplier)} wajib dilampirkan foto.
-          </p>
-        )}
+        <p className="text-[10px] text-slate-500">
+          Foto bon opsional — bisa isi item manual tanpa foto.
+        </p>
 
         <p className="text-xs font-semibold text-orange-900">
           Total belanja supplier ini: <span className='text-red-500'>
@@ -1112,6 +1243,10 @@ const SpkPembayaranPanel = ({
   const [kasbonLegacyKeterangan, setKasbonLegacyKeterangan] = useState('');
   const [kasbonLegacyNominal, setKasbonLegacyNominal] = useState<number | ''>('');
   const [kasbonLegacyTanggalPo, setKasbonLegacyTanggalPo] = useState(() => todayIso());
+  const [kasbonInputMode, setKasbonInputMode] = useState<'detail' | 'legacy'>('detail');
+  const [legacyCreateRows, setLegacyCreateRows] = useState<LegacyKasbonRowForm[]>(() => [
+    newLegacyKasbonRow(),
+  ]);
   const [upahEditModalOpen, setUpahEditModalOpen] = useState(false);
   const [editingUpah, setEditingUpah] = useState<SpkPembayaranData | null>(null);
   const [upahTanggalDari, setUpahTanggalDari] = useState(() => todayIso());
@@ -1190,19 +1325,30 @@ const SpkPembayaranPanel = ({
 
   const upahTotalPreview = upahTotalNominal === '' ? 0 : Number(upahTotalNominal);
 
+  const legacyCreateTotal = useMemo(
+    () =>
+      legacyCreateRows.reduce(
+        (sum, row) => sum + (row.nominal === '' ? 0 : Number(row.nominal)),
+        0,
+      ),
+    [legacyCreateRows],
+  );
+
   const combinedSubmitTotal = materialTotalPreview + upahTotalPreview;
+  const activeCreateTotal =
+    kasbonInputMode === 'legacy' ? legacyCreateTotal : combinedSubmitTotal;
 
   const kasbonLegacyEditTotal =
     kasbonLegacyNominal === '' ? 0 : Number(kasbonLegacyNominal);
 
   const kasbonCreateOverPlafon =
     !!pengurangCheck.targetTermin &&
-    combinedSubmitTotal > 0 &&
+    activeCreateTotal > 0 &&
     !getPengurangTerminCapacity(
       spk.nilaiKontrak,
       pengurangRows,
       pengurangCheck.targetTermin,
-      { additionalNominal: combinedSubmitTotal },
+      { additionalNominal: activeCreateTotal },
     ).allowed;
 
   const kasbonEditOverPlafon = useMemo(() => {
@@ -1262,6 +1408,8 @@ const SpkPembayaranPanel = ({
     setUpahTanggalSampai(todayIso());
     setUpahBaris([newUpahBaris()]);
     setUpahTotalNominal('');
+    setKasbonInputMode('detail');
+    setLegacyCreateRows([newLegacyKasbonRow()]);
     setDraftAutoSaveStatus('idle');
     hydratedDraftKeyRef.current = null;
   };
@@ -1295,17 +1443,6 @@ const SpkPembayaranPanel = ({
       }
 
       const usedSuppliers = suppliers.filter(supplierIsUsed);
-      for (const s of usedSuppliers) {
-        const bonNo = supplierMissingFotoBon(s);
-        if (bonNo !== null) {
-          if (!silent) {
-            alert(
-              `Supplier "${s.namaSupplier.trim() || 'tanpa nama'}" — Bon ${bonNo} wajib dilampirkan foto bon.`,
-            );
-          }
-          return false;
-        }
-      }
 
       try {
         const uploadedSuppliers = await uploadMaterialSupplierFotos(suppliers);
@@ -1364,6 +1501,7 @@ const SpkPembayaranPanel = ({
     if (hydratedDraftKeyRef.current === draftKey) return;
 
     if (kasbonDraft?.kasbonBaris?.length) {
+      setKasbonInputMode('detail');
       setMaterialSuppliers(kasbonBarisToSuppliers(kasbonDraft.kasbonBaris));
     } else if (hydratedDraftKeyRef.current !== 'empty') {
       setMaterialSuppliers([newMaterialSupplier()]);
@@ -1372,23 +1510,87 @@ const SpkPembayaranPanel = ({
     hydratedDraftKeyRef.current = draftKey;
   }, [kasbonCreateModalOpen, kasbonDraft, kasbonDraftFetched, kasbonDraftFetching]);
 
+  const handleAjukanLegacyKasbon = async () => {
+    const rows = legacyCreateRows.filter(
+      (row) =>
+        row.keterangan.trim() !== '' &&
+        row.nominal !== '' &&
+        Number(row.nominal) > 0,
+    );
+
+    if (!rows.length) {
+      alert('Isi minimal satu baris dengan keterangan dan nominal.');
+      return;
+    }
+
+    if (!pengurangCheck.allowed) {
+      alert(pengurangCheck.reason ?? 'Tidak dapat mengajukan kasbon.');
+      return;
+    }
+
+    const grandTotal = rows.reduce((sum, row) => sum + Number(row.nominal), 0);
+
+    if (pengurangCheck.targetTermin) {
+      const plafon = validatePengurangTerminNominal(
+        spk.nilaiKontrak,
+        pengurangRows,
+        pengurangCheck.targetTermin,
+        grandTotal,
+      );
+      if (!plafon.allowed) {
+        alert(plafon.reason);
+        return;
+      }
+    }
+
+    const targetLabel = pengurangCheck.targetTermin
+      ? SPK_KASBON_TARGET_LABEL[pengurangCheck.targetTermin]
+      : '';
+    const rowSummary = rows
+      .map((row) => `• ${row.keterangan.trim()} — ${formatRupiah(Number(row.nominal))}`)
+      .join('\n');
+
+    if (
+      !window.confirm(
+        `Ajukan ${rows.length} kasbon (total ${formatRupiah(grandTotal)})?\n\n${rowSummary}\n\nMengurangi: ${targetLabel}`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      for (const row of rows) {
+        await createMutation.mutateAsync({
+          spkId: spk.id,
+          body: {
+            jenis: 'KASBON',
+            keterangan: row.keterangan.trim(),
+            nominal: Number(row.nominal),
+            tanggalPo: row.tanggalPo || todayIso(),
+          },
+        });
+      }
+      closeKasbonCreateModal();
+      resetKasbonForm();
+      alert(
+        rows.length === 1
+          ? 'Pengajuan kasbon berhasil dikirim ke pengawas.'
+          : `${rows.length} pengajuan kasbon berhasil dikirim ke pengawas.`,
+      );
+    } catch (err: unknown) {
+      alert(handleApiError(err).message);
+    }
+  };
+
   const handleAjukanKasbon = async () => {
+    if (kasbonInputMode === 'legacy') {
+      await handleAjukanLegacyKasbon();
+      return;
+    }
+
     const materialSectionUsed = materialSuppliers.some(supplierIsUsed);
     const upahSectionUsed =
       upahTotalPreview > 0 || upahBaris.some((r) => r.nik.trim() || r.nama.trim());
-
-    if (materialSectionUsed) {
-      const usedSuppliers = materialSuppliers.filter(supplierIsUsed);
-      for (const s of usedSuppliers) {
-        const bonNo = supplierMissingFotoBon(s);
-        if (bonNo !== null) {
-          alert(
-            `Supplier "${s.namaSupplier.trim() || 'tanpa nama'}" — Bon ${bonNo} wajib dilampirkan foto bon.`,
-          );
-          return;
-        }
-      }
-    }
 
     const materialBarisPreview = materialSectionUsed
       ? flattenMaterialSuppliers(materialSuppliers)
@@ -1595,6 +1797,38 @@ const SpkPembayaranPanel = ({
           {pengurangCheck.reason}
         </p>
       )}
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
+        <button
+          type="button"
+          disabled={hasActiveDraft}
+          onClick={() => setKasbonInputMode('detail')}
+          className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
+            kasbonInputMode === 'detail'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          } disabled:opacity-50`}
+        >
+          Bon &amp; supplier (normal)
+        </button>
+        <button
+          type="button"
+          disabled={hasActiveDraft}
+          onClick={() => setKasbonInputMode('legacy')}
+          className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
+            kasbonInputMode === 'legacy'
+              ? 'bg-amber-100 text-amber-900 shadow-sm border border-amber-200'
+              : 'text-slate-500 hover:text-slate-700'
+          } disabled:opacity-50`}
+          title={
+            hasActiveDraft
+              ? 'Selesaikan atau hapus draft material terlebih dahulu'
+              : undefined
+          }
+        >
+          Input data lama (sementara)
+        </button>
+      </div>
       
 
       {spk.kavlingItems.length > 0 && (
@@ -1617,6 +1851,14 @@ const SpkPembayaranPanel = ({
         </div>
       )}
 
+      {kasbonInputMode === 'legacy' ? (
+        <LegacyKasbonCreateEditor
+          rows={legacyCreateRows}
+          setRows={setLegacyCreateRows}
+          idPrefix={kasbonOnly ? 'kasbon-quick-legacy' : 'kasbon-create-legacy'}
+        />
+      ) : (
+        <>
       <CollapsibleDetailSection
         title="Material"
         className="border-orange-200"
@@ -1664,15 +1906,22 @@ const SpkPembayaranPanel = ({
           idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
         />
       </CollapsibleDetailSection>
+        </>
+      )}
 
       <div className="border-t border-slate-100 pt-4 space-y-3">
         <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total diajukan</p>
-            <p className="text-base font-black text-slate-900 mt-0.5">{formatRupiah(combinedSubmitTotal)}</p>
-            {materialTotalPreview > 0 && upahTotalPreview > 0 && (
+            <p className="text-base font-black text-slate-900 mt-0.5">{formatRupiah(activeCreateTotal)}</p>
+            {kasbonInputMode === 'detail' && materialTotalPreview > 0 && upahTotalPreview > 0 && (
               <p className="text-[10px] text-slate-400 mt-0.5">
                 Material {formatRupiah(materialTotalPreview)} + Upah {formatRupiah(upahTotalPreview)}
+              </p>
+            )}
+            {kasbonInputMode === 'legacy' && legacyCreateTotal > 0 && (
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                {legacyCreateRows.filter((r) => r.keterangan.trim() && r.nominal !== '').length} baris kasbon
               </p>
             )}
           </div>
@@ -1686,6 +1935,7 @@ const SpkPembayaranPanel = ({
           >
             Batal
           </button>
+          {kasbonInputMode === 'detail' && (
           <button
             type="button"
             disabled={
@@ -1706,6 +1956,7 @@ const SpkPembayaranPanel = ({
               'Simpan Draft'
             )}
           </button>
+          )}
           <button
             type="button"
             disabled={
@@ -1892,16 +2143,6 @@ const SpkPembayaranPanel = ({
     if (!editingKasbon) return;
 
     if (editingKasbonIsBatch) {
-      const usedSuppliers = materialSuppliers.filter(supplierIsUsed);
-      for (const s of usedSuppliers) {
-        const bonNo = supplierMissingFotoBon(s);
-        if (bonNo !== null) {
-          alert(
-            `Supplier "${s.namaSupplier.trim() || 'tanpa nama'}" — Bon ${bonNo} wajib dilampirkan foto bon.`,
-          );
-          return;
-        }
-      }
       const barisPreview = flattenMaterialSuppliers(materialSuppliers);
       if (!barisPreview) {
         alert(
