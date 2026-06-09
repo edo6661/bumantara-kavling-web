@@ -20,9 +20,9 @@ export function buildSpkPembayaranKalkulasi(
   switch (jenis) {
     case 'TERMIN_55': {
       const bruto = kontrak * 0.5;
-      const totalKasbon = sumPengurangJenisForTermin(pembayaranList, 'TERMIN_55', 'KASBON');
-      const totalUpah = sumPengurangJenisForTermin(pembayaranList, 'TERMIN_55', 'UPAH');
-      const kasbon = sumKasbonForTermin(pembayaranList, 'TERMIN_55');
+      const totalKasbon = sumPengurangJenisForTermin(kontrak, pembayaranList, 'TERMIN_55', 'KASBON');
+      const totalUpah = sumPengurangJenisForTermin(kontrak, pembayaranList, 'TERMIN_55', 'UPAH');
+      const kasbon = sumKasbonForTermin(kontrak, pembayaranList, 'TERMIN_55');
       baris.push({ label: '50%', nilai: bruto, tipe: 'positif' });
       if (totalKasbon > 0) {
         baris.push({ label: 'Total kasbon', nilai: totalKasbon, tipe: 'negatif' });
@@ -39,9 +39,9 @@ export function buildSpkPembayaranKalkulasi(
     }
     case 'TERMIN_100': {
       const bruto = kontrak * 0.45;
-      const totalKasbon = sumPengurangJenisForTermin(pembayaranList, 'TERMIN_100', 'KASBON');
-      const totalUpah = sumPengurangJenisForTermin(pembayaranList, 'TERMIN_100', 'UPAH');
-      const kasbon = sumKasbonForTermin(pembayaranList, 'TERMIN_100');
+      const totalKasbon = sumPengurangJenisForTermin(kontrak, pembayaranList, 'TERMIN_100', 'KASBON');
+      const totalUpah = sumPengurangJenisForTermin(kontrak, pembayaranList, 'TERMIN_100', 'UPAH');
+      const kasbon = sumKasbonForTermin(kontrak, pembayaranList, 'TERMIN_100');
       baris.push({ label: '45%', nilai: bruto, tipe: 'positif' });
       if (totalKasbon > 0) {
         baris.push({ label: 'Total kasbon', nilai: totalKasbon, tipe: 'negatif' });

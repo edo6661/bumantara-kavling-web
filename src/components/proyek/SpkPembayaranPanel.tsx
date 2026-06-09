@@ -34,7 +34,9 @@ import {
   calcSpkPembayaranNominal,
   canRequestKasbon,
   canRequestSpkPembayaran,
+  getPengurangRowWaterfallSplit,
   getPengurangTerminCapacity,
+  getTerminPaymentStatus,
   validatePengurangTerminNominal,
   type SpkKasbonTargetTermin,
   type SpkPembayaranJenis,
@@ -379,6 +381,7 @@ const toCalcRows = (list: SpkPembayaranData[]) =>
   list
     .filter((p) => p.status !== 'DRAFT')
     .map((p) => ({
+      id: p.id,
       jenis: p.jenis,
       status: p.status,
       nominal: p.nominal,
@@ -1146,22 +1149,71 @@ const UpahTukangEditor = ({
   </div>
 );
 
+const PengurangMengurangiCell = ({
+  rowId,
+  nilaiKontrak,
+  pengurangRows,
+  terminStatus,
+  fallbackTermin,
+}: {
+  rowId: number;
+  nilaiKontrak: number;
+  pengurangRows: SpkPengurangTerminRow[];
+  terminStatus: ReturnType<typeof getTerminPaymentStatus>;
+  fallbackTermin?: SpkKasbonTargetTermin | null;
+}) => {
+  const split = getPengurangRowWaterfallSplit(
+    nilaiKontrak,
+    pengurangRows,
+    rowId,
+    terminStatus,
+  );
+
+  if (split.termin55 <= 0 && split.termin100 <= 0) {
+    return (
+      <span>
+        {fallbackTermin ? SPK_KASBON_TARGET_LABEL[fallbackTermin] : '—'}
+      </span>
+    );
+  }
+
+  return (
+    <div className="space-y-1 text-[10px] leading-snug">
+      {split.termin55 > 0 && (
+        <div>
+          <span className="font-bold text-blue-700">Termin 55%</span>
+          <span className="block tabular-nums text-slate-700">{formatRupiah(split.termin55)}</span>
+        </div>
+      )}
+      {split.termin100 > 0 && (
+        <div>
+          <span className="font-bold text-violet-700">Termin 100%</span>
+          <span className="block tabular-nums text-slate-700">{formatRupiah(split.termin100)}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PengurangPlafonBanner = ({
   nilaiKontrak,
   rows,
   termin,
   additionalNominal,
   excludeId,
+  terminStatus,
 }: {
   nilaiKontrak: number;
   rows: SpkPengurangTerminRow[];
   termin: SpkKasbonTargetTermin;
   additionalNominal: number;
   excludeId?: number;
+  terminStatus?: ReturnType<typeof getTerminPaymentStatus>;
 }) => {
   const cap = getPengurangTerminCapacity(nilaiKontrak, rows, termin, {
     excludeId,
     additionalNominal,
+    terminStatus,
   });
 
   return (
@@ -1186,14 +1238,24 @@ const PengurangPlafonBanner = ({
           </div>
           <div className={`p-2.5 rounded-lg border col-span-2 sm:col-span-2 ${cap.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-200'}`}>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sisa setelah</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <p className={`font-black ${cap.allowed ? 'text-emerald-700' : 'text-red-600'}`}>{formatRupiah(Math.max(0, cap.sisaSetelah))}</p>
               {!cap.allowed && (
                 <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Melebihi plafon</span>
               )}
+              {cap.allowed && cap.spilloverKeTermin100 > 0 && (
+                <span className="text-[10px] font-bold text-violet-700 bg-violet-100 px-1.5 py-0.5 rounded">
+                  {formatRupiah(cap.spilloverKeTermin100)} mengurangi termin 100%
+                </span>
+              )}
             </div>
           </div>
         </>
+      )}
+      {termin === 'TERMIN_55' && cap.sisa <= 0 && cap.combinedSisa > 0 && additionalNominal <= 0 && (
+        <div className="col-span-2 sm:col-span-3 p-2.5 rounded-lg bg-violet-50 border border-violet-100 text-[10px] text-violet-800">
+          Plafon termin 55% sudah habis. Pengajuan berikutnya akan mengurangi termin 100% (sisa gabungan: {formatRupiah(cap.combinedSisa)}).
+        </div>
       )}
     </div>
   );
@@ -1290,6 +1352,7 @@ const SpkPembayaranPanel = ({
     [pembayaranList],
   );
   const calcRows = toCalcRows(submittedPembayaranList);
+  const terminStatus = useMemo(() => getTerminPaymentStatus(calcRows), [calcRows]);
 
   const pengurangRows: SpkPengurangTerminRow[] = useMemo(
     () =>
@@ -1348,7 +1411,7 @@ const SpkPembayaranPanel = ({
       spk.nilaiKontrak,
       pengurangRows,
       pengurangCheck.targetTermin,
-      { additionalNominal: activeCreateTotal },
+      { additionalNominal: activeCreateTotal, terminStatus },
     ).allowed;
 
   const kasbonEditOverPlafon = useMemo(() => {
@@ -1359,7 +1422,7 @@ const SpkPembayaranPanel = ({
       spk.nilaiKontrak,
       pengurangRows,
       editingKasbon.mengurangiTermin,
-      { excludeId: editingKasbon.id, additionalNominal: total },
+      { excludeId: editingKasbon.id, additionalNominal: total, terminStatus },
     ).allowed;
   }, [
     editingKasbon,
@@ -1368,6 +1431,7 @@ const SpkPembayaranPanel = ({
     kasbonLegacyEditTotal,
     pengurangRows,
     spk.nilaiKontrak,
+    terminStatus,
   ]);
 
   const upahEditOverPlafon = useMemo(() => {
@@ -1377,9 +1441,9 @@ const SpkPembayaranPanel = ({
       spk.nilaiKontrak,
       pengurangRows,
       editingUpah.mengurangiTermin,
-      { excludeId: editingUpah.id, additionalNominal: upahTotalPreview },
+      { excludeId: editingUpah.id, additionalNominal: upahTotalPreview, terminStatus },
     ).allowed;
-  }, [editingUpah, upahTotalPreview, pengurangRows, spk.nilaiKontrak]);
+  }, [editingUpah, upahTotalPreview, pengurangRows, spk.nilaiKontrak, terminStatus]);
 
   const handleAjukanTermin = async (jenis: SpkTerminPembayaranJenis) => {
     const check = canRequestSpkPembayaran(jenis, spkInput, statusRows);
@@ -1536,6 +1600,8 @@ const SpkPembayaranPanel = ({
         pengurangRows,
         pengurangCheck.targetTermin,
         grandTotal,
+        undefined,
+        terminStatus,
       );
       if (!plafon.allowed) {
         alert(plafon.reason);
@@ -1658,6 +1724,8 @@ const SpkPembayaranPanel = ({
         pengurangRows,
         pengurangCheck.targetTermin,
         grandTotal,
+        undefined,
+        terminStatus,
       );
       if (!plafon.allowed) {
         alert(plafon.reason);
@@ -2109,6 +2177,7 @@ const SpkPembayaranPanel = ({
         editingUpah.mengurangiTermin,
         total,
         editingUpah.id,
+        terminStatus,
       );
       if (!plafon.allowed) {
         alert(plafon.reason);
@@ -2158,6 +2227,7 @@ const SpkPembayaranPanel = ({
           editingKasbon.mengurangiTermin,
           total,
           editingKasbon.id,
+          terminStatus,
         );
         if (!plafon.allowed) {
           alert(plafon.reason);
@@ -2213,6 +2283,7 @@ const SpkPembayaranPanel = ({
         editingKasbon.mengurangiTermin,
         nominal,
         editingKasbon.id,
+        terminStatus,
       );
       if (!plafon.allowed) {
         alert(plafon.reason);
@@ -2482,9 +2553,13 @@ const SpkPembayaranPanel = ({
                         
                       </td>
                       <td className={tdClass}>
-                        {row.mengurangiTermin
-                          ? SPK_KASBON_TARGET_LABEL[row.mengurangiTermin]
-                          : '—'}
+                        <PengurangMengurangiCell
+                          rowId={row.id}
+                          nilaiKontrak={spk.nilaiKontrak}
+                          pengurangRows={pengurangRows}
+                          terminStatus={terminStatus}
+                          fallbackTermin={row.mengurangiTermin}
+                        />
                       </td>
                       <td className={`${tdClass} font-bold ${JENIS_UI_COLOR.KASBON.text}`}>
                         {formatRupiah(row.nominal)}
@@ -2614,9 +2689,13 @@ const SpkPembayaranPanel = ({
                         )}
                       </td>
                       <td className={tdClass}>
-                        {row.mengurangiTermin
-                          ? SPK_KASBON_TARGET_LABEL[row.mengurangiTermin]
-                          : '—'}
+                        <PengurangMengurangiCell
+                          rowId={row.id}
+                          nilaiKontrak={spk.nilaiKontrak}
+                          pengurangRows={pengurangRows}
+                          terminStatus={terminStatus}
+                          fallbackTermin={row.mengurangiTermin}
+                        />
                       </td>
                       <td className={`${tdClass} font-bold ${JENIS_UI_COLOR.UPAH.text}`}>
                         {formatRupiah(row.nominal)}
@@ -2696,10 +2775,20 @@ const SpkPembayaranPanel = ({
 
       {!historiOnly && pengurangCheck.targetTermin && canAjukan && (
         <p className="text-[10px] text-slate-500 mt-2">
-          Kasbon/upah berikutnya akan mengurangi{' '}
+          Kasbon/upah berikutnya mengurangi{' '}
           <span className="font-semibold text-orange-700">
             {SPK_KASBON_TARGET_LABEL[pengurangCheck.targetTermin]}
           </span>
+          {pengurangCheck.targetTermin === 'TERMIN_55' && (
+            <span className="text-slate-400"> (kelebihan otomatis mengurangi termin 100%)</span>
+          )}
+          {pengurangCheck.targetTermin === 'TERMIN_100' &&
+            !terminStatus.termin55Paid && (
+              <span className="text-slate-400">
+                {' '}
+                (plafon termin 55% sudah habis)
+              </span>
+            )}
           {pengurangCheck.sisaPengurang != null && (
             <>
               {' '}
@@ -2751,6 +2840,7 @@ const SpkPembayaranPanel = ({
                   editingKasbonIsBatch ? materialTotalPreview : kasbonLegacyEditTotal
                 }
                 excludeId={editingKasbon.id}
+                terminStatus={terminStatus}
               />
             </>
           )}
@@ -2836,6 +2926,7 @@ const SpkPembayaranPanel = ({
                 termin={editingUpah.mengurangiTermin}
                 additionalNominal={upahTotalPreview}
                 excludeId={editingUpah.id}
+                terminStatus={terminStatus}
               />
             </>
           )}
