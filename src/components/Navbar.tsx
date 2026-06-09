@@ -76,7 +76,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
   const breadcrumb = getBreadcrumb();
 
   return (
-    <header className="h-[64px] flex items-center justify-between px-4 md:px-6 bg-white border-b border-slate-100 sticky top-0 z-30 shrink-0">
+    <header className="h-[64px] flex items-center justify-between px-4 md:px-6 bg-white border-b border-slate-100 sticky top-0 z-40 shrink-0">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
