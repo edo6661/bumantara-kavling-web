@@ -326,13 +326,5 @@ export function canRequestSpkPembayaran(
     };
   }
 
-  if (nominal <= 0) {
-    return {
-      allowed: false,
-      reason: 'Nominal pembayaran tidak valid (kasbon/upah mungkin sudah melebihi termin).',
-      nominal,
-    };
-  }
-
   return { allowed: true, nominal };
 }
