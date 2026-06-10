@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
+  FileBarChart,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -86,6 +87,18 @@ const menuItems = [
       { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
       { title: 'Tukang', path: '/proyek/tukang', resource: 'SPK' },
       { title: 'Progress Proyek', path: '/proyek/progress', resource: 'PROGRESS_PROYEK' },
+    ],
+  },
+  {
+    title: 'Laporan',
+    icon: <FileBarChart size={18} strokeWidth={1.75} />,
+    submenus: [
+      { title: 'Eksekutif', path: '/laporan/eksekutif', resource: 'LAPORAN' },
+      { title: 'Penjualan & Koleksi', path: '/laporan/penjualan', resource: 'LAPORAN' },
+      { title: 'Progress Proyek', path: '/laporan/progress-proyek', resource: 'LAPORAN' },
+      { title: 'Biaya Proyek', path: '/laporan/biaya-proyek', resource: 'LAPORAN' },
+      { title: 'Keuangan', path: '/laporan/keuangan', resource: 'LAPORAN' },
+      { title: 'Marketing', path: '/laporan/marketing', resource: 'LAPORAN' },
     ],
   },
 ];
@@ -265,7 +278,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                       </button>
 
                       {/* Submenu */}
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpenMenu && !isCollapsed ? 'max-h-72 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpenMenu && !isCollapsed ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                         <div className="ml-4 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
                           {item.submenus!.map((sub) => {
                             const badgeCount = getBadgeForPath(sub.path);

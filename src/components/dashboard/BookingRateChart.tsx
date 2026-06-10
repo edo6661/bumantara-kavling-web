@@ -32,7 +32,7 @@ export default function BookingRateChart({ year, data }: BookingRateChartProps) 
           Tingkat Pemesanan Unit Tahun {year}
         </h3>
         <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
-          Jumlah pemesanan per bulan dan persentase dari total kavling
+          Transaksi penjualan baru per bulan (non batal) ÷ total kavling
         </p>
       </div>
 

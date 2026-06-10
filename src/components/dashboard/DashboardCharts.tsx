@@ -47,13 +47,11 @@ interface ProgressRange {
 function ChartCard({
   title,
   subtitle,
-  actionHint,
   badge,
   children,
 }: {
   title: string;
   subtitle: string;
-  actionHint?: string;
   badge?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -70,12 +68,6 @@ function ChartCard({
           </div>
           {badge}
         </div>
-        {actionHint && (
-          <p className="text-[11px] text-blue-600 font-bold mt-2 flex items-center gap-1.5">
-            <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0" />
-            {actionHint}
-          </p>
-        )}
       </div>
       {/* Chart area */}
       <div className="flex-1 min-h-[220px] p-4">{children}</div>
@@ -94,7 +86,6 @@ export function RevenueTrendChart({
     <ChartCard
       title="Tren Pendapatan"
       subtitle={`Tagihan lunas per bulan (${trendMonths} bulan terakhir)`}
-      actionHint="Turun 2 bulan berturut-turut? Evaluasi strategi penagihan"
     >
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -142,7 +133,6 @@ export function SalesTrendChart({
     <ChartCard
       title="Tren Penjualan"
       subtitle={`Unit terjual per bulan (${trendMonths} bulan terakhir)`}
-      actionHint="Naik? Pertahankan momentum. Turun? Percepat follow-up prospek"
     >
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -178,7 +168,6 @@ export function CollectionTrendChart({ data }: { data: CollectionPoint[] }) {
     <ChartCard
       title="Koleksi vs Konfirmasi"
       subtitle="Pembayaran terkumpul vs menunggu konfirmasi"
-      actionHint="Lonjakan menunggu konfirmasi? Prioritaskan verifikasi bukti"
     >
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -231,7 +220,6 @@ export function KavlingStatusChart({
     <ChartCard
       title="Komposisi Kavling"
       subtitle="Proporsi status unit · klik segmen untuk detail"
-      actionHint="Stok tersedia rendah? Pertimbangkan rilis unit baru"
       badge={
         <span className="text-[11px] font-black text-slate-600 bg-slate-100 px-2 py-1 rounded-lg shrink-0">
           {total} unit
@@ -289,7 +277,6 @@ export function PenjualanStatusChart({
     <ChartCard
       title="Pipeline Penjualan"
       subtitle="Status transaksi · klik bar untuk detail"
-      actionHint="Banyak Booked? Follow-up DP. Proses? Percepat akad"
     >
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 0 }}>
@@ -349,7 +336,6 @@ export function TagihanStatusChart({
     <ChartCard
       title="Status Tagihan"
       subtitle="Nominal tagihan · klik bar untuk detail"
-      actionHint="Belum bayar tinggi? Jalankan reminder & eskalasi"
     >
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
@@ -402,8 +388,7 @@ export function ProgressBreakdownChart({
   return (
     <ChartCard
       title="Distribusi Progress Proyek"
-      subtitle="Persentase penyelesaian · klik bar untuk detail"
-      actionHint="Banyak di bawah 50%? Review mandor & tukang"
+      subtitle="Persentase penyelesaian · klik bar untuk detail"    
     >
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>

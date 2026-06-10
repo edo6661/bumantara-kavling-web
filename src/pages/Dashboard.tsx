@@ -191,7 +191,7 @@ const Dashboard = () => {
           <div className="space-y-4">
             <DashboardMonthlyReportCard
               title={`Pendapatan Tahun ${year}`}
-              subtitle="Tagihan lunas per bulan"
+              subtitle="Nominal tagihan customer status Lunas (booking fee, DP, cicilan, dll.) per bulan dikonfirmasi"
               year={year}
               rows={executive.pendapatanTahunIni}
               totalLabel="Total Pendapatan"
@@ -199,7 +199,7 @@ const Dashboard = () => {
             />
             <DashboardMonthlyReportCard
               title={`Akad Tahun ${year}`}
-              subtitle="Akad PPJB — total nilai & jumlah unit"
+              subtitle="Total harga jual unit yang tanggal akad PPJB-nya jatuh di bulan tersebut"
               year={year}
               rows={executive.akadTahunIni}
               showCount
@@ -208,7 +208,7 @@ const Dashboard = () => {
             />
             <DashboardMonthlyReportCard
               title={`Penjualan Cash Keras & Cash Bertahap Tahun ${year}`}
-              subtitle="Total nilai penjualan dan jumlah unit per bulan"
+              subtitle="Total harga jual penjualan Cash Keras & Bertahap baru, dihitung saat transaksi dibuat"
               year={year}
               rows={executive.penjualanCashTahunIni}
               showCount

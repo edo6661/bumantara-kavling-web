@@ -46,6 +46,12 @@ const BayarSpkPembayaran = lazy(() => import('./pages/Finance/BayarSpkPembayaran
 const BayarNotarisPembayaran = lazy(() => import('./pages/Finance/BayarNotarisPembayaran'));
 const BayarBankKprPembayaran = lazy(() => import('./pages/Finance/BayarBankKprPembayaran'));
 const Profile = lazy(() => import('./pages/Profile'));
+const LaporanEksekutif = lazy(() => import('./pages/Laporan/LaporanEksekutif'));
+const LaporanPenjualan = lazy(() => import('./pages/Laporan/LaporanPenjualan'));
+const LaporanProgressProyek = lazy(() => import('./pages/Laporan/LaporanProgressProyek'));
+const LaporanBiayaProyek = lazy(() => import('./pages/Laporan/LaporanBiayaProyek'));
+const LaporanKeuangan = lazy(() => import('./pages/Laporan/LaporanKeuangan'));
+const LaporanMarketing = lazy(() => import('./pages/Laporan/LaporanMarketing'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
@@ -141,6 +147,12 @@ const App = () => {
                 <Route path="proyek/approve-kasbon" element={<PermissionGuard resource="SPK"><ApproveSpkKasbon /></PermissionGuard>} />
                 <Route path="proyek/tukang" element={<PermissionGuard resource="SPK"><Tukang /></PermissionGuard>} />
                 <Route path="proyek/progress" element={<PermissionGuard resource="PROGRESS_PROYEK"><Progress /></PermissionGuard>} />
+                <Route path="laporan/eksekutif" element={<PermissionGuard resource="LAPORAN"><LaporanEksekutif /></PermissionGuard>} />
+                <Route path="laporan/penjualan" element={<PermissionGuard resource="LAPORAN"><LaporanPenjualan /></PermissionGuard>} />
+                <Route path="laporan/progress-proyek" element={<PermissionGuard resource="LAPORAN"><LaporanProgressProyek /></PermissionGuard>} />
+                <Route path="laporan/biaya-proyek" element={<PermissionGuard resource="LAPORAN"><LaporanBiayaProyek /></PermissionGuard>} />
+                <Route path="laporan/keuangan" element={<PermissionGuard resource="LAPORAN"><LaporanKeuangan /></PermissionGuard>} />
+                <Route path="laporan/marketing" element={<PermissionGuard resource="LAPORAN"><LaporanMarketing /></PermissionGuard>} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
