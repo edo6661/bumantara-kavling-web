@@ -1,10 +1,13 @@
 export const DEFAULT_PERUMAHAN_NAME = 'Puri Safana';
 
 export function resolveDefaultPerumahanId(
-  list: { id: number; nama: string }[],
+  list: { id: string | number; nama: string }[],
 ): number | undefined {
   const match = list.find(
     (p) => p.nama.trim().toLowerCase() === DEFAULT_PERUMAHAN_NAME.toLowerCase(),
   );
-  return match?.id ?? list[0]?.id;
+  const rawId = match?.id ?? list[0]?.id;
+  if (rawId == null || rawId === '') return undefined;
+  const id = Number(rawId);
+  return Number.isFinite(id) && id > 0 ? id : undefined;
 }
