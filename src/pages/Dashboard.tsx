@@ -8,18 +8,16 @@ import {
   Landmark,
   Layers,
   ShoppingCart,
-  TrendingUp,
-  Wallet,
 } from 'lucide-react';
-import { formatRupiah } from '../utils/formatters';
 import { useGetDashboardSummary, useGetDashboardDrilldown } from '../hooks/queries/useDashboard';
 import type { DashboardDrilldownCategory } from '../services/dashboard.service';
 import { useAuth } from '../context/AuthContext';
 import PageLoader from './PageLoader';
 import KpiCard from '../components/dashboard/KpiCard';
-import DashboardMonthlyTable from '../components/dashboard/DashboardMonthlyTable';
+import DashboardMonthlyReportCard from '../components/dashboard/DashboardMonthlyReportCard';
 import BookingRateChart from '../components/dashboard/BookingRateChart';
 import DashboardDrilldownModal from '../components/dashboard/DashboardDrilldownModal';
+import { DASHBOARD_COLORS } from '../components/dashboard/dashboardTheme';
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center gap-3 mb-4">
@@ -169,35 +167,35 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Monthly Tables */}
+        {/* Laporan Tahunan */}
         <section>
           <SectionLabel>Laporan Tahun {year}</SectionLabel>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <DashboardMonthlyTable
+          <div className="space-y-4">
+            <DashboardMonthlyReportCard
               title={`Pendapatan Tahun ${year}`}
               subtitle="Tagihan lunas per bulan"
               year={year}
               rows={executive.pendapatanTahunIni}
               totalLabel="Total Pendapatan"
+              chartColor={DASHBOARD_COLORS.success}
             />
-            <DashboardMonthlyTable
+            <DashboardMonthlyReportCard
               title={`Akad Tahun ${year}`}
               subtitle="Akad PPJB — total nilai & jumlah unit"
               year={year}
               rows={executive.akadTahunIni}
               showCount
               totalLabel="Total Akad"
+              chartColor={DASHBOARD_COLORS.primary}
             />
-          </div>
-
-          <div className="mt-4">
-            <DashboardMonthlyTable
+            <DashboardMonthlyReportCard
               title={`Penjualan Cash Keras & Cash Bertahap Tahun ${year}`}
               subtitle="Total nilai penjualan dan jumlah unit per bulan"
               year={year}
               rows={executive.penjualanCashTahunIni}
               showCount
               totalLabel="Total Penjualan Cash"
+              chartColor={DASHBOARD_COLORS.warning}
             />
           </div>
         </section>
