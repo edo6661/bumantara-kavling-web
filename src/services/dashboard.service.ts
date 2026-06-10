@@ -78,6 +78,38 @@ export interface DrilldownItem {
   status?: string;
 }
 
+export interface MonthlyMetricRow {
+  month: number;
+  monthLabel: string;
+  total: number;
+  count: number;
+}
+
+export interface ExecutiveKpi {
+  unitTersedia: number;
+  akadBulanIni: number;
+  unitBookingHariIni: number;
+  unitProsesHariIni: number;
+  totalUnitKpr: number;
+  totalUnitCashBertahap: number;
+}
+
+export interface BookingRateRow {
+  month: number;
+  monthLabel: string;
+  jumlahPemesanan: number;
+  tingkatPersen: number;
+}
+
+export interface ExecutiveDashboard {
+  year: number;
+  kpi: ExecutiveKpi;
+  pendapatanTahunIni: MonthlyMetricRow[];
+  akadTahunIni: MonthlyMetricRow[];
+  penjualanCashTahunIni: MonthlyMetricRow[];
+  tingkatPemesanan: BookingRateRow[];
+}
+
 export interface DashboardData {
   stats: {
     totalPendapatan: number;
@@ -135,6 +167,7 @@ export interface DashboardData {
   blokHeatmap: BlokHeatmapItem[];
   kpiAlerts: KpiAlert[];
   filters: DashboardFilters;
+  executive: ExecutiveDashboard;
 }
 
 export const dashboardService = {

@@ -12,7 +12,6 @@ interface KpiCardProps {
   subtitle?: string;
   comparison?: KpiComparison;
   comparisonLabel?: string;
-  actionHint: string;
   severity?: 'normal' | 'warning' | 'critical';
   icon: LucideIcon;
   onClick: () => void;
@@ -51,7 +50,6 @@ export default function KpiCard({
   subtitle,
   comparison,
   comparisonLabel = 'vs bulan lalu',
-  actionHint,
   severity = 'normal',
   icon: Icon,
   onClick,
@@ -134,17 +132,7 @@ export default function KpiCard({
         )}
       </div>
 
-      {/* Action hint footer */}
-      <div
-        className={`
-          mx-0 mt-0 px-5 py-2.5 text-[11px] font-bold
-          flex items-center gap-2 border-t border-slate-100
-          transition-colors ${config.actionBg}
-        `}
-      >
-        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.actionDot}`} />
-        {actionHint}
-      </div>
+
     </div>
   );
 }
