@@ -83,15 +83,16 @@ export default function DashboardMonthlyReportCard({
                   labelFormatter={(_, payload) =>
                     (payload?.[0]?.payload as { fullName?: string } | undefined)?.fullName ?? ''
                   }
-                  formatter={(value: number, _name, item) => {
+                  formatter={(value, _name, item) => {
+                    const num = Number(value ?? 0);
                     const payload = item?.payload as { count?: number } | undefined;
                     if (showCount && payload?.count !== undefined) {
                       return [
-                        `${formatRupiah(value)} · ${payload.count} unit`,
+                        `${formatRupiah(num)} · ${payload.count} unit`,
                         'Total',
                       ];
                     }
-                    return [formatRupiah(value), 'Total'];
+                    return [formatRupiah(num), 'Total'];
                   }}
                 />
                 <Bar dataKey="total" fill={chartColor} radius={[6, 6, 0, 0]} maxBarSize={36} />

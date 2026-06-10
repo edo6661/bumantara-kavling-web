@@ -52,9 +52,10 @@ export default function BookingRateChart({ year, data }: BookingRateChartProps) 
             />
             <Tooltip
               contentStyle={CHART_TOOLTIP_STYLE}
-              formatter={(value: number, name: string) => {
-                if (name === 'tingkat') return [`${value}%`, 'Tingkat'];
-                return [`${value} unit`, 'Pemesanan'];
+              formatter={(value, name) => {
+                const num = Number(value ?? 0);
+                if (name === 'tingkat') return [`${num}%`, 'Tingkat'];
+                return [`${num} unit`, 'Pemesanan'];
               }}
             />
             <Legend
