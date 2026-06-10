@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import PageLoader from './PageLoader';
 import KpiCard from '../components/dashboard/KpiCard';
 import DashboardMonthlyReportCard from '../components/dashboard/DashboardMonthlyReportCard';
+import DashboardTodayUnits from '../components/dashboard/DashboardTodayUnits';
 import BookingRateChart from '../components/dashboard/BookingRateChart';
 import DashboardDrilldownModal from '../components/dashboard/DashboardDrilldownModal';
 import { DASHBOARD_COLORS } from '../components/dashboard/dashboardTheme';
@@ -165,6 +166,23 @@ const Dashboard = () => {
               }
             />
           </div>
+        </section>
+
+        {/* Unit Hari Ini */}
+        <section>
+          <SectionLabel>Per Hari Ini</SectionLabel>
+          <DashboardTodayUnits
+            todayDate={executive.todayDate ?? new Date().toISOString().substring(0, 10)}
+            bookingHariIni={executive.bookingHariIni ?? []}
+            prosesHariIni={executive.prosesHariIni ?? []}
+            onItemClick={() => navigate('/management/penjualan')}
+            onViewAllBooking={() =>
+              openDrilldown('penjualan', 'BOOKED_TODAY', 'Booking Hari Ini')
+            }
+            onViewAllProses={() =>
+              openDrilldown('penjualan', 'PROSES_TODAY', 'Proses Hari Ini')
+            }
+          />
         </section>
 
         {/* Laporan Tahunan */}

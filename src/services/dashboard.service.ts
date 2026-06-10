@@ -101,9 +101,21 @@ export interface BookingRateRow {
   tingkatPersen: number;
 }
 
+export interface TodayUnitItem {
+  id: string;
+  customer: string;
+  kavling: string;
+  amount: number;
+  caraPembayaran?: string;
+  waktu: string;
+}
+
 export interface ExecutiveDashboard {
   year: number;
+  todayDate: string;
   kpi: ExecutiveKpi;
+  bookingHariIni: TodayUnitItem[];
+  prosesHariIni: TodayUnitItem[];
   pendapatanTahunIni: MonthlyMetricRow[];
   akadTahunIni: MonthlyMetricRow[];
   penjualanCashTahunIni: MonthlyMetricRow[];
