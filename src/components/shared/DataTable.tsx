@@ -43,6 +43,8 @@ interface DataTableProps {
   dense?: boolean;
   /** Always show action buttons instead of revealing on row hover. */
   alwaysShowActions?: boolean;
+  /** Extra classes per data row (e.g. selected paste-upload row). */
+  getRowClassName?: (row: any) => string;
 }
 
 const DataTable = ({
@@ -50,6 +52,7 @@ const DataTable = ({
   serverSide = false, searchTerm = '', onSearchChange, page = 1, totalPages = 1, onPageChange,
   toolbarPrefix, pageSize = 10, pageSizeOptions = [10, 25, 50, 100], onPageSizeChange,
   filterRow, searchPlaceholder = 'Cari...', dense = false, alwaysShowActions = false,
+  getRowClassName,
 }: DataTableProps) => {
 
   const cellPad = dense ? 'px-3 py-2.5' : 'px-6 py-4';
@@ -172,6 +175,7 @@ const DataTable = ({
               filteredData.map((row, rowIndex) => {
                 const rowId = String(row.id ?? rowIndex);
                 const isExpanded = !!expandedRows[rowId];
+                const extraRowClass = getRowClassName?.(row) ?? '';
 
                 return (
                   <React.Fragment key={rowIndex}>
@@ -180,7 +184,7 @@ const DataTable = ({
                         if (expandedRowRender) toggleRow(rowId);
                         else onRowClick?.(row);
                       }}
-                      className={`transition-all duration-200 group ${expandedRowRender || onRowClick ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-blue-50/30' : 'bg-white'}`}
+                      className={`transition-all duration-200 group ${expandedRowRender || onRowClick ? 'cursor-pointer hover:bg-slate-50/80' : 'hover:bg-slate-50'} ${isExpanded ? 'bg-blue-50/30' : 'bg-white'} ${extraRowClass}`}
                     >
                       {expandedRowRender && (
                         <td className="px-4 py-4 text-center text-slate-400 group-hover:text-slate-600 transition-colors">

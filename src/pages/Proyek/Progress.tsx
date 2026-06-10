@@ -14,7 +14,6 @@ import {
 } from "../../hooks/queries/useProgressProyek";
 import { useGetSpk } from "../../hooks/queries/useSpk";
 import TotalProgressOverrideControls from '../../components/proyek/TotalProgressOverrideControls';
-import SpkPembayaranMandorRingkasan from '../../components/proyek/SpkPembayaranMandorRingkasan';
 import { handleApiError } from '../../utils/errorHandler';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -124,11 +123,6 @@ const Progress = () => {
   };
 
   const { data: spkList = [] } = useGetSpk();
-
-  const mandorSpks = useMemo(() => {
-    if (!isMandorRole || !user?.id) return [];
-    return spkList.filter((spk) => spk.mandorId === user.id);
-  }, [isMandorRole, user?.id, spkList]);
 
   const spkByKavlingId = useMemo(() => {
     const map = new Map<number, { noSpk: string; progress: number }>();
@@ -275,25 +269,19 @@ const Progress = () => {
         </div>
       )}
 
-      {isMandorRole && <SpkPembayaranMandorRingkasan mandorSpks={mandorSpks} />}
-
-      {/* Info banner */}
-      <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-        <span className="text-slate-400 mt-0.5 shrink-0">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <circle cx="7" cy="7" r="6.5" stroke="currentColor"/>
-            <path d="M7 6v4M7 4.5V5" stroke="currentColor" strokeLinecap="round"/>
-          </svg>
-        </span>
-        <p className="text-xs text-slate-600 leading-relaxed">
-          {canEditTotalProgress ? (
-            <>Admin dapat <strong>override total progress</strong> per unit atau reset ke default (kalkulasi dari tahapan). Progress unit mempengaruhi <strong>progress SPK</strong>.</>
-          ) : (
-            <>Progress per kavling mempengaruhi <strong>progress SPK</strong> (rata-rata kavling dalam SPK).</>
-          )}
-          {' '}Pengajuan termin &amp; bukti pembayaran di menu <strong>SPK</strong> (detail SPK).
-        </p>
-      </div>
+      {canEditTotalProgress && (
+        <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+          <span className="text-slate-400 mt-0.5 shrink-0">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="6.5" stroke="currentColor"/>
+              <path d="M7 6v4M7 4.5V5" stroke="currentColor" strokeLinecap="round"/>
+            </svg>
+          </span>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Admin dapat <strong>override total progress</strong> per unit atau reset ke default (kalkulasi dari tahapan). Progress unit mempengaruhi <strong>progress SPK</strong>.
+          </p>
+        </div>
+      )}
 
       <DataTable
         title={isMandorRole ? 'Proyek Saya' : 'Laporan Progress Lapangan'}

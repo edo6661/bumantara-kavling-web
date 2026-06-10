@@ -49,6 +49,12 @@ const TYPE_CONFIG: Record<
     text: 'text-amber-600',
     label: 'Penjualan',
   },
+  KODE_BILLING_PPH: {
+    icon: FileText,
+    bg: 'bg-rose-100',
+    text: 'text-rose-600',
+    label: 'PPh',
+  },
 };
 
 const formatRelativeTime = (dateStr: string): string => {

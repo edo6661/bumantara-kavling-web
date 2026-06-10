@@ -1,8 +1,14 @@
-import { Fragment, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
+import PasteUploadBanner from '../../components/shared/PasteUploadBanner';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../../components/shared/BuktiFileThumbnail';
+import {
+  getFilesFromClipboard,
+  isUploadableFile,
+  PASTE_UPLOAD_ROW_CLASS,
+} from '../../utils/clipboardFilePaste';
 import { formatDate, formatRupiah } from '../../utils/formatters';
 import {
   Clock,
@@ -55,6 +61,11 @@ interface SpkGroup {
 
 type UploadMode = 'bayar' | 'add-bukti';
 
+type PasteSelection = {
+  row: SpkPembayaranData;
+  mode: UploadMode;
+};
+
 const thParentClass =
   'px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50 border-b border-slate-200 whitespace-nowrap';
 const tdParentClass = 'px-4 py-3 text-sm text-slate-800 align-middle border-b border-slate-100';
@@ -95,6 +106,7 @@ const BayarSpkPembayaran = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<SpkPembayaranData | null>(null);
   const [uploadMode, setUploadMode] = useState<UploadMode>('bayar');
+  const [pasteSelection, setPasteSelection] = useState<PasteSelection | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [expandedSpkIds, setExpandedSpkIds] = useState<Set<number>>(new Set());
@@ -252,6 +264,72 @@ const BayarSpkPembayaran = () => {
     });
   };
 
+  const selectItemForPaste = (row: SpkPembayaranData, mode: UploadMode) => {
+    if (row.status === 'DRAFT') return;
+    if (mode === 'bayar' && row.status !== 'MENUNGGU_PEMBAYARAN') return;
+    if (mode === 'add-bukti' && row.status !== 'SUDAH_DIBAYAR') return;
+    setPasteSelection((prev) =>
+      prev?.row.id === row.id && prev.mode === mode ? null : { row, mode },
+    );
+  };
+
+  const processUploadFiles = useCallback(
+    async (
+      row: SpkPembayaranData,
+      mode: UploadMode,
+      files: File[],
+    ): Promise<boolean> => {
+      const validFiles = files.filter(isUploadableFile);
+      if (!validFiles.length) {
+        alert('Semua file harus berupa gambar atau PDF.');
+        return false;
+      }
+
+      try {
+        if (mode === 'add-bukti') {
+          await addBuktiMutation.mutateAsync({ id: row.id, files: validFiles });
+          alert('Bukti pembayaran berhasil ditambahkan.');
+        } else {
+          await bayarMutation.mutateAsync({ id: row.id, files: validFiles });
+          alert('Pembayaran SPK berhasil diproses.');
+        }
+        return true;
+      } catch (error) {
+        alert(handleApiError(error).message);
+        return false;
+      }
+    },
+    [addBuktiMutation, bayarMutation],
+  );
+
+  const handlePasteEvent = useCallback(
+    (e: ClipboardEvent | React.ClipboardEvent) => {
+      if (!pasteSelection) return;
+
+      const files = getFilesFromClipboard(e).filter(isUploadableFile);
+      if (!files.length) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      void (async () => {
+        const ok = await processUploadFiles(
+          pasteSelection.row,
+          pasteSelection.mode,
+          files,
+        );
+        if (ok) setPasteSelection(null);
+      })();
+    },
+    [pasteSelection, processUploadFiles],
+  );
+
+  useEffect(() => {
+    if (!pasteSelection) return;
+    document.addEventListener('paste', handlePasteEvent, true);
+    return () => document.removeEventListener('paste', handlePasteEvent, true);
+  }, [pasteSelection, handlePasteEvent]);
+
   const openUpload = (row: SpkPembayaranData, mode: UploadMode) => {
     if (row.status === 'DRAFT') {
       alert('Pengajuan masih draft dan belum diajukan oleh mandor.');
@@ -261,6 +339,7 @@ const BayarSpkPembayaran = () => {
       alert('Hanya pengajuan yang menunggu pembayaran yang dapat diproses.');
       return;
     }
+    selectItemForPaste(row, mode);
     setUploadMode(mode);
     setUploadTarget(row);
     fileInputRef.current?.click();
@@ -271,28 +350,10 @@ const BayarSpkPembayaran = () => {
     e.target.value = '';
     if (!files.length || !uploadTarget) return;
 
-    const hasInvalidFile = files.some(
-      (file) => !file.type.startsWith('image/') && file.type !== 'application/pdf',
-    );
-    if (hasInvalidFile) {
-      alert('Semua file harus berupa gambar atau PDF.');
-      return;
-    }
-
-    try {
-      if (uploadMode === 'add-bukti') {
-        await addBuktiMutation.mutateAsync({ id: uploadTarget.id, files });
-        alert('Bukti pembayaran berhasil ditambahkan.');
-      } else {
-        await bayarMutation.mutateAsync({ id: uploadTarget.id, files });
-        alert('Pembayaran SPK berhasil diproses.');
-      }
-    } catch (error) {
-      alert(handleApiError(error).message);
-    } finally {
-      setUploadTarget(null);
-      setUploadMode('bayar');
-    }
+    const ok = await processUploadFiles(uploadTarget, uploadMode, files);
+    if (ok) setPasteSelection(null);
+    setUploadTarget(null);
+    setUploadMode('bayar');
   };
 
   const handleRemoveBukti = async (row: SpkPembayaranData, buktiUrl: string) => {
@@ -329,11 +390,16 @@ const BayarSpkPembayaran = () => {
         : row.buktiPembayaran
           ? [row.buktiPembayaran]
           : [];
+    const isPasteSelected = pasteSelection?.row.id === row.id;
+    const pasteMode = canPay ? 'bayar' : paid ? 'add-bukti' : null;
 
     return (
       <tr
         key={row.id}
-        className={`border-t border-slate-100 ${colors.row} ${row.bsiCmsDilaporkan ? 'ring-1 ring-inset ring-sky-200' : ''}`}
+        onClick={() => {
+          if (pasteMode) selectItemForPaste(row, pasteMode);
+        }}
+        className={`border-t border-slate-100 ${colors.row} ${row.bsiCmsDilaporkan ? 'ring-1 ring-inset ring-sky-200' : ''} ${pasteMode ? 'cursor-pointer' : ''} ${isPasteSelected ? PASTE_UPLOAD_ROW_CLASS : ''}`}
       >
         <td className="px-4 py-2.5 w-10" onClick={(e) => e.stopPropagation()}>
           <input
@@ -378,7 +444,7 @@ const BayarSpkPembayaran = () => {
             )}
           </div>
         </td>
-        <td className="px-4 py-2.5">
+        <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
           {buktiList.length > 0 ? (
             <div className="flex items-center gap-1.5">
               {buktiList.slice(0, 3).map((url, index) => {
@@ -414,7 +480,7 @@ const BayarSpkPembayaran = () => {
             <span className="text-slate-400 text-xs">—</span>
           )}
         </td>
-        <td className="px-4 py-2.5">
+        <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
           {canPay && (
             <button
               type="button"
@@ -551,10 +617,20 @@ const BayarSpkPembayaran = () => {
         <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-lg font-black text-slate-900">Pembayaran SPK</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Klik baris pada tabel untuk membuka detail termin, retensi, dan kasbon. Centang baris
-            pembayaran untuk generate file batch BSI.
+            Klik baris SPK untuk detail termin. Klik baris pembayaran (menunggu/terbayar) lalu
+            Ctrl+V untuk paste bukti. Centang baris untuk generate file batch BSI.
           </p>
         </div>
+
+        {pasteSelection && (
+          <div className="px-5 pb-4">
+            <PasteUploadBanner
+              label={`${pasteSelection.row.spk?.noSpk ?? `#${pasteSelection.row.spkId}`} · ${getItemLabel(pasteSelection.row)} · ${formatRupiah(pasteSelection.row.nominal)}${pasteSelection.mode === 'add-bukti' ? ' (tambah bukti)' : ''}`}
+              onClear={() => setPasteSelection(null)}
+              onPaste={handlePasteEvent}
+            />
+          </div>
+        )}
 
         {spkGroups.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">Tidak ada data pembayaran.</p>

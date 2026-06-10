@@ -3,6 +3,7 @@ import {
   kodeBillingPphService,
   type KodeBillingPphData,
 } from "../../services/kodeBillingPph.service";
+import { invalidateSidebarBadges } from "./useSidebarBadges";
 
 export const kodeBillingPphPenjualanQueryKey = (penjualanId: number) =>
   ["kode-billing-pph", "penjualan", penjualanId] as const;
@@ -74,6 +75,7 @@ export const useUploadKodeBillingPph = () => {
       queryClient.invalidateQueries({
         queryKey: ["kode-billing-pph", "list"],
       });
+      invalidateSidebarBadges(queryClient);
     },
   });
 };
@@ -85,6 +87,7 @@ export const useUploadBuktiBayarKodeBillingPph = () => {
       kodeBillingPphService.uploadBuktiBayar(id, file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kode-billing-pph"] });
+      invalidateSidebarBadges(queryClient);
     },
   });
 };

@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import PageLoader from "../PageLoader";
 import Modal from "../../components/shared/Modal";
+import PasteUploadBanner from '../../components/shared/PasteUploadBanner';
 import { formatDate } from "../../utils/formatters";
 import {
   FileText, ZoomIn, Clock, CheckCircle2, Filter, ChevronDown, ChevronUp,
@@ -12,7 +13,10 @@ import {
   useGetKodeBillingPph,
   useUploadBuktiBayarKodeBillingPph,
 } from "../../hooks/queries/useKodeBillingPph";
+import { useRowPasteUpload } from '../../hooks/useRowPasteUpload';
 import { handleApiError } from '../../utils/errorHandler';
+import type { KodeBillingPphData } from '../../services/kodeBillingPph.service';
+import { isUploadableFile } from '../../utils/clipboardFilePaste';
 
 const BayarKodeBillingPph = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -70,8 +74,47 @@ const BayarKodeBillingPph = () => {
     });
   };
 
-  const handleUploadClick = (id: number) => {
-    setUploadTargetId(id);
+  const processUpload = useCallback(
+    async (id: number, file: File): Promise<boolean> => {
+      if (!isUploadableFile(file)) {
+        alert('Hanya file gambar dan PDF yang diperbolehkan!');
+        return false;
+      }
+
+      try {
+        setUploadTargetId(id);
+        await uploadMutation.mutateAsync({ id, file });
+        alert('Bukti pembayaran kode billing PPh berhasil diunggah!');
+        return true;
+      } catch (error) {
+        alert(handleApiError(error).message);
+        return false;
+      } finally {
+        setUploadTargetId(null);
+      }
+    },
+    [uploadMutation],
+  );
+
+  const onPasteFiles = useCallback(
+    async (row: KodeBillingPphData, files: File[]) => processUpload(row.id, files[0]!),
+    [processUpload],
+  );
+
+  const {
+    pasteTarget,
+    selectRow,
+    clearSelection: clearPasteSelection,
+    getRowClassName,
+    handlePasteEvent,
+  } = useRowPasteUpload<KodeBillingPphData>({
+    canSelect: (row) => row.status === 'MENUNGGU_BAYAR',
+    onPasteFiles,
+  });
+
+  const handleUploadClick = (row: KodeBillingPphData) => {
+    selectRow(row);
+    setUploadTargetId(row.id);
     fileInputRef.current?.click();
   };
 
@@ -79,21 +122,13 @@ const BayarKodeBillingPph = () => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !uploadTargetId) return;
-
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      alert('Hanya file gambar dan PDF yang diperbolehkan!');
-      return;
-    }
-
-    try {
-      await uploadMutation.mutateAsync({ id: uploadTargetId, file });
-      alert('Bukti pembayaran kode billing PPh berhasil diunggah!');
-    } catch (error) {
-      alert(handleApiError(error).message);
-    } finally {
-      setUploadTargetId(null);
-    }
+    const ok = await processUpload(uploadTargetId, file);
+    if (ok) clearPasteSelection();
   };
+
+  const pasteBannerLabel = pasteTarget
+    ? `${pasteTarget.namaCustomer} · ${pasteTarget.kodeBilling}`
+    : '';
 
   const columns = [
     {
@@ -126,7 +161,7 @@ const BayarKodeBillingPph = () => {
       render: (val: string) => (
         <button
           type="button"
-          onClick={() => setPreviewUrl(val)}
+          onClick={(e) => { e.stopPropagation(); setPreviewUrl(val); }}
           className="p-1.5 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded-lg transition"
           title="Lihat PDF Billing"
         >
@@ -140,7 +175,7 @@ const BayarKodeBillingPph = () => {
       render: (val: string | null) => val ? (
         <button
           type="button"
-          onClick={() => setPreviewUrl(val)}
+          onClick={(e) => { e.stopPropagation(); setPreviewUrl(val); }}
           className="p-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 rounded-lg transition"
           title="Lihat Suket PPh"
         >
@@ -187,7 +222,7 @@ const BayarKodeBillingPph = () => {
       render: (val: string | null) => val ? (
         <button
           type="button"
-          onClick={() => setPreviewUrl(val)}
+          onClick={(e) => { e.stopPropagation(); setPreviewUrl(val); }}
           className="relative w-12 h-8 rounded border border-slate-200 overflow-hidden cursor-zoom-in hover:border-blue-400 transition"
           title="Lihat bukti pembayaran"
         >
@@ -213,7 +248,7 @@ const BayarKodeBillingPph = () => {
         row.status === 'MENUNGGU_BAYAR' ? (
           <button
             type="button"
-            onClick={() => handleUploadClick(row.id)}
+            onClick={(e) => { e.stopPropagation(); handleUploadClick(row); }}
             disabled={uploadMutation.isPending && uploadTargetId === row.id}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold uppercase rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
           >
@@ -296,6 +331,14 @@ const BayarKodeBillingPph = () => {
         )}
       </div>
 
+      {pasteTarget && (
+        <PasteUploadBanner
+          label={pasteBannerLabel}
+          onClear={clearPasteSelection}
+          onPaste={handlePasteEvent}
+        />
+      )}
+
       <DataTable
         title="Pembayaran Kode Billing PPh"
         columns={columns}
@@ -306,6 +349,10 @@ const BayarKodeBillingPph = () => {
         page={page}
         totalPages={meta?.totalPages || 1}
         onPageChange={handlePageChange}
+        onRowClick={(row) => {
+          if (row.status === 'MENUNGGU_BAYAR') selectRow(row);
+        }}
+        getRowClassName={getRowClassName}
       />
 
       <Modal isOpen={!!previewUrl} onClose={() => setPreviewUrl(null)} title="Preview Dokumen">

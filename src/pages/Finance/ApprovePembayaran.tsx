@@ -23,6 +23,7 @@ const ApprovePembayaran = () => {
 
 
   const statusFilter = searchParams.get('status') ?? 'MENUNGGU_KONFIRMASI';
+  const ksoFilter = searchParams.get('kso') ?? 'ALL';
   const dateFilter = searchParams.get('date') || '';
   const orderBy = searchParams.get('orderBy') || 'updatedAt:desc';
   const limit = 10;
@@ -34,6 +35,7 @@ const ApprovePembayaran = () => {
     limit,
     search,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
+    kso: ksoFilter === 'ALL' ? undefined : ksoFilter,
     startDate: dateFilter !== '' ? dateFilter : undefined,
     endDate: dateFilter !== '' ? dateFilter : undefined,
     orderBy
@@ -63,6 +65,15 @@ const ApprovePembayaran = () => {
     setSearchParams(prev => {
       prev.set('status', e.target.value);
       prev.set('page', '1'); return prev;
+    });
+  };
+
+  const handleKsoFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value === 'ALL') prev.delete('kso');
+      else prev.set('kso', e.target.value);
+      prev.set('page', '1');
+      return prev;
     });
   };
 
@@ -205,7 +216,7 @@ const ApprovePembayaran = () => {
         </div>
 
         {isFilterExpanded && (
-          <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white animate-in fade-in slide-in-from-top-2">
 
             {/* Filter Status */}
             <div className="relative group">
@@ -221,6 +232,25 @@ const ApprovePembayaran = () => {
                 <option value="MENUNGGU_KONFIRMASI">Menunggu Konfirmasi</option>
                 <option value="LUNAS">Lunas (Disetujui)</option>
                 <option value="BELUM_BAYAR">Belum Bayar</option>
+              </select>
+              <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-blue-500">
+                <ChevronDown size={16} />
+              </div>
+            </div>
+
+            {/* Filter KSO */}
+            <div className="relative group">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block group-focus-within:text-blue-600 transition-colors">
+                KSO (Rekening PT)
+              </label>
+              <select
+                className="w-full px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer"
+                value={ksoFilter}
+                onChange={handleKsoFilterChange}
+              >
+                <option value="ALL">Semua KSO</option>
+                <option value="MAHLIGAI">Mahligai</option>
+                <option value="GAJAH">Gajah</option>
               </select>
               <div className="absolute right-3 top-[34px] pointer-events-none text-slate-400 group-focus-within:text-blue-500">
                 <ChevronDown size={16} />

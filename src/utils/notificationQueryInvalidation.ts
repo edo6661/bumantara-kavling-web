@@ -11,6 +11,8 @@ const SPK_NOTIFICATION_TYPES = new Set<NotificationType>([
   'SPK_DIBAYAR',
 ]);
 
+const KODE_BILLING_PPH_QUERY_KEY = ['kode-billing-pph'] as const;
+
 /** Invalidasi cache terkait saat notifikasi real-time masuk atau sebelum navigasi. */
 export async function invalidateQueriesForNotification(
   queryClient: QueryClient,
@@ -29,12 +31,20 @@ export async function invalidateQueriesForNotification(
     tasks.push(queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all }));
   }
 
+  if (notif.type === 'KODE_BILLING_PPH') {
+    tasks.push(queryClient.invalidateQueries({ queryKey: KODE_BILLING_PPH_QUERY_KEY }));
+  }
+
   if (notif.linkPath === '/proyek/approve-kasbon' || notif.linkPath === '/finance/bayar-spk') {
     tasks.push(queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all }));
   }
 
   if (notif.linkPath === '/finance/approve-pembayaran') {
     tasks.push(queryClient.invalidateQueries({ queryKey: TAGIHAN_KEYS.all }));
+  }
+
+  if (notif.linkPath === '/finance/bayar-kode-billing-pph') {
+    tasks.push(queryClient.invalidateQueries({ queryKey: KODE_BILLING_PPH_QUERY_KEY }));
   }
 
   await Promise.all(tasks);
