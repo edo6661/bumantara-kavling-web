@@ -108,6 +108,7 @@ const Tagihan = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [isAutoFilled, setIsAutoFilled] = useState(false);
+  const [initialTujuan, setInitialTujuan] = useState<TagihanTujuan | null>(null);
 
   const [printData, setPrintData] = useState<any>(null);
   const [printType, setPrintType] = useState<'invoice' | 'kwitansi' | null>(null);
@@ -270,13 +271,15 @@ const Tagihan = () => {
 
   const openModal = (item?: TagihanData, parentGroup?: any) => {
     if (item) {
+      const tujuan = effectiveTagihanTujuan(item);
+      setInitialTujuan(tujuan);
       setFormData({
         id: item.id,
         customerId: item.customerId,
         customerLabel: item.namaCustomer,
         penjualanId: item.penjualanId,
         kavlingLabel: `${item.perumahan} - Blok ${item.blok}-${item.nomorUnit}`,
-        tujuan: effectiveTagihanTujuan(item),
+        tujuan,
         pembayaran: item.pembayaran,
         nominal: Math.round(Number(item.nominal)),
         jatuhTempo: formatDateForInput(item.jatuhTempo ? String(item.jatuhTempo) : ''),
@@ -288,6 +291,7 @@ const Tagihan = () => {
       setIsEditing(true);
       setIsAutoFilled(true);
     } else if (parentGroup) {
+      setInitialTujuan(null);
       setFormData({
         ...initialFormState,
         customerId: parentGroup.customerId,
@@ -300,6 +304,7 @@ const Tagihan = () => {
       setIsEditing(false);
       setIsAutoFilled(true);
     } else {
+      setInitialTujuan(null);
       setFormData(initialFormState);
       setExistingBuktiUrls([]);
       setIsEditing(false);
@@ -313,7 +318,13 @@ const Tagihan = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
     setExistingBuktiUrls([]);
+    setInitialTujuan(null);
   };
+
+  const tujuanChanged =
+    isEditing &&
+    initialTujuan !== null &&
+    formData.tujuan !== initialTujuan;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -519,6 +530,18 @@ const Tagihan = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+
+    if (tujuanChanged) {
+      const statusNote =
+        formData.status === 'LUNAS'
+          ? ' Tagihan ini sudah LUNAS — nominal akan dipindahkan ke bucket pembayaran yang baru.'
+          : '';
+      const confirmed = window.confirm(
+        `Mengubah tujuan pembayaran dari "${tagihanTujuanShortLabel[initialTujuan!]}" ke "${tagihanTujuanShortLabel[formData.tujuan]}" akan mempengaruhi perhitungan sisa DP, booking, dan cicilan harga jual.${statusNote}\n\nLanjutkan?`,
+      );
+      if (!confirmed) return;
+    }
+
     try {
       let currentTagihanId = formData.id;
       if (isEditing && formData.id) {
@@ -526,7 +549,7 @@ const Tagihan = () => {
           id: Number(formData.id),
           data: {
             pembayaran: formData.pembayaran,
-            tujuan: formData.tujuan,
+            ...(tujuanChanged ? { tujuan: formData.tujuan } : {}),
             nominal: Math.round(Number(formData.nominal)),
             jatuhTempo: formData.jatuhTempo,
             status: formData.status as any,
@@ -1075,12 +1098,20 @@ const Tagihan = () => {
                 value={formData.tujuan}
                 onChange={handleChange}
                 error={errors.tujuan}
-                disabled={formData.status === 'LUNAS'}
                 options={TAGIHAN_TUJUAN_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
               />
               <p className="text-[11px] text-slate-500 md:col-span-2 -mt-2 leading-relaxed">
                 Pilih tujuan agar sistem menghitung <strong>sisa DP</strong> dan <strong>sisa cicilan harga jual</strong> dengan benar. Setiap pembayaran tetap memakai satu tagihan (invoice).
               </p>
+              {tujuanChanged && (
+                <div className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900 leading-relaxed">
+                  Tujuan diubah dari <strong>{tagihanTujuanShortLabel[initialTujuan!]}</strong> menjadi{' '}
+                  <strong>{tagihanTujuanShortLabel[formData.tujuan]}</strong>.
+                  {formData.status === 'LUNAS'
+                    ? ' Karena tagihan sudah lunas, ringkasan DP/cicilan di tabel akan ikut berubah setelah disimpan.'
+                    : ' Ringkasan sisa DP dan cicilan akan disesuaikan setelah disimpan.'}
+                </div>
+              )}
               <div className="md:col-span-2">
                 <Input label="Pembayaran (Deskripsi)" name="pembayaran" value={formData.pembayaran} onChange={handleChange} error={errors.pembayaran} placeholder="Contoh: Cicilan DP ke-2 / Cicilan pokok ke-5" />
               </div>
