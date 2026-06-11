@@ -486,6 +486,7 @@ const Kavling = () => {
             filePbg: idx >= 0 ? existing[idx]?.filePbg ?? null : null,
             fileSertifikatTanah: idx >= 0 ? existing[idx]?.fileSertifikatTanah ?? null : null,
             fileNopPbb: idx >= 0 ? existing[idx]?.fileNopPbb ?? null : null,
+            nopd: idx >= 0 ? existing[idx]?.nopd ?? null : null,
             [docType]: previewUrl,
           };
           if (idx >= 0) existing[idx] = { ...existing[idx], ...nextRow };
