@@ -210,6 +210,9 @@ export interface RekapPembayaranReportParams {
   caraPembayaran?: string;
   startDate?: string;
   endDate?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface RekapPembayaranReportItem {
@@ -240,6 +243,12 @@ export interface RekapPembayaranReportData {
     totalCicilanTerbayar: number;
   };
   items: RekapPembayaranReportItem[];
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
 }
 
 export interface PenjualanReportData {
