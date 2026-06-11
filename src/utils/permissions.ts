@@ -41,7 +41,7 @@ export function resolvePermission(
 
   const normalized = resource.toUpperCase();
   const fromDb = user?.permissions?.find(
-    (p) => p.resource.toUpperCase() === normalized,
+    (p) => p?.resource != null && p.resource.toUpperCase() === normalized,
   );
 
   if (fromDb) {

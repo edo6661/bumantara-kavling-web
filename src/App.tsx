@@ -52,6 +52,7 @@ const LaporanProgressProyek = lazy(() => import('./pages/Laporan/LaporanProgress
 const LaporanBiayaProyek = lazy(() => import('./pages/Laporan/LaporanBiayaProyek'));
 const LaporanKeuangan = lazy(() => import('./pages/Laporan/LaporanKeuangan'));
 const LaporanMarketing = lazy(() => import('./pages/Laporan/LaporanMarketing'));
+const LaporanRekapPembayaran = lazy(() => import('./pages/Laporan/LaporanRekapPembayaran'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
@@ -149,6 +150,7 @@ const App = () => {
                 <Route path="proyek/progress" element={<PermissionGuard resource="PROGRESS_PROYEK"><Progress /></PermissionGuard>} />
                 <Route path="laporan/eksekutif" element={<PermissionGuard resource="LAPORAN"><LaporanEksekutif /></PermissionGuard>} />
                 <Route path="laporan/penjualan" element={<PermissionGuard resource="LAPORAN"><LaporanPenjualan /></PermissionGuard>} />
+                <Route path="laporan/rekap-pembayaran" element={<PermissionGuard resource="LAPORAN"><LaporanRekapPembayaran /></PermissionGuard>} />
                 <Route path="laporan/progress-proyek" element={<PermissionGuard resource="LAPORAN"><LaporanProgressProyek /></PermissionGuard>} />
                 <Route path="laporan/biaya-proyek" element={<PermissionGuard resource="LAPORAN"><LaporanBiayaProyek /></PermissionGuard>} />
                 <Route path="laporan/keuangan" element={<PermissionGuard resource="LAPORAN"><LaporanKeuangan /></PermissionGuard>} />

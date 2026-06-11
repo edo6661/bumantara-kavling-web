@@ -203,6 +203,45 @@ export interface PenjualanReportItem {
   tagihan: PenjualanReportTagihan[];
 }
 
+export interface RekapPembayaranReportParams {
+  perumahanId?: number;
+  blok?: string;
+  status?: string;
+  caraPembayaran?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface RekapPembayaranReportItem {
+  penjualanId: number;
+  noTransaksi: string;
+  customerNama: string;
+  kavlingLabel: string;
+  blok: string;
+  nomorUnit: string;
+  perumahanNama: string;
+  hargaJual: number;
+  dp: number;
+  sisaPembayaran: number;
+  dpTerbayar: number[];
+  cicilanTerbayar: number[];
+  totalDpTerbayar: number;
+  totalCicilanTerbayar: number;
+}
+
+export interface RekapPembayaranReportData {
+  filters: RekapPembayaranReportParams;
+  summary: {
+    jumlahPenjualan: number;
+    totalHargaJual: number;
+    totalDp: number;
+    totalSisaPembayaran: number;
+    totalDpTerbayar: number;
+    totalCicilanTerbayar: number;
+  };
+  items: RekapPembayaranReportItem[];
+}
+
 export interface PenjualanReportData {
   filters: PenjualanReportParams;
   summary: {
@@ -244,6 +283,13 @@ export const reportService = {
     params: PenjualanReportParams = {},
   ): Promise<PenjualanReportData> => {
     const response = await api.get("/reports/penjualan", { params });
+    return response.data.data;
+  },
+
+  getRekapPembayaran: async (
+    params: RekapPembayaranReportParams = {},
+  ): Promise<RekapPembayaranReportData> => {
+    const response = await api.get("/reports/rekap-pembayaran", { params });
     return response.data.data;
   },
 
