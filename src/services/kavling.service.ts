@@ -23,6 +23,7 @@ export interface KavlingData {
   filePbg: string | null;
   fileSertifikatTanah: string | null;
   fileNopPbb: string | null;
+  nopd: string | null;
   jumlahSertifikatTanah?: number;
   sertifikatTanahTambahan?: {
     id: number;
@@ -31,6 +32,7 @@ export interface KavlingData {
     filePbg: string | null;
     fileSertifikatTanah: string | null;
     fileNopPbb: string | null;
+    nopd: string | null;
   }[];
   penjualan?: {
     customer?: {
