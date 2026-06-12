@@ -291,6 +291,75 @@ export interface RekapPembayaranReportData {
   };
 }
 
+export interface PemasukanPenjualanReportParams {
+  perumahanId?: number;
+  blok?: string;
+  status?: string;
+  caraPembayaran?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PemasukanTerbayarDetail {
+  tagihanId: number;
+  noTagihan: string;
+  nominal: number;
+  pembayaran: string;
+  jatuhTempo: string;
+  status: string;
+  fileBukti: string | null;
+  fileBuktiList: string[];
+  updatedAt: string;
+}
+
+export interface PemasukanPenjualanBucket {
+  nominal: number;
+  terbayar: PemasukanTerbayarDetail[];
+  totalTerbayar: number;
+  sisa: number;
+}
+
+export interface PemasukanPenjualanCicilan extends PemasukanPenjualanBucket {
+  skemaPembayaran: string | null;
+}
+
+export interface PemasukanPenjualanReportItem {
+  penjualanId: number;
+  noTransaksi: string;
+  customerNama: string;
+  kavlingLabel: string;
+  blok: string;
+  nomorUnit: string;
+  perumahanNama: string;
+  caraPembayaran: string | null;
+  bookingLunas: boolean | null;
+  dp: PemasukanPenjualanBucket;
+  cicilan: PemasukanPenjualanCicilan;
+}
+
+export interface PemasukanPenjualanReportData {
+  filters: PemasukanPenjualanReportParams;
+  summary: {
+    jumlahPenjualan: number;
+    totalBookingNominal: number;
+    totalBookingTerbayar: number;
+    totalDpNominal: number;
+    totalDpTerbayar: number;
+    totalCicilanNominal: number;
+    totalCicilanTerbayar: number;
+  };
+  items: PemasukanPenjualanReportItem[];
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
 export interface PenjualanReportData {
   filters: PenjualanReportParams;
   summary: {
@@ -339,6 +408,13 @@ export const reportService = {
     params: RekapPembayaranReportParams = {},
   ): Promise<RekapPembayaranReportData> => {
     const response = await api.get("/reports/rekap-pembayaran", { params });
+    return response.data.data;
+  },
+
+  getPemasukanPenjualan: async (
+    params: PemasukanPenjualanReportParams = {},
+  ): Promise<PemasukanPenjualanReportData> => {
+    const response = await api.get("/reports/pemasukan-penjualan", { params });
     return response.data.data;
   },
 

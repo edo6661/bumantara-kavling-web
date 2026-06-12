@@ -95,6 +95,7 @@ const menuItems = [
     submenus: [
       { title: 'Eksekutif', path: '/laporan/eksekutif', resource: 'LAPORAN' },
       { title: 'Penjualan & Koleksi', path: '/laporan/penjualan', resource: 'LAPORAN' },
+      { title: 'Pemasukan Penjualan', path: '/laporan/pemasukan-penjualan', resource: 'LAPORAN' },
       { title: 'Rekap Pembayaran', path: '/laporan/rekap-pembayaran', resource: 'LAPORAN' },
       { title: 'Progress Proyek', path: '/laporan/progress-proyek', resource: 'LAPORAN' },
       { title: 'Biaya Proyek', path: '/laporan/biaya-proyek', resource: 'LAPORAN' },
