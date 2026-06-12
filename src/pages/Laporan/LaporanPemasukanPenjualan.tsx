@@ -26,6 +26,7 @@ import {
   PemasukanTerbayarTd,
 } from '../../components/laporan/PemasukanPenjualanCell';
 import PembayaranTerbayarModal from '../../components/laporan/PembayaranTerbayarModal';
+import CustomerNameActionTd from '../../components/laporan/CustomerNameActionTd';
 import { formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
 import { DEFAULT_PERUMAHAN_NAME } from '../../constants/perumahan';
@@ -354,7 +355,8 @@ const LaporanPemasukanPenjualan = () => {
                 </div>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2">
                   <p className="text-[10px] text-slate-400">
-                    Klik kolom terbayar untuk melihat detail dan bukti pembayaran.
+                    Klik nama customer untuk buka penjualan atau tagihan. Klik kolom terbayar
+                    untuk melihat detail dan bukti pembayaran.
                   </p>
                   <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-600">
                     <span className="inline-flex items-center gap-1.5 font-medium">
@@ -456,9 +458,7 @@ const LaporanPemasukanPenjualan = () => {
                           key={item.penjualanId}
                           className={`border-b border-slate-50 align-top transition-colors ${getRowSchemeClass(item.cicilan.skemaPembayaran)}`}
                         >
-                          <td className="py-3 px-4 font-semibold text-slate-800 border-r border-slate-50">
-                            {item.customerNama}
-                          </td>
+                          <CustomerNameActionTd customerNama={item.customerNama} />
                           <td className="py-3 px-4 text-slate-600 border-r border-slate-100">
                             <p className="font-medium">{item.kavlingLabel}</p>
                           
