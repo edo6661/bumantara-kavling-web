@@ -335,6 +335,7 @@ export interface PemasukanPenjualanReportItem {
   nomorUnit: string;
   perumahanNama: string;
   caraPembayaran: string | null;
+  hargaJual: number;
   bookingLunas: boolean | null;
   dp: PemasukanPenjualanBucket;
   cicilan: PemasukanPenjualanCicilan;

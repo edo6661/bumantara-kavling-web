@@ -22,7 +22,7 @@ import PemasukanPenjualanCell, {
   PemasukanNominalCell,
 } from '../../components/laporan/PemasukanPenjualanCell';
 import PembayaranTerbayarModal from '../../components/laporan/PembayaranTerbayarModal';
-import { formatRupiah } from '../../utils/formatters';
+import { formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
 import { DEFAULT_PERUMAHAN_NAME } from '../../constants/perumahan';
 
@@ -43,8 +43,8 @@ const CARA_BAYAR_OPTIONS = [
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
-const DP_SUB_COLUMNS = ['Nominal DP', 'Terbayar'] as const;
-const CICILAN_SUB_COLUMNS = ['Skema Pembayaran', 'Nominal Cicilan', 'Terbayar'] as const;
+const DP_SUB_COLUMNS = ['Nominal', 'Terbayar'] as const;
+const CICILAN_SUB_COLUMNS = ['Pembayaran', 'Cicilan', 'Terbayar'] as const;
 
 const LaporanPemasukanPenjualan = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -356,13 +356,19 @@ const LaporanPemasukanPenjualan = () => {
                           rowSpan={2}
                           className="text-left py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/95 border-r border-slate-100"
                         >
-                          Kavling
+                          Blok
                         </th>
                         <th
                           rowSpan={2}
-                          className="text-center py-3 px-3 font-bold text-[10px] uppercase tracking-wider bg-emerald-50/90 text-emerald-800 border-r border-slate-200 min-w-[90px]"
+                          className="text-center py-3 px-3 font-bold text-[10px] uppercase tracking-wider bg-emerald-50/90 text-emerald-800 border-r border-slate-100 min-w-[72px]"
                         >
                           Booking
+                        </th>
+                        <th
+                          rowSpan={2}
+                          className="text-right py-3 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/95 border-r border-slate-200 min-w-[100px]"
+                        >
+                          Harga Jual
                         </th>
                         <th
                           colSpan={DP_SUB_COLUMNS.length}
@@ -436,12 +442,17 @@ const LaporanPemasukanPenjualan = () => {
                             )}
                           </td>
 
+                          <td className="py-3 px-3 text-right font-semibold text-slate-800 border-r border-slate-200 tabular-nums">
+                            {formatTanpaDesimal(item.hargaJual)}
+                          </td>
+
                           <td className="py-3 px-3 text-right border-r border-slate-50">
                             <PemasukanNominalCell nominal={item.dp.nominal} />
                           </td>
                           <td className="py-3 px-3 border-r border-slate-100">
                             <PemasukanPenjualanCell
                               bucket={item.dp}
+                              variant="dp"
                               onTerbayarClick={(d) =>
                                 handleTerbayarClick(d, item.customerNama, item.kavlingLabel)
                               }
@@ -449,9 +460,13 @@ const LaporanPemasukanPenjualan = () => {
                           </td>
 
                           <td className="py-3 px-3 text-center border-r border-slate-50">
-                            {item.cicilan.skemaPembayaran ? (
+                            {item.cicilan.skemaPembayaran === 'Bertahap' ? (
                               <span className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-violet-100 text-violet-800">
-                                {item.cicilan.skemaPembayaran}
+                                Bertahap
+                              </span>
+                            ) : item.cicilan.skemaPembayaran === 'KPR' ? (
+                              <span className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-amber-100 text-amber-800">
+                                KPR
                               </span>
                             ) : (
                               <span className="text-slate-400 text-[11px]">-</span>
@@ -468,6 +483,9 @@ const LaporanPemasukanPenjualan = () => {
                             {item.cicilan.skemaPembayaran ? (
                               <PemasukanPenjualanCell
                                 bucket={item.cicilan}
+                                variant={
+                                  item.cicilan.skemaPembayaran === 'KPR' ? 'kpr' : 'bertahap'
+                                }
                                 onTerbayarClick={(d) =>
                                   handleTerbayarClick(d, item.customerNama, item.kavlingLabel)
                                 }
