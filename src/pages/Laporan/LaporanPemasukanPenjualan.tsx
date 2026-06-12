@@ -45,6 +45,12 @@ const CARA_BAYAR_OPTIONS = [
   { value: 'KPR', label: 'KPR' },
 ];
 
+const SKEMA_PEMBAYARAN_OPTIONS = [
+  { value: '', label: 'Semua Skema' },
+  { value: 'Bertahap', label: 'Cash Bertahap' },
+  { value: 'KPR', label: 'KPR' },
+] as const;
+
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -74,6 +80,11 @@ const LaporanPemasukanPenjualan = () => {
     : DEFAULT_PAGE_SIZE;
   const status = searchParams.get('status') || 'ALL';
   const caraPembayaran = searchParams.get('caraPembayaran') || '';
+  const skemaPembayaranParam = searchParams.get('skemaPembayaran') || '';
+  const skemaPembayaran =
+    skemaPembayaranParam === 'Bertahap' || skemaPembayaranParam === 'KPR'
+      ? skemaPembayaranParam
+      : '';
   const blok = searchParams.get('blok') || '';
 
   const [filterDraft, setFilterDraft] = useState({
@@ -101,12 +112,13 @@ const LaporanPemasukanPenjualan = () => {
       ...(defaultPerumahanId ? { perumahanId: defaultPerumahanId } : {}),
       status,
       ...(caraPembayaran ? { caraPembayaran } : {}),
+      ...(skemaPembayaran ? { skemaPembayaran } : {}),
       ...(blok ? { blok } : {}),
       ...(search ? { search } : {}),
       page,
       limit,
     }),
-    [defaultPerumahanId, status, caraPembayaran, blok, search, page, limit],
+    [defaultPerumahanId, status, caraPembayaran, skemaPembayaran, blok, search, page, limit],
   );
 
   const { data: report, isLoading, isFetching } = useGetPemasukanPenjualanReport(
@@ -120,7 +132,9 @@ const LaporanPemasukanPenjualan = () => {
   const totalPages = meta?.totalPages ?? 1;
   const currentPage = meta?.page ?? page;
   const hasActiveSearch = search.length > 0;
-  const hasReportData = totalItems > 0 || hasActiveSearch;
+  const hasActiveSkemaFilter = skemaPembayaran.length > 0;
+  const hasTableFilters = hasActiveSearch || hasActiveSkemaFilter;
+  const hasReportData = totalItems > 0 || hasTableFilters;
 
   const pageNumbers = useMemo(() => {
     const delta = 1;
@@ -159,6 +173,15 @@ const LaporanPemasukanPenjualan = () => {
     setSearchParams((prev) => {
       if (newSearch) prev.set('search', newSearch);
       else prev.delete('search');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleSkemaPembayaranChange = (value: string) => {
+    setSearchParams((prev) => {
+      if (value === 'Bertahap' || value === 'KPR') prev.set('skemaPembayaran', value);
+      else prev.delete('skemaPembayaran');
       prev.set('page', '1');
       return prev;
     });
@@ -333,25 +356,49 @@ const LaporanPemasukanPenjualan = () => {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           {!report || !hasReportData ? (
             <p className="text-sm text-slate-400 text-center py-8">
-              {hasActiveSearch
-                ? 'Tidak ada data yang cocok dengan pencarian.'
+              {hasTableFilters
+                ? 'Tidak ada data yang cocok dengan pencarian atau filter skema.'
                 : 'Tidak ada data penjualan untuk filter yang dipilih.'}
             </p>
           ) : (
             <>
               <div className="p-4 border-b border-slate-100">
-                <div className="relative max-w-sm group">
-                  <Search
-                    size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-700 transition-colors"
-                  />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    placeholder="Cari nama customer atau blok..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
-                  />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="relative flex-1 sm:max-w-md group">
+                    <Search
+                      size={16}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-700 transition-colors"
+                    />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      placeholder="Cari nama customer atau blok..."
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
+                    />
+                  </div>
+                  <div className="relative sm:w-52 shrink-0">
+                    <label htmlFor="skema-pembayaran-filter" className="sr-only">
+                      Skema Pembayaran
+                    </label>
+                    <select
+                      id="skema-pembayaran-filter"
+                      value={skemaPembayaran}
+                      onChange={(e) => handleSkemaPembayaranChange(e.target.value)}
+                      className="w-full appearance-none px-4 py-2.5 pr-10 bg-white border border-slate-200 rounded-xl text-[13px] text-slate-900 shadow-sm cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                      aria-label="Filter skema pembayaran"
+                    >
+                      {SKEMA_PEMBAYARAN_OPTIONS.map((opt) => (
+                        <option key={opt.value || 'all'} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={16}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2">
                   <p className="text-[10px] text-slate-400">

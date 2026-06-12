@@ -296,6 +296,7 @@ export interface PemasukanPenjualanReportParams {
   blok?: string;
   status?: string;
   caraPembayaran?: string;
+  skemaPembayaran?: 'Bertahap' | 'KPR';
   startDate?: string;
   endDate?: string;
   search?: string;

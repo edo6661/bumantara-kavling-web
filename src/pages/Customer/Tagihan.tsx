@@ -8,7 +8,20 @@ import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import { useApproveTagihan } from "../../hooks/queries/useTagihan";
-import { Check, Edit2, Eye, FileText, PenTool, Printer, Trash2, UploadCloud, X } from 'lucide-react';
+import {
+  Check,
+  Edit2,
+  Eye,
+  FileText,
+  MoreVertical,
+  PenTool,
+  Printer,
+  ShoppingCart,
+  Trash2,
+  TrendingUp,
+  UploadCloud,
+  X,
+} from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
@@ -31,7 +44,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import jsPDF from 'jspdf';
 import { handleApiError } from '../../utils/errorHandler';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { TagihanTujuan } from '../../constants/tagihanTujuan';
 import {
   TAGIHAN_TUJUAN_OPTIONS,
@@ -40,6 +53,10 @@ import {
 } from '../../constants/tagihanTujuan';
 import BuktiFileThumbnail from '../../components/shared/BuktiFileThumbnail';
 import { getTagihanFileBuktiList } from '../../utils/tagihanBukti';
+import {
+  buildPemasukanPenjualanSearchPath,
+  buildPenjualanSearchPath,
+} from '../../utils/customerNavigation';
 
 interface TagihanFormState {
   id: number | '';
@@ -76,6 +93,7 @@ const ROWS_PER_PAGE = 10;
 const TAGIHAN_FETCH_LIMIT = 500;
 
 const Tagihan = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -117,6 +135,8 @@ const Tagihan = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [existingBuktiUrls, setExistingBuktiUrls] = useState<string[]>([]);
   const [selectedDetailRow, setSelectedDetailRow] = useState<any>(null);
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0, dropUp: false });
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
@@ -240,18 +260,104 @@ const Tagihan = () => {
     {
       header: 'Aksi',
       accessor: 'id',
-      render: (_: any, row: any) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedDetailRow(row);
-          }}
-          className="p-2 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
-          title="Lihat Detail Penjualan"
-        >
-          <Eye size={16} />
-        </button>
-      )
+      render: (_: any, row: any) => {
+        const isActive = activeActionId === row.id;
+
+        return (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isActive) {
+                  setActiveActionId(null);
+                } else {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  const dropUp = spaceBelow < 200;
+
+                  setDropdownPos({
+                    top: dropUp ? rect.top : rect.bottom,
+                    right: window.innerWidth - rect.right,
+                    dropUp,
+                  });
+                  setActiveActionId(row.id);
+                }
+              }}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer border flex items-center justify-center ${
+                isActive
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 shadow-sm'
+              }`}
+              title="Opsi"
+            >
+              <MoreVertical size={16} />
+            </button>
+
+            {isActive && (
+              <>
+                <div
+                  className="fixed inset-0 z-[90]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveActionId(null);
+                  }}
+                />
+                <div
+                  className="fixed w-52 bg-blue-600 rounded-xl shadow-xl shadow-blue-600/40 border border-blue-500 py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+                  style={{
+                    top: dropdownPos.dropUp ? 'auto' : `${dropdownPos.top + 8}px`,
+                    bottom: dropdownPos.dropUp
+                      ? `${window.innerHeight - dropdownPos.top + 8}px`
+                      : 'auto',
+                    right: `${dropdownPos.right}px`,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveActionId(null);
+                      setSelectedDetailRow(row);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
+                  >
+                    <Eye size={14} /> Detail
+                  </button>
+
+                  {row.namaCustomer && (
+                    <>
+                      <div className="h-px bg-blue-500/50 mx-2 my-0.5" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveActionId(null);
+                          navigate(buildPenjualanSearchPath(row.namaCustomer));
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
+                      >
+                        <ShoppingCart size={14} /> Lihat Penjualan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveActionId(null);
+                          navigate(buildPemasukanPenjualanSearchPath(row.namaCustomer));
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
+                      >
+                        <TrendingUp size={14} /> Pemasukan Penjualan
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      },
     },
   ];
 

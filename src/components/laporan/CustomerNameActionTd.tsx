@@ -1,6 +1,10 @@
 import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Receipt, ShoppingCart } from 'lucide-react';
+import {
+  buildPenjualanSearchPath,
+  buildTagihanSearchPath,
+} from '../../utils/customerNavigation';
 
 type CustomerNameActionTdProps = {
   customerNama: string;
@@ -27,14 +31,12 @@ const CustomerNameActionTd = ({ customerNama, className = '' }: CustomerNameActi
   };
 
   const goToPenjualan = () => {
-    const params = new URLSearchParams({ search: customerNama, page: '1' });
-    navigate(`/management/penjualan?${params.toString()}`);
+    navigate(buildPenjualanSearchPath(customerNama));
     setOpen(false);
   };
 
   const goToTagihan = () => {
-    const params = new URLSearchParams({ search: customerNama.toLowerCase(), page: '1' });
-    navigate(`/customer/tagihan?${params.toString()}`);
+    navigate(buildTagihanSearchPath(customerNama));
     setOpen(false);
   };
 

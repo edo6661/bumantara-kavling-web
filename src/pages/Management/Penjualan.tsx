@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -10,7 +10,7 @@ import PenjualanDetailModal from "../../components/penjualan/PenjualanDetailModa
 import {
   FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn, Eye,
   ChevronDown, ChevronUp, Filter, ArrowUpDown, PieChart, CheckCircle2, Wallet,
-  Edit2, Building2, Plus, MoreVertical, MessageCircle,
+  Edit2, Building2, Plus, MoreVertical, MessageCircle, TrendingUp,
   X
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
@@ -28,6 +28,10 @@ import { useAuth } from "../../context/AuthContext";
 import SignatureCanvas from 'react-signature-canvas';
 import { handleApiError } from '../../utils/errorHandler';
 import type { AgentData } from '../../types/models/agent';
+import {
+  buildPemasukanPenjualanSearchPath,
+  buildTagihanSearchPath,
+} from '../../utils/customerNavigation';
 
 interface PenjualanData {
   id?: string;
@@ -180,6 +184,7 @@ const Penjualan = () => {
   const [biayaTambahanKprList, setBiayaTambahanKprList] = useState<BiayaTambahan[]>([]);
   // const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
 
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -605,7 +610,7 @@ const Penjualan = () => {
                   const rect = e.currentTarget.getBoundingClientRect();
                   const spaceBelow = window.innerHeight - rect.bottom;
 
-                  const dropUp = spaceBelow < 120;
+                  const dropUp = spaceBelow < 200;
 
                   setDropdownPos({
                     top: dropUp ? rect.top : rect.bottom,
@@ -633,9 +638,8 @@ const Penjualan = () => {
                     setActiveActionId(null);
                   }}
                 />
-                {/* MODIFIKASI: Ubah class absolute menjadi fixed, hapus top-full dan right-0, lalu tambahkan inline style */}
                 <div
-                  className="fixed w-36 bg-blue-600 rounded-xl shadow-xl shadow-blue-600/40 border border-blue-500 py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
+                  className="fixed w-52 bg-blue-600 rounded-xl shadow-xl shadow-blue-600/40 border border-blue-500 py-1.5 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden"
                   style={{
                     top: dropdownPos.dropUp ? 'auto' : `${dropdownPos.top + 8}px`,
                     bottom: dropdownPos.dropUp ? `${window.innerHeight - dropdownPos.top + 8}px` : 'auto',
@@ -670,6 +674,35 @@ const Penjualan = () => {
                     >
                       <Edit2 size={14} /> Edit
                     </button>
+                  )}
+
+                  {row.nama && (row.hargaJual || row.fileBuktiBooking) && (
+                    <div className="h-px bg-blue-500/50 mx-2 my-0.5" />
+                  )}
+
+                  {row.nama && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveActionId(null);
+                          navigate(buildTagihanSearchPath(row.nama));
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
+                      >
+                        <Receipt size={14} /> Lihat Tagihan
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveActionId(null);
+                          navigate(buildPemasukanPenjualanSearchPath(row.nama));
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
+                      >
+                        <TrendingUp size={14} /> Pemasukan Penjualan
+                      </button>
+                    </>
                   )}
                 </div>
               </>
