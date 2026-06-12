@@ -4,51 +4,51 @@ import { formatRupiah } from '../../utils/formatters';
 type PemasukanPenjualanCellProps = {
   bucket: PemasukanPenjualanBucket;
   onTerbayarClick: (detail: PemasukanTerbayarDetail) => void;
-  showNominal?: boolean;
 };
 
 export const PemasukanNominalCell = ({ nominal }: { nominal: number }) => (
   <p className="font-semibold text-slate-800">{formatRupiah(nominal)}</p>
 );
 
-export const PemasukanSisaCell = ({ sisa }: { sisa: number }) => (
-  <p className={`font-semibold ${sisa > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
-    {formatRupiah(sisa)}
-  </p>
-);
+const PemasukanPenjualanCell = ({ bucket, onTerbayarClick }: PemasukanPenjualanCellProps) => {
+  const showTotalTerbayar = bucket.terbayar.length > 1;
+  const showSisa = bucket.sisa > 0;
+  const isEmpty = bucket.terbayar.length === 0 && !showSisa;
 
-export const PemasukanTotalTerbayarCell = ({ total }: { total: number }) => (
-  <p className={`font-semibold ${total > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
-    {formatRupiah(total)}
-  </p>
-);
+  if (isEmpty) {
+    return <p className="text-right text-[11px] text-slate-400 italic">-</p>;
+  }
 
-const PemasukanPenjualanCell = ({
-  bucket,
-  onTerbayarClick,
-  showNominal = false,
-}: PemasukanPenjualanCellProps) => {
   return (
-    <div className="text-right">
-      {showNominal && (
-        <p className="font-semibold text-slate-800 mb-1">{formatRupiah(bucket.nominal)}</p>
+    <div className="text-right space-y-0.5">
+      {bucket.terbayar.map((item, index) => (
+        <button
+          key={`${item.tagihanId}-${index}`}
+          type="button"
+          onClick={() => onTerbayarClick(item)}
+          className="block w-full text-right text-[11px] text-emerald-600 font-medium hover:text-emerald-800 hover:underline cursor-pointer transition-colors"
+          title={`${item.pembayaran} — klik untuk detail`}
+        >
+          {formatRupiah(item.nominal)}
+        </button>
+      ))}
+
+      {showTotalTerbayar && (
+        <p
+          className="text-[11px] font-bold text-emerald-600 pt-1 border-t border-slate-100"
+          title="Total dibayar"
+        >
+          {formatRupiah(bucket.totalTerbayar)}
+        </p>
       )}
-      {bucket.terbayar.length === 0 ? (
-        <p className="text-[11px] text-slate-400 italic">Belum ada</p>
-      ) : (
-        <div className="space-y-0.5">
-          {bucket.terbayar.map((item, index) => (
-            <button
-              key={`${item.tagihanId}-${index}`}
-              type="button"
-              onClick={() => onTerbayarClick(item)}
-              className="block w-full text-right text-[11px] text-emerald-600 font-medium hover:text-emerald-800 hover:underline cursor-pointer transition-colors"
-              title={`${item.pembayaran} — klik untuk detail`}
-            >
-              {formatRupiah(item.nominal)}
-            </button>
-          ))}
-        </div>
+
+      {showSisa && (
+        <p
+          className={`text-[11px] font-bold text-red-600 ${showTotalTerbayar ? '' : bucket.terbayar.length > 0 ? 'pt-1 border-t border-slate-100' : ''}`}
+          title="Sisa yang belum dibayar"
+        >
+          {formatRupiah(bucket.sisa)}
+        </p>
       )}
     </div>
   );

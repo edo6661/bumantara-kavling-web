@@ -20,8 +20,6 @@ import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/R
 import ReportMetricCard from '../../components/laporan/ReportMetricCard';
 import PemasukanPenjualanCell, {
   PemasukanNominalCell,
-  PemasukanSisaCell,
-  PemasukanTotalTerbayarCell,
 } from '../../components/laporan/PemasukanPenjualanCell';
 import PembayaranTerbayarModal from '../../components/laporan/PembayaranTerbayarModal';
 import { formatRupiah } from '../../utils/formatters';
@@ -45,14 +43,8 @@ const CARA_BAYAR_OPTIONS = [
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
-const DP_SUB_COLUMNS = ['Nominal', 'Terbayar', 'Total', 'Sisa'] as const;
-const CICILAN_SUB_COLUMNS = [
-  'Pembayaran',
-  'Nominal',
-  'Terbayar',
-  'Total',
-  'Sisa',
-] as const;
+const DP_SUB_COLUMNS = ['Nominal DP', 'Terbayar'] as const;
+const CICILAN_SUB_COLUMNS = ['Skema Pembayaran', 'Nominal Cicilan', 'Terbayar'] as const;
 
 const LaporanPemasukanPenjualan = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -351,7 +343,7 @@ const LaporanPemasukanPenjualan = () => {
                 </p>
               ) : (
                 <div className="overflow-auto custom-scrollbar max-h-[65vh]">
-                  <table className="w-full text-[12px] min-w-[1100px] border-collapse">
+                  <table className="w-full text-[12px] min-w-[900px] border-collapse">
                     <thead className="sticky top-0 z-10 shadow-sm ring-1 ring-slate-100">
                       <tr className="border-b border-slate-200">
                         <th
@@ -447,19 +439,13 @@ const LaporanPemasukanPenjualan = () => {
                           <td className="py-3 px-3 text-right border-r border-slate-50">
                             <PemasukanNominalCell nominal={item.dp.nominal} />
                           </td>
-                          <td className="py-3 px-3 border-r border-slate-50">
+                          <td className="py-3 px-3 border-r border-slate-100">
                             <PemasukanPenjualanCell
                               bucket={item.dp}
                               onTerbayarClick={(d) =>
                                 handleTerbayarClick(d, item.customerNama, item.kavlingLabel)
                               }
                             />
-                          </td>
-                          <td className="py-3 px-3 text-right border-r border-slate-50">
-                            <PemasukanTotalTerbayarCell total={item.dp.totalTerbayar} />
-                          </td>
-                          <td className="py-3 px-3 text-right border-r border-slate-100">
-                            <PemasukanSisaCell sisa={item.dp.sisa} />
                           </td>
 
                           <td className="py-3 px-3 text-center border-r border-slate-50">
@@ -478,7 +464,7 @@ const LaporanPemasukanPenjualan = () => {
                               <span className="text-slate-400 text-[11px]">-</span>
                             )}
                           </td>
-                          <td className="py-3 px-3 border-r border-slate-50">
+                          <td className="py-3 px-3 border-r border-slate-100">
                             {item.cicilan.skemaPembayaran ? (
                               <PemasukanPenjualanCell
                                 bucket={item.cicilan}
@@ -488,20 +474,6 @@ const LaporanPemasukanPenjualan = () => {
                               />
                             ) : (
                               <span className="text-right block text-slate-400 text-[11px]">-</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3 text-right border-r border-slate-50">
-                            {item.cicilan.skemaPembayaran ? (
-                              <PemasukanTotalTerbayarCell total={item.cicilan.totalTerbayar} />
-                            ) : (
-                              <span className="text-slate-400 text-[11px]">-</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-3 text-right border-r border-slate-100">
-                            {item.cicilan.skemaPembayaran ? (
-                              <PemasukanSisaCell sisa={item.cicilan.sisa} />
-                            ) : (
-                              <span className="text-slate-400 text-[11px]">-</span>
                             )}
                           </td>
                         </tr>
