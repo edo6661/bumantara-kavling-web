@@ -90,6 +90,7 @@ const DEFAULT_PAGE_SIZE = 10;
 const Progress = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
   const limitParam = Number(searchParams.get('limit'));
   const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
     ? limitParam
@@ -102,6 +103,7 @@ const Progress = () => {
   const { data: proyekResponse, isLoading: loadingProyek } = useGetProgressProyekList({
     page,
     limit,
+    ...(search ? { search } : {}),
   });
 
   const meta = proyekResponse?.meta;
@@ -117,6 +119,15 @@ const Progress = () => {
     setSearchParams((prev) => {
       if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
       else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams((prev) => {
+      if (newSearch) prev.set('search', newSearch);
+      else prev.delete('search');
       prev.set('page', '1');
       return prev;
     });
@@ -288,6 +299,9 @@ const Progress = () => {
         columns={columns}
         data={proyekList}
         serverSide
+        searchTerm={search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Cari mandor, customer, blok, atau no. SPK..."
         page={page}
         totalPages={meta?.totalPages || 1}
         onPageChange={handlePageChange}
