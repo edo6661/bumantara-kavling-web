@@ -215,6 +215,41 @@ export interface RekapPembayaranReportParams {
   limit?: number;
 }
 
+export interface RekapPembayaranBucket {
+  utama: number;
+  terbayar: number[];
+}
+
+export interface RekapPembayaranPemasukan {
+  booking: RekapPembayaranBucket;
+  dp: RekapPembayaranBucket;
+  cicilanCashBertahap: RekapPembayaranBucket;
+  cicilanPencairanKpr: RekapPembayaranBucket;
+}
+
+export interface RekapPembayaranPengeluaranNotaris {
+  biayaNotaris: RekapPembayaranBucket;
+  bphtb: RekapPembayaranBucket;
+  pph: RekapPembayaranBucket;
+}
+
+export interface RekapPembayaranPengeluaranBank {
+  biayaKpr: RekapPembayaranBucket;
+  biayaAppraisal: RekapPembayaranBucket;
+}
+
+export interface RekapPembayaranPengeluaranProyek {
+  material: RekapPembayaranBucket;
+  upah: RekapPembayaranBucket;
+}
+
+export interface RekapPembayaranMarketing {
+  marketingFee: RekapPembayaranBucket;
+  closingFee: RekapPembayaranBucket;
+  netSetelahPotonganPph: RekapPembayaranBucket;
+  potonganPph: RekapPembayaranBucket;
+}
+
 export interface RekapPembayaranReportItem {
   penjualanId: number;
   noTransaksi: string;
@@ -230,6 +265,11 @@ export interface RekapPembayaranReportItem {
   cicilanTerbayar: number[];
   totalDpTerbayar: number;
   totalCicilanTerbayar: number;
+  pemasukan: RekapPembayaranPemasukan;
+  pengeluaranNotaris: RekapPembayaranPengeluaranNotaris;
+  pengeluaranBank: RekapPembayaranPengeluaranBank;
+  pengeluaranProyek: RekapPembayaranPengeluaranProyek;
+  marketing: RekapPembayaranMarketing;
 }
 
 export interface RekapPembayaranReportData {

@@ -14,9 +14,11 @@ import PageLoader from '../PageLoader';
 import Select from '../../components/shared/Select';
 import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/ReportPageLayout';
 import ReportMetricCard from '../../components/laporan/ReportMetricCard';
-import RekapPembayaranCell, {
-  RekapTerbayarRingkasCell,
-} from '../../components/laporan/RekapPembayaranCell';
+import RekapPembayaranCell from '../../components/laporan/RekapPembayaranCell';
+import {
+  REKAP_PEMBAYARAN_COLUMN_GROUPS,
+  REKAP_PEMBAYARAN_DATA_COLUMNS,
+} from '../../components/laporan/rekapPembayaranColumns';
 import { formatRupiah } from '../../utils/formatters';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
 import { DEFAULT_PERUMAHAN_NAME } from '../../constants/perumahan';
@@ -148,7 +150,7 @@ const LaporanRekapPembayaran = () => {
   return (
     <ReportPageLayout
       title="Rekap Pembayaran Penjualan"
-      subtitle="Ringkasan DP, sisa pembayaran (harga jual − DP), dan riwayat cicilan yang sudah lunas per customer"
+      subtitle="Rekap pemasukan penjualan, pengeluaran notaris, bank, proyek, dan marketing per customer"
       icon={Receipt}
     >
       <section>
@@ -295,27 +297,52 @@ const LaporanRekapPembayaran = () => {
                 </p>
               ) : (
               <div className="overflow-auto custom-scrollbar max-h-[65vh]">
-                <table className="w-full text-[12px] min-w-[900px] border-collapse">
+                <table className="w-full text-[12px] min-w-[2200px] border-collapse">
                   <thead className="sticky top-0 z-10 shadow-sm ring-1 ring-slate-100">
-                    <tr className="border-b border-slate-100 bg-slate-50/95">
-                      <th className="text-left py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/95">
+                    <tr className="border-b border-slate-200">
+                      <th
+                        rowSpan={2}
+                        className="text-left py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/95 border-r border-slate-100"
+                      >
                         Nama
                       </th>
-                      <th className="text-left py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/95">
+                      <th
+                        rowSpan={2}
+                        className="text-left py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/95 border-r border-slate-100"
+                      >
                         Kavling
                       </th>
-                      <th className="text-right py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/95">
+                      <th
+                        rowSpan={2}
+                        className="text-right py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-slate-50/95 border-r border-slate-200"
+                      >
                         Harga Jual
                       </th>
-                      <th className="text-right py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider min-w-[160px] bg-slate-50/95">
-                        DP
-                      </th>
-                      <th className="text-right py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider min-w-[160px] bg-slate-50/95">
-                        Sisa Pembayaran
-                      </th>
-                      <th className="text-right py-3 px-4 font-bold text-slate-500 text-[10px] uppercase tracking-wider min-w-[140px] bg-slate-50/95">
-                        Terbayar
-                      </th>
+                      {REKAP_PEMBAYARAN_COLUMN_GROUPS.map((group) => (
+                        <th
+                          key={group.key}
+                          colSpan={group.columns.length}
+                          className={`text-center py-2 px-3 font-bold text-[10px] uppercase tracking-wider border-r border-slate-200 ${group.headerClassName}`}
+                        >
+                          {group.label}
+                        </th>
+                      ))}
+                    </tr>
+                    <tr className="border-b border-slate-100 bg-slate-50/95">
+                      {REKAP_PEMBAYARAN_COLUMN_GROUPS.map((group) =>
+                        group.columns.map((col, colIdx) => (
+                          <th
+                            key={`${group.key}-${col.key}`}
+                            className={`text-right py-2 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider min-w-[130px] ${group.headerClassName} ${
+                              colIdx === group.columns.length - 1
+                                ? 'border-r border-slate-200'
+                                : ''
+                            }`}
+                          >
+                            {col.label}
+                          </th>
+                        )),
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -324,33 +351,36 @@ const LaporanRekapPembayaran = () => {
                         key={item.penjualanId}
                         className="border-b border-slate-50 hover:bg-slate-50/60 align-top"
                       >
-                        <td className="py-3 px-4 font-semibold text-slate-800">
+                        <td className="py-3 px-4 font-semibold text-slate-800 border-r border-slate-50">
                           {item.customerNama}
                         </td>
-                        <td className="py-3 px-4 text-slate-600">
+                        <td className="py-3 px-4 text-slate-600 border-r border-slate-50">
                           <p className="font-medium">{item.kavlingLabel}</p>
                           <p className="text-[10px] text-slate-400 mt-0.5">
                             Blok {item.blok} · No. {item.nomorUnit}
                           </p>
                         </td>
-                        <td className="py-3 px-4 text-right font-semibold text-slate-800">
+                        <td className="py-3 px-4 text-right font-semibold text-slate-800 border-r border-slate-100">
                           {formatRupiah(item.hargaJual)}
                         </td>
-                        <td className="py-3 px-4">
-                          <RekapPembayaranCell utama={item.dp} terbayar={item.dpTerbayar} />
-                        </td>
-                        <td className="py-3 px-4">
-                          <RekapPembayaranCell
-                            utama={item.sisaPembayaran}
-                            terbayar={item.cicilanTerbayar}
-                          />
-                        </td>
-                        <td className="py-3 px-4">
-                          <RekapTerbayarRingkasCell
-                            dpTerbayar={item.totalDpTerbayar}
-                            cicilanTerbayar={item.totalCicilanTerbayar}
-                          />
-                        </td>
+                        {REKAP_PEMBAYARAN_DATA_COLUMNS.map((col) => {
+                          const bucket = col.getValue(item);
+                          const isGroupEnd =
+                            REKAP_PEMBAYARAN_COLUMN_GROUPS.some(
+                              (g) => g.columns[g.columns.length - 1]?.key === col.key,
+                            );
+                          return (
+                            <td
+                              key={col.key}
+                              className={`py-3 px-3 ${isGroupEnd ? 'border-r border-slate-100' : ''}`}
+                            >
+                              <RekapPembayaranCell
+                                utama={bucket.utama}
+                                terbayar={bucket.terbayar}
+                              />
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
