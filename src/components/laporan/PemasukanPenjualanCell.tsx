@@ -2,25 +2,14 @@ import { useState, type MouseEvent } from 'react';
 import type { PemasukanPenjualanBucket } from '../../services/report.service';
 import { formatTanpaDesimal } from '../../utils/formatters';
 
+/** Dipakai untuk kompatibilitas pemanggil; warna terbayar diseragamkan hijau/oranye. */
 export type PemasukanTerbayarVariant = 'dp' | 'bertahap' | 'kpr';
 
-const VARIANT_STYLES: Record<
-  PemasukanTerbayarVariant,
-  { payment: string; total: string }
-> = {
-  dp: {
-    payment: 'text-blue-600',
-    total: 'text-blue-700',
-  },
-  bertahap: {
-    payment: 'text-purple-700',
-    total: 'text-purple-800',
-  },
-  kpr: {
-    payment: 'text-pink-700',
-    total: 'text-pink-800',
-  },
-};
+const PAYMENT_COLORS = {
+  terbayar: 'text-emerald-600',
+  totalTerbayar: 'text-emerald-900 font-black',
+  sisa: 'text-orange-600 font-bold',
+} as const;
 
 type PemasukanPenjualanCellProps = {
   bucket: PemasukanPenjualanBucket;
@@ -31,12 +20,8 @@ export const PemasukanNominalCell = ({ nominal }: { nominal: number }) => (
   <p className="font-semibold text-slate-800 tabular-nums">{formatTanpaDesimal(nominal)}</p>
 );
 
-const PemasukanPenjualanCell = ({
-  bucket,
-  variant = 'dp',
-}: PemasukanPenjualanCellProps) => {
+const PemasukanPenjualanCell = ({ bucket }: PemasukanPenjualanCellProps) => {
   const [expanded, setExpanded] = useState(false);
-  const styles = VARIANT_STYLES[variant];
 
   const showTotalTerbayar = bucket.terbayar.length > 1;
   const showSisa = bucket.sisa > 0;
@@ -57,7 +42,7 @@ const PemasukanPenjualanCell = ({
       {visiblePayments.map((item, index) => (
         <p
           key={`${item.tagihanId}-${index}`}
-          className={`text-[11px] font-medium tabular-nums ${styles.payment}`}
+          className={`text-[11px] font-medium tabular-nums ${PAYMENT_COLORS.terbayar}`}
         >
           {formatTanpaDesimal(item.nominal)}
         </p>
@@ -91,7 +76,7 @@ const PemasukanPenjualanCell = ({
 
       {showTotalTerbayar && expanded && (
         <p
-          className={`text-[11px] font-bold pt-1 border-t border-slate-200/80 tabular-nums ${styles.total}`}
+          className={`text-[11px] pt-1 border-t border-slate-200/80 tabular-nums ${PAYMENT_COLORS.totalTerbayar}`}
           title="Total dibayar"
         >
           {formatTanpaDesimal(bucket.totalTerbayar)}
@@ -100,7 +85,7 @@ const PemasukanPenjualanCell = ({
 
       {showSisa && expanded && (
         <p
-          className="text-[11px] font-bold text-orange-600 tabular-nums pt-1 border-t border-slate-200/80"
+          className={`text-[11px] tabular-nums pt-1 border-t border-slate-200/80 ${PAYMENT_COLORS.sisa}`}
           title="Sisa yang harus dibayar"
         >
           {formatTanpaDesimal(bucket.sisa)}
@@ -119,7 +104,6 @@ type PemasukanTerbayarTdProps = {
 
 export const PemasukanTerbayarTd = ({
   bucket,
-  variant = 'dp',
   onOpen,
   className = '',
 }: PemasukanTerbayarTdProps) => {
@@ -135,7 +119,7 @@ export const PemasukanTerbayarTd = ({
       onClick={clickable ? onOpen : undefined}
       title={clickable ? 'Klik untuk detail semua pembayaran' : undefined}
     >
-      <PemasukanPenjualanCell bucket={bucket} variant={variant} />
+      <PemasukanPenjualanCell bucket={bucket} />
     </td>
   );
 };

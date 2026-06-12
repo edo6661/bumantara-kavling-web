@@ -54,11 +54,11 @@ const PembayaranTerbayarModal = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+          <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
             <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide">
-              {details.length} Pembayaran
+              {details.length} Pembayaran · Total dibayar
             </p>
-            <p className="text-[15px] font-black text-emerald-700 tabular-nums">
+            <p className="text-[15px] font-black text-emerald-900 tabular-nums">
               {formatTanpaDesimal(totalNominal)}
             </p>
           </div>
@@ -92,7 +92,7 @@ const PembayaranTerbayarModal = ({
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
                         Nominal
                       </p>
-                      <p className="text-[13px] font-bold text-emerald-600 tabular-nums">
+                      <p className="text-[13px] font-semibold text-emerald-600 tabular-nums">
                         {formatTanpaDesimal(detail.nominal)}
                       </p>
                     </div>
