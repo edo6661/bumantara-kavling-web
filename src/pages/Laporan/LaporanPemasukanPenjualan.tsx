@@ -13,7 +13,10 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useGetPemasukanPenjualanReport } from '../../hooks/queries/usePemasukanPenjualanReport';
-import type { PemasukanTerbayarDetail } from '../../services/report.service';
+import type {
+  PemasukanPenjualanReportItem,
+  PemasukanTerbayarDetail,
+} from '../../services/report.service';
 import PageLoader from '../PageLoader';
 import Select from '../../components/shared/Select';
 import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/ReportPageLayout';
@@ -44,7 +47,20 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
 const DP_SUB_COLUMNS = ['Nominal', 'Terbayar'] as const;
-const CICILAN_SUB_COLUMNS = ['Pembayaran', 'Cicilan', 'Terbayar'] as const;
+const CICILAN_SUB_COLUMNS = ['Cicilan', 'Terbayar'] as const;
+
+/** (nominal DP + nominal cicilan) − total bayar DP − total bayar cicilan */
+function calcSisaPembayaran(item: PemasukanPenjualanReportItem): number {
+  const totalWajib = item.dp.nominal + item.cicilan.nominal;
+  const totalDibayar = item.dp.totalTerbayar + item.cicilan.totalTerbayar;
+  return Math.max(0, totalWajib - totalDibayar);
+}
+
+function getRowSchemeClass(skema: string | null): string {
+  if (skema === 'KPR') return 'bg-pink-50/80 hover:bg-pink-50/90';
+  if (skema === 'Bertahap') return 'bg-violet-50/80 hover:bg-violet-50/90';
+  return 'hover:bg-slate-50/60';
+}
 
 const LaporanPemasukanPenjualan = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -332,9 +348,21 @@ const LaporanPemasukanPenjualan = () => {
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-2">
-                  Klik nominal terbayar untuk melihat detail dan bukti pembayaran.
-                </p>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2">
+                  <p className="text-[10px] text-slate-400">
+                    Klik nominal terbayar untuk melihat detail dan bukti pembayaran.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-600">
+                    <span className="inline-flex items-center gap-1.5 font-medium">
+                      <span className="w-3 h-3 rounded-sm bg-pink-100 border border-pink-200 shrink-0" />
+                      Pink = KPR
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 font-medium">
+                      <span className="w-3 h-3 rounded-sm bg-violet-100 border border-violet-200 shrink-0" />
+                      Ungu = Bertahap
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {items.length === 0 ? (
@@ -382,6 +410,12 @@ const LaporanPemasukanPenjualan = () => {
                         >
                           Cicilan
                         </th>
+                        <th
+                          rowSpan={2}
+                          className="text-right py-3 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider bg-red-50/90 text-red-800 border-r border-slate-200 min-w-[100px]"
+                        >
+                          Sisa
+                        </th>
                       </tr>
                       <tr className="border-b border-slate-100 bg-slate-50/95">
                         {DP_SUB_COLUMNS.map((label, colIdx) => (
@@ -403,7 +437,7 @@ const LaporanPemasukanPenjualan = () => {
                               colIdx === CICILAN_SUB_COLUMNS.length - 1
                                 ? 'border-r border-slate-200'
                                 : ''
-                            } ${colIdx === 0 ? 'text-center' : ''}`}
+                            }`}
                           >
                             {label}
                           </th>
@@ -411,10 +445,12 @@ const LaporanPemasukanPenjualan = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {items.map((item) => (
+                      {items.map((item) => {
+                        const sisaPembayaran = calcSisaPembayaran(item);
+                        return (
                         <tr
                           key={item.penjualanId}
-                          className="border-b border-slate-50 hover:bg-slate-50/60 align-top"
+                          className={`border-b border-slate-50 align-top transition-colors ${getRowSchemeClass(item.cicilan.skemaPembayaran)}`}
                         >
                           <td className="py-3 px-4 font-semibold text-slate-800 border-r border-slate-50">
                             {item.customerNama}
@@ -459,19 +495,6 @@ const LaporanPemasukanPenjualan = () => {
                             />
                           </td>
 
-                          <td className="py-3 px-3 text-center border-r border-slate-50">
-                            {item.cicilan.skemaPembayaran === 'Bertahap' ? (
-                              <span className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-violet-100 text-violet-800">
-                                Bertahap
-                              </span>
-                            ) : item.cicilan.skemaPembayaran === 'KPR' ? (
-                              <span className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-amber-100 text-amber-800">
-                                KPR
-                              </span>
-                            ) : (
-                              <span className="text-slate-400 text-[11px]">-</span>
-                            )}
-                          </td>
                           <td className="py-3 px-3 text-right border-r border-slate-50">
                             {item.cicilan.skemaPembayaran ? (
                               <PemasukanNominalCell nominal={item.cicilan.nominal} />
@@ -494,8 +517,21 @@ const LaporanPemasukanPenjualan = () => {
                               <span className="text-right block text-slate-400 text-[11px]">-</span>
                             )}
                           </td>
+                          <td
+                            className="py-3 px-3 text-right border-r border-slate-100"
+                            title="(Nominal DP + Nominal Cicilan) − Total Bayar DP − Total Bayar Cicilan"
+                          >
+                            <p
+                              className={`font-bold tabular-nums ${
+                                sisaPembayaran > 0 ? 'text-red-600' : 'text-slate-400'
+                              }`}
+                            >
+                              {formatTanpaDesimal(sisaPembayaran)}
+                            </p>
+                          </td>
                         </tr>
-                      ))}
+                      );
+                      })}
                     </tbody>
                   </table>
                 </div>

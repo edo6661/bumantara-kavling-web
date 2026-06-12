@@ -17,8 +17,8 @@ const VARIANT_STYLES: Record<
     total: 'text-violet-700',
   },
   kpr: {
-    payment: 'text-amber-600 hover:text-amber-800',
-    total: 'text-amber-700',
+    payment: 'text-pink-600 hover:text-pink-800',
+    total: 'text-pink-700',
   },
 };
 
@@ -41,11 +41,10 @@ const PemasukanPenjualanCell = ({
   const styles = VARIANT_STYLES[variant];
 
   const showTotalTerbayar = bucket.terbayar.length > 1;
-  const showSisa = bucket.sisa > 0;
   const hasMultiplePayments = bucket.terbayar.length > 1;
   const visiblePayments =
     expanded || !hasMultiplePayments ? bucket.terbayar : bucket.terbayar.slice(0, 1);
-  const isEmpty = bucket.terbayar.length === 0 && !showSisa;
+  const isEmpty = bucket.terbayar.length === 0;
 
   if (isEmpty) {
     return <p className="text-right text-[11px] text-slate-400 italic">-</p>;
@@ -91,21 +90,6 @@ const PemasukanPenjualanCell = ({
           title="Total dibayar"
         >
           {formatTanpaDesimal(bucket.totalTerbayar)}
-        </p>
-      )}
-
-      {showSisa && (
-        <p
-          className={`text-[11px] font-bold text-red-600 tabular-nums ${
-            showTotalTerbayar && (expanded || !hasMultiplePayments)
-              ? ''
-              : bucket.terbayar.length > 0
-                ? 'pt-1 border-t border-slate-100'
-                : ''
-          }`}
-          title="Sisa yang belum dibayar"
-        >
-          {formatTanpaDesimal(bucket.sisa)}
         </p>
       )}
     </div>
