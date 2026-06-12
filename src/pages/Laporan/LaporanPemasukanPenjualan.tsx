@@ -81,7 +81,7 @@ const LaporanPemasukanPenjualan = () => {
   const status = searchParams.get('status') || 'ALL';
   const caraPembayaran = searchParams.get('caraPembayaran') || '';
   const skemaPembayaranParam = searchParams.get('skemaPembayaran') || '';
-  const skemaPembayaran =
+  const skemaPembayaran: '' | 'Bertahap' | 'KPR' =
     skemaPembayaranParam === 'Bertahap' || skemaPembayaranParam === 'KPR'
       ? skemaPembayaranParam
       : '';
