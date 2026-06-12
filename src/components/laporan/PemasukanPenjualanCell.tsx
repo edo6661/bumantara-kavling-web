@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { PemasukanPenjualanBucket, PemasukanTerbayarDetail } from '../../services/report.service';
+import { useState, type MouseEvent } from 'react';
+import type { PemasukanPenjualanBucket } from '../../services/report.service';
 import { formatTanpaDesimal } from '../../utils/formatters';
 
 export type PemasukanTerbayarVariant = 'dp' | 'bertahap' | 'kpr';
@@ -9,22 +9,21 @@ const VARIANT_STYLES: Record<
   { payment: string; total: string }
 > = {
   dp: {
-    payment: 'text-blue-600 hover:text-blue-800',
+    payment: 'text-blue-600',
     total: 'text-blue-700',
   },
   bertahap: {
-    payment: 'text-purple-700 hover:text-purple-900',
+    payment: 'text-purple-700',
     total: 'text-purple-800',
   },
   kpr: {
-    payment: 'text-pink-700 hover:text-pink-900',
+    payment: 'text-pink-700',
     total: 'text-pink-800',
   },
 };
 
 type PemasukanPenjualanCellProps = {
   bucket: PemasukanPenjualanBucket;
-  onTerbayarClick: (detail: PemasukanTerbayarDetail) => void;
   variant?: PemasukanTerbayarVariant;
 };
 
@@ -34,7 +33,6 @@ export const PemasukanNominalCell = ({ nominal }: { nominal: number }) => (
 
 const PemasukanPenjualanCell = ({
   bucket,
-  onTerbayarClick,
   variant = 'dp',
 }: PemasukanPenjualanCellProps) => {
   const [expanded, setExpanded] = useState(false);
@@ -45,49 +43,53 @@ const PemasukanPenjualanCell = ({
   const hasMultiplePayments = bucket.terbayar.length > 1;
   const visiblePayments =
     expanded || !hasMultiplePayments ? bucket.terbayar : bucket.terbayar.slice(0, 1);
-  const isEmpty = bucket.terbayar.length === 0 && !showSisa;
 
-  if (isEmpty) {
+  if (bucket.terbayar.length === 0) {
     return <p className="text-right text-[11px] text-slate-400 italic">-</p>;
   }
 
-  const showSummaryBlock = expanded || !hasMultiplePayments;
+  const stopRowClick = (e: MouseEvent) => {
+    e.stopPropagation();
+  };
 
   return (
-    <div className="text-right space-y-0.5">
+    <div className="text-right space-y-0.5 pointer-events-none">
       {visiblePayments.map((item, index) => (
-        <button
+        <p
           key={`${item.tagihanId}-${index}`}
-          type="button"
-          onClick={() => onTerbayarClick(item)}
-          className={`block w-full text-right text-[11px] font-medium hover:underline cursor-pointer transition-colors tabular-nums ${styles.payment}`}
-          title={`${item.pembayaran} — klik untuk detail`}
+          className={`text-[11px] font-medium tabular-nums ${styles.payment}`}
         >
           {formatTanpaDesimal(item.nominal)}
-        </button>
+        </p>
       ))}
 
       {hasMultiplePayments && !expanded && (
         <button
           type="button"
-          onClick={() => setExpanded(true)}
-          className="text-[10px] font-semibold text-slate-500 hover:text-slate-800 underline underline-offset-2 cursor-pointer"
+          onClick={(e) => {
+            stopRowClick(e);
+            setExpanded(true);
+          }}
+          className="pointer-events-auto text-[10px] font-semibold text-slate-500 hover:text-slate-800 underline underline-offset-2 cursor-pointer"
         >
-          see more
+          Selengkapnya
         </button>
       )}
 
       {hasMultiplePayments && expanded && (
         <button
           type="button"
-          onClick={() => setExpanded(false)}
-          className="text-[10px] font-semibold text-slate-500 hover:text-slate-800 underline underline-offset-2 cursor-pointer"
+          onClick={(e) => {
+            stopRowClick(e);
+            setExpanded(false);
+          }}
+          className="pointer-events-auto text-[10px] font-semibold text-slate-500 hover:text-slate-800 underline underline-offset-2 cursor-pointer"
         >
-          see less
+          Sembunyikan
         </button>
       )}
 
-      {showTotalTerbayar && showSummaryBlock && (
+      {showTotalTerbayar && expanded && (
         <p
           className={`text-[11px] font-bold pt-1 border-t border-slate-200/80 tabular-nums ${styles.total}`}
           title="Total dibayar"
@@ -96,17 +98,45 @@ const PemasukanPenjualanCell = ({
         </p>
       )}
 
-      {showSisa && (
+      {showSisa && expanded && (
         <p
-          className={`text-[11px] font-bold text-orange-600 tabular-nums ${
-            bucket.terbayar.length > 0 ? 'pt-1 border-t border-slate-200/80' : ''
-          }`}
+          className="text-[11px] font-bold text-orange-600 tabular-nums pt-1 border-t border-slate-200/80"
           title="Sisa yang harus dibayar"
         >
           {formatTanpaDesimal(bucket.sisa)}
         </p>
       )}
     </div>
+  );
+};
+
+type PemasukanTerbayarTdProps = {
+  bucket: PemasukanPenjualanBucket;
+  variant?: PemasukanTerbayarVariant;
+  onOpen: () => void;
+  className?: string;
+};
+
+export const PemasukanTerbayarTd = ({
+  bucket,
+  variant = 'dp',
+  onOpen,
+  className = '',
+}: PemasukanTerbayarTdProps) => {
+  const clickable = bucket.terbayar.length > 0;
+
+  return (
+    <td
+      className={`py-3 px-3 align-top transition-colors ${className} ${
+        clickable
+          ? 'cursor-pointer hover:bg-slate-100/80 active:bg-slate-100'
+          : ''
+      }`}
+      onClick={clickable ? onOpen : undefined}
+      title={clickable ? 'Klik untuk detail semua pembayaran' : undefined}
+    >
+      <PemasukanPenjualanCell bucket={bucket} variant={variant} />
+    </td>
   );
 };
 

@@ -21,8 +21,9 @@ import PageLoader from '../PageLoader';
 import Select from '../../components/shared/Select';
 import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/ReportPageLayout';
 import ReportMetricCard from '../../components/laporan/ReportMetricCard';
-import PemasukanPenjualanCell, {
+import {
   PemasukanNominalCell,
+  PemasukanTerbayarTd,
 } from '../../components/laporan/PemasukanPenjualanCell';
 import PembayaranTerbayarModal from '../../components/laporan/PembayaranTerbayarModal';
 import { formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
@@ -84,10 +85,11 @@ const LaporanPemasukanPenjualan = () => {
     setFilterDraft({ status, caraPembayaran, blok });
   }, [status, caraPembayaran, blok]);
   const [isFilterOpen, setIsFilterOpen] = useState(true);
-  const [selectedTerbayar, setSelectedTerbayar] = useState<PemasukanTerbayarDetail | null>(null);
+  const [modalTagihanList, setModalTagihanList] = useState<PemasukanTerbayarDetail[]>([]);
   const [modalContext, setModalContext] = useState<{
     customerNama: string;
     kavlingLabel: string;
+    jenisPembayaran: string;
   } | null>(null);
 
   const { perumahanId: defaultPerumahanId, isLoading: loadingPerumahan } =
@@ -161,17 +163,19 @@ const LaporanPemasukanPenjualan = () => {
     });
   };
 
-  const handleTerbayarClick = (
-    detail: PemasukanTerbayarDetail,
+  const handleTerbayarTdOpen = (
+    terbayar: PemasukanTerbayarDetail[],
     customerNama: string,
     kavlingLabel: string,
+    jenisPembayaran: string,
   ) => {
-    setSelectedTerbayar(detail);
-    setModalContext({ customerNama, kavlingLabel });
+    if (terbayar.length === 0) return;
+    setModalTagihanList(terbayar);
+    setModalContext({ customerNama, kavlingLabel, jenisPembayaran });
   };
 
   const handleCloseModal = () => {
-    setSelectedTerbayar(null);
+    setModalTagihanList([]);
     setModalContext(null);
   };
 
@@ -350,7 +354,7 @@ const LaporanPemasukanPenjualan = () => {
                 </div>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2">
                   <p className="text-[10px] text-slate-400">
-                    Klik nominal terbayar untuk melihat detail dan bukti pembayaran.
+                    Klik kolom terbayar untuk melihat detail dan bukti pembayaran.
                   </p>
                   <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-600">
                     <span className="inline-flex items-center gap-1.5 font-medium">
@@ -408,7 +412,7 @@ const LaporanPemasukanPenjualan = () => {
                           colSpan={CICILAN_SUB_COLUMNS.length}
                           className="text-center py-2 px-3 font-bold text-[10px] uppercase tracking-wider bg-violet-50/90 text-violet-900 border-r border-slate-200"
                         >
-                          Cicilan
+                          Nominal
                         </th>
                         <th
                           rowSpan={2}
@@ -485,15 +489,19 @@ const LaporanPemasukanPenjualan = () => {
                           <td className="py-3 px-3 text-right border-r border-slate-50">
                             <PemasukanNominalCell nominal={item.dp.nominal} />
                           </td>
-                          <td className="py-3 px-3 border-r border-slate-100">
-                            <PemasukanPenjualanCell
-                              bucket={item.dp}
-                              variant="dp"
-                              onTerbayarClick={(d) =>
-                                handleTerbayarClick(d, item.customerNama, item.kavlingLabel)
-                              }
-                            />
-                          </td>
+                          <PemasukanTerbayarTd
+                            bucket={item.dp}
+                            variant="dp"
+                            className="border-r border-slate-100"
+                            onOpen={() =>
+                              handleTerbayarTdOpen(
+                                item.dp.terbayar,
+                                item.customerNama,
+                                item.kavlingLabel,
+                                'DP',
+                              )
+                            }
+                          />
 
                           <td className="py-3 px-3 text-right border-r border-slate-50">
                             {item.cicilan.skemaPembayaran ? (
@@ -502,21 +510,27 @@ const LaporanPemasukanPenjualan = () => {
                               <span className="text-slate-400 text-[11px]">-</span>
                             )}
                           </td>
-                          <td className="py-3 px-3 border-r border-slate-100">
-                            {item.cicilan.skemaPembayaran ? (
-                              <PemasukanPenjualanCell
-                                bucket={item.cicilan}
-                                variant={
-                                  item.cicilan.skemaPembayaran === 'KPR' ? 'kpr' : 'bertahap'
-                                }
-                                onTerbayarClick={(d) =>
-                                  handleTerbayarClick(d, item.customerNama, item.kavlingLabel)
-                                }
-                              />
-                            ) : (
+                          {item.cicilan.skemaPembayaran ? (
+                            <PemasukanTerbayarTd
+                              bucket={item.cicilan}
+                              variant={
+                                item.cicilan.skemaPembayaran === 'KPR' ? 'kpr' : 'bertahap'
+                              }
+                              className="border-r border-slate-100"
+                              onOpen={() =>
+                                handleTerbayarTdOpen(
+                                  item.cicilan.terbayar,
+                                  item.customerNama,
+                                  item.kavlingLabel,
+                                  `Cicilan ${item.cicilan.skemaPembayaran}`,
+                                )
+                              }
+                            />
+                          ) : (
+                            <td className="py-3 px-3 border-r border-slate-100">
                               <span className="text-right block text-slate-400 text-[11px]">-</span>
-                            )}
-                          </td>
+                            </td>
+                          )}
                           <td
                             className="py-3 px-3 text-right border-r border-slate-100"
                             title="(Nominal DP + Nominal Cicilan) − Total Bayar DP − Total Bayar Cicilan"
@@ -618,11 +632,12 @@ const LaporanPemasukanPenjualan = () => {
       </section>
 
       <PembayaranTerbayarModal
-        isOpen={!!selectedTerbayar}
+        isOpen={modalTagihanList.length > 0}
         onClose={handleCloseModal}
-        detail={selectedTerbayar}
+        details={modalTagihanList}
         customerNama={modalContext?.customerNama}
         kavlingLabel={modalContext?.kavlingLabel}
+        jenisPembayaran={modalContext?.jenisPembayaran}
       />
     </ReportPageLayout>
   );

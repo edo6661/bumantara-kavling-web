@@ -3,44 +3,46 @@ import { CheckCircle2 } from 'lucide-react';
 import Modal from '../shared/Modal';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../shared/BuktiFileThumbnail';
 import type { PemasukanTerbayarDetail } from '../../services/report.service';
-import { formatDate, formatRupiah } from '../../utils/formatters';
+import { formatDate, formatTanpaDesimal } from '../../utils/formatters';
 import { getTagihanFileBuktiList } from '../../utils/tagihanBukti';
 
 type PembayaranTerbayarModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  detail: PemasukanTerbayarDetail | null;
+  details: PemasukanTerbayarDetail[];
   customerNama?: string;
   kavlingLabel?: string;
+  jenisPembayaran?: string;
 };
 
 const PembayaranTerbayarModal = ({
   isOpen,
   onClose,
-  detail,
+  details,
   customerNama,
   kavlingLabel,
+  jenisPembayaran,
 }: PembayaranTerbayarModalProps) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  if (!detail) return null;
-
-  const buktiList = getTagihanFileBuktiList(detail);
+  if (!isOpen || details.length === 0) return null;
 
   const handleClose = () => {
     setPreviewImage(null);
     onClose();
   };
 
+  const totalNominal = details.reduce((sum, item) => sum + item.nominal, 0);
+
   return (
     <>
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
-        title="Detail Pembayaran"
+        title={`Detail Pembayaran${jenisPembayaran ? ` — ${jenisPembayaran}` : ''}`}
         size="lg"
       >
-        <div className="space-y-5">
+        <div className="space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
           {(customerNama || kavlingLabel) && (
             <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
               {customerNama && (
@@ -52,72 +54,88 @@ const PembayaranTerbayarModal = ({
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                No. Tagihan
-              </p>
-              <p className="text-[13px] font-semibold text-slate-800">{detail.noTagihan}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Jenis Pembayaran
-              </p>
-              <p className="text-[13px] font-semibold text-slate-800">{detail.pembayaran}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Nominal
-              </p>
-              <p className="text-[15px] font-black text-emerald-600">
-                {formatRupiah(detail.nominal)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Jatuh Tempo
-              </p>
-              <p className="text-[13px] font-semibold text-slate-800">
-                {formatDate(detail.jatuhTempo)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Status
-              </p>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 rounded-md">
-                <CheckCircle2 size={12} />
-                {detail.status === 'LUNAS' ? 'Lunas' : detail.status}
-              </span>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">
-                Tanggal Pembayaran
-              </p>
-              <p className="text-[13px] font-semibold text-slate-800">
-                {formatDate(detail.updatedAt)}
-              </p>
-            </div>
+          <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+            <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide">
+              {details.length} Pembayaran
+            </p>
+            <p className="text-[15px] font-black text-emerald-700 tabular-nums">
+              {formatTanpaDesimal(totalNominal)}
+            </p>
           </div>
 
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">
-              Bukti Pembayaran
-            </p>
-            {buktiList.length === 0 ? (
-              <p className="text-[12px] text-slate-400 italic">Tidak ada bukti pembayaran.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {buktiList.map((url, index) => (
-                  <BuktiFileThumbnail
-                    key={`${detail.tagihanId}-bukti-${index}`}
-                    url={url}
-                    onClick={() => setPreviewImage(url)}
-                    className="w-24 h-16"
-                  />
-                ))}
-              </div>
-            )}
+          <div className="space-y-4">
+            {details.map((detail, index) => {
+              const buktiList = getTagihanFileBuktiList(detail);
+              return (
+                <div
+                  key={`${detail.tagihanId}-${index}`}
+                  className="rounded-xl border border-slate-100 bg-white p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12px] font-bold text-slate-800">
+                      {detail.pembayaran}
+                    </p>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-green-100 text-green-700 rounded-md shrink-0">
+                      <CheckCircle2 size={10} />
+                      {detail.status === 'LUNAS' ? 'Lunas' : detail.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
+                        No. Tagihan
+                      </p>
+                      <p className="text-[12px] font-semibold text-slate-800">{detail.noTagihan}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
+                        Nominal
+                      </p>
+                      <p className="text-[13px] font-bold text-emerald-600 tabular-nums">
+                        {formatTanpaDesimal(detail.nominal)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
+                        Jatuh Tempo
+                      </p>
+                      <p className="text-[12px] font-semibold text-slate-800">
+                        {formatDate(detail.jatuhTempo)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
+                        Tanggal Pembayaran
+                      </p>
+                      <p className="text-[12px] font-semibold text-slate-800">
+                        {formatDate(detail.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">
+                      Bukti Pembayaran
+                    </p>
+                    {buktiList.length === 0 ? (
+                      <p className="text-[11px] text-slate-400 italic">Tidak ada bukti pembayaran.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {buktiList.map((url, buktiIndex) => (
+                          <BuktiFileThumbnail
+                            key={`${detail.tagihanId}-bukti-${buktiIndex}`}
+                            url={url}
+                            onClick={() => setPreviewImage(url)}
+                            className="w-24 h-16"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Modal>
