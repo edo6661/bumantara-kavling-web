@@ -13,12 +13,12 @@ const VARIANT_STYLES: Record<
     total: 'text-blue-700',
   },
   bertahap: {
-    payment: 'text-violet-600 hover:text-violet-800',
-    total: 'text-violet-700',
+    payment: 'text-purple-700 hover:text-purple-900',
+    total: 'text-purple-800',
   },
   kpr: {
-    payment: 'text-pink-600 hover:text-pink-800',
-    total: 'text-pink-700',
+    payment: 'text-pink-700 hover:text-pink-900',
+    total: 'text-pink-800',
   },
 };
 
@@ -41,14 +41,17 @@ const PemasukanPenjualanCell = ({
   const styles = VARIANT_STYLES[variant];
 
   const showTotalTerbayar = bucket.terbayar.length > 1;
+  const showSisa = bucket.sisa > 0;
   const hasMultiplePayments = bucket.terbayar.length > 1;
   const visiblePayments =
     expanded || !hasMultiplePayments ? bucket.terbayar : bucket.terbayar.slice(0, 1);
-  const isEmpty = bucket.terbayar.length === 0;
+  const isEmpty = bucket.terbayar.length === 0 && !showSisa;
 
   if (isEmpty) {
     return <p className="text-right text-[11px] text-slate-400 italic">-</p>;
   }
+
+  const showSummaryBlock = expanded || !hasMultiplePayments;
 
   return (
     <div className="text-right space-y-0.5">
@@ -84,12 +87,23 @@ const PemasukanPenjualanCell = ({
         </button>
       )}
 
-      {showTotalTerbayar && (expanded || !hasMultiplePayments) && (
+      {showTotalTerbayar && showSummaryBlock && (
         <p
-          className={`text-[11px] font-bold pt-1 border-t border-slate-100 tabular-nums ${styles.total}`}
+          className={`text-[11px] font-bold pt-1 border-t border-slate-200/80 tabular-nums ${styles.total}`}
           title="Total dibayar"
         >
           {formatTanpaDesimal(bucket.totalTerbayar)}
+        </p>
+      )}
+
+      {showSisa && (
+        <p
+          className={`text-[11px] font-bold text-orange-600 tabular-nums ${
+            bucket.terbayar.length > 0 ? 'pt-1 border-t border-slate-200/80' : ''
+          }`}
+          title="Sisa yang harus dibayar"
+        >
+          {formatTanpaDesimal(bucket.sisa)}
         </p>
       )}
     </div>

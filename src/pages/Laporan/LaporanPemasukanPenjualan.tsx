@@ -57,8 +57,8 @@ function calcSisaPembayaran(item: PemasukanPenjualanReportItem): number {
 }
 
 function getRowSchemeClass(skema: string | null): string {
-  if (skema === 'KPR') return 'bg-pink-50/80 hover:bg-pink-50/90';
-  if (skema === 'Bertahap') return 'bg-violet-50/80 hover:bg-violet-50/90';
+  if (skema === 'KPR') return 'bg-pink-100/90 hover:bg-pink-100';
+  if (skema === 'Bertahap') return 'bg-purple-100/90 hover:bg-purple-100';
   return 'hover:bg-slate-50/60';
 }
 
@@ -354,11 +354,11 @@ const LaporanPemasukanPenjualan = () => {
                   </p>
                   <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-600">
                     <span className="inline-flex items-center gap-1.5 font-medium">
-                      <span className="w-3 h-3 rounded-sm bg-pink-100 border border-pink-200 shrink-0" />
+                      <span className="w-3 h-3 rounded-sm bg-pink-200 border border-pink-400 shrink-0" />
                       Pink = KPR
                     </span>
                     <span className="inline-flex items-center gap-1.5 font-medium">
-                      <span className="w-3 h-3 rounded-sm bg-violet-100 border border-violet-200 shrink-0" />
+                      <span className="w-3 h-3 rounded-sm bg-purple-200 border border-purple-400 shrink-0" />
                       Ungu = Bertahap
                     </span>
                   </div>
