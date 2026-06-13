@@ -307,7 +307,7 @@ const DEFAULT_PAGE_SIZE = 10;
 const SPK = () => {
   const { user, selectedPerumahan } = useAuth();
   const { canRead: canReadSpk } = usePermission('SPK');
-  const canManageSpk = user?.role !== 'MANDOR' && user?.role !== 'PENGAWAS';
+  const canManageSpk = user?.role !== 'MANDOR';
   const canEditSpkProgress = canManageSpk;
 
   const canAjukanPembayaranFor = (spk: SpkData) => {

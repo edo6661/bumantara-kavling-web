@@ -1033,7 +1033,8 @@ const Penjualan = () => {
     const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
 
     if (!formData.nama?.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (!formData.noIdentitas?.trim() || formData.noIdentitas.trim().length < 16) newErrors.noIdentitas = 'NIK minimal 16 digit';
+    const nik = formData.noIdentitas?.trim();
+    if (nik && nik.length < 16) newErrors.noIdentitas = 'NIK minimal 16 digit';
     if (!formData.perumahan?.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
     if (!formData.blok?.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit?.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
@@ -1116,7 +1117,7 @@ const Penjualan = () => {
 
     if (!validateForm()) {
 
-      alert("Gagal menyimpan: Periksa kembali kolom yang bertanda merah (Contoh: NIK minimal 16 digit, Nama, Agent wajib diisi).");
+      alert("Gagal menyimpan: Periksa kembali kolom yang bertanda merah (Contoh: Nama, Agent wajib diisi).");
       return;
     }
 
@@ -1124,7 +1125,7 @@ const Penjualan = () => {
       if (isEditing && formData.id) {
         const updatePayload: any = {
           nama: formData.nama,
-          noIdentitas: formData.noIdentitas,
+          noIdentitas: formData.noIdentitas?.trim() ?? '',
           noTelepon: formData.noTelepon,
           alamat: formData.alamat,
           perusahaan: formData.perusahaan || undefined,
@@ -1165,7 +1166,7 @@ const Penjualan = () => {
         setKeteranganRevisi('');
       } else {
         const payload: any = {
-          noIdentitas: formData.noIdentitas,
+          noIdentitas: formData.noIdentitas?.trim() || undefined,
           nama: formData.nama,
           noTelepon: formData.noTelepon,
           alamat: formData.alamat,
@@ -1773,7 +1774,7 @@ const Penjualan = () => {
                 )}
               </div>
               <Input label="Nama Lengkap Customer" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} />
-              <Input label="No Identitas (KTP)" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} />
+              <Input label="No Identitas (KTP) — Opsional" name="noIdentitas" value={formData.noIdentitas} onChange={handleChange} error={errors.noIdentitas} placeholder="Kosongkan jika belum tersedia" />
               <Input label="No Telepon / HP" name="noTelepon" value={formData.noTelepon} onChange={handleChange} />
               <Input label="Perusahaan (Opsional)" name="perusahaan" value={formData.perusahaan} onChange={handleChange} />
               <div className="md:col-span-2">
@@ -2353,7 +2354,9 @@ const Penjualan = () => {
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Customer</p>
                   <p className="text-base font-black text-slate-900">{selectedPenjualan.nama}</p>
-                  <p className="text-xs text-slate-500 font-medium mt-1 tabular-nums">NIK: {selectedPenjualan.noIdentitas}</p>
+                  {selectedPenjualan.noIdentitas && (
+                    <p className="text-xs text-slate-500 font-medium mt-1 tabular-nums">NIK: {selectedPenjualan.noIdentitas}</p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Detail Unit</p>
