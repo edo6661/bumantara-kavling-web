@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  ExternalLink,
   Filter,
   Search,
   XCircle,
@@ -28,8 +27,6 @@ import PembayaranTerbayarModal from '../../components/laporan/PembayaranTerbayar
 import CustomerNameActionTd from '../../components/laporan/CustomerNameActionTd';
 import { formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
-import { DEFAULT_PERUMAHAN_NAME } from '../../constants/perumahan';
-import { goToTagihanTab } from '../../utils/customerNavigation';
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Semua (non batal)' },
@@ -71,8 +68,6 @@ function getRowSchemeClass(skema: string | null): string {
 }
 
 const LaporanPemasukanPenjualan = () => {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
