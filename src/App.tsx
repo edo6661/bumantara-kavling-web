@@ -54,6 +54,12 @@ const LaporanKeuangan = lazy(() => import('./pages/Laporan/LaporanKeuangan'));
 const LaporanMarketing = lazy(() => import('./pages/Laporan/LaporanMarketing'));
 const LaporanRekapPembayaran = lazy(() => import('./pages/Laporan/LaporanRekapPembayaran'));
 const LaporanPemasukanPenjualan = lazy(() => import('./pages/Laporan/LaporanPemasukanPenjualan'));
+const ManajemenTransaksi = lazy(() => import('./pages/transaksi/ManajemenTransaksi'));
+
+const PenjualanTagihanRedirect = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/management/manajemen-transaksi${search}`} replace />;
+};
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, user } = useAuth();
@@ -124,7 +130,9 @@ const App = () => {
                 <Route path="finance/bayar-spk" element={<PermissionGuard resource="TAGIHAN"><BayarSpkPembayaran /></PermissionGuard>} />
                 <Route path="finance/bayar-notaris" element={<PermissionGuard resource="TAGIHAN"><BayarNotarisPembayaran /></PermissionGuard>} />
                 <Route path="finance/bayar-kpr" element={<PermissionGuard resource="TAGIHAN"><BayarBankKprPembayaran /></PermissionGuard>} />
+                <Route path="management/manajemen-transaksi" element={<PermissionGuard resource="PENJUALAN"><ManajemenTransaksi /></PermissionGuard>} />
                 <Route path="management/penjualan" element={<PermissionGuard resource="PENJUALAN"><Penjualan /></PermissionGuard>} />
+                <Route path="management/penjualan-tagihan" element={<PermissionGuard resource="PENJUALAN"><PenjualanTagihanRedirect /></PermissionGuard>} />
                 <Route path="management/progress-penjualan" element={<PermissionGuard resource="PROGRESS_PENJUALAN"><ProgressPenjualan /></PermissionGuard>} />
                 <Route path="management/ganti-kavling" element={<PermissionGuard resource="GANTI_KAVLING"><GantiKavling /></PermissionGuard>} />
                 <Route path="management/batal-transaksi" element={<PermissionGuard resource="BATAL_TRANSAKSI"><BatalTransaksi /></PermissionGuard>} />

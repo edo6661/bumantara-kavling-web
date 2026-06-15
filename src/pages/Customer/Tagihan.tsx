@@ -44,7 +44,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import jsPDF from 'jspdf';
 import { handleApiError } from '../../utils/errorHandler';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import type { TagihanTujuan } from '../../constants/tagihanTujuan';
 import {
   TAGIHAN_TUJUAN_OPTIONS,
@@ -54,8 +54,7 @@ import {
 import BuktiFileThumbnail from '../../components/shared/BuktiFileThumbnail';
 import { getTagihanFileBuktiList } from '../../utils/tagihanBukti';
 import {
-  buildPemasukanPenjualanSearchPath,
-  buildPenjualanSearchPath,
+  goToTransaksiTab,
 } from '../../utils/customerNavigation';
 
 interface TagihanFormState {
@@ -94,6 +93,7 @@ const TAGIHAN_FETCH_LIMIT = 500;
 
 const Tagihan = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -333,22 +333,34 @@ const Tagihan = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveActionId(null);
-                          navigate(buildPenjualanSearchPath(row.namaCustomer));
+                          goToTransaksiTab({
+                            tab: 'penjualan',
+                            customerNama: row.namaCustomer,
+                            pathname,
+                            navigate,
+                            setSearchParams,
+                          });
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
                       >
-                        <ShoppingCart size={14} /> Lihat Penjualan
+                        <ShoppingCart size={14} /> Penjualan
                       </button>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveActionId(null);
-                          navigate(buildPemasukanPenjualanSearchPath(row.namaCustomer));
+                          goToTransaksiTab({
+                            tab: 'laporan',
+                            customerNama: row.namaCustomer,
+                            pathname,
+                            navigate,
+                            setSearchParams,
+                          });
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
                       >
-                        <TrendingUp size={14} /> Pemasukan Penjualan
+                        <TrendingUp size={14} /> Pemasukan 
                       </button>
                     </>
                   )}

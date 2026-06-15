@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   ChevronDown,
@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Filter,
   Search,
-  TrendingUp,
   XCircle,
 } from 'lucide-react';
 import { useGetPemasukanPenjualanReport } from '../../hooks/queries/usePemasukanPenjualanReport';
@@ -19,7 +18,7 @@ import type {
 } from '../../services/report.service';
 import PageLoader from '../PageLoader';
 import Select from '../../components/shared/Select';
-import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/ReportPageLayout';
+import { ReportSectionLabel } from '../../components/laporan/ReportPageLayout';
 import ReportMetricCard from '../../components/laporan/ReportMetricCard';
 import {
   PemasukanNominalCell,
@@ -30,6 +29,7 @@ import CustomerNameActionTd from '../../components/laporan/CustomerNameActionTd'
 import { formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
 import { DEFAULT_PERUMAHAN_NAME } from '../../constants/perumahan';
+import { goToTagihanTab } from '../../utils/customerNavigation';
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Semua (non batal)' },
@@ -71,6 +71,8 @@ function getRowSchemeClass(skema: string | null): string {
 }
 
 const LaporanPemasukanPenjualan = () => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -234,24 +236,7 @@ const LaporanPemasukanPenjualan = () => {
   const summary = report?.summary;
 
   return (
-    <ReportPageLayout
-      title="Pemasukan Penjualan Kavling"
-      subtitle="Rekap pemasukan booking fee, DP, dan cicilan per customer"
-      icon={TrendingUp}
-    >
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <p className="text-[12px] text-slate-500">
-          Kalkulasi detail tagihan dan termin dapat dilihat di halaman{' '}
-          <Link
-            to="/customer/tagihan"
-            className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            Customer / Pembayaran
-            <ExternalLink size={12} />
-          </Link>
-        </p>
-      </div>
-
+    <div className="space-y-6">
       <section>
         <button
           type="button"
@@ -268,10 +253,7 @@ const LaporanPemasukanPenjualan = () => {
             onSubmit={handleFilterSubmit}
             className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4"
           >
-            <p className="text-[11px] text-slate-500 mb-3">
-              Perumahan:{' '}
-              <span className="font-bold text-slate-700">{DEFAULT_PERUMAHAN_NAME}</span>
-            </p>
+           
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Select
                 label="Status Penjualan"
@@ -686,7 +668,7 @@ const LaporanPemasukanPenjualan = () => {
         kavlingLabel={modalContext?.kavlingLabel}
         jenisPembayaran={modalContext?.jenisPembayaran}
       />
-    </ReportPageLayout>
+    </div>
   );
 };
 

@@ -11,6 +11,7 @@ interface NavbarProps {
 const routeLabels: Record<string, string> = {
   '/': 'Dashboard',
   '/profile': 'Profil Saya',
+  '/management/manajemen-transaksi': 'Manajemen Transaksi',
   '/management/penjualan': 'Data Penjualan',
   '/management/progress-penjualan': 'Progress Penjualan',
   '/management/ganti-kavling': 'Ganti Kavling',

@@ -1,7 +1,12 @@
 import api from "../lib/axios";
 
+export interface BiayaTambahanDTO {
+  nama: string;
+  nominal: number;
+}
+
 export interface CreatePenjualanDTO {
-  noIdentitas: string;
+  noIdentitas?: string;
   nama: string;
   noTelepon: string;
   alamat: string;
@@ -16,15 +21,18 @@ export interface CreatePenjualanDTO {
   tanggal: string;
   hargaDasar: number;
   plafonAwal?: number;
+  plafonAcc?: number;
   biayaKpr?: number;
   plafonKredit?: number;
   dpTidakDibayar?: number;
-  hargaJual: number;
+  dpDibayar?: number;
+  hargaJual?: number;
   hargaPromosi?: number;
   diskonPenjualan?: number;
   dp?: number;
   bookingFee?: number;
-  caraPembayaran: string;
+  termin?: number;
+  caraPembayaran?: string;
   bank?: string;
   bankKprNamaRekening?: string;
   bankKprAtasNamaRekening?: string;
@@ -33,6 +41,9 @@ export interface CreatePenjualanDTO {
   agent: string;
   rekeningTujuanId?: number;
   keteranganUpdateSpr?: string;
+  keteranganAngsuran?: string;
+  biayaTambahan?: BiayaTambahanDTO[];
+  biayaTambahanKpr?: BiayaTambahanDTO[];
 }
 
 export const penjualanService = {

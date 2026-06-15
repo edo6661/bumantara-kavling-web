@@ -1,10 +1,7 @@
 import { useState, type MouseEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Receipt, ShoppingCart } from 'lucide-react';
-import {
-  buildPenjualanSearchPath,
-  buildTagihanSearchPath,
-} from '../../utils/customerNavigation';
+import { goToTransaksiTab } from '../../utils/customerNavigation';
 
 type CustomerNameActionTdProps = {
   customerNama: string;
@@ -13,6 +10,8 @@ type CustomerNameActionTdProps = {
 
 const CustomerNameActionTd = ({ customerNama, className = '' }: CustomerNameActionTdProps) => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [, setSearchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, dropUp: false });
 
@@ -31,12 +30,24 @@ const CustomerNameActionTd = ({ customerNama, className = '' }: CustomerNameActi
   };
 
   const goToPenjualan = () => {
-    navigate(buildPenjualanSearchPath(customerNama));
+    goToTransaksiTab({
+      tab: 'penjualan',
+      customerNama,
+      pathname,
+      navigate,
+      setSearchParams,
+    });
     setOpen(false);
   };
 
   const goToTagihan = () => {
-    navigate(buildTagihanSearchPath(customerNama));
+    goToTransaksiTab({
+      tab: 'tagihan',
+      customerNama,
+      pathname,
+      navigate,
+      setSearchParams,
+    });
     setOpen(false);
   };
 

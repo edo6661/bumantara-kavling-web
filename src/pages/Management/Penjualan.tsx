@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -29,8 +29,7 @@ import SignatureCanvas from 'react-signature-canvas';
 import { handleApiError } from '../../utils/errorHandler';
 import type { AgentData } from '../../types/models/agent';
 import {
-  buildPemasukanPenjualanSearchPath,
-  buildTagihanSearchPath,
+  goToTransaksiTab,
 } from '../../utils/customerNavigation';
 
 interface PenjualanData {
@@ -185,6 +184,7 @@ const Penjualan = () => {
   // const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
 
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -680,27 +680,39 @@ const Penjualan = () => {
                     <div className="h-px bg-blue-500/50 mx-2 my-0.5" />
                   )}
 
-                  {row.nama && (
+{row.nama && (
                     <>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveActionId(null);
-                          navigate(buildTagihanSearchPath(row.nama));
+                          goToTransaksiTab({
+                            tab: 'tagihan',
+                            customerNama: row.nama,
+                            pathname,
+                            navigate,
+                            setSearchParams,
+                          });
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
                       >
-                        <Receipt size={14} /> Lihat Tagihan
+                        <Receipt size={14} /> Tagihan
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setActiveActionId(null);
-                          navigate(buildPemasukanPenjualanSearchPath(row.nama));
+                          goToTransaksiTab({
+                            tab: 'laporan',
+                            customerNama: row.nama,
+                            pathname,
+                            navigate,
+                            setSearchParams,
+                          });
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors cursor-pointer"
                       >
-                        <TrendingUp size={14} /> Pemasukan Penjualan
+                        <TrendingUp size={14} /> Pemasukan 
                       </button>
                     </>
                   )}
@@ -1536,38 +1548,10 @@ const Penjualan = () => {
       });
     }
   };
-
   if (isLoading && penjualanData.length === 0) return <PageLoader />;
 
-  
   return (
-    <div className="min-h-screen bg-[#f7f8fc]">
-      {/* Top ambient gradient (diambil dari referensi Dashboard) */}
-      <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-50/60 to-transparent pointer-events-none z-0" />
-
-      <div className="relative z-10 max-w-[1600px] mx-auto px-5 py-6 space-y-6 animate-in fade-in duration-500">
-        
-        {/* Header Halaman ala Dashboard */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
-          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-blue-500 to-violet-500" />
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 px-6 py-5">
-            <div className="flex items-center gap-4">
-              <div className="w-1 h-14 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 shrink-0" />
-              <div>
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.15em] mb-0.5">
-                  Manajemen Properti
-                </p>
-                <h1 className="text-[26px] font-black text-slate-900 tracking-tight leading-none">
-                  Data Penjualan
-                </h1>
-                <p className="text-[12px] text-slate-400 mt-1.5 font-medium">
-                  Kelola transaksi, dokumen SPR, dan status pembayaran customer
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>                        
-
+    <div className="space-y-6 animate-in fade-in duration-500">
       
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <div
@@ -3185,8 +3169,7 @@ const Penjualan = () => {
         </form>
       </Modal>
 
-    </div>
-    </div>
+    </div>  
   );
 };
 
