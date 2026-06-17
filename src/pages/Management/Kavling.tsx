@@ -90,6 +90,28 @@ const getLuasTanahOptions = (namaTipe: string) => {
   return [...config.lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }));
 };
 
+const KAVLING_STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
+  AVAILABLE: { label: 'Tersedia', badgeClass: 'bg-green-100 text-green-800 border-green-200' },
+  BOOKING: { label: 'Booking', badgeClass: 'bg-blue-100 text-blue-800 border-blue-200' },
+  TERJUAL: { label: 'Terjual', badgeClass: 'bg-rose-100 text-rose-800 border-rose-200' },
+  HOLD: { label: 'Ditahan', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' },
+};
+
+const getKavlingStatusDisplay = (status: string) =>
+  KAVLING_STATUS_CONFIG[status?.toUpperCase()] ?? {
+    label: status,
+    badgeClass: 'bg-gray-100 text-gray-800 border-gray-200',
+  };
+
+const renderKavlingStatusBadge = (status: string) => {
+  const { label, badgeClass } = getKavlingStatusDisplay(status);
+  return (
+    <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${badgeClass}`}>
+      {label}
+    </span>
+  );
+};
+
 const Kavling = () => {
   const { selectedPerumahan } = useAuth();
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
@@ -288,32 +310,37 @@ const Kavling = () => {
     {
       header: 'Status',
       accessor: 'status',
-      render: (val: string) => {
-        const statusStr = val?.toUpperCase();
-        let bgClass = 'bg-gray-100 text-gray-800 border-gray-200';
-        if (statusStr === 'AVAILABLE') bgClass = 'bg-green-100 text-green-800 border-green-200';
-        if (statusStr === 'HOLD') bgClass = 'bg-yellow-100 text-yellow-800 border-yellow-200';
-        if (statusStr === 'BOOKING') bgClass = 'bg-blue-100 text-blue-800 border-blue-200';
-        if (statusStr === 'TERJUAL') bgClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        return <span className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-bold border ${bgClass}`}>{val}</span>;
-      }
+      render: (val: string) => renderKavlingStatusBadge(val),
     },
   ];
 
   const expandedRowRender = (row: KavlingData) => {
     const activeSale = row.penjualan?.[0];
-    const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(row.status?.toUpperCase());
+    const statusKey = row.status?.toUpperCase();
+    const isBookedOrSold = ['BOOKING', 'TERJUAL'].includes(statusKey);
+    const isTerjual = statusKey === 'TERJUAL';
+    const panelClass = isTerjual
+      ? 'bg-rose-50/50 border border-rose-100'
+      : 'bg-blue-50/50 border border-blue-100';
+    const iconClass = isTerjual
+      ? 'bg-rose-100 text-rose-600'
+      : 'bg-blue-100 text-blue-600';
+    const labelClass = isTerjual ? 'text-rose-500' : 'text-blue-500';
+    const nameClass = isTerjual ? 'text-rose-900' : 'text-blue-900';
+    const phoneClass = isTerjual ? 'text-rose-700' : 'text-blue-700';
     return (
       <div className="p-4 bg-slate-50/50 border-t border-slate-100 shadow-inner">
         {isBookedOrSold && activeSale ? (
-          <div className="flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-4 rounded-xl max-w-lg">
-            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+          <div className={`flex items-center gap-4 p-4 rounded-xl max-w-lg ${panelClass}`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${iconClass}`}>
               <UserCircle size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-0.5">Informasi Pemesan / Pembeli</p>
-              <p className="text-base font-black text-blue-900">{activeSale.customer?.nama || 'Tidak diketahui'}</p>
-              <p className="text-sm font-medium text-blue-700 mt-0.5">No. HP: {activeSale.customer?.noHp || '-'}</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest mb-0.5 ${labelClass}`}>
+                {isTerjual ? 'Informasi Pembeli' : 'Informasi Pemesan'}
+              </p>
+              <p className={`text-base font-black ${nameClass}`}>{activeSale.customer?.nama || 'Tidak diketahui'}</p>
+              <p className={`text-sm font-medium mt-0.5 ${phoneClass}`}>No. HP: {activeSale.customer?.noHp || '-'}</p>
             </div>
           </div>
         ) : (
@@ -593,11 +620,12 @@ const Kavling = () => {
           {isSummaryExpanded ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
         </div>
         {isSummaryExpanded && (
-          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+          <div className="p-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 animate-in fade-in slide-in-from-top-2">
             <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><Building2 size={16} className="text-slate-600" /></div><p className="text-xs font-bold text-slate-500 uppercase">Total Unit</p></div><p className="text-2xl font-black text-slate-900">{meta?.totalItems || 0}</p></div>
-            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div><p className="text-xs font-bold text-green-700 uppercase">Available</p></div><p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p></div>
+            <div className="bg-green-50 border border-green-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-green-600" /></div><p className="text-xs font-bold text-green-700 uppercase">Tersedia</p></div><p className="text-2xl font-black text-green-800">{summary['AVAILABLE'] || 0}</p></div>
             <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Clock size={16} className="text-blue-600" /></div><p className="text-xs font-bold text-blue-700 uppercase">Booking</p></div><p className="text-2xl font-black text-blue-800">{summary['BOOKING'] || 0}</p></div>
-            <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center"><Ban size={16} className="text-yellow-600" /></div><p className="text-xs font-bold text-yellow-700 uppercase">Hold / Terjual</p></div><p className="text-2xl font-black text-yellow-800">{(summary['HOLD'] || 0) + (summary['TERJUAL'] || 0)}</p></div>
+            <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center"><CheckCircle2 size={16} className="text-rose-600" /></div><p className="text-xs font-bold text-rose-700 uppercase">Terjual</p></div><p className="text-2xl font-black text-rose-800">{summary['TERJUAL'] || 0}</p></div>
+            <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl shadow-sm"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center"><Ban size={16} className="text-amber-600" /></div><p className="text-xs font-bold text-amber-700 uppercase">Ditahan</p></div><p className="text-2xl font-black text-amber-800">{summary['HOLD'] || 0}</p></div>
           </div>
         )}
       </div>
@@ -622,7 +650,7 @@ const Kavling = () => {
             <div className="relative">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Filter Status</label>
               <select className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black appearance-none" value={statusFilter} onChange={handleStatusFilterChange}>
-                <option value="">Semua Status</option><option value="AVAILABLE">Tersedia (Available)</option><option value="BOOKING">Booking</option><option value="TERJUAL">Terjual</option><option value="HOLD">Ditahan (Hold)</option>
+                <option value="">Semua Status</option><option value="AVAILABLE">Tersedia</option><option value="BOOKING">Booking</option><option value="TERJUAL">Terjual</option><option value="HOLD">Ditahan</option>
               </select>
               <div className="absolute right-3 top-8 pointer-events-none text-slate-400"><ChevronDown size={16} /></div>
             </div>
@@ -667,7 +695,7 @@ const Kavling = () => {
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Kavling</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select label="Perumahan" name="perumahanId" value={formData.perumahanId} onChange={handleChange} options={[{ value: '', label: '-- Pilih Perumahan --' }, ...perumahanList.map(p => ({ value: p.id, label: p.nama }))]} error={errors.perumahanId} disabled={isEditing} />
-              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Available' }, { value: 'HOLD', label: 'Hold' }, { value: 'BOOKING', label: 'Booking' }, { value: 'TERJUAL', label: 'Terjual' }]} />
+              <Select label="Status Kavling" name="status" value={formData.status} onChange={handleChange} options={[{ value: 'AVAILABLE', label: 'Tersedia' }, { value: 'BOOKING', label: 'Booking' }, { value: 'TERJUAL', label: 'Terjual' }, { value: 'HOLD', label: 'Ditahan' }]} />
               <Select label="Jenis Kavling" name="jenisKavling" value={formData.jenisKavling} onChange={handleChange} options={[{ value: 'PERUMAHAN', label: 'Perumahan' }, { value: 'RUKO', label: 'Ruko' }]} />
               <Select
                 label="Jumlah Sertifikat Tanah"
