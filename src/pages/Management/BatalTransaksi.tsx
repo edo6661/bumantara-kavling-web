@@ -15,7 +15,7 @@ import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
 import { storage } from "../../utils/storage";
 import { handleApiError } from '../../utils/errorHandler';
 const BatalTransaksi = () => {
-  const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('pengajuan');
+  const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('refund');
   const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal('PENDING');
   const approveMutation = useApproveBatal();
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
@@ -238,19 +238,19 @@ const BatalTransaksi = () => {
       <div className="flex border-b border-slate-200 mb-6 overflow-x-auto hide-scrollbar bg-white p-2 rounded-t-2xl shadow-sm">
         <button
           type="button"
-          onClick={() => setActiveTab('pengajuan')}
-          className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'pengajuan' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
-        >
-          Antrean Persetujuan Pembatalan
-        </button>
-        <button
-          type="button"
           onClick={() => setActiveTab('refund')}
           className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'refund' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
             }`}
         >
           Proses Pengembalian Dana (Refund)
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('pengajuan')}
+          className={`whitespace-nowrap py-3 px-6 border-b-2 font-bold text-sm tracking-wide transition-colors cursor-pointer ${activeTab === 'pengajuan' ? 'border-black text-black' : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+        >
+          Antrean Persetujuan Pembatalan
         </button>
       </div>
       {/* TAB 1: PENGAJUAN */}
