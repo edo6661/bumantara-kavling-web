@@ -104,7 +104,6 @@ const BatalTransaksi = () => {
     return penjualanData.filter((p: any) => p.status === 'BATAL');
   }, [penjualanData]);
   const columnsRefund = [
-    { header: 'No. Transaksi', accessor: 'id' },
     { header: 'Tanggal Batal', accessor: 'updatedAt', render: (val: string) => formatDate(val) },
     { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
     { header: 'Kavling', accessor: 'blok', render: (_: any, row: any) => ` Blok ${row.blok}-${row.nomorUnit}` },
