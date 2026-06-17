@@ -16,7 +16,7 @@ import { storage } from "../../utils/storage";
 import { handleApiError } from '../../utils/errorHandler';
 const BatalTransaksi = () => {
   const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('pengajuan');
-  const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal();
+  const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal('PENDING');
   const approveMutation = useApproveBatal();
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
   const penjualanData = penjualanResponse?.items || [];
@@ -53,7 +53,7 @@ const BatalTransaksi = () => {
     {
       header: 'Kavling',
       accessor: 'penjualan',
-      render: (val: any) => `${val?.kavling?.perumahan?.nama} Blok ${val?.kavling?.blok}-${val?.kavling?.nomorUnit}`
+      render: (val: any) => ` Blok ${val?.kavling?.blok}-${val?.kavling?.nomorUnit}`
     },
     { header: 'Alasan Batal', accessor: 'alasan', render: (val: string) => <span className="text-sm italic text-slate-600">{val}</span> },
     {
@@ -107,7 +107,7 @@ const BatalTransaksi = () => {
     { header: 'No. Transaksi', accessor: 'id' },
     { header: 'Tanggal Batal', accessor: 'updatedAt', render: (val: string) => formatDate(val) },
     { header: 'Nama Customer', accessor: 'nama', render: (val: string) => <span className="font-bold">{val}</span> },
-    { header: 'Kavling', accessor: 'blok', render: (_: any, row: any) => `${row.perumahan} Blok ${row.blok}-${row.nomorUnit}` },
+    { header: 'Kavling', accessor: 'blok', render: (_: any, row: any) => ` Blok ${row.blok}-${row.nomorUnit}` },
     {
       header: 'Total Dana Masuk',
       accessor: 'tagihan',
