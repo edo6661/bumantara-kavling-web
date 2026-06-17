@@ -687,7 +687,7 @@ const Kavling = () => {
         )}
       </div>
 
-      <DataTable title={`Manajemen Kavling ${selectedPerumahan ? `- ${selectedPerumahan.nama}` : ''}`} columns={columns} data={kavlingData} onAdd={() => openModal()} onEdit={(item) => openModal(item as KavlingData)} onDelete={(item) => handleDelete(item as KavlingData)} expandedRowRender={expandedRowRender} serverSide={true} searchTerm={search} onSearchChange={handleSearchChange} searchPlaceholder="Cari blok, unit, tipe, atau NOPD..." page={page} totalPages={meta?.totalPages || 1} onPageChange={handlePageChange} />
+      <DataTable title={`Manajemen Kavling`} columns={columns} data={kavlingData} onAdd={() => openModal()} onEdit={(item) => openModal(item as KavlingData)} onDelete={(item) => handleDelete(item as KavlingData)} expandedRowRender={expandedRowRender} serverSide={true} searchTerm={search} onSearchChange={handleSearchChange} searchPlaceholder="Cari blok, unit, tipe, atau NOPD..." page={page} totalPages={meta?.totalPages || 1} onPageChange={handlePageChange} />
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title={isEditing ? "Edit Data Kavling" : "Tambah Data Kavling"}>
         <form onSubmit={handleSubmit} className="space-y-4">
