@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   agentPencairanService,
   type AgentPencairanListParams,
+  type AgentPencairanTahap,
 } from '../../services/agentPencairan.service';
 
 export const AGENT_PENCAIRAN_KEYS = {
@@ -30,7 +31,13 @@ export const useGetAllAgentPencairan = (
 export const useAjukanAgentPencairan = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (feeAgentId: number) => agentPencairanService.ajukan(feeAgentId),
+    mutationFn: ({
+      feeAgentId,
+      tahap,
+    }: {
+      feeAgentId: number;
+      tahap: AgentPencairanTahap;
+    }) => agentPencairanService.ajukan(feeAgentId, tahap),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: AGENT_PENCAIRAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ['fee-agents'] });

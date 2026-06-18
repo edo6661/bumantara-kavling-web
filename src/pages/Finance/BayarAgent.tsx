@@ -213,6 +213,7 @@ const BayarAgent = () => {
             <table className="w-full min-w-[1100px] border-collapse">
               <thead>
                 <tr>
+                  <th className={thClass}>Tahap</th>
                   <th className={thClass}>Agent</th>
                   <th className={thClass}>Customer</th>
                   <th className={thClass}>Kavling</th>
@@ -233,6 +234,11 @@ const BayarAgent = () => {
 
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/50">
+                      <td className={tdClass}>
+                        <span className="inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-slate-100 text-slate-700">
+                          {row.tahap}
+                        </span>
+                      </td>
                       <td className={tdClass}>
                         <p className="font-bold text-slate-900">{row.agent?.nama ?? '-'}</p>
                         <p className="text-[10px] text-slate-500">

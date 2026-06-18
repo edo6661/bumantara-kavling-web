@@ -1,12 +1,14 @@
 import api from '../lib/axios';
 
 export type AgentPencairanStatus = 'MENUNGGU_PEMBAYARAN' | 'SUDAH_DIBAYAR';
+export type AgentPencairanTahap = 'PPJB' | 'AJB';
 
 export interface AgentPencairanData {
   id: number;
   feeAgentId: number;
   penjualanId: number;
   agentId: number;
+  tahap: AgentPencairanTahap;
   closingNominal: number;
   marketingNominal: number;
   potonganPph: number;
@@ -85,8 +87,8 @@ export const agentPencairanService = {
     return all;
   },
 
-  ajukan: async (feeAgentId: number) => {
-    const response = await api.post('/agent-pencairan', { feeAgentId });
+  ajukan: async (feeAgentId: number, tahap: AgentPencairanTahap) => {
+    const response = await api.post('/agent-pencairan', { feeAgentId, tahap });
     return response.data.data as AgentPencairanData;
   },
 

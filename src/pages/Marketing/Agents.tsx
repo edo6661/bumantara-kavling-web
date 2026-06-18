@@ -21,7 +21,13 @@ import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetFeeAgents } from "../../hooks/queries/useFeeAgent";
 import { useGetAllAgentPencairan, useAjukanAgentPencairan } from "../../hooks/queries/useAgentPencairan";
 import type { FeeAgentData } from "../../services/feeAgent.service";
-import type { AgentPencairanData } from "../../services/agentPencairan.service";
+import type { AgentPencairanData, AgentPencairanTahap } from "../../services/agentPencairan.service";
+import {
+  calcPencairanAmountsForTahap,
+  getNextPencairanTahap,
+  getPencairanPaymentStatus,
+  getTahapLabel,
+} from "../../utils/agentPencairan";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
@@ -67,54 +73,6 @@ const getFeeForSale = (feeList: FeeAgentData[], agentId: number, saleId: number,
   feeList.find(
     (f) => f.agentId === agentId && (f.penjualanId === saleId || f.noTransaksi === noTransaksi)
   );
-
-const getPaymentStatus = (pencairan?: AgentPencairanData) => {
-  if (pencairan?.status === "SUDAH_DIBAYAR") {
-    return { label: "Sudah", className: "bg-green-100 text-green-700" };
-  }
-  if (pencairan?.status === "MENUNGGU_PEMBAYARAN") {
-    return { label: "Menunggu", className: "bg-amber-100 text-amber-700" };
-  }
-  return { label: "Belum", className: "bg-red-100 text-red-700" };
-};
-
-const isBookingFeePaid = (detail?: { tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }> }) =>
-  (detail?.tagihan ?? []).some(
-    (t) =>
-      (t.tujuan === "BOOKING_FEE" || t.pembayaran?.toLowerCase().includes("booking")) &&
-      t.status === "LUNAS"
-  );
-
-const calcPencairanNet = (
-  agent: AgentData,
-  nilaiAjb: number | null | undefined,
-  feeRecord: FeeAgentData,
-  detail?: { tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }> }
-) => {
-  const bookingPaid = isBookingFeePaid(detail);
-  const hasAjb = !!nilaiAjb && Number(nilaiAjb) > 0;
-  const closingFee = bookingPaid
-    ? Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0
-    : 0;
-  const marketingFee = hasAjb
-    ? Number(nilaiAjb) * ((Number(agent.feeMarketingPct) || 0) / 100)
-    : 0;
-  const potPph =
-    (closingFee + marketingFee) * ((Number(agent.potonganPph) || 0) / 100);
-  return closingFee + marketingFee - potPph;
-};
-
-const canAjukanPencairan = (
-  agent: AgentData,
-  nilaiAjb: number | null | undefined,
-  feeRecord: FeeAgentData | undefined,
-  pencairan: AgentPencairanData | undefined,
-  detail?: { tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }> }
-) => {
-  if (!feeRecord || pencairan) return false;
-  return calcPencairanNet(agent, nilaiAjb, feeRecord, detail) > 0 &&
-    (isBookingFeePaid(detail) || (!!nilaiAjb && Number(nilaiAjb) > 0));
-};
 
 const calcAgentFees = (
   agent: AgentData,
@@ -180,8 +138,12 @@ const Agents = () => {
   const generateAccountMutation = useGenerateAgentAccount();
 
   const pencairanByFeeAgentId = useMemo(() => {
-    const map = new Map<number, AgentPencairanData>();
-    pencairanData.forEach((p) => map.set(p.feeAgentId, p));
+    const map = new Map<number, AgentPencairanData[]>();
+    pencairanData.forEach((p) => {
+      const list = map.get(p.feeAgentId) ?? [];
+      list.push(p);
+      map.set(p.feeAgentId, list);
+    });
     return map;
   }, [pencairanData]);
 
@@ -559,24 +521,30 @@ const Agents = () => {
     feeRecord: FeeAgentData,
     saleLabel: string,
     agent: AgentData,
-    nilaiAjb: number | null | undefined,
-    detail?: { tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }> }
+    tahap: AgentPencairanTahap,
+    detail?: {
+      caraPembayaran?: string | null;
+      hargaJual?: number | null;
+      tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }>;
+      progressPenjualan?: { nilaiAjb?: number | null; filePpjb?: string | null } | null;
+    }
   ) => {
-    const pencairan = pencairanByFeeAgentId.get(feeRecord.id);
-    if (!canAjukanPencairan(agent, nilaiAjb, feeRecord, pencairan, detail)) {
-      alert("Belum memenuhi syarat pencairan atau sudah pernah diajukan.");
+    const pencairanList = pencairanByFeeAgentId.get(feeRecord.id) ?? [];
+    const nextTahap = getNextPencairanTahap(agent, feeRecord, pencairanList, detail);
+    if (!nextTahap || nextTahap !== tahap) {
+      alert("Belum memenuhi syarat pencairan untuk tahap ini.");
       return;
     }
-    const net = calcPencairanNet(agent, nilaiAjb, feeRecord, detail);
+    const { totalNominal } = calcPencairanAmountsForTahap(tahap, agent, feeRecord, detail);
     if (
       !window.confirm(
-        `Ajukan pencairan untuk ${saleLabel}?\n\nTotal yang akan dibayar finance: ${formatRupiah(net)}\n\nPengajuan hanya bisa dilakukan sekali per penjualan.`
+        `Ajukan pencairan ${getTahapLabel(tahap)} untuk ${saleLabel}?\n\nTotal yang akan dibayar finance: ${formatRupiah(totalNominal)}`
       )
     ) {
       return;
     }
     try {
-      await ajukanPencairanMutation.mutateAsync(feeRecord.id);
+      await ajukanPencairanMutation.mutateAsync({ feeAgentId: feeRecord.id, tahap });
       alert("Pengajuan pencairan berhasil dikirim ke finance.");
     } catch (err: unknown) {
       const { message } = handleApiError(err);
@@ -660,11 +628,16 @@ const Agents = () => {
                   );
                   const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
                   const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
-                  const pencairan = feeRecord ? pencairanByFeeAgentId.get(feeRecord.id) : undefined;
+                  const pencairanList = feeRecord ? (pencairanByFeeAgentId.get(feeRecord.id) ?? []) : [];
                   const { fee, totalFee, potPph } = calcAgentFees(row, nilaiAjb, feeRecord);
-                  const paymentStatus = getPaymentStatus(pencairan);
+                  const paymentStatus = getPencairanPaymentStatus(pencairanList);
                   const saleLabel = `${sale.customer?.nama || "-"} — Blok ${sale.kavling?.blok || "-"} No. ${sale.kavling?.nomorUnit || "-"}`;
-                  const showAjukan = canAjukanPencairan(row, nilaiAjb, feeRecord, pencairan, detail);
+                  const nextTahap = feeRecord
+                    ? getNextPencairanTahap(row, feeRecord, pencairanList, detail)
+                    : null;
+                  const waitingPencairan = pencairanList.filter(
+                    (p) => p.status === "MENUNGGU_PEMBAYARAN"
+                  );
 
                   return (
                   <tr
@@ -729,38 +702,36 @@ const Agents = () => {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        {showAjukan && (
+                        {nextTahap && (
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleAjukanPencairan(feeRecord!, saleLabel, row, nilaiAjb, detail);
+                              handleAjukanPencairan(feeRecord!, saleLabel, row, nextTahap, detail);
                             }}
                             disabled={ajukanPencairanMutation.isPending}
                             className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer disabled:opacity-50"
-                            title="Ajukan pencairan ke finance"
+                            title={`Ajukan pencairan tahap ${nextTahap}`}
                           >
                             <Banknote size={16} />
                           </button>
                         )}
-                        {pencairan?.status === "MENUNGGU_PEMBAYARAN" && (
+                        {waitingPencairan.map((p) => (
                           <span
+                            key={p.id}
                             className="p-1.5 text-amber-500"
-                            title="Menunggu pembayaran finance"
+                            title={`Menunggu pembayaran finance (${p.tahap})`}
                           >
                             <Clock size={16} />
                           </span>
-                        )}
-                        {pencairan?.status === "SUDAH_DIBAYAR" && (
+                        ))}
+                        {pencairanList.some((p) => p.status === "SUDAH_DIBAYAR") && (
                           <span
                             className="p-1.5 text-green-600"
-                            title="Sudah dibayar finance"
+                            title="Ada pencairan yang sudah dibayar finance"
                           >
                             <CheckCircle size={16} />
                           </span>
-                        )}
-                        {feeRecord && !pencairan && !showAjukan && (
-                          <span className="text-[10px] text-slate-400 italic">-</span>
                         )}
                         {!feeRecord && (
                           <span className="text-[10px] text-slate-400 italic">-</span>
