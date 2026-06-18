@@ -11,7 +11,7 @@ import {
   FileText, Receipt, Printer, UploadCloud, Ban, PenTool, Clock, ZoomIn, Eye,
   ChevronDown, ChevronUp, Filter, ArrowUpDown, PieChart, CheckCircle2, Wallet,
   Edit2, Building2, Plus, MoreVertical, MessageCircle, TrendingUp,
-  X
+  X, AlertCircle
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
@@ -223,6 +223,8 @@ const Penjualan = () => {
   const [detailData, setDetailData] = useState<PenjualanData | null>(null);
 
   const [isSkemaModalOpen, setIsSkemaModalOpen] = useState(false);
+  /** Mode KPR tanpa biaya admin (6%): biaya KPR = 0, DP tidak dibayar = 0, DP dibayar wajib */
+  const [isBiayaKprNol, setIsBiayaKprNol] = useState(false);
   const [isRevisiSpr, setIsRevisiSpr] = useState(false);
   const [keteranganRevisi, setKeteranganRevisi] = useState('');
   const [selectedPenjualan, setSelectedPenjualan] = useState<PenjualanData | null>(null);
@@ -243,6 +245,8 @@ const Penjualan = () => {
 
   const [isTtdModalOpen, setIsTtdModalOpen] = useState(false);
   const [ttdData, setTtdData] = useState({ nama: '', tanggal: '', sebagai: '' });
+  const [ttdSprRow, setTtdSprRow] = useState<PenjualanData | null>(null);
+  const [activeSprMenuId, setActiveSprMenuId] = useState<string | null>(null);
   const sigCanvas = useRef<SignatureCanvas>(null);
   useEffect(() => {
     const resizeCanvas = () => {
@@ -348,7 +352,8 @@ const Penjualan = () => {
       value: unknown,
       prev: PenjualanData,
       currentBiayaTambahanList: BiayaTambahan[] = biayaTambahanList,
-      currentBiayaTambahanKprList: BiayaTambahan[] = biayaTambahanKprList
+      currentBiayaTambahanKprList: BiayaTambahan[] = biayaTambahanKprList,
+      biayaKprNolMode: boolean = isBiayaKprNol
     ) => {
       const merged = { ...prev, [name]: value };
       const updates: Partial<PenjualanData> = { [name as keyof PenjualanData]: value as never };
@@ -381,16 +386,20 @@ const Penjualan = () => {
         }
 
         let biayaKpr = merged.biayaKpr;
-        if (name === 'biayaKpr') {
+        if (biayaKprNolMode) {
+          biayaKpr = 0;
+        } else if (name === 'biayaKpr') {
           biayaKpr = Number(value);
-        } else if (isAutoCalcTrigger || name === 'plafonAwal' || !biayaKpr) {
+        } else if (isAutoCalcTrigger || name === 'plafonAwal' || name === 'biayaKprNol' || !biayaKpr) {
           biayaKpr = Math.round((plafonAwal || 0) * 0.06);
         }
 
         let plafonKredit = merged.plafonKredit;
         if (name === 'plafonKredit') {
           plafonKredit = Number(value);
-        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr'].includes(name) || !plafonKredit) {
+        } else if (biayaKprNolMode) {
+          plafonKredit = Math.round(plafonAwal || 0);
+        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'biayaKprNol'].includes(name) || !plafonKredit) {
           plafonKredit = Math.round((plafonAwal || 0) + (biayaKpr || 0));
         }
 
@@ -398,7 +407,11 @@ const Penjualan = () => {
         let nilaiPengajuanKpr = merged.nilaiPengajuanKpr;
         if (name === 'nilaiPengajuanKpr') {
           nilaiPengajuanKpr = Number(value);
-        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'biayaTambahan'].includes(name) || !nilaiPengajuanKpr) {
+        } else if (
+          isAutoCalcTrigger ||
+          ['plafonAwal', 'biayaKpr', 'plafonKredit', 'biayaTambahan', 'biayaKprNol'].includes(name) ||
+          !nilaiPengajuanKpr
+        ) {
           nilaiPengajuanKpr = Math.round((plafonKredit || 0) - totalTambahan + totalTambahanKpr);
         }
 
@@ -412,9 +425,11 @@ const Penjualan = () => {
         }
 
         let dpTidakDibayar = merged.dpTidakDibayar;
-        if (name === 'dpTidakDibayar') {
+        if (biayaKprNolMode) {
+          dpTidakDibayar = 0;
+        } else if (name === 'dpTidakDibayar') {
           dpTidakDibayar = Number(value);
-        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'hargaJual'].includes(name) || !dpTidakDibayar) {
+        } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'hargaJual', 'biayaKprNol'].includes(name) || !dpTidakDibayar) {
           dpTidakDibayar = Math.round(((hargaJual || 0) - diskon) * 0.1 - bf);
         }
 
@@ -424,7 +439,9 @@ const Penjualan = () => {
         updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
         updates.dpTidakDibayar = dpTidakDibayar;
         updates.dpDibayar = dpDibayar;
-        updates.dp = (dpDibayar && dpDibayar > 0) ? dpDibayar : dpTidakDibayar;
+        updates.dp = biayaKprNolMode
+          ? (dpDibayar || 0)
+          : ((dpDibayar && dpDibayar > 0) ? dpDibayar : dpTidakDibayar);
         updates.hargaJual = hargaJual;
 
       } else {
@@ -805,16 +822,28 @@ const Penjualan = () => {
 
     const plafonAwal = Math.max(0, base - diskonTerpakai - bf);
 
+    const storedPlafonKredit = Number(item.plafonKredit) || 0;
+    const isZeroBiayaKprMode =
+      caraBayar === 'KPR' &&
+      storedPlafonKredit > 0 &&
+      Math.abs(storedPlafonKredit - plafonAwal) < 1;
+
     let initialBiayaKpr = Number(item.biayaKpr) || 0;
-    let initialPlafonKredit = Number(item.plafonKredit) || 0;
+    let initialPlafonKredit = storedPlafonKredit;
 
     let initialDpTidakDibayar = Number(item.dpTidakDibayar) || 0;
+    let initialDpDibayar = Number(item.dpDibayar) || 0;
     let initialNilaiKpr = Number(item.nilaiPengajuanKpr) || 0;
     let initialDp = Number(item.dp) || 0;
     let initialHargaJual = Number(item.hargaJual) || 0;
 
     if (caraBayar === 'KPR') {
-      if (initialBiayaKpr === 0 || initialPlafonKredit === 0) {
+      if (isZeroBiayaKprMode) {
+        initialBiayaKpr = 0;
+        initialPlafonKredit = plafonAwal;
+        initialDpTidakDibayar = 0;
+        initialDp = initialDpDibayar > 0 ? initialDpDibayar : initialDp;
+      } else if (initialBiayaKpr === 0 || initialPlafonKredit === 0) {
         initialBiayaKpr = Math.round(plafonAwal * 0.06);
         initialPlafonKredit = plafonAwal + initialBiayaKpr;
 
@@ -848,6 +877,7 @@ const Penjualan = () => {
       plafonKredit: initialPlafonKredit,
       plafonAcc: Number(item.plafonAcc) || 0,
       dpTidakDibayar: initialDpTidakDibayar,
+      dpDibayar: initialDpDibayar,
       nilaiPengajuanKpr: initialNilaiKpr,
       dp: initialDp,
       diskonPenjualan: diskonTerpakai,
@@ -876,6 +906,7 @@ const Penjualan = () => {
     })));
     setIsRevisiSpr(isRevisi);
     setKeteranganRevisi('');
+    setIsBiayaKprNol(isZeroBiayaKprMode);
     setIsSkemaModalOpen(true);
   };
 
@@ -947,33 +978,60 @@ const Penjualan = () => {
     updateKprCalculations(biayaTambahanList, newList);
   };
 
+  const openSprTtdModal = (row: PenjualanData) => {
+    setActiveSprMenuId(null);
+    setTtdSprRow(row);
+    setTtdData({
+      nama: row.nama,
+      tanggal: new Date().toISOString().split('T')[0],
+      sebagai: 'Pemesan',
+    });
+    setIsTtdModalOpen(true);
+    setTimeout(() => sigCanvas.current?.clear(), 100);
+  };
+
+  const closeTtdModal = () => {
+    setIsTtdModalOpen(false);
+    setTtdSprRow(null);
+  };
+
   const saveSignature = async () => {
     if (sigCanvas.current?.isEmpty()) {
       alert("Tanda tangan tidak boleh kosong!");
       return;
     }
+    if (!ttdData.nama.trim()) {
+      alert("Nama penandatangan wajib diisi!");
+      return;
+    }
     const canvas = sigCanvas.current?.getCanvas();
     if (!canvas) return;
     const signatureBase64 = canvas.toDataURL('image/png');
+    const noTransaksi = ttdSprRow?.id ?? printData?.id;
+    if (!noTransaksi) return;
 
     try {
       await uploadSignatureMutation.mutateAsync({
-        noTransaksi: printData.id,
+        noTransaksi,
         signatureBase64,
         nama: ttdData.nama,
         peran: ttdData.sebagai,
         tanggal: ttdData.tanggal,
       });
 
-      alert(`Tanda tangan berhasil disimpan!`);
-      setPrintData((prev: any) => ({
-        ...prev,
-        ttdData: {
-          ...prev.ttdData,
-          [ttdData.sebagai]: { nama: ttdData.nama, tanggal: ttdData.tanggal, url: signatureBase64 }
-        }
-      }));
-      setIsTtdModalOpen(false);
+      if (ttdSprRow) {
+        alert(`Tanda tangan ${ttdData.sebagai} berhasil disimpan dan SPR telah diupdate!`);
+      } else {
+        alert("Tanda tangan berhasil disimpan!");
+        setPrintData((prev: any) => ({
+          ...prev,
+          ttdData: {
+            ...prev.ttdData,
+            [ttdData.sebagai]: { nama: ttdData.nama, tanggal: ttdData.tanggal, url: signatureBase64 }
+          }
+        }));
+      }
+      closeTtdModal();
     } catch (error: any) {
       alert(error.response?.data?.message || "Gagal menyimpan tanda tangan");
     }
@@ -984,6 +1042,9 @@ const Penjualan = () => {
 
     setFormData((prev) => {
       let updates = handleRecalculateDependencies(name, finalValue, prev);
+      if (name === 'caraPembayaran' && finalValue !== 'KPR') {
+        setIsBiayaKprNol(false);
+      }
       if (name === 'perumahan') {
         updates = { ...updates, blok: '', nomorUnit: '', tipe: '', luasBangunan: 0, luasTanah: 0, hargaDasar: 0 };
       }
@@ -1004,6 +1065,24 @@ const Penjualan = () => {
 
     if (errors[name as keyof PenjualanData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleBiayaKprNolToggle = (checked: boolean) => {
+    setIsBiayaKprNol(checked);
+    setFormData((prev) => {
+      const updates = handleRecalculateDependencies(
+        'biayaKprNol',
+        checked,
+        prev,
+        biayaTambahanList,
+        biayaTambahanKprList,
+        checked
+      );
+      return { ...prev, ...updates };
+    });
+    if (errors.dpDibayar) {
+      setErrors((prev) => ({ ...prev, dpDibayar: undefined }));
     }
   };
 
@@ -1061,6 +1140,11 @@ const Penjualan = () => {
 
     const newErrors: Record<string, string> = {};
     if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
+    if (formData.caraPembayaran === 'KPR' && isBiayaKprNol) {
+      if (!formData.dpDibayar || Number(formData.dpDibayar) <= 0) {
+        newErrors.dpDibayar = 'DP Dibayar wajib diisi jika tanpa biaya KPR';
+      }
+    }
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -1078,13 +1162,17 @@ const Penjualan = () => {
         hargaJual: formData.hargaJual,
         plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
         plafonAcc: formData.caraPembayaran === 'KPR' ? formData.plafonAcc : undefined,
-        biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
+        biayaKpr: formData.caraPembayaran === 'KPR'
+          ? (isBiayaKprNol ? 0 : formData.biayaKpr)
+          : undefined,
         plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
-        dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
+        dpTidakDibayar: formData.caraPembayaran === 'KPR'
+          ? (isBiayaKprNol ? 0 : formData.dpTidakDibayar)
+          : undefined,
         dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: (isKpr(formData.caraPembayaran) || isCashBertahap(formData.caraPembayaran))
-          ? formData.dp
+          ? (isBiayaKprNol ? formData.dpDibayar : formData.dp)
           : undefined,
         termin: isCashBertahap(formData.caraPembayaran) ? Number(formData.termin) : undefined,
         diskonPenjualan: formData.diskonPenjualan,
@@ -1106,6 +1194,7 @@ const Penjualan = () => {
 
       await updateMutation.mutateAsync({ id: selectedPenjualan!.id!, data: updatePayload });
       setIsSkemaModalOpen(false);
+      setIsBiayaKprNol(false);
       setFormData(initialFormState);
       setSelectedPenjualan(null);
       setBiayaTambahanList([]);
@@ -1356,14 +1445,55 @@ const Penjualan = () => {
                     
                     {row.fileSpr ? (
                       <div className="w-full flex gap-2 mt-1">
-                        <a
-                          href={row.fileSpr}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
-                        >
-                          <FileText size={14} /> Lihat SPR
-                        </a>
+                        <div className="relative flex-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveSprMenuId(activeSprMenuId === row.id ? null : (row.id as string));
+                            }}
+                            className="w-full flex justify-center items-center gap-1.5 px-3 py-2.5 bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                          >
+                            <FileText size={14} /> SPR
+                            <ChevronDown size={12} className={`transition-transform ${activeSprMenuId === row.id ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {activeSprMenuId === row.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-[80]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveSprMenuId(null);
+                                }}
+                              />
+                              <div className="absolute left-0 right-0 top-full mt-1 z-[90] bg-white border border-slate-200 rounded-lg shadow-lg py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                                <a
+                                  href={row.fileSpr}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveSprMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                                >
+                                  <Eye size={14} className="text-blue-600" /> Lihat SPR
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openSprTtdModal(row);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                                >
+                                  <PenTool size={14} className="text-slate-600" /> Tanda Tangani SPR
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
 
                         {row.caraPembayaran === 'KPR' && (
                           <>
@@ -2326,7 +2456,7 @@ const Penjualan = () => {
         </form>
       </Modal>
 
-      <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} title="Buat Surat Pesanan Rumah (SPR)">
+      <Modal isOpen={isSkemaModalOpen} onClose={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); setIsBiayaKprNol(false); }} title="Buat Surat Pesanan Rumah (SPR)">
         {selectedPenjualan && (
           <form onSubmit={handleSkemaSubmit} className="space-y-2">
 
@@ -2490,9 +2620,22 @@ const Penjualan = () => {
                     <div className="flex items-center justify-between mt-3">
                       <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1.5">
                         <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
-                        <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
-                          Default (6%): Rp {formatTanpaDesimal((formData.plafonAwal || 0) * 0.06)}
-                        </span>
+                        {!isBiayaKprNol && (
+                          <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
+                            Default (6%): Rp {formatTanpaDesimal((formData.plafonAwal || 0) * 0.06)}
+                          </span>
+                        )}
+                        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isBiayaKprNol}
+                            onChange={(e) => handleBiayaKprNolToggle(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                          <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">
+                            Tanpa Biaya KPR (0%)
+                          </span>
+                        </label>
                       </div>
                       <div className="w-40 sm:w-44 shrink-0">
                         <CurrencyInput
@@ -2500,6 +2643,7 @@ const Penjualan = () => {
                           value={formData.biayaKpr || 0}
                           onValueChange={handleCurrencyChange}
                           placeholder="0"
+                          disabled={isBiayaKprNol}
                         />
                       </div>
                     </div>
@@ -2575,7 +2719,12 @@ const Penjualan = () => {
                       )}
 
                       <div className="flex items-center justify-between mt-3">
-                        <span className="text-sm font-bold text-blue-700 w-full">Total Nilai Pengajuan KPR</span>
+                        <div className="w-full">
+                          <span className="text-sm font-bold text-blue-700">Total Nilai Pengajuan KPR</span>
+                          {isBiayaKprNol && (
+                            <p className="text-[10px] text-blue-500 font-medium mt-0.5">Dapat di-override manual</p>
+                          )}
+                        </div>
                         <div className="w-40 sm:w-44 shrink-0">
                           <CurrencyInput
                             name="nilaiPengajuanKpr"
@@ -2590,7 +2739,9 @@ const Penjualan = () => {
 
                     <div className="pt-3 border-t border-slate-200">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-blue-600 w-full">DP Dibayar (Opsional)</span>
+                        <span className={`text-sm font-bold w-full ${isBiayaKprNol ? 'text-red-600' : 'text-blue-600'}`}>
+                          DP Dibayar {isBiayaKprNol ? '(Wajib)' : '(Opsional)'}
+                        </span>
                         <div className="w-40 sm:w-44 shrink-0">
                           <CurrencyInput
                             name="dpDibayar"
@@ -2600,17 +2751,26 @@ const Penjualan = () => {
                           />
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-500 font-mono mt-1">
-                        <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini.
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
+                      {errors.dpDibayar && (
+                        <p className="text-[10px] text-red-600 font-medium mt-1">{errors.dpDibayar}</p>
+                      )}
+                      {!isBiayaKprNol && (
+                        <p className="text-[10px] text-slate-500 font-mono mt-1">
+                          <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini.
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-sm font-bold text-amber-600 w-full">
+                          DP Tidak Dibayar 10%
+                          {isBiayaKprNol && <span className="text-[10px] font-medium text-slate-400 ml-1">(otomatis 0)</span>}
+                        </span>
                         <div className="w-40 sm:w-44 shrink-0">
                           <CurrencyInput
                             name="dpTidakDibayar"
                             value={formData.dpTidakDibayar || 0}
                             onValueChange={handleCurrencyChange}
                             placeholder="0"
+                            disabled={isBiayaKprNol}
                           />
                         </div>
                       </div>
@@ -2790,7 +2950,7 @@ const Penjualan = () => {
                 )}
               </div>
               <div className="flex justify-end gap-3 w-1/2">
-                <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); }} className="px-6 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-colors shadow-sm cursor-pointer">
+                <button type="button" onClick={() => { setIsSkemaModalOpen(false); setSelectedPenjualan(null); setIsBiayaKprNol(false); }} className="px-6 py-2.5 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100 transition-colors shadow-sm cursor-pointer">
                   Batal
                 </button>
                 <button
@@ -2969,6 +3129,7 @@ const Penjualan = () => {
 
           {printType === 'kwitansi' && (
             <button onClick={() => {
+              setTtdSprRow(null);
               setTtdData({
                 nama: 'Marketing',
                 tanggal: new Date().toISOString().split('T')[0],
@@ -3063,10 +3224,34 @@ const Penjualan = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={isTtdModalOpen} onClose={() => setIsTtdModalOpen(false)} title="Tanda Tangan Digital Kwitansi">
+      <Modal isOpen={isTtdModalOpen} onClose={closeTtdModal} title={ttdSprRow ? "Tanda Tangan Digital SPR" : "Tanda Tangan Digital Kwitansi"}>
         <div className="space-y-2">
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 grid grid-cols-1 md:grid-cols-2">
-            <Input label="Nama Penandatangan" value={ttdData.nama} onChange={(e) => setTtdData({ ...ttdData, nama: e.target.value })} placeholder="Nama Marketing..." />
+          {ttdSprRow?.ttdData && ttdSprRow.ttdData[ttdData.sebagai] !== undefined && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 text-amber-800 text-sm">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold">Perhatian: {ttdData.sebagai} sudah menandatangani dokumen ini.</p>
+                <p className="text-xs mt-0.5 text-amber-700">Jika Anda melanjutkan, tanda tangan sebelumnya akan digantikan dengan yang baru.</p>
+              </div>
+            </div>
+          )}
+
+          <div className={`bg-white p-4 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5 grid grid-cols-1 ${ttdSprRow ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+            {ttdSprRow && (
+              <Select
+                label="Sebagai"
+                name="sebagai"
+                value={ttdData.sebagai}
+                onChange={(e) => setTtdData({ ...ttdData, sebagai: e.target.value })}
+                options={[
+                  { value: 'Pemesan', label: 'Pemesan' },
+                  { value: 'Marketing', label: 'Marketing' },
+                  { value: 'Supervisor', label: 'Supervisor' },
+                  { value: 'Manager', label: 'Manager' },
+                ]}
+              />
+            )}
+            <Input label="Nama Penandatangan" value={ttdData.nama} onChange={(e) => setTtdData({ ...ttdData, nama: e.target.value })} placeholder={ttdSprRow ? "Masukkan nama..." : "Nama Marketing..."} />
             <Input label="Tanggal Tanda Tangan" type="date" value={ttdData.tanggal} onChange={(e) => setTtdData({ ...ttdData, tanggal: e.target.value })} />
           </div>
           <div>
@@ -3089,7 +3274,7 @@ const Penjualan = () => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
-            <button onClick={() => setIsTtdModalOpen(false)} disabled={uploadSignatureMutation.isPending} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-bold cursor-pointer hover:bg-slate-100 transition-colors shadow-sm disabled:opacity-50">Batal</button>
+            <button onClick={closeTtdModal} disabled={uploadSignatureMutation.isPending} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-sm font-bold cursor-pointer hover:bg-slate-100 transition-colors shadow-sm disabled:opacity-50">Batal</button>
             <button onClick={saveSignature} disabled={uploadSignatureMutation.isPending} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50">
               {uploadSignatureMutation.isPending ? "Menyimpan..." : "Simpan Tanda Tangan"}
             </button>
