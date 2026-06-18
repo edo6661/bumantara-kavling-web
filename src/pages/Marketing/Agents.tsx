@@ -25,6 +25,7 @@ import type { AgentPencairanData, AgentPencairanTahap } from "../../services/age
 import {
   calcPencairanAmountsForTahap,
   getNextPencairanTahap,
+  getPencairanBlockReason,
   getPencairanPaymentStatus,
   getTahapLabel,
 } from "../../utils/agentPencairan";
@@ -641,6 +642,12 @@ const Agents = () => {
                   const nextTahap = feeRecord
                     ? getNextPencairanTahap(row, feeRecord, pencairanList, detail)
                     : null;
+                  const blockReason = getPencairanBlockReason(
+                    row,
+                    feeRecord,
+                    pencairanList,
+                    detail
+                  );
                   const waitingPencairan = pencairanList.filter(
                     (p) => p.status === "MENUNGGU_PEMBAYARAN"
                   );
@@ -707,40 +714,48 @@ const Agents = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {nextTahap && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAjukanPencairan(feeRecord!, saleLabel, row, nextTahap, detail);
-                            }}
-                            disabled={ajukanPencairanMutation.isPending}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer disabled:opacity-50"
-                            title={`Ajukan pencairan tahap ${nextTahap}`}
-                          >
-                            <Banknote size={16} />
-                          </button>
-                        )}
-                        {waitingPencairan.map((p) => (
+                      <div className="flex flex-col items-center justify-center gap-1 min-w-[88px]">
+                        <div className="flex items-center justify-center gap-1">
+                          {nextTahap && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAjukanPencairan(feeRecord!, saleLabel, row, nextTahap, detail);
+                              }}
+                              disabled={ajukanPencairanMutation.isPending}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"
+                              title={`Ajukan pencairan tahap ${nextTahap}`}
+                            >
+                              <Banknote size={14} />
+                              Ajukan
+                            </button>
+                          )}
+                          {waitingPencairan.map((p) => (
+                            <span
+                              key={p.id}
+                              className="p-1.5 text-amber-500"
+                              title={`Menunggu pembayaran finance (${p.tahap})`}
+                            >
+                              <Clock size={16} />
+                            </span>
+                          ))}
+                          {pencairanList.some((p) => p.status === "SUDAH_DIBAYAR") && (
+                            <span
+                              className="p-1.5 text-green-600"
+                              title="Ada pencairan yang sudah dibayar finance"
+                            >
+                              <CheckCircle size={16} />
+                            </span>
+                          )}
+                        </div>
+                        {!nextTahap && blockReason && (
                           <span
-                            key={p.id}
-                            className="p-1.5 text-amber-500"
-                            title={`Menunggu pembayaran finance (${p.tahap})`}
+                            className="text-[9px] leading-tight text-slate-500 max-w-[120px] text-center"
+                            title={blockReason}
                           >
-                            <Clock size={16} />
+                            {blockReason}
                           </span>
-                        ))}
-                        {pencairanList.some((p) => p.status === "SUDAH_DIBAYAR") && (
-                          <span
-                            className="p-1.5 text-green-600"
-                            title="Ada pencairan yang sudah dibayar finance"
-                          >
-                            <CheckCircle size={16} />
-                          </span>
-                        )}
-                        {!feeRecord && (
-                          <span className="text-[10px] text-slate-400 italic">-</span>
                         )}
                       </div>
                     </td>

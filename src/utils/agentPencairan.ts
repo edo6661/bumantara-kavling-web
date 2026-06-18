@@ -134,6 +134,64 @@ export const getNextPencairanTahap = (
   return null;
 };
 
+/** Alasan tombol ajukan belum muncul — untuk ditampilkan di UI */
+export const getPencairanBlockReason = (
+  agent: AgentData,
+  feeRecord: FeeAgentData | undefined,
+  pencairanList: AgentPencairanData[],
+  detail?: SaleDetail,
+): string | null => {
+  if (getNextPencairanTahap(agent, feeRecord, pencairanList, detail)) {
+    return null;
+  }
+
+  if (!feeRecord) {
+    return 'Data fee agent belum ada';
+  }
+
+  const existingTahaps = pencairanList.map((p) => p.tahap);
+  const isCash = isCashPayment(detail?.caraPembayaran);
+  const isBatal = isPenjualanBatal(detail?.status);
+  const hasPpjb = hasPpjbComplete(detail?.progressPenjualan);
+  const hasSp3k = hasSp3kComplete(detail?.progressPenjualan);
+  const bookingPaid = isBookingFeePaid(detail);
+  const nilaiAjb = Number(detail?.progressPenjualan?.nilaiAjb) || 0;
+  const ppjbRecord = pencairanList.find((p) => p.tahap === 'PPJB');
+  const ppjbSudahDibayar = ppjbRecord?.status === 'SUDAH_DIBAYAR';
+  const ppjbMenunggu = ppjbRecord?.status === 'MENUNGGU_PEMBAYARAN';
+
+  if (isBatal) {
+    if (!bookingPaid) return 'Booking fee belum lunas';
+    if (existingTahaps.includes('PPJB')) return 'Closing fee sudah diajukan';
+    return 'Belum memenuhi syarat';
+  }
+
+  if (isCash) {
+    if (!existingTahaps.includes('PPJB')) {
+      if (!hasPpjb) return 'Upload PPJB di Progress Penjualan';
+      if (!bookingPaid) return 'Booking fee belum lunas';
+      return 'Belum memenuhi syarat PPJB';
+    }
+    if (ppjbMenunggu) return 'Menunggu finance bayar PPJB';
+    if (!ppjbSudahDibayar) return 'Tahap PPJB belum dibayar finance';
+    if (nilaiAjb <= 0) return 'Nilai AJB belum diisi';
+    if (existingTahaps.includes('AJB')) return 'Semua tahap sudah diajukan';
+    return 'Belum memenuhi syarat AJB';
+  }
+
+  // KPR
+  if (!existingTahaps.includes('PPJB')) {
+    if (!hasSp3k) return 'Upload SP3K di Progress Penjualan';
+    if (!bookingPaid) return 'Booking fee belum lunas';
+    return 'Belum memenuhi syarat closing fee';
+  }
+  if (ppjbMenunggu) return 'Menunggu finance bayar closing fee';
+  if (!ppjbSudahDibayar) return 'Closing fee belum dibayar finance';
+  if (nilaiAjb <= 0) return 'Nilai AJB belum diisi';
+  if (existingTahaps.includes('AJB')) return 'Semua tahap sudah diajukan';
+  return 'Belum memenuhi syarat komisi AJB';
+};
+
 export const getPencairanPaymentStatus = (pencairanList: AgentPencairanData[]) => {
   if (pencairanList.length === 0) {
     return { label: 'Belum', className: 'bg-red-100 text-red-700' };
