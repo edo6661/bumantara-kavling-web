@@ -1215,9 +1215,6 @@ const Agents = () => {
         onClose={() => setPencairanModal(null)}
         preview={pencairanPreview}
         saleLabel={pencairanModal?.saleLabel ?? ""}
-        agent={pencairanModal?.agent ?? ({} as AgentData)}
-        feeRecord={pencairanModal?.feeRecord ?? ({} as FeeAgentData)}
-        detail={pencairanModal?.detail}
         isSubmitting={ajukanPencairanMutation.isPending}
         onConfirm={(selected) => void handleConfirmAjukanPencairan(selected)}
       />

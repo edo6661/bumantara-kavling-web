@@ -89,9 +89,6 @@ export const buildPencairanAjukanPreview = (
 };
 
 export const calcSelectedPencairanTotal = (
-  agent: AgentData,
-  feeRecord: FeeAgentData,
-  detail: SaleDetail | undefined,
   preview: PencairanAjukanPreview,
   selected: Set<PencairanKomponenKey>,
 ) => {

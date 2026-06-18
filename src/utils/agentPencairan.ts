@@ -41,26 +41,6 @@ export const hasSp3kComplete = (
   progress?: { fileSp3k?: string | null } | null,
 ) => !!progress?.fileSp3k;
 
-const buildCalcCtx = (
-  agent: AgentData,
-  feeRecord: FeeAgentData,
-  detail?: SaleDetail,
-) => ({
-  penjualanStatus: detail?.status,
-  caraPembayaran: detail?.caraPembayaran ?? null,
-  hargaJual: Number(detail?.hargaJual) || 0,
-  agent: {
-    feeMarketingPct: agent.feeMarketingPct,
-    feeClosingNominal: agent.feeClosingNominal,
-    potonganPph: agent.potonganPph,
-  },
-  feeAgent: { closingNominal: feeRecord.closingNominal },
-  nilaiAjb: Number(detail?.progressPenjualan?.nilaiAjb) || 0,
-  tagihanList: detail?.tagihan ?? [],
-  hasPpjb: hasPpjbComplete(detail?.progressPenjualan),
-  hasSp3k: hasSp3kComplete(detail?.progressPenjualan),
-});
-
 const sumSudahDiajukan = (pencairanList: AgentPencairanData[]) => ({
   closingNominal: pencairanList.reduce((s, p) => s + Number(p.closingNominal), 0),
   marketingNominal: pencairanList.reduce((s, p) => s + Number(p.marketingNominal), 0),
@@ -210,34 +190,6 @@ export const hasAnyEligiblePencairan = (
   return getPencairanKomponen(agent, feeRecord, pencairanList, detail).some(
     (k) => k.eligible && k.nominalSisa > 0,
   );
-};
-
-export const calcSelectedPencairanTotal = (
-  agent: AgentData,
-  feeRecord: FeeAgentData,
-  detail: SaleDetail | undefined,
-  selected: Set<PencairanKomponenKey>,
-) => {
-  const komponen = getPencairanKomponen(agent, feeRecord, [], detail);
-  let closingNominal = 0;
-  let marketingNominal = 0;
-
-  for (const k of komponen) {
-    if (!selected.has(k.key) || !k.eligible) continue;
-    if (k.key === 'closing') closingNominal = k.nominalSisa;
-    if (k.key === 'marketing') marketingNominal = k.nominalSisa;
-  }
-
-  const potonganPph = calcPotonganPphFromReferensi(agent, feeRecord, detail);
-  const totalTransfer = closingNominal + marketingNominal - potonganPph;
-
-  return {
-    closingNominal,
-    marketingNominal,
-    potonganPph,
-    totalTransfer,
-    totalFeeReferensi: getTotalFeeReferensi(agent, feeRecord, detail),
-  };
 };
 
 export const getPencairanBlockReason = (

@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Modal from '../shared/Modal';
 import { formatRupiah } from '../../utils/formatters';
-import type { AgentData } from '../../types/models/agent';
-import type { FeeAgentData } from '../../services/feeAgent.service';
 import type {
   PencairanAjukanPreview,
   PencairanKomponenKey,
 } from '../../utils/agentPencairanPreview';
 import { calcSelectedPencairanTotal } from '../../utils/agentPencairanPreview';
-import type { SaleDetail } from '../../utils/agentPencairan';
 import { Info } from 'lucide-react';
 
 interface AjukanPencairanModalProps {
@@ -16,9 +13,6 @@ interface AjukanPencairanModalProps {
   onClose: () => void;
   preview: PencairanAjukanPreview | null;
   saleLabel: string;
-  agent: AgentData;
-  feeRecord: FeeAgentData;
-  detail?: SaleDetail;
   isSubmitting: boolean;
   onConfirm: (selected: Set<PencairanKomponenKey>) => void;
 }
@@ -81,9 +75,6 @@ const AjukanPencairanModal = ({
   onClose,
   preview,
   saleLabel,
-  agent,
-  feeRecord,
-  detail,
   isSubmitting,
   onConfirm,
 }: AjukanPencairanModalProps) => {
@@ -96,8 +87,8 @@ const AjukanPencairanModal = ({
 
   const totals = useMemo(() => {
     if (!preview) return null;
-    return calcSelectedPencairanTotal(agent, feeRecord, detail, preview, selected);
-  }, [preview, selected, agent, feeRecord, detail]);
+    return calcSelectedPencairanTotal(preview, selected);
+  }, [preview, selected]);
 
   const toggleKomponen = (key: PencairanKomponenKey, checked: boolean) => {
     setSelected((prev) => {
