@@ -73,8 +73,15 @@ export const buildPencairanAjukanPreview = (
   const defaultGross = komponenSekarang.reduce((s, k) => s + k.nominalDicairkan, 0);
   const totalTransfer = defaultGross - potonganPph;
 
+  const cairSekaligusHint =
+    komponenSekarang.length > 1
+      ? ' Jika semua syarat sudah lengkap, closing fee dan komisi marketing bisa diajukan sekaligus dalam satu pengajuan (keduanya tercentang otomatis).'
+      : '';
+
   const catatanTahap =
-    'Pilih komponen yang ingin diajukan. Pot. PPh dihitung dari total fee (+ closing) penuh, ' +
+    'Pilih komponen yang ingin diajukan.' +
+    cairSekaligusHint +
+    ' Pot. PPh dihitung dari total fee (+ closing) penuh, ' +
     `bukan hanya komponen terpilih. Rumus: ${formatPct(potonganPphPct)}% × ${formatRupiahShort(totalFeeReferensi)} = ${formatRupiahShort(potonganPph)}.`;
 
   return {

@@ -8,6 +8,7 @@ export type SaleDetail = {
   status?: string | null;
   caraPembayaran?: string | null;
   hargaJual?: number | null;
+  fileBuktiBooking?: string | null;
   tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }>;
   progressPenjualan?: {
     nilaiAjb?: number | null;
@@ -16,6 +17,56 @@ export type SaleDetail = {
     fileSp3k?: string | null;
     fileSuratPernyataanAkadKredit?: string | null;
   } | null;
+};
+
+export type PenjualanSaleRef = {
+  id: number;
+  noTransaksi: string;
+  status?: string | null;
+  hargaJual?: number | null;
+  caraPembayaran?: string | null;
+};
+
+const inferTagihanTujuanFromPembayaran = (pembayaran: string) => {
+  const p = pembayaran.trim().toLowerCase();
+  if (p.includes('booking')) return 'BOOKING_FEE';
+  if (/^cicilan ke-\d+$/.test(p)) return 'HARGA_JUAL';
+  if (
+    p.includes('down payment') ||
+    p.includes('uang muka') ||
+    (p.includes('dp') && !p.includes('booking'))
+  ) {
+    return 'DP';
+  }
+  return 'LAINNYA';
+};
+
+const effectiveTagihanTujuan = (tagihan: {
+  tujuan?: string | null;
+  pembayaran?: string;
+}) => {
+  if (tagihan.tujuan != null && tagihan.tujuan !== 'LAINNYA') {
+    return tagihan.tujuan;
+  }
+  return inferTagihanTujuanFromPembayaran(tagihan.pembayaran ?? '');
+};
+
+/** Gabungkan data penjualan dari list API dengan ringkasan di agent */
+export const resolveSaleDetail = (
+  sale: PenjualanSaleRef,
+  penjualanList: Array<PenjualanSaleRef & SaleDetail>,
+): SaleDetail => {
+  const matched = penjualanList.find(
+    (p) => p.id === sale.id || p.noTransaksi === sale.noTransaksi,
+  );
+  return {
+    status: matched?.status ?? sale.status,
+    caraPembayaran: matched?.caraPembayaran ?? sale.caraPembayaran,
+    hargaJual: matched?.hargaJual ?? sale.hargaJual,
+    fileBuktiBooking: matched?.fileBuktiBooking,
+    tagihan: matched?.tagihan,
+    progressPenjualan: matched?.progressPenjualan,
+  };
 };
 
 export type PencairanKomponenKey = 'closing' | 'marketing';
@@ -28,12 +79,13 @@ export const isCashPayment = (caraPembayaran?: string | null) => {
 export const isPenjualanBatal = (status?: string | null) =>
   (status ?? '').toUpperCase() === 'BATAL';
 
-export const isBookingFeePaid = (detail?: SaleDetail) =>
-  (detail?.tagihan ?? []).some(
+export const isBookingFeePaid = (detail?: SaleDetail) => {
+  if (detail?.fileBuktiBooking) return true;
+  return (detail?.tagihan ?? []).some(
     (t) =>
-      (t.tujuan === 'BOOKING_FEE' || t.pembayaran?.toLowerCase().includes('booking')) &&
-      t.status === 'LUNAS',
+      effectiveTagihanTujuan(t) === 'BOOKING_FEE' && t.status === 'LUNAS',
   );
+};
 
 export const hasPpjbComplete = (
   progress?: SaleDetail['progressPenjualan'],
@@ -141,7 +193,7 @@ export const getPencairanKomponen = (
     nominalPenuh: closingFull,
     nominalSisa: closingSisa,
     eligible: false,
-    alasan: '',
+    alasan: closingSisa > 0 ? 'Belum memenuhi syarat closing fee' : 'Closing fee sudah diajukan semua',
   };
 
   if (closingSisa > 0) {

@@ -27,6 +27,7 @@ import {
   hasAnyEligiblePencairan,
   getPencairanBlockReason,
   getPencairanPaymentStatus,
+  resolveSaleDetail,
   type SaleDetail,
 } from "../../utils/agentPencairan";
 import type { PencairanKomponenKey } from "../../utils/agentPencairanPreview";
@@ -35,6 +36,11 @@ import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
 import CurrencyInput from '../../components/shared/CurrencyInput';
+import {
+  applyPerusahaanCommercialToAgent,
+  getPerusahaanById,
+  isAgentPerusahaan,
+} from '../../utils/agentCommercialProfile';
 
 interface AgentFormState {
   id: number | '';
@@ -346,6 +352,12 @@ const Agents = () => {
 
   const openModal = (item?: AgentData) => {
     if (item) {
+      const perusahaan = item.perusahaanAgent?.id
+        ? getPerusahaanById(perusahaanList, item.perusahaanAgent.id)
+        : null;
+      const commercial = isAgentPerusahaan(item.type)
+        ? applyPerusahaanCommercialToAgent(item, perusahaan)
+        : item;
       setFormData({
         id: item.id,
         nik: item.nik,
@@ -355,12 +367,12 @@ const Agents = () => {
         email: item.email || '',
         type: item.type || 'PRIBADI',
         perusahaanAgentId: item.perusahaanAgent?.id || '',
-        namaBank: item.namaBank || '',
-        noRekening: item.noRekening || '',
-        atasNamaRekening: item.atasNamaRekening || '',
-        feeMarketingPct: item.feeMarketingPct ?? '',
-        feeClosingNominal: item.feeClosingNominal ?? '',
-        potonganPph: item.potonganPph ?? '',
+        namaBank: commercial.namaBank || '',
+        noRekening: commercial.noRekening || '',
+        atasNamaRekening: commercial.atasNamaRekening || '',
+        feeMarketingPct: commercial.feeMarketingPct ?? '',
+        feeClosingNominal: commercial.feeClosingNominal ?? '',
+        potonganPph: commercial.potonganPph ?? '',
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
       setIsEditing(true);
@@ -379,7 +391,40 @@ const Agents = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === 'perusahaanAgentId' && isAgentPerusahaan(prev.type)) {
+        const perusahaan = getPerusahaanById(perusahaanList, value);
+        return {
+          ...next,
+          feeMarketingPct: perusahaan?.feeMarketingPct ?? '',
+          feeClosingNominal: perusahaan?.feeClosingNominal ?? '',
+          potonganPph: perusahaan?.potonganPph ?? '',
+          namaBank: perusahaan?.namaBank ?? '',
+          noRekening: perusahaan?.noRekening ?? '',
+          atasNamaRekening: perusahaan?.atasNamaRekening ?? '',
+        };
+      }
+      if (name === 'type' && value === 'PERUSAHAAN') {
+        return {
+          ...next,
+          perusahaanAgentId: '',
+          feeMarketingPct: '',
+          feeClosingNominal: '',
+          potonganPph: '',
+          namaBank: '',
+          noRekening: '',
+          atasNamaRekening: '',
+        };
+      }
+      if (name === 'type' && value === 'PRIBADI') {
+        return {
+          ...next,
+          perusahaanAgentId: '',
+        };
+      }
+      return next;
+    });
 
     if (errors[name]) {
       setErrors((prev) => {
@@ -452,6 +497,8 @@ const Agents = () => {
       }
     });
 
+    const isPerusahaan = formData.type === 'PERUSAHAAN';
+
     const payload: CreateAgentDTO = {
       nik: formData.nik,
       nama: formData.nama,
@@ -459,15 +506,24 @@ const Agents = () => {
       email: formData.email || undefined,
       alamat: formData.alamat || undefined,
       type: formData.type,
-      perusahaanAgentId: formData.type === 'PERUSAHAAN' ? Number(formData.perusahaanAgentId) : undefined,
-      namaBank: formData.namaBank || null,
-      noRekening: formData.noRekening || null,
-      atasNamaRekening: formData.atasNamaRekening || null,
-      feeMarketingPct: formData.feeMarketingPct !== '' ? Number(formData.feeMarketingPct) : undefined,
-      feeClosingNominal: formData.feeClosingNominal !== '' ? Number(formData.feeClosingNominal) : undefined,
-      potonganPph: formData.potonganPph !== '' ? Number(formData.potonganPph) : undefined,
+      perusahaanAgentId: isPerusahaan ? Number(formData.perusahaanAgentId) : undefined,
+      namaBank: isPerusahaan ? null : (formData.namaBank || null),
+      noRekening: isPerusahaan ? null : (formData.noRekening || null),
+      atasNamaRekening: isPerusahaan ? null : (formData.atasNamaRekening || null),
       pics: validPics.length > 0 ? validPics : undefined,
     };
+
+    if (!isPerusahaan) {
+      if (formData.feeMarketingPct !== '') {
+        payload.feeMarketingPct = Number(formData.feeMarketingPct);
+      }
+      if (formData.feeClosingNominal !== '') {
+        payload.feeClosingNominal = Number(formData.feeClosingNominal);
+      }
+      if (formData.potonganPph !== '') {
+        payload.potonganPph = Number(formData.potonganPph);
+      }
+    }
 
     try {
       if (isEditing && formData.id) {
@@ -637,10 +693,7 @@ const Agents = () => {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {relatedSales.map((sale: PenjualanAgentData) => {
-                  const detail = penjualanList.find(
-                    (p: { id: number; noTransaksi?: string }) =>
-                      p.id === sale.id || p.noTransaksi === sale.noTransaksi
-                  );
+                  const detail = resolveSaleDetail(sale, penjualanList);
                   const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
                   const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
                   const pencairanList = feeRecord ? (pencairanByFeeAgentId.get(feeRecord.id) ?? []) : [];
@@ -841,45 +894,92 @@ const Agents = () => {
               <Input label="Nama Lengkap / Perusahaan" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Sesuai KTP" />
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
               <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
-                  label="Fee Marketing (%)"
-                  name="feeMarketingPct"
-                  type="number"
-                  step="any"
-                  value={formData.feeMarketingPct}
-                  onChange={handleChange}
-                  placeholder="Contoh: 2.5"
-                />
-                <div className="w-full">
-                  <CurrencyInput
-                    label="Fee Closing (Rp)"
-                    name="feeClosingNominal"
-                    value={Number(formData.feeClosingNominal) || 0}
-                    onValueChange={(_, val) => handleCurrencyChange('feeClosingNominal', val)}
-                    placeholder="0"
-                  />
-                </div>
-                <Input
-                  label="Potongan PPh (%)"
-                  name="potonganPph"
-                  type="number"
-                  step="any"
-                  value={formData.potonganPph}
-                  onChange={handleChange}
-                  placeholder="Contoh: 2.5"
-                />
+              <div className="md:col-span-2">
+                {formData.type === 'PERUSAHAAN' ? (
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
+                    <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">
+                      Fee & Rekening — otomatis dari perusahaan
+                    </p>
+                    {!formData.perusahaanAgentId ? (
+                      <p className="text-sm text-slate-600">Pilih perusahaan terlebih dahulu.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase">Fee Marketing</p>
+                          <p className="font-semibold text-slate-900">{formData.feeMarketingPct !== '' ? `${formData.feeMarketingPct}%` : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase">Fee Closing</p>
+                          <p className="font-semibold text-slate-900">{formData.feeClosingNominal !== '' ? formatRupiah(Number(formData.feeClosingNominal)) : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase">Pot. PPh</p>
+                          <p className="font-semibold text-slate-900">{formData.potonganPph !== '' ? `${formData.potonganPph}%` : '-'}</p>
+                        </div>
+                        <div className="md:col-span-3 pt-2 border-t border-blue-100 grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase">Bank</p>
+                            <p className="font-semibold text-slate-900">{formData.namaBank || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase">No. Rekening</p>
+                            <p className="font-semibold text-slate-900">{formData.noRekening || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase">Atas Nama</p>
+                            <p className="font-semibold text-slate-900">{formData.atasNamaRekening || '-'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-slate-500">
+                      Ubah nilai fee atau rekening di menu Marketing → Perusahaan Agent.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Input
+                        label="Fee Marketing (%)"
+                        name="feeMarketingPct"
+                        type="number"
+                        step="any"
+                        value={formData.feeMarketingPct}
+                        onChange={handleChange}
+                        placeholder="Contoh: 2.5"
+                      />
+                      <div className="w-full">
+                        <CurrencyInput
+                          label="Fee Closing (Rp)"
+                          name="feeClosingNominal"
+                          value={Number(formData.feeClosingNominal) || 0}
+                          onValueChange={(_, val) => handleCurrencyChange('feeClosingNominal', val)}
+                          placeholder="0"
+                        />
+                      </div>
+                      <Input
+                        label="Potongan PPh (%)"
+                        name="potonganPph"
+                        type="number"
+                        step="any"
+                        value={formData.potonganPph}
+                        onChange={handleChange}
+                        placeholder="Contoh: 2.5"
+                      />
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Rekening Bank (Opsional)</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Input label="Nama Bank" name="namaBank" value={formData.namaBank} onChange={handleChange} error={errors.namaBank} placeholder="Contoh: BCA / BSI" />
+                        <Input label="Nomor Rekening" name="noRekening" value={formData.noRekening} onChange={handleChange} error={errors.noRekening} placeholder="Masukkan No. Rek" />
+                        <Input label="Atas Nama Rekening" name="atasNamaRekening" value={formData.atasNamaRekening} onChange={handleChange} error={errors.atasNamaRekening} placeholder="A/N Rekening" />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="md:col-span-2">
                 <Input label="Alamat Lengkap (Opsional)" name="alamat" value={formData.alamat} onChange={handleChange} error={errors.alamat} placeholder="Masukkan alamat lengkap agent" />
-              </div>
-              <div className="md:col-span-2 mt-2 pt-4 border-t border-gray-100">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Informasi Rekening Bank (Opsional)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input label="Nama Bank" name="namaBank" value={formData.namaBank} onChange={handleChange} error={errors.namaBank} placeholder="Contoh: BCA / BSI" />
-                  <Input label="Nomor Rekening" name="noRekening" value={formData.noRekening} onChange={handleChange} error={errors.noRekening} placeholder="Masukkan No. Rek" />
-                  <Input label="Atas Nama Rekening" name="atasNamaRekening" value={formData.atasNamaRekening} onChange={handleChange} error={errors.atasNamaRekening} placeholder="A/N Rekening" />
-                </div>
               </div>
             </div>
           </div>
