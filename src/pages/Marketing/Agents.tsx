@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -8,7 +8,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, Upload, ArrowUpDown, ChevronDown, Filter } from "lucide-react";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Filter, Banknote, Clock } from "lucide-react";
 import {
   useGetAgentsPaginated,
   useCreateAgent,
@@ -18,8 +18,10 @@ import {
   useGenerateAgentAccount
 } from "../../hooks/queries/useAgent";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { useGetFeeAgents, useUploadBuktiFee, useUpdateFeeAgent } from "../../hooks/queries/useFeeAgent";
+import { useGetFeeAgents } from "../../hooks/queries/useFeeAgent";
+import { useGetAllAgentPencairan, useAjukanAgentPencairan } from "../../hooks/queries/useAgentPencairan";
 import type { FeeAgentData } from "../../services/feeAgent.service";
+import type { AgentPencairanData } from "../../services/agentPencairan.service";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
@@ -66,16 +68,52 @@ const getFeeForSale = (feeList: FeeAgentData[], agentId: number, saleId: number,
     (f) => f.agentId === agentId && (f.penjualanId === saleId || f.noTransaksi === noTransaksi)
   );
 
-const getPaymentStatus = (fee?: FeeAgentData) => {
-  const hasClosing = !!fee?.closingBukti;
-  const hasMarketing = !!fee?.marketingBukti;
-  if (hasClosing && hasMarketing) {
+const getPaymentStatus = (pencairan?: AgentPencairanData) => {
+  if (pencairan?.status === "SUDAH_DIBAYAR") {
     return { label: "Sudah", className: "bg-green-100 text-green-700" };
   }
-  if (hasClosing || hasMarketing) {
-    return { label: "Sebagian", className: "bg-amber-100 text-amber-700" };
+  if (pencairan?.status === "MENUNGGU_PEMBAYARAN") {
+    return { label: "Menunggu", className: "bg-amber-100 text-amber-700" };
   }
   return { label: "Belum", className: "bg-red-100 text-red-700" };
+};
+
+const isBookingFeePaid = (detail?: { tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }> }) =>
+  (detail?.tagihan ?? []).some(
+    (t) =>
+      (t.tujuan === "BOOKING_FEE" || t.pembayaran?.toLowerCase().includes("booking")) &&
+      t.status === "LUNAS"
+  );
+
+const calcPencairanNet = (
+  agent: AgentData,
+  nilaiAjb: number | null | undefined,
+  feeRecord: FeeAgentData,
+  detail?: { tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }> }
+) => {
+  const bookingPaid = isBookingFeePaid(detail);
+  const hasAjb = !!nilaiAjb && Number(nilaiAjb) > 0;
+  const closingFee = bookingPaid
+    ? Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0
+    : 0;
+  const marketingFee = hasAjb
+    ? Number(nilaiAjb) * ((Number(agent.feeMarketingPct) || 0) / 100)
+    : 0;
+  const potPph =
+    (closingFee + marketingFee) * ((Number(agent.potonganPph) || 0) / 100);
+  return closingFee + marketingFee - potPph;
+};
+
+const canAjukanPencairan = (
+  agent: AgentData,
+  nilaiAjb: number | null | undefined,
+  feeRecord: FeeAgentData | undefined,
+  pencairan: AgentPencairanData | undefined,
+  detail?: { tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }> }
+) => {
+  if (!feeRecord || pencairan) return false;
+  return calcPencairanNet(agent, nilaiAjb, feeRecord, detail) > 0 &&
+    (isBookingFeePaid(detail) || (!!nilaiAjb && Number(nilaiAjb) > 0));
 };
 
 const calcAgentFees = (
@@ -101,11 +139,6 @@ const calcAgentFees = (
     totalFee: totalFeePlusClosing,
     potPph,
   };
-};
-
-const formatDateForInput = (dateString?: string | null) => {
-  if (!dateString) return "";
-  return dateString.split("T")[0];
 };
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
@@ -135,6 +168,7 @@ const Agents = () => {
   const meta = agentsResponse?.meta;
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
   const { data: feeData = [] } = useGetFeeAgents();
+  const { data: pencairanData = [] } = useGetAllAgentPencairan();
   const { data: perusahaanList = [] } = useGetPerusahaanAgents();
   const penjualanList = penjualanResponse?.items || [];
 
@@ -142,9 +176,14 @@ const Agents = () => {
   const updateMutation = useUpdateAgent();
   const deleteMutation = useDeleteAgent();
   const uploadDocMutation = useUploadAgentDoc();
-  const uploadBuktiFeeMutation = useUploadBuktiFee();
-  const updateFeeAgentMutation = useUpdateFeeAgent();
+  const ajukanPencairanMutation = useAjukanAgentPencairan();
   const generateAccountMutation = useGenerateAgentAccount();
+
+  const pencairanByFeeAgentId = useMemo(() => {
+    const map = new Map<number, AgentPencairanData>();
+    pencairanData.forEach((p) => map.set(p.feeAgentId, p));
+    return map;
+  }, [pencairanData]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<AgentFormState>(initialFormState);
@@ -159,14 +198,6 @@ const Agents = () => {
 
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  const [isFeeUploadModalOpen, setIsFeeUploadModalOpen] = useState(false);
-  const [selectedFeeUpload, setSelectedFeeUpload] = useState<{
-    fee: FeeAgentData;
-    saleLabel: string;
-    bookingTanggal: string;
-    marketingTanggal: string;
-  } | null>(null);
 
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
@@ -524,91 +555,32 @@ const Agents = () => {
     }
   };
 
-  const openFeeUploadModal = (fee: FeeAgentData, saleLabel: string) => {
-    setSelectedFeeUpload({
-      fee,
-      saleLabel,
-      bookingTanggal: formatDateForInput(fee.bookingTanggal as string | null),
-      marketingTanggal: formatDateForInput(fee.marketingTanggal as string | null),
-    });
-    setIsFeeUploadModalOpen(true);
-  };
-
-  const handleFeeDateChange = async (
-    field: "bookingTanggal" | "marketingTanggal",
-    value: string
+  const handleAjukanPencairan = async (
+    feeRecord: FeeAgentData,
+    saleLabel: string,
+    agent: AgentData,
+    nilaiAjb: number | null | undefined,
+    detail?: { tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }> }
   ) => {
-    if (!selectedFeeUpload) return;
-    setSelectedFeeUpload((prev) =>
-      prev ? { ...prev, [field]: value } : prev
-    );
-    try {
-      const updated = await updateFeeAgentMutation.mutateAsync({
-        id: selectedFeeUpload.fee.id,
-        data: { [field]: value || undefined },
-      });
-      setSelectedFeeUpload((prev) =>
-        prev
-          ? {
-              ...prev,
-              fee: {
-                ...prev.fee,
-                bookingTanggal: updated.bookingTanggal ?? prev.fee.bookingTanggal,
-                marketingTanggal: updated.marketingTanggal ?? prev.fee.marketingTanggal,
-              },
-            }
-          : prev
-      );
-    } catch (err: unknown) {
-      const { message } = handleApiError(err);
-      alert(message);
-      setSelectedFeeUpload((prev) =>
-        prev
-          ? {
-              ...prev,
-              [field]: formatDateForInput(
-                prev.fee[field] as string | null
-              ),
-            }
-          : prev
-      );
+    const pencairan = pencairanByFeeAgentId.get(feeRecord.id);
+    if (!canAjukanPencairan(agent, nilaiAjb, feeRecord, pencairan, detail)) {
+      alert("Belum memenuhi syarat pencairan atau sudah pernah diajukan.");
+      return;
     }
-  };
-
-  const handleUploadBuktiFee = async (
-    type: "closingBukti" | "marketingBukti",
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedFeeUpload) return;
-    if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
-      alert("Hanya format gambar dan PDF yang diperbolehkan!");
-      e.target.value = "";
+    const net = calcPencairanNet(agent, nilaiAjb, feeRecord, detail);
+    if (
+      !window.confirm(
+        `Ajukan pencairan untuk ${saleLabel}?\n\nTotal yang akan dibayar finance: ${formatRupiah(net)}\n\nPengajuan hanya bisa dilakukan sekali per penjualan.`
+      )
+    ) {
       return;
     }
     try {
-      const updated = await uploadBuktiFeeMutation.mutateAsync({
-        id: selectedFeeUpload.fee.id,
-        type,
-        file,
-      });
-      setSelectedFeeUpload((prev) =>
-        prev
-          ? {
-              ...prev,
-              fee: {
-                ...prev.fee,
-                [type]: updated[type] ?? URL.createObjectURL(file),
-              },
-            }
-          : prev
-      );
-      alert("Bukti transfer berhasil diunggah!");
-    } catch (err: any) {
+      await ajukanPencairanMutation.mutateAsync(feeRecord.id);
+      alert("Pengajuan pencairan berhasil dikirim ke finance.");
+    } catch (err: unknown) {
       const { message } = handleApiError(err);
       alert(message);
-    } finally {
-      e.target.value = "";
     }
   };
 
@@ -688,9 +660,11 @@ const Agents = () => {
                   );
                   const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
                   const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
+                  const pencairan = feeRecord ? pencairanByFeeAgentId.get(feeRecord.id) : undefined;
                   const { fee, totalFee, potPph } = calcAgentFees(row, nilaiAjb, feeRecord);
-                  const paymentStatus = getPaymentStatus(feeRecord);
+                  const paymentStatus = getPaymentStatus(pencairan);
                   const saleLabel = `${sale.customer?.nama || "-"} — Blok ${sale.kavling?.blok || "-"} No. ${sale.kavling?.nomorUnit || "-"}`;
+                  const showAjukan = canAjukanPencairan(row, nilaiAjb, feeRecord, pencairan, detail);
 
                   return (
                   <tr
@@ -754,21 +728,44 @@ const Agents = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {feeRecord ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openFeeUploadModal(feeRecord, saleLabel);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer"
-                          title="Upload bukti transfer closing & marketing fee"
-                        >
-                          <Upload size={16} />
-                        </button>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 italic">-</span>
-                      )}
+                      <div className="flex items-center justify-center gap-1">
+                        {showAjukan && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAjukanPencairan(feeRecord!, saleLabel, row, nilaiAjb, detail);
+                            }}
+                            disabled={ajukanPencairanMutation.isPending}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer disabled:opacity-50"
+                            title="Ajukan pencairan ke finance"
+                          >
+                            <Banknote size={16} />
+                          </button>
+                        )}
+                        {pencairan?.status === "MENUNGGU_PEMBAYARAN" && (
+                          <span
+                            className="p-1.5 text-amber-500"
+                            title="Menunggu pembayaran finance"
+                          >
+                            <Clock size={16} />
+                          </span>
+                        )}
+                        {pencairan?.status === "SUDAH_DIBAYAR" && (
+                          <span
+                            className="p-1.5 text-green-600"
+                            title="Sudah dibayar finance"
+                          >
+                            <CheckCircle size={16} />
+                          </span>
+                        )}
+                        {feeRecord && !pencairan && !showAjukan && (
+                          <span className="text-[10px] text-slate-400 italic">-</span>
+                        )}
+                        {!feeRecord && (
+                          <span className="text-[10px] text-slate-400 italic">-</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   );
@@ -1156,110 +1153,6 @@ const Agents = () => {
             <button onClick={() => setPreviewImage(null)} className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20">Tutup</button>
           </div>
         </div>
-      </Modal>
-
-      {/* MODAL UPLOAD BUKTI TRANSFER FEE */}
-      <Modal
-        isOpen={isFeeUploadModalOpen}
-        onClose={() => {
-          setIsFeeUploadModalOpen(false);
-          setSelectedFeeUpload(null);
-        }}
-        title="Upload Bukti Transfer Fee"
-      >
-        {selectedFeeUpload && (
-          <div className="space-y-6">
-            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-              <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-1">Transaksi</p>
-              <p className="text-sm font-bold text-blue-900">{selectedFeeUpload.saleLabel}</p>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">Booking Fee</h4>
-              <Input
-                label="Tanggal Transfer Booking Fee"
-                name="bookingTanggal"
-                type="date"
-                value={selectedFeeUpload.bookingTanggal}
-                onChange={(e) => handleFeeDateChange("bookingTanggal", e.target.value)}
-                disabled={updateFeeAgentMutation.isPending}
-              />
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">Closing Fee</h4>
-              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  {selectedFeeUpload.fee.closingBukti && (
-                    <div
-                      onClick={() => setPreviewImage(selectedFeeUpload.fee.closingBukti!)}
-                      className="w-28 h-20 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in bg-slate-100 flex items-center justify-center shrink-0"
-                    >
-                      {(selectedFeeUpload.fee.closingBukti.split('?')[0].toLowerCase().endsWith('.pdf') ||
-                        selectedFeeUpload.fee.closingBukti.includes('application/pdf')) ? (
-                        <FileText size={24} className="text-red-500" />
-                      ) : (
-                        <img src={selectedFeeUpload.fee.closingBukti} alt="Closing bukti" className="w-full h-full object-cover" />
-                      )}
-                    </div>
-                  )}
-                  <FileInput
-                    label={selectedFeeUpload.fee.closingBukti ? "Ganti Bukti Transfer" : "Upload Bukti Transfer Closing Fee"}
-                    accept="image/*,application/pdf"
-                    onChange={(e) => handleUploadBuktiFee("closingBukti", e)}
-                  disabled={uploadBuktiFeeMutation.isPending}
-                />
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-2">Marketing Fee</h4>
-              <div className="space-y-4">
-                <Input
-                  label="Tanggal Transfer Marketing Fee"
-                  name="marketingTanggal"
-                  type="date"
-                  value={selectedFeeUpload.marketingTanggal}
-                  onChange={(e) => handleFeeDateChange("marketingTanggal", e.target.value)}
-                  disabled={updateFeeAgentMutation.isPending}
-                />
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  {selectedFeeUpload.fee.marketingBukti && (
-                    <div
-                      onClick={() => setPreviewImage(selectedFeeUpload.fee.marketingBukti!)}
-                      className="w-28 h-20 rounded-lg border border-slate-200 overflow-hidden cursor-zoom-in bg-slate-100 flex items-center justify-center shrink-0"
-                    >
-                      {(selectedFeeUpload.fee.marketingBukti.split('?')[0].toLowerCase().endsWith('.pdf') ||
-                        selectedFeeUpload.fee.marketingBukti.includes('application/pdf')) ? (
-                        <FileText size={24} className="text-red-500" />
-                      ) : (
-                        <img src={selectedFeeUpload.fee.marketingBukti} alt="Marketing bukti" className="w-full h-full object-cover" />
-                      )}
-                    </div>
-                  )}
-                  <FileInput
-                    label={selectedFeeUpload.fee.marketingBukti ? "Ganti Bukti Transfer" : "Upload Bukti Transfer Marketing Fee"}
-                    accept="image/*,application/pdf"
-                    onChange={(e) => handleUploadBuktiFee("marketingBukti", e)}
-                    disabled={uploadBuktiFeeMutation.isPending}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsFeeUploadModalOpen(false);
-                  setSelectedFeeUpload(null);
-                }}
-                className="px-6 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 cursor-pointer transition-all"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        )}
       </Modal>
 
       {/* MODAL DETAIL PENJUALAN KETIKA ROW DI KLIK */}

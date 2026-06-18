@@ -1,0 +1,383 @@
+import { useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import PageLoader from '../PageLoader';
+import Modal from '../../components/shared/Modal';
+import BuktiFileThumbnail from '../../components/shared/BuktiFileThumbnail';
+import { formatDate, formatRupiah } from '../../utils/formatters';
+import {
+  Clock,
+  CheckCircle2,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  UploadCloud,
+} from 'lucide-react';
+import {
+  useBayarAgentPencairan,
+  useGetAgentPencairanList,
+} from '../../hooks/queries/useAgentPencairan';
+import { handleApiError } from '../../utils/errorHandler';
+import type { AgentPencairanData } from '../../services/agentPencairan.service';
+
+const thClass =
+  'px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50 border-b border-slate-200 whitespace-nowrap';
+const tdClass = 'px-4 py-3 text-sm text-slate-800 align-middle border-b border-slate-100';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+const DEFAULT_PAGE_SIZE = 10;
+
+const formatKavlingLabel = (blok: string, nomorUnit: string) =>
+  `Blok ${blok} No. ${nomorUnit}`;
+
+const BayarAgent = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadTarget, setUploadTarget] = useState<AgentPencairanData | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') ?? 'MENUNGGU_PEMBAYARAN';
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
+
+  const { data: response, isLoading } = useGetAgentPencairanList({
+    page,
+    limit,
+    search: search || undefined,
+    status: statusFilter === 'ALL' ? 'ALL' : (statusFilter as 'MENUNGGU_PEMBAYARAN' | 'SUDAH_DIBAYAR'),
+  });
+
+  const items = response?.items ?? [];
+  const meta = response?.meta;
+  const bayarMutation = useBayarAgentPencairan();
+
+  const menungguCount = useMemo(
+    () => items.filter((row) => row.status === 'MENUNGGU_PEMBAYARAN').length,
+    [items],
+  );
+
+  const handlePageChange = (newPage: number) => {
+    setSearchParams((prev) => {
+      prev.set('page', String(newPage));
+      return prev;
+    });
+  };
+
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams((prev) => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearchParams((prev) => {
+      if (newSearch) prev.set('search', newSearch);
+      else prev.delete('search');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams((prev) => {
+      prev.set('status', e.target.value);
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const totalPages = meta?.totalPages ?? 1;
+
+  const pageNumbers = useMemo(() => {
+    const delta = 1;
+    const range: (number | string)[] = [];
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    if (page - delta > 2) range.unshift('...');
+    if (page + delta < totalPages - 1) range.push('...');
+    range.unshift(1);
+    if (totalPages > 1) range.push(totalPages);
+    return range;
+  }, [page, totalPages]);
+
+  const openUpload = (row: AgentPencairanData) => {
+    setUploadTarget(row);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !uploadTarget) return;
+
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert('Hanya file gambar dan PDF yang diperbolehkan.');
+      return;
+    }
+
+    try {
+      await bayarMutation.mutateAsync({ id: uploadTarget.id, file });
+      alert('Pembayaran agent berhasil diproses.');
+    } catch (error) {
+      alert(handleApiError(error).message);
+    } finally {
+      setUploadTarget(null);
+    }
+  };
+
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div className="space-y-4 animate-in fade-in duration-500">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={handleFileSelected}
+      />
+
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+          className="w-full flex items-center justify-between px-5 py-3 bg-slate-50 border-b border-slate-100"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold text-slate-700">
+            <Filter size={16} /> Filter
+          </span>
+          {isFilterExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+        {isFilterExpanded && (
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
+              <select
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+              >
+                <option value="ALL">Semua</option>
+                <option value="MENUNGGU_PEMBAYARAN">Menunggu Pembayaran</option>
+                <option value="SUDAH_DIBAYAR">Sudah Dibayar</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-500 uppercase">
+                Cari agent / customer / transaksi
+              </label>
+              <input
+                type="text"
+                defaultValue={search}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSearchChange((e.target as HTMLInputElement).value);
+                }}
+                placeholder="Tekan Enter untuk cari..."
+                className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">Bayar Agent</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Daftar pengajuan pencairan fee agent dari marketing/admin. Upload bukti transfer
+            sesuai total nominal yang diajukan (closing fee + marketing fee − PPh).
+          </p>
+          {statusFilter !== 'SUDAH_DIBAYAR' && menungguCount > 0 && (
+            <p className="text-xs font-semibold text-amber-700 mt-2">
+              {meta?.totalItems ?? menungguCount} pengajuan menunggu pembayaran
+            </p>
+          )}
+        </div>
+
+        {items.length === 0 ? (
+          <p className="px-5 py-10 text-center text-sm text-slate-400">
+            Tidak ada pengajuan pencairan agent.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1100px] border-collapse">
+              <thead>
+                <tr>
+                  <th className={thClass}>Agent</th>
+                  <th className={thClass}>Customer</th>
+                  <th className={thClass}>Kavling</th>
+                  <th className={`${thClass} text-right`}>Closing</th>
+                  <th className={`${thClass} text-right`}>Marketing</th>
+                  <th className={`${thClass} text-right`}>Pot. PPh</th>
+                  <th className={`${thClass} text-right`}>Total Bayar</th>
+                  <th className={thClass}>Diajukan</th>
+                  <th className={thClass}>Status</th>
+                  <th className={thClass}>Bukti</th>
+                  <th className={`${thClass} text-center`}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => {
+                  const paid = row.status === 'SUDAH_DIBAYAR';
+                  const kavling = row.penjualan?.kavling;
+
+                  return (
+                    <tr key={row.id} className="hover:bg-slate-50/50">
+                      <td className={tdClass}>
+                        <p className="font-bold text-slate-900">{row.agent?.nama ?? '-'}</p>
+                        <p className="text-[10px] text-slate-500">
+                          {row.agent?.namaBank ?? '-'} · {row.agent?.noRekening ?? '-'}
+                        </p>
+                      </td>
+                      <td className={tdClass}>
+                        <p className="font-medium">{row.penjualan?.customer?.nama ?? '-'}</p>
+                        <p className="text-[10px] text-slate-500">{row.penjualan?.noTransaksi}</p>
+                      </td>
+                      <td className={tdClass}>
+                        {kavling
+                          ? formatKavlingLabel(kavling.blok, kavling.nomorUnit)
+                          : '-'}
+                      </td>
+                      <td className={`${tdClass} text-right tabular-nums`}>
+                        {formatRupiah(row.closingNominal)}
+                      </td>
+                      <td className={`${tdClass} text-right tabular-nums`}>
+                        {formatRupiah(row.marketingNominal)}
+                      </td>
+                      <td className={`${tdClass} text-right tabular-nums text-red-600`}>
+                        {formatRupiah(row.potonganPph)}
+                      </td>
+                      <td className={`${tdClass} text-right font-bold text-emerald-700 tabular-nums`}>
+                        {formatRupiah(row.totalNominal)}
+                      </td>
+                      <td className={`${tdClass} text-xs text-slate-500`}>
+                        <p>{row.diajukanOleh?.username ?? '-'}</p>
+                        <p>{formatDate(row.createdAt)}</p>
+                      </td>
+                      <td className={tdClass}>
+                        {paid ? (
+                          <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-green-100 text-green-700 rounded w-fit">
+                            <CheckCircle2 size={10} /> Terbayar
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-yellow-100 text-yellow-700 rounded w-fit">
+                            <Clock size={10} /> Menunggu
+                          </span>
+                        )}
+                      </td>
+                      <td className={tdClass}>
+                        {row.buktiPembayaran ? (
+                          <BuktiFileThumbnail
+                            url={row.buktiPembayaran}
+                            onClick={() => setPreviewUrl(row.buktiPembayaran!)}
+                            className="w-12 h-8"
+                          />
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className={`${tdClass} text-center`}>
+                        {!paid && (
+                          <button
+                            type="button"
+                            onClick={() => openUpload(row)}
+                            disabled={bayarMutation.isPending}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            <UploadCloud size={12} />
+                            Upload Bukti
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="px-5 py-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span>Baris per halaman:</span>
+              <select
+                value={limit}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="px-2 py-1 border border-slate-200 rounded text-xs"
+              >
+                {PAGE_SIZE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => handlePageChange(page - 1)}
+                className="p-1.5 rounded border border-slate-200 disabled:opacity-40"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              {pageNumbers.map((n, i) =>
+                typeof n === 'string' ? (
+                  <span key={`ellipsis-${i}`} className="px-2 text-slate-400">
+                    {n}
+                  </span>
+                ) : (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => handlePageChange(n)}
+                    className={`min-w-8 h-8 text-xs font-bold rounded ${
+                      page === n
+                        ? 'bg-slate-900 text-white'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ),
+              )}
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => handlePageChange(page + 1)}
+                className="p-1.5 rounded border border-slate-200 disabled:opacity-40"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Modal isOpen={!!previewUrl} onClose={() => setPreviewUrl(null)} title="Bukti Pembayaran">
+        {previewUrl && (
+          <div className="flex justify-center">
+            {previewUrl.toLowerCase().includes('.pdf') ? (
+              <iframe src={previewUrl} className="w-full h-[60vh] rounded-lg" title="Bukti PDF" />
+            ) : (
+              <img src={previewUrl} alt="Bukti" className="max-h-[70vh] rounded-lg" />
+            )}
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default BayarAgent;

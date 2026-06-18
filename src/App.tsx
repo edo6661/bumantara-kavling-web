@@ -45,6 +45,7 @@ const BayarKodeBillingPph = lazy(() => import('./pages/Finance/BayarKodeBillingP
 const BayarSpkPembayaran = lazy(() => import('./pages/Finance/BayarSpkPembayaran'));
 const BayarNotarisPembayaran = lazy(() => import('./pages/Finance/BayarNotarisPembayaran'));
 const BayarBankKprPembayaran = lazy(() => import('./pages/Finance/BayarBankKprPembayaran'));
+const BayarAgent = lazy(() => import('./pages/Finance/BayarAgent'));
 const Profile = lazy(() => import('./pages/Profile'));
 const LaporanEksekutif = lazy(() => import('./pages/Laporan/LaporanEksekutif'));
 const LaporanPenjualan = lazy(() => import('./pages/Laporan/LaporanPenjualan'));
@@ -128,6 +129,7 @@ const App = () => {
                 <Route path="finance/approve-pembayaran" element={<PermissionGuard resource="TAGIHAN"><ApprovePembayaran /></PermissionGuard>} />
                 <Route path="finance/bayar-kode-billing-pph" element={<PermissionGuard resource="TAGIHAN"><BayarKodeBillingPph /></PermissionGuard>} />
                 <Route path="finance/bayar-spk" element={<PermissionGuard resource="TAGIHAN"><BayarSpkPembayaran /></PermissionGuard>} />
+                <Route path="finance/bayar-agent" element={<PermissionGuard resource="TAGIHAN"><BayarAgent /></PermissionGuard>} />
                 <Route path="finance/bayar-notaris" element={<PermissionGuard resource="TAGIHAN"><BayarNotarisPembayaran /></PermissionGuard>} />
                 <Route path="finance/bayar-kpr" element={<PermissionGuard resource="TAGIHAN"><BayarBankKprPembayaran /></PermissionGuard>} />
                 <Route path="management/manajemen-transaksi" element={<PermissionGuard resource="PENJUALAN"><ManajemenTransaksi /></PermissionGuard>} />

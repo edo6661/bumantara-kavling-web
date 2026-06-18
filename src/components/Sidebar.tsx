@@ -76,6 +76,7 @@ const menuItems = [
       { title: 'Approve Pembayaran', path: '/finance/approve-pembayaran', resource: 'TAGIHAN' },
       { title: 'Kode Billing PPh', path: '/finance/bayar-kode-billing-pph', resource: 'TAGIHAN' },
       { title: 'Bayar SPK', path: '/finance/bayar-spk', resource: 'TAGIHAN' },
+      { title: 'Bayar Agent', path: '/finance/bayar-agent', resource: 'TAGIHAN' },
       { title: 'Bayar Notaris', path: '/finance/bayar-notaris', resource: 'TAGIHAN' },
       { title: 'Bayar Bank KPR', path: '/finance/bayar-kpr', resource: 'TAGIHAN' },
     ],
