@@ -12,7 +12,9 @@ export type SaleDetail = {
   progressPenjualan?: {
     nilaiAjb?: number | null;
     filePpjb?: string | null;
+    fileAjb?: string | null;
     fileSp3k?: string | null;
+    fileSuratPernyataanAkadKredit?: string | null;
   } | null;
 };
 
@@ -34,17 +36,29 @@ export const isBookingFeePaid = (detail?: SaleDetail) =>
   );
 
 export const hasPpjbComplete = (
-  progress?: { filePpjb?: string | null } | null,
+  progress?: SaleDetail['progressPenjualan'],
 ) => !!progress?.filePpjb;
 
 export const hasSp3kComplete = (
-  progress?: { fileSp3k?: string | null } | null,
+  progress?: SaleDetail['progressPenjualan'],
 ) => !!progress?.fileSp3k;
+
+export const hasAjbComplete = (
+  progress?: SaleDetail['progressPenjualan'],
+) => !!progress?.fileAjb;
+
+export const hasAkadKreditComplete = (
+  progress?: SaleDetail['progressPenjualan'],
+) =>
+  !!(
+    progress?.filePpjb ||
+    progress?.fileAjb ||
+    progress?.fileSuratPernyataanAkadKredit
+  );
 
 const sumSudahDiajukan = (pencairanList: AgentPencairanData[]) => ({
   closingNominal: pencairanList.reduce((s, p) => s + Number(p.closingNominal), 0),
   marketingNominal: pencairanList.reduce((s, p) => s + Number(p.marketingNominal), 0),
-  tahaps: pencairanList.map((p) => p.tahap),
 });
 
 const getClosingFull = (agent: AgentData, feeRecord: FeeAgentData, detail?: SaleDetail) => {
@@ -52,23 +66,29 @@ const getClosingFull = (agent: AgentData, feeRecord: FeeAgentData, detail?: Sale
   return Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0;
 };
 
-const getMarketingEntitlement = (
-  agent: AgentData,
-  detail?: SaleDetail,
-) => {
+const getFullMarketingFee = (agent: AgentData, detail?: SaleDetail) => {
   if (isPenjualanBatal(detail?.status)) return 0;
-  if (!isBookingFeePaid(detail)) return 0;
-
-  const isCash = isCashPayment(detail?.caraPembayaran);
   const nilaiAjb = Number(detail?.progressPenjualan?.nilaiAjb) || 0;
   const hargaJual = Number(detail?.hargaJual) || 0;
   const pct = Number(agent.feeMarketingPct) || 0;
+  const base = nilaiAjb > 0 ? nilaiAjb : hargaJual;
+  return base > 0 && pct > 0 ? base * (pct / 100) : 0;
+};
 
-  if (nilaiAjb > 0) return nilaiAjb * (pct / 100);
-  if (isCash && hasPpjbComplete(detail?.progressPenjualan)) {
-    return hargaJual * (pct / 100) * KOMISI_CASH_PPJB_RATIO;
-  }
-  return 0;
+const getCashMarketingBuckets = (
+  agent: AgentData,
+  detail: SaleDetail | undefined,
+  sudahMarketing: number,
+) => {
+  const full = getFullMarketingFee(agent, detail);
+  const ppjbCap = full * KOMISI_CASH_PPJB_RATIO;
+  const ajbCap = full - ppjbCap;
+  const ppjbSudah = Math.min(sudahMarketing, ppjbCap);
+  const ajbSudah = Math.max(0, sudahMarketing - ppjbCap);
+  return {
+    ppjbSisa: Math.max(0, ppjbCap - ppjbSudah),
+    ajbSisa: Math.max(0, ajbCap - ajbSudah),
+  };
 };
 
 export const getTotalFeeReferensi = (
@@ -79,7 +99,7 @@ export const getTotalFeeReferensi = (
   if (isPenjualanBatal(detail?.status)) {
     return getClosingFull(agent, feeRecord, detail);
   }
-  return getClosingFull(agent, feeRecord, detail) + getMarketingEntitlement(agent, detail);
+  return getClosingFull(agent, feeRecord, detail) + getFullMarketingFee(agent, detail);
 };
 
 export const calcPotonganPphFromReferensi = (
@@ -112,9 +132,8 @@ export const getPencairanKomponen = (
   const isBatal = isPenjualanBatal(detail?.status);
   const nilaiAjb = Number(detail?.progressPenjualan?.nilaiAjb) || 0;
   const closingFull = getClosingFull(agent, feeRecord, detail);
-  const entitlement = getMarketingEntitlement(agent, detail);
+  const fullMarketing = getFullMarketingFee(agent, detail);
   const closingSisa = Math.max(0, closingFull - sudah.closingNominal);
-  const marketingSisa = Math.max(0, entitlement - sudah.marketingNominal);
 
   const closing: PencairanKomponenInfo = {
     key: 'closing',
@@ -138,43 +157,71 @@ export const getPencairanKomponen = (
       closing.eligible = true;
       closing.alasan = 'Dokumen SP3K sudah diunggah & booking lunas';
     } else if (isCash) {
-      closing.alasan = 'Upload dokumen PPJB di Progress Penjualan';
+      closing.alasan = 'Upload dokumen PPJB di menu Progress Penjualan';
     } else {
-      closing.alasan = 'Upload dokumen SP3K di Progress Penjualan';
+      closing.alasan = 'Upload dokumen SP3K di menu Progress Penjualan';
     }
   }
 
   const marketing: PencairanKomponenInfo = {
     key: 'marketing',
     label: 'Komisi Marketing',
-    nominalPenuh: entitlement,
-    nominalSisa: marketingSisa,
+    nominalPenuh: fullMarketing,
+    nominalSisa: 0,
     eligible: false,
-    alasan: isBatal
-      ? 'Transaksi batal — komisi marketing tidak dicairkan'
-      : 'Komisi marketing sudah diajukan semua',
+    alasan: 'Komisi marketing belum tersedia',
   };
 
-  if (!isBatal && entitlement > 0 && marketingSisa > 0) {
-    if (!isBookingFeePaid(detail)) {
-      marketing.alasan = 'Booking fee belum lunas';
-    } else if (nilaiAjb > 0) {
-      if (isCash && hasPpjbComplete(detail?.progressPenjualan)) {
-        marketing.eligible = true;
-        marketing.alasan = 'Nilai AJB & PPJB sudah ada — komisi penuh dapat dicairkan';
-      } else if (!isCash && hasSp3kComplete(detail?.progressPenjualan)) {
-        marketing.eligible = true;
-        marketing.alasan = 'Nilai AJB & SP3K sudah ada — komisi dapat dicairkan';
-      } else if (isCash) {
-        marketing.alasan = 'Upload dokumen PPJB di Progress Penjualan';
+  if (!isBatal && fullMarketing > 0 && isBookingFeePaid(detail)) {
+    if (isCash) {
+      const buckets = getCashMarketingBuckets(agent, detail, sudah.marketingNominal);
+      marketing.nominalSisa = buckets.ppjbSisa + buckets.ajbSisa;
+
+      if (marketing.nominalSisa <= 0) {
+        marketing.alasan = 'Komisi marketing sudah diajukan semua';
       } else {
-        marketing.alasan = 'Upload dokumen SP3K di Progress Penjualan';
+        const ppjbOk = buckets.ppjbSisa > 0 && hasPpjbComplete(detail?.progressPenjualan);
+        const ajbOk =
+          buckets.ajbSisa > 0 &&
+          hasPpjbComplete(detail?.progressPenjualan) &&
+          hasAjbComplete(detail?.progressPenjualan) &&
+          nilaiAjb > 0;
+
+        if (ppjbOk || ajbOk) {
+          marketing.eligible = true;
+          const parts: string[] = [];
+          if (ppjbOk) parts.push('50% tahap PPJB');
+          if (ajbOk) parts.push('50% tahap AJB');
+          marketing.alasan = `Komisi tersedia: ${parts.join(' + ')}`;
+        } else if (buckets.ppjbSisa > 0) {
+          marketing.alasan = 'Upload dokumen PPJB di menu Progress Penjualan (tahap 50%)';
+        } else {
+          marketing.alasan = hasAjbComplete(detail?.progressPenjualan)
+            ? 'Isi nilai AJB di menu Progress Penjualan'
+            : 'Upload dokumen AJB di menu Progress Penjualan (sisa 50%)';
+        }
       }
-    } else if (isCash && hasPpjbComplete(detail?.progressPenjualan)) {
-      marketing.eligible = true;
-      marketing.label = 'Komisi Marketing (50%)';
-      marketing.alasan = 'Komisi 50% — sisa 50% setelah nilai AJB diisi';
+    } else {
+      marketing.nominalSisa = Math.max(0, fullMarketing - sudah.marketingNominal);
+
+      if (marketing.nominalSisa <= 0) {
+        marketing.alasan = 'Komisi marketing sudah diajukan semua';
+      } else if (!hasSp3kComplete(detail?.progressPenjualan)) {
+        marketing.alasan = 'Upload dokumen SP3K di menu Progress Penjualan';
+      } else if (!hasAkadKreditComplete(detail?.progressPenjualan)) {
+        marketing.alasan =
+          'Upload dokumen PPJB atau AJB (akad kredit) di menu Progress Penjualan';
+      } else if (nilaiAjb <= 0) {
+        marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
+      } else {
+        marketing.eligible = true;
+        marketing.alasan = 'SP3K & akad kredit sudah ada — komisi dari nilai AJB';
+      }
     }
+  } else if (!isBookingFeePaid(detail)) {
+    marketing.alasan = 'Booking fee belum lunas';
+  } else if (isBatal) {
+    marketing.alasan = 'Transaksi batal — komisi marketing tidak dicairkan';
   }
 
   return [closing, marketing];
@@ -204,7 +251,7 @@ export const getPencairanBlockReason = (
   if (!feeRecord) return 'Data fee agent belum ada';
 
   const komponen = getPencairanKomponen(agent, feeRecord, pencairanList, detail);
-  const first = komponen.find((k) => k.nominalSisa > 0);
+  const first = komponen.find((k) => k.nominalSisa > 0 || !k.eligible);
   return first?.alasan ?? 'Semua komponen sudah diajukan';
 };
 
