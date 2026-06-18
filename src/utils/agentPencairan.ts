@@ -141,7 +141,7 @@ export const getPencairanKomponen = (
     nominalPenuh: closingFull,
     nominalSisa: closingSisa,
     eligible: false,
-    alasan: 'Closing fee sudah diajukan semua',
+    alasan: '',
   };
 
   if (closingSisa > 0) {
