@@ -87,8 +87,15 @@ export const agentPencairanService = {
     return all;
   },
 
-  ajukan: async (feeAgentId: number, tahap: AgentPencairanTahap) => {
-    const response = await api.post('/agent-pencairan', { feeAgentId, tahap });
+  ajukan: async (
+    feeAgentId: number,
+    options: { includeClosing: boolean; includeMarketing: boolean },
+  ) => {
+    const response = await api.post('/agent-pencairan', {
+      feeAgentId,
+      includeClosing: options.includeClosing,
+      includeMarketing: options.includeMarketing,
+    });
     return response.data.data as AgentPencairanData;
   },
 

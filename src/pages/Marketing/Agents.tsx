@@ -24,11 +24,12 @@ import type { FeeAgentData } from "../../services/feeAgent.service";
 import type { AgentPencairanData } from "../../services/agentPencairan.service";
 import AjukanPencairanModal from "../../components/marketing/AjukanPencairanModal";
 import {
-  getNextPencairanTahap,
+  hasAnyEligiblePencairan,
   getPencairanBlockReason,
   getPencairanPaymentStatus,
   type SaleDetail,
 } from "../../utils/agentPencairan";
+import type { PencairanKomponenKey } from "../../utils/agentPencairanPreview";
 import { buildPencairanAjukanPreview } from "../../utils/agentPencairanPreview";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
@@ -543,20 +544,20 @@ const Agents = () => {
     detail?: SaleDetail,
   ) => {
     const pencairanList = pencairanByFeeAgentId.get(feeRecord.id) ?? [];
-    const nextTahap = getNextPencairanTahap(agent, feeRecord, pencairanList, detail);
-    if (!nextTahap) {
+    if (!hasAnyEligiblePencairan(agent, feeRecord, pencairanList, detail)) {
       alert(getPencairanBlockReason(agent, feeRecord, pencairanList, detail) ?? "Belum memenuhi syarat pencairan.");
       return;
     }
     setPencairanModal({ feeRecord, saleLabel, agent, detail });
   };
 
-  const handleConfirmAjukanPencairan = async () => {
-    if (!pencairanModal || !pencairanPreview) return;
+  const handleConfirmAjukanPencairan = async (selected: Set<PencairanKomponenKey>) => {
+    if (!pencairanModal) return;
     try {
       await ajukanPencairanMutation.mutateAsync({
         feeAgentId: pencairanModal.feeRecord.id,
-        tahap: pencairanPreview.tahap,
+        includeClosing: selected.has('closing'),
+        includeMarketing: selected.has('marketing'),
       });
       alert("Pengajuan pencairan berhasil dikirim ke finance.");
       setPencairanModal(null);
@@ -646,9 +647,9 @@ const Agents = () => {
                   const { fee, totalFee, potPph } = calcAgentFees(row, nilaiAjb, feeRecord);
                   const paymentStatus = getPencairanPaymentStatus(pencairanList);
                   const saleLabel = `${sale.customer?.nama || "-"} — Blok ${sale.kavling?.blok || "-"} No. ${sale.kavling?.nomorUnit || "-"}`;
-                  const nextTahap = feeRecord
-                    ? getNextPencairanTahap(row, feeRecord, pencairanList, detail)
-                    : null;
+                  const canAjukan = feeRecord
+                    ? hasAnyEligiblePencairan(row, feeRecord, pencairanList, detail)
+                    : false;
                   const blockReason = getPencairanBlockReason(
                     row,
                     feeRecord,
@@ -723,7 +724,7 @@ const Agents = () => {
                     <td className="px-4 py-3 text-center">
                       <div className="flex flex-col items-center justify-center gap-1 min-w-[88px]">
                         <div className="flex items-center justify-center gap-1">
-                          {nextTahap && (
+                          {canAjukan && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -732,7 +733,7 @@ const Agents = () => {
                               }}
                               disabled={ajukanPencairanMutation.isPending}
                               className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"
-                              title={`Ajukan pencairan tahap ${nextTahap}`}
+                              title="Ajukan pencairan"
                             >
                               <Banknote size={14} />
                               Ajukan
@@ -756,7 +757,7 @@ const Agents = () => {
                             </span>
                           )}
                         </div>
-                        {!nextTahap && blockReason && (
+                        {!canAjukan && blockReason && (
                           <span
                             className="text-[9px] leading-tight text-slate-500 max-w-[120px] text-center"
                             title={blockReason}
@@ -1214,9 +1215,11 @@ const Agents = () => {
         onClose={() => setPencairanModal(null)}
         preview={pencairanPreview}
         saleLabel={pencairanModal?.saleLabel ?? ""}
-        potonganPphPct={Number(pencairanModal?.agent.potonganPph) || 0}
+        agent={pencairanModal?.agent ?? ({} as AgentData)}
+        feeRecord={pencairanModal?.feeRecord ?? ({} as FeeAgentData)}
+        detail={pencairanModal?.detail}
         isSubmitting={ajukanPencairanMutation.isPending}
-        onConfirm={() => void handleConfirmAjukanPencairan()}
+        onConfirm={(selected) => void handleConfirmAjukanPencairan(selected)}
       />
 
     </div>

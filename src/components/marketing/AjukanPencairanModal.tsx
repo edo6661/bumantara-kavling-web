@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import Modal from '../shared/Modal';
 import { formatRupiah } from '../../utils/formatters';
-import type { PencairanAjukanPreview, PencairanKomponenKey } from '../../utils/agentPencairanPreview';
-import {
-  calcSelectedPencairanTotal,
-  canSelectClosingOnly,
+import type { AgentData } from '../../types/models/agent';
+import type { FeeAgentData } from '../../services/feeAgent.service';
+import type {
+  PencairanAjukanPreview,
+  PencairanKomponenKey,
 } from '../../utils/agentPencairanPreview';
+import { calcSelectedPencairanTotal } from '../../utils/agentPencairanPreview';
+import type { SaleDetail } from '../../utils/agentPencairan';
 import { Info } from 'lucide-react';
 
 interface AjukanPencairanModalProps {
@@ -13,7 +16,9 @@ interface AjukanPencairanModalProps {
   onClose: () => void;
   preview: PencairanAjukanPreview | null;
   saleLabel: string;
-  potonganPphPct: number;
+  agent: AgentData;
+  feeRecord: FeeAgentData;
+  detail?: SaleDetail;
   isSubmitting: boolean;
   onConfirm: (selected: Set<PencairanKomponenKey>) => void;
 }
@@ -61,11 +66,6 @@ const KomponenRow = ({
             {nominalDicairkan > 0 ? formatRupiah(nominalDicairkan) : formatRupiah(nominalPenuh)}
           </p>
         </div>
-        {nominalDicairkan > 0 && nominalPenuh !== nominalDicairkan && (
-          <p className="text-[10px] text-slate-500 mt-0.5">
-            Referensi penuh: {formatRupiah(nominalPenuh)}
-          </p>
-        )}
         {alasan && (
           <p className={`text-[11px] mt-1.5 leading-snug ${muted ? 'text-slate-500' : 'text-blue-700'}`}>
             {alasan}
@@ -81,7 +81,9 @@ const AjukanPencairanModal = ({
   onClose,
   preview,
   saleLabel,
-  potonganPphPct,
+  agent,
+  feeRecord,
+  detail,
   isSubmitting,
   onConfirm,
 }: AjukanPencairanModalProps) => {
@@ -94,10 +96,8 @@ const AjukanPencairanModal = ({
 
   const totals = useMemo(() => {
     if (!preview) return null;
-    return calcSelectedPencairanTotal(preview, selected, potonganPphPct);
-  }, [preview, selected, potonganPphPct]);
-
-  const allowClosingOnly = preview ? canSelectClosingOnly(preview) : false;
+    return calcSelectedPencairanTotal(agent, feeRecord, detail, preview, selected);
+  }, [preview, selected, agent, feeRecord, detail]);
 
   const toggleKomponen = (key: PencairanKomponenKey, checked: boolean) => {
     setSelected((prev) => {
@@ -116,37 +116,35 @@ const AjukanPencairanModal = ({
   if (!preview) return null;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Ajukan Pencairan Agent"
-      size="md"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Ajukan Pencairan Agent" size="md">
       <div className="p-6 space-y-5">
         <div>
           <p className="text-sm font-semibold text-slate-800">{saleLabel}</p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Tahap: <span className="font-medium text-slate-700">{preview.tahapLabel}</span>
-          </p>
         </div>
 
         <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-xs text-slate-600 flex gap-2">
           <Info size={16} className="shrink-0 text-blue-500 mt-0.5" />
           <div>
             <p>
-              Total fee penjualan (referensi tabel):{' '}
+              Total fee (+ closing) referensi:{' '}
               <span className="font-bold text-slate-800 tabular-nums">
                 {formatRupiah(preview.totalFeeReferensi)}
               </span>
             </p>
-            <p className="mt-1">{preview.catatanTahap}</p>
+            <p className="mt-1">
+              Pot. PPh ({preview.potonganPphPct}%):{' '}
+              <span className="font-bold text-red-600 tabular-nums">
+                {formatRupiah(preview.potonganPph)}
+              </span>
+            </p>
+            <p className="mt-1 text-slate-500">{preview.catatanTahap}</p>
           </div>
         </div>
 
         {preview.komponenSekarang.length > 0 && (
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
-              Bisa diajukan sekarang
+              Pilih komponen yang diajukan
             </p>
             {preview.komponenSekarang.map((k) => (
               <KomponenRow
@@ -155,23 +153,10 @@ const AjukanPencairanModal = ({
                 nominalPenuh={k.nominalPenuh}
                 nominalDicairkan={k.nominalDicairkan}
                 checked={selected.has(k.key)}
-                disabled={
-                  !k.bisaPilih ||
-                  (k.key === 'marketing' && allowClosingOnly && preview.komponenSekarang.length > 1)
-                }
-                onChange={
-                  preview.komponenSekarang.length > 1 && allowClosingOnly
-                    ? (checked) => toggleKomponen(k.key, checked)
-                    : undefined
-                }
+                onChange={(checked) => toggleKomponen(k.key, checked)}
                 alasan={k.alasan}
               />
             ))}
-            {allowClosingOnly && (
-              <p className="text-[10px] text-slate-500 italic">
-                Untuk tahap ini, closing fee dan komisi diajukan bersamaan sesuai aturan bisnis.
-              </p>
-            )}
           </div>
         )}
 
@@ -196,15 +181,15 @@ const AjukanPencairanModal = ({
         {totals && (
           <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Closing</span>
+              <span className="text-slate-600">Closing diajukan</span>
               <span className="font-medium tabular-nums">{formatRupiah(totals.closingNominal)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-slate-600">Marketing</span>
+              <span className="text-slate-600">Marketing diajukan</span>
               <span className="font-medium tabular-nums">{formatRupiah(totals.marketingNominal)}</span>
             </div>
             <div className="flex justify-between text-sm text-red-600">
-              <span>Pot. PPh ({potonganPphPct}%)</span>
+              <span>Pot. PPh (dari total referensi)</span>
               <span className="font-medium tabular-nums">− {formatRupiah(totals.potonganPph)}</span>
             </div>
             <div className="flex justify-between text-sm font-bold border-t border-slate-100 pt-2">
