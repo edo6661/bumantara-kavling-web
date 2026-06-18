@@ -523,10 +523,15 @@ const Agents = () => {
     agent: AgentData,
     tahap: AgentPencairanTahap,
     detail?: {
+      status?: string | null;
       caraPembayaran?: string | null;
       hargaJual?: number | null;
       tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }>;
-      progressPenjualan?: { nilaiAjb?: number | null; filePpjb?: string | null } | null;
+      progressPenjualan?: {
+        nilaiAjb?: number | null;
+        filePpjb?: string | null;
+        fileSp3k?: string | null;
+      } | null;
     }
   ) => {
     const pencairanList = pencairanByFeeAgentId.get(feeRecord.id) ?? [];
@@ -535,10 +540,11 @@ const Agents = () => {
       alert("Belum memenuhi syarat pencairan untuk tahap ini.");
       return;
     }
-    const { totalNominal } = calcPencairanAmountsForTahap(tahap, agent, feeRecord, detail);
+    const { totalNominal, closingNominal, marketingNominal, potonganPph } =
+      calcPencairanAmountsForTahap(tahap, agent, feeRecord, detail);
     if (
       !window.confirm(
-        `Ajukan pencairan ${getTahapLabel(tahap)} untuk ${saleLabel}?\n\nTotal yang akan dibayar finance: ${formatRupiah(totalNominal)}`
+        `Ajukan pencairan ${getTahapLabel(tahap, detail)} untuk ${saleLabel}?\n\nClosing: ${formatRupiah(closingNominal)}\nMarketing: ${formatRupiah(marketingNominal)}\nPot. PPh: ${formatRupiah(potonganPph)}\n\nTotal transfer (setelah PPh): ${formatRupiah(totalNominal)}`
       )
     ) {
       return;
