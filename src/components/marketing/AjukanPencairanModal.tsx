@@ -173,11 +173,11 @@ const AjukanPencairanModal = ({
           <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-slate-600">Closing diajukan</span>
-              <span className="font-medium tabular-nums">{formatRupiah(totals.closingNominal)}</span>
+              <span className="font-medium tabular-nums text-slate-900">{formatRupiah(totals.closingNominal)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-slate-600">Marketing diajukan</span>
-              <span className="font-medium tabular-nums">{formatRupiah(totals.marketingNominal)}</span>
+              <span className="font-medium tabular-nums text-slate-900">{formatRupiah(totals.marketingNominal)}</span>
             </div>
             <div className="flex justify-between text-sm text-red-600">
               <span>Pot. PPh (dari total referensi)</span>
