@@ -223,7 +223,7 @@ const Penjualan = () => {
   const [detailData, setDetailData] = useState<PenjualanData | null>(null);
 
   const [isSkemaModalOpen, setIsSkemaModalOpen] = useState(false);
-  /** Mode KPR tanpa biaya admin (6%): biaya KPR = 0, DP tidak dibayar = 0, DP dibayar wajib */
+  /** Mode KPR tanpa biaya admin (6%): hanya memaksa biaya KPR = 0 */
   const [isBiayaKprNol, setIsBiayaKprNol] = useState(false);
   const [isRevisiSpr, setIsRevisiSpr] = useState(false);
   const [keteranganRevisi, setKeteranganRevisi] = useState('');
@@ -409,10 +409,13 @@ const Penjualan = () => {
           nilaiPengajuanKpr = Number(value);
         } else if (
           isAutoCalcTrigger ||
-          ['plafonAwal', 'biayaKpr', 'plafonKredit', 'biayaTambahan', 'biayaKprNol'].includes(name) ||
+          ['plafonAwal', 'biayaKpr', 'plafonKredit', 'biayaTambahan', 'biayaKprNol', 'dpDibayar'].includes(name) ||
           !nilaiPengajuanKpr
         ) {
-          nilaiPengajuanKpr = Math.round((plafonKredit || 0) - totalTambahan + totalTambahanKpr);
+          const dpDibayarPotongan = dpDibayar && dpDibayar > 0 ? dpDibayar : 0;
+          nilaiPengajuanKpr = Math.round(
+            (plafonKredit || 0) - totalTambahan + totalTambahanKpr - dpDibayarPotongan
+          );
         }
 
         const baseHargaJual = (plafonKredit || 0) / 0.9;
@@ -425,9 +428,7 @@ const Penjualan = () => {
         }
 
         let dpTidakDibayar = merged.dpTidakDibayar;
-        if (biayaKprNolMode) {
-          dpTidakDibayar = 0;
-        } else if (name === 'dpTidakDibayar') {
+        if (name === 'dpTidakDibayar') {
           dpTidakDibayar = Number(value);
         } else if (isAutoCalcTrigger || ['plafonAwal', 'biayaKpr', 'plafonKredit', 'hargaJual', 'biayaKprNol'].includes(name) || !dpTidakDibayar) {
           dpTidakDibayar = Math.round(((hargaJual || 0) - diskon) * 0.1 - bf);
@@ -439,9 +440,7 @@ const Penjualan = () => {
         updates.nilaiPengajuanKpr = nilaiPengajuanKpr;
         updates.dpTidakDibayar = dpTidakDibayar;
         updates.dpDibayar = dpDibayar;
-        updates.dp = biayaKprNolMode
-          ? (dpDibayar || 0)
-          : ((dpDibayar && dpDibayar > 0) ? dpDibayar : dpTidakDibayar);
+        updates.dp = (dpDibayar && dpDibayar > 0) ? dpDibayar : dpTidakDibayar;
         updates.hargaJual = hargaJual;
 
       } else {
@@ -841,8 +840,18 @@ const Penjualan = () => {
       if (isZeroBiayaKprMode) {
         initialBiayaKpr = 0;
         initialPlafonKredit = plafonAwal;
-        initialDpTidakDibayar = 0;
-        initialDp = initialDpDibayar > 0 ? initialDpDibayar : initialDp;
+        if (!initialHargaJual) {
+          const hargaJualSetelahDiskon = initialPlafonKredit / 0.9;
+          initialHargaJual = hargaJualSetelahDiskon + diskonTerpakai;
+        }
+        if (!initialDpTidakDibayar) {
+          const hargaJualSetelahDiskon = initialPlafonKredit / 0.9;
+          initialDpTidakDibayar = hargaJualSetelahDiskon * 0.1 - bf;
+        }
+        if (!initialNilaiKpr) {
+          initialNilaiKpr = initialPlafonKredit - (initialDpDibayar > 0 ? initialDpDibayar : 0);
+        }
+        initialDp = initialDpDibayar > 0 ? initialDpDibayar : initialDpTidakDibayar;
       } else if (initialBiayaKpr === 0 || initialPlafonKredit === 0) {
         initialBiayaKpr = Math.round(plafonAwal * 0.06);
         initialPlafonKredit = plafonAwal + initialBiayaKpr;
@@ -853,7 +862,7 @@ const Penjualan = () => {
         const dpKotorAwal = hargaJualSetelahDiskon * 0.1;
         initialDpTidakDibayar = dpKotorAwal - bf;
 
-        initialNilaiKpr = initialPlafonKredit;
+        initialNilaiKpr = initialPlafonKredit - (initialDpDibayar > 0 ? initialDpDibayar : 0);
         initialDp = initialDpTidakDibayar;
       }
     } else if (caraBayar === 'CASH BERTAHAP') {
@@ -1081,9 +1090,6 @@ const Penjualan = () => {
       );
       return { ...prev, ...updates };
     });
-    if (errors.dpDibayar) {
-      setErrors((prev) => ({ ...prev, dpDibayar: undefined }));
-    }
   };
 
   const handleBlokChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1140,11 +1146,6 @@ const Penjualan = () => {
 
     const newErrors: Record<string, string> = {};
     if (!formData.caraPembayaran) newErrors.caraPembayaran = 'Cara pembayaran wajib dipilih';
-    if (formData.caraPembayaran === 'KPR' && isBiayaKprNol) {
-      if (!formData.dpDibayar || Number(formData.dpDibayar) <= 0) {
-        newErrors.dpDibayar = 'DP Dibayar wajib diisi jika tanpa biaya KPR';
-      }
-    }
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -1166,13 +1167,11 @@ const Penjualan = () => {
           ? (isBiayaKprNol ? 0 : formData.biayaKpr)
           : undefined,
         plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
-        dpTidakDibayar: formData.caraPembayaran === 'KPR'
-          ? (isBiayaKprNol ? 0 : formData.dpTidakDibayar)
-          : undefined,
+        dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
         dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
         nilaiPengajuanKpr: formData.caraPembayaran === 'KPR' ? formData.nilaiPengajuanKpr : undefined,
         dp: (isKpr(formData.caraPembayaran) || isCashBertahap(formData.caraPembayaran))
-          ? (isBiayaKprNol ? formData.dpDibayar : formData.dp)
+          ? formData.dp
           : undefined,
         termin: isCashBertahap(formData.caraPembayaran) ? Number(formData.termin) : undefined,
         diskonPenjualan: formData.diskonPenjualan,
@@ -2230,7 +2229,12 @@ const Penjualan = () => {
 
 
                           <div className="flex items-center justify-between mt-3">
-                            <span className="text-sm font-bold text-blue-700 w-full">Total Nilai Pengajuan KPR</span>
+                            <div className="w-full">
+                              <span className="text-sm font-bold text-blue-700">Total Nilai Pengajuan KPR</span>
+                              <p className="text-[10px] text-blue-500 font-medium mt-0.5">
+                                Otomatis dikurangi DP Dibayar jika diisi. Dapat di-override manual.
+                              </p>
+                            </div>
                             <div className="w-40 sm:w-44 shrink-0">
                               <CurrencyInput
                                 name="nilaiPengajuanKpr"
@@ -2270,7 +2274,7 @@ const Penjualan = () => {
                             </div>
                           </div>
                           <p className="text-[10px] text-slate-500 font-mono mt-1">
-                            <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini.
+                            <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini, serta mengurangi Total Nilai Pengajuan KPR.
                           </p>
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
@@ -2721,9 +2725,9 @@ const Penjualan = () => {
                       <div className="flex items-center justify-between mt-3">
                         <div className="w-full">
                           <span className="text-sm font-bold text-blue-700">Total Nilai Pengajuan KPR</span>
-                          {isBiayaKprNol && (
-                            <p className="text-[10px] text-blue-500 font-medium mt-0.5">Dapat di-override manual</p>
-                          )}
+                          <p className="text-[10px] text-blue-500 font-medium mt-0.5">
+                            Otomatis dikurangi DP Dibayar jika diisi. Dapat di-override manual.
+                          </p>
                         </div>
                         <div className="w-40 sm:w-44 shrink-0">
                           <CurrencyInput
@@ -2739,9 +2743,7 @@ const Penjualan = () => {
 
                     <div className="pt-3 border-t border-slate-200">
                       <div className="flex items-center justify-between">
-                        <span className={`text-sm font-bold w-full ${isBiayaKprNol ? 'text-red-600' : 'text-blue-600'}`}>
-                          DP Dibayar {isBiayaKprNol ? '(Wajib)' : '(Opsional)'}
-                        </span>
+                        <span className="text-sm font-bold text-blue-600 w-full">DP Dibayar (Opsional)</span>
                         <div className="w-40 sm:w-44 shrink-0">
                           <CurrencyInput
                             name="dpDibayar"
@@ -2751,26 +2753,17 @@ const Penjualan = () => {
                           />
                         </div>
                       </div>
-                      {errors.dpDibayar && (
-                        <p className="text-[10px] text-red-600 font-medium mt-1">{errors.dpDibayar}</p>
-                      )}
-                      {!isBiayaKprNol && (
-                        <p className="text-[10px] text-slate-500 font-mono mt-1">
-                          <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini.
-                        </p>
-                      )}
+                      <p className="text-[10px] text-slate-500 font-mono mt-1">
+                        <strong className="text-slate-400">Info:</strong> Jika diisi, SPR dan Kwitansi akan mencetak nilai DP Dibayar ini, serta mengurangi Total Nilai Pengajuan KPR.
+                      </p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-bold text-amber-600 w-full">
-                          DP Tidak Dibayar 10%
-                          {isBiayaKprNol && <span className="text-[10px] font-medium text-slate-400 ml-1">(otomatis 0)</span>}
-                        </span>
+                        <span className="text-sm font-bold text-amber-600 w-full">DP Tidak Dibayar 10%</span>
                         <div className="w-40 sm:w-44 shrink-0">
                           <CurrencyInput
                             name="dpTidakDibayar"
                             value={formData.dpTidakDibayar || 0}
                             onValueChange={handleCurrencyChange}
                             placeholder="0"
-                            disabled={isBiayaKprNol}
                           />
                         </div>
                       </div>
