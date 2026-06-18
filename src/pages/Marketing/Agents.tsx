@@ -21,14 +21,15 @@ import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetFeeAgents } from "../../hooks/queries/useFeeAgent";
 import { useGetAllAgentPencairan, useAjukanAgentPencairan } from "../../hooks/queries/useAgentPencairan";
 import type { FeeAgentData } from "../../services/feeAgent.service";
-import type { AgentPencairanData, AgentPencairanTahap } from "../../services/agentPencairan.service";
+import type { AgentPencairanData } from "../../services/agentPencairan.service";
+import AjukanPencairanModal from "../../components/marketing/AjukanPencairanModal";
 import {
-  calcPencairanAmountsForTahap,
   getNextPencairanTahap,
   getPencairanBlockReason,
   getPencairanPaymentStatus,
-  getTahapLabel,
+  type SaleDetail,
 } from "../../utils/agentPencairan";
+import { buildPencairanAjukanPreview } from "../../utils/agentPencairanPreview";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
@@ -161,6 +162,23 @@ const Agents = () => {
 
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [pencairanModal, setPencairanModal] = useState<{
+    feeRecord: FeeAgentData;
+    agent: AgentData;
+    saleLabel: string;
+    detail?: SaleDetail;
+  } | null>(null);
+
+  const pencairanPreview = useMemo(() => {
+    if (!pencairanModal) return null;
+    const pencairanList = pencairanByFeeAgentId.get(pencairanModal.feeRecord.id) ?? [];
+    return buildPencairanAjukanPreview(
+      pencairanModal.agent,
+      pencairanModal.feeRecord,
+      pencairanList,
+      pencairanModal.detail,
+    );
+  }, [pencairanModal, pencairanByFeeAgentId]);
 
   const handlePageChange = (newPage: number) => {
     setSearchParams(prev => { prev.set('page', String(newPage)); return prev; });
@@ -518,41 +536,30 @@ const Agents = () => {
     }
   };
 
-  const handleAjukanPencairan = async (
+  const openAjukanPencairanModal = (
     feeRecord: FeeAgentData,
     saleLabel: string,
     agent: AgentData,
-    tahap: AgentPencairanTahap,
-    detail?: {
-      status?: string | null;
-      caraPembayaran?: string | null;
-      hargaJual?: number | null;
-      tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }>;
-      progressPenjualan?: {
-        nilaiAjb?: number | null;
-        filePpjb?: string | null;
-        fileSp3k?: string | null;
-      } | null;
-    }
+    detail?: SaleDetail,
   ) => {
     const pencairanList = pencairanByFeeAgentId.get(feeRecord.id) ?? [];
     const nextTahap = getNextPencairanTahap(agent, feeRecord, pencairanList, detail);
-    if (!nextTahap || nextTahap !== tahap) {
-      alert("Belum memenuhi syarat pencairan untuk tahap ini.");
+    if (!nextTahap) {
+      alert(getPencairanBlockReason(agent, feeRecord, pencairanList, detail) ?? "Belum memenuhi syarat pencairan.");
       return;
     }
-    const { totalNominal, closingNominal, marketingNominal, potonganPph } =
-      calcPencairanAmountsForTahap(tahap, agent, feeRecord, detail);
-    if (
-      !window.confirm(
-        `Ajukan pencairan ${getTahapLabel(tahap, detail)} untuk ${saleLabel}?\n\nClosing: ${formatRupiah(closingNominal)}\nMarketing: ${formatRupiah(marketingNominal)}\nPot. PPh: ${formatRupiah(potonganPph)}\n\nTotal transfer (setelah PPh): ${formatRupiah(totalNominal)}`
-      )
-    ) {
-      return;
-    }
+    setPencairanModal({ feeRecord, saleLabel, agent, detail });
+  };
+
+  const handleConfirmAjukanPencairan = async () => {
+    if (!pencairanModal || !pencairanPreview) return;
     try {
-      await ajukanPencairanMutation.mutateAsync({ feeAgentId: feeRecord.id, tahap });
+      await ajukanPencairanMutation.mutateAsync({
+        feeAgentId: pencairanModal.feeRecord.id,
+        tahap: pencairanPreview.tahap,
+      });
       alert("Pengajuan pencairan berhasil dikirim ke finance.");
+      setPencairanModal(null);
     } catch (err: unknown) {
       const { message } = handleApiError(err);
       alert(message);
@@ -721,7 +728,7 @@ const Agents = () => {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleAjukanPencairan(feeRecord!, saleLabel, row, nextTahap, detail);
+                                openAjukanPencairanModal(feeRecord!, saleLabel, row, detail);
                               }}
                               disabled={ajukanPencairanMutation.isPending}
                               className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"
@@ -1201,6 +1208,16 @@ const Agents = () => {
           </div>
         )}
       </Modal>
+
+      <AjukanPencairanModal
+        isOpen={!!pencairanModal}
+        onClose={() => setPencairanModal(null)}
+        preview={pencairanPreview}
+        saleLabel={pencairanModal?.saleLabel ?? ""}
+        potonganPphPct={Number(pencairanModal?.agent.potonganPph) || 0}
+        isSubmitting={ajukanPencairanMutation.isPending}
+        onConfirm={() => void handleConfirmAjukanPencairan()}
+      />
 
     </div>
   );

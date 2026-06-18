@@ -29,7 +29,7 @@ export const hasSp3kComplete = (
   progress?: { fileSp3k?: string | null } | null,
 ) => !!progress?.fileSp3k;
 
-type SaleDetail = {
+export type SaleDetail = {
   status?: string | null;
   caraPembayaran?: string | null;
   hargaJual?: number | null;
