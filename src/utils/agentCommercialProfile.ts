@@ -5,20 +5,22 @@ export function isAgentPerusahaan(type?: string | null) {
   return type === 'PERUSAHAAN';
 }
 
+type AgentCommercialFields = Pick<
+  AgentData,
+  | 'feeMarketingPct'
+  | 'feeClosingNominal'
+  | 'potonganPph'
+  | 'isPkp'
+  | 'namaBank'
+  | 'noRekening'
+  | 'atasNamaRekening'
+>;
+
 /** Agent perusahaan: fee, PPh, dan rekening mengikuti master perusahaan */
-export function applyPerusahaanCommercialToAgent(
-  agent: Pick<
-    AgentData,
-    | 'feeMarketingPct'
-    | 'feeClosingNominal'
-    | 'potonganPph'
-    | 'isPkp'
-    | 'namaBank'
-    | 'noRekening'
-    | 'atasNamaRekening'
-  >,
+export function applyPerusahaanCommercialToAgent<T extends AgentCommercialFields>(
+  agent: T,
   perusahaan?: PerusahaanAgentData | null,
-) {
+): T {
   if (!perusahaan) return agent;
   return {
     ...agent,

@@ -66,7 +66,20 @@ interface AgentFormState {
   pics: PicAgentData[];
 }
 
-const commercialFieldsFromPerusahaan = (perusahaan: ReturnType<typeof getPerusahaanById>) => ({
+type AgentCommercialFormFields = Pick<
+  AgentFormState,
+  | 'feeMarketingPct'
+  | 'feeClosingNominal'
+  | 'potonganPph'
+  | 'isPkp'
+  | 'namaBank'
+  | 'noRekening'
+  | 'atasNamaRekening'
+>;
+
+const commercialFieldsFromPerusahaan = (
+  perusahaan: ReturnType<typeof getPerusahaanById>,
+): AgentCommercialFormFields => ({
   feeMarketingPct: perusahaan?.feeMarketingPct ?? '',
   feeClosingNominal: perusahaan?.feeClosingNominal ?? '',
   potonganPph: perusahaan?.potonganPph ?? '',
@@ -395,7 +408,11 @@ const Agents = ({ agentType }: AgentsProps) => {
       const next = { ...prev, [name]: value };
       if (name === 'perusahaanAgentId' && isAgentPerusahaan(prev.type)) {
         const perusahaan = getPerusahaanById(perusahaanList, value);
-        return { ...next, ...commercialFieldsFromPerusahaan(perusahaan) };
+        return {
+          ...prev,
+          perusahaanAgentId: value === '' ? '' : Number(value),
+          ...commercialFieldsFromPerusahaan(perusahaan),
+        };
       }
       if (name === 'type' && value === 'PERUSAHAAN') {
         return {
