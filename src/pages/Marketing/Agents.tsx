@@ -8,7 +8,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Filter, Banknote, Clock } from "lucide-react";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Banknote, Clock } from "lucide-react";
 import {
   useGetAgentsPaginated,
   useCreateAgent,
@@ -111,13 +111,19 @@ const calcAgentFees = (
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
-const Agents = () => {
+type AgentTypeFilter = 'PRIBADI' | 'PERUSAHAAN';
+
+interface AgentsProps {
+  agentType: AgentTypeFilter;
+}
+
+const Agents = ({ agentType }: AgentsProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const orderBy = searchParams.get('orderBy') || '';
   const statusFilter = searchParams.get('status') || '';
-  const typeFilter = searchParams.get('type') || '';
+  const typeFilter = agentType;
   const limitParam = Number(searchParams.get('limit'));
   const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
     ? limitParam
@@ -211,12 +217,8 @@ const Agents = () => {
     });
   };
 
-  const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSearchParams(prev => {
-      if (e.target.value) prev.set('type', e.target.value); else prev.delete('type');
-      prev.set('page', '1'); return prev;
-    });
-  };
+
+  const pageTitle = agentType === 'PRIBADI' ? 'Agent Pribadi' : 'Agent Perusahaan';
 
   const filterSelectClass =
     'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
@@ -234,21 +236,6 @@ const Agents = () => {
           <option value="nama:asc">Nama Agent (A-Z)</option>
         </select>
         <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
-        <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-      </div>
-      
-      <div className="relative group w-full sm:w-40">
-        <select
-          className={`${filterSelectClass} pl-9`}
-          value={typeFilter}
-          onChange={handleTypeFilterChange}
-          aria-label="Filter tipe agent"
-        >
-          <option value="">Semua Tipe</option>
-          <option value="PRIBADI">Pribadi</option>
-          <option value="PERUSAHAAN">Perusahaan</option>
-        </select>
-        <Filter size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
         <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
       </div>
     </>
@@ -273,22 +260,17 @@ const Agents = () => {
   const columns = [
     { header: 'NIK', accessor: 'nik' },
     { header: 'Nama Agent', accessor: 'nama', render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-
-
-    {
-      header: 'Tipe',
-      accessor: 'type',
-      render: (val: string, row: AgentData) => (
-        <div className="flex flex-col gap-1 items-start">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{val}</span>
-          {val === 'PERUSAHAAN' && row.perusahaanAgent && (
+    ...(agentType === 'PERUSAHAAN'
+      ? [{
+          header: 'Perusahaan',
+          accessor: 'perusahaanAgent',
+          render: (_: unknown, row: AgentData) => (
             <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded w-fit border border-blue-100">
-              {row.perusahaanAgent.nama}
+              {row.perusahaanAgent?.nama || '-'}
             </span>
-          )}
-        </div>
-      )
-    },
+          ),
+        }]
+      : []),
     {
       header: 'Status',
       accessor: 'status',
@@ -377,7 +359,7 @@ const Agents = () => {
       });
       setIsEditing(true);
     } else {
-      setFormData(initialFormState);
+      setFormData({ ...initialFormState, type: agentType });
       setIsEditing(false);
     }
     setErrors({});
@@ -386,7 +368,7 @@ const Agents = () => {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setFormData(initialFormState);
+    setFormData({ ...initialFormState, type: agentType });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -477,7 +459,7 @@ const Agents = () => {
     if (formData.nik.trim().length !== 16 && formData.nik.trim().length !== 15) newErrors.nik = 'NIK tidak valid (minimal 15-16 digit)';
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    if (formData.type === 'PERUSAHAAN' && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
+    if (agentType === 'PERUSAHAAN' && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -497,7 +479,7 @@ const Agents = () => {
       }
     });
 
-    const isPerusahaan = formData.type === 'PERUSAHAAN';
+    const isPerusahaan = agentType === 'PERUSAHAAN';
 
     const payload: CreateAgentDTO = {
       nik: formData.nik,
@@ -505,7 +487,7 @@ const Agents = () => {
       noHp: formData.noHp,
       email: formData.email || undefined,
       alamat: formData.alamat || undefined,
-      type: formData.type,
+      type: agentType,
       perusahaanAgentId: isPerusahaan ? Number(formData.perusahaanAgentId) : undefined,
       namaBank: isPerusahaan ? null : (formData.namaBank || null),
       noRekening: isPerusahaan ? null : (formData.noRekening || null),
@@ -840,7 +822,7 @@ const Agents = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <DataTable
-        title="Agent"
+        title={pageTitle}
         columns={columns}
         data={agentData}
         onAdd={() => openModal()}
@@ -862,21 +844,7 @@ const Agents = () => {
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select
-                label="Tipe Agent"
-                name="type"
-                value={formData.type}
-                onChange={(e) => {
-                  setFormData({ ...formData, type: e.target.value, perusahaanAgentId: '' });
-                }}
-                options={[
-                  { value: 'PRIBADI', label: 'Pribadi' },
-                  { value: 'PERUSAHAAN', label: 'Perusahaan' }
-                ]}
-              />
-
-              {/* 👇 FIELD SELECT PERUSAHAAN 👇 */}
-              {formData.type === 'PERUSAHAAN' && (
+              {agentType === 'PERUSAHAAN' && (
                 <Select
                   label="Pilih Perusahaan"
                   name="perusahaanAgentId"
@@ -895,7 +863,7 @@ const Agents = () => {
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
               <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
               <div className="md:col-span-2">
-                {formData.type === 'PERUSAHAAN' ? (
+                {agentType === 'PERUSAHAAN' ? (
                   <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
                     <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">
                       Fee & Rekening — otomatis dari perusahaan

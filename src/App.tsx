@@ -6,6 +6,7 @@ import { useAuth } from './context/AuthContext';
 import { AuthProvider } from './providers/AuthProvider';
 import { QueryProvider } from './providers/QueryProvider';
 import PermissionGuard from './components/layouts/PermissionGuard';
+import AdministrasiProgressGuard from './components/layouts/AdministrasiProgressGuard';
 
 const NotFound = lazy(() => import('./pages/Public/NotFound'));
 const Login = lazy(() => import('./pages/Login'));
@@ -14,22 +15,22 @@ const Penjualan = lazy(() => import('./pages/Management/Penjualan'));
 const Kavling = lazy(() => import('./pages/Management/Kavling'));
 const Notaris = lazy(() => import('./pages/Management/Notaris'));
 const Bank = lazy(() => import('./pages/Management/Bank'));
-const Administrasi = lazy(() => import('./pages/Customer/Administrasi'));
+const AdministrasiProgress = lazy(() => import('./pages/Customer/AdministrasiProgress'));
 const CustomerKavling = lazy(() => import('./pages/Customer/Kavling'));
 const Tagihan = lazy(() => import('./pages/Customer/Tagihan'));
-const Agents = lazy(() => import('./pages/Marketing/Agents'));
+const AgentPribadi = lazy(() => import('./pages/Marketing/AgentPribadi'));
+const AgentPerusahaan = lazy(() => import('./pages/Marketing/AgentPerusahaan'));
 const AgentRegisterSuccess = lazy(() => import('./pages/Public/AgentRegisterSuccess'));
 const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
 const PerusahaanAgent = lazy(() => import('./pages/Marketing/PerusahaanAgent'));
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
 const ApproveSpkKasbon = lazy(() => import('./pages/Proyek/ApproveSpkKasbon'));
 const Tukang = lazy(() => import('./pages/Proyek/Tukang'));
-const Progress = lazy(() => import('./pages/Proyek/Progress'));
 const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
 const GantiKavling = lazy(() => import('./pages/Management/GantiKavling'));
 const BatalTransaksi = lazy(() => import('./pages/Management/BatalTransaksi'));
 const AuditLog = lazy(() => import('./pages/Management/AuditLog'));
-const ProgressPenjualan = lazy(() => import('./pages/Management/ProgressPenjualan'));
+const Progress = lazy(() => import('./pages/Proyek/Progress'));
 const UserManagement = lazy(() => import('./pages/Management/User'));
 const RolePermission = lazy(() => import('./pages/Management/RolePermission'));
 
@@ -135,7 +136,7 @@ const App = () => {
                 <Route path="management/manajemen-transaksi" element={<PermissionGuard resource="PENJUALAN"><ManajemenTransaksi /></PermissionGuard>} />
                 <Route path="management/penjualan" element={<PermissionGuard resource="PENJUALAN"><Penjualan /></PermissionGuard>} />
                 <Route path="management/penjualan-tagihan" element={<PermissionGuard resource="PENJUALAN"><PenjualanTagihanRedirect /></PermissionGuard>} />
-                <Route path="management/progress-penjualan" element={<PermissionGuard resource="PROGRESS_PENJUALAN"><ProgressPenjualan /></PermissionGuard>} />
+                <Route path="management/progress-penjualan" element={<Navigate to="/customer/administrasi?tab=progress-penjualan" replace />} />
                 <Route path="management/ganti-kavling" element={<PermissionGuard resource="GANTI_KAVLING"><GantiKavling /></PermissionGuard>} />
                 <Route path="management/batal-transaksi" element={<PermissionGuard resource="BATAL_TRANSAKSI"><BatalTransaksi /></PermissionGuard>} />
                 <Route path="management/kavling" element={<PermissionGuard resource="KAVLING"><Kavling /></PermissionGuard>} />
@@ -144,7 +145,7 @@ const App = () => {
                 <Route path="management/users" element={<PermissionGuard resource="USER"><UserManagement /></PermissionGuard>} />
                 <Route path="management/role-permission" element={<PermissionGuard resource="ROLE_PERMISSION"><RolePermission /></PermissionGuard>} />
                 <Route path="management/audit-log" element={<PermissionGuard resource="AUDIT_LOG"><AuditLog /></PermissionGuard>} />
-                <Route path="customer/administrasi" element={<PermissionGuard resource="CUSTOMER"><Administrasi /></PermissionGuard>} />
+                <Route path="customer/administrasi" element={<AdministrasiProgressGuard><AdministrasiProgress /></AdministrasiProgressGuard>} />
                 <Route path="/customer-detail/:id" element={
                   <PermissionGuard resource="CUSTOMER_DETAIL">
                     <CustomerDetail />
@@ -152,7 +153,9 @@ const App = () => {
                 } />
                 <Route path="customer/kavling" element={<PermissionGuard resource="CUSTOMER_KAVLING"><CustomerKavling /></PermissionGuard>} />
                 <Route path="customer/tagihan" element={<PermissionGuard resource="TAGIHAN"><Tagihan /></PermissionGuard>} />
-                <Route path="marketing/agents" element={<PermissionGuard resource="AGENT"><Agents /></PermissionGuard>} />
+                <Route path="marketing/agents" element={<Navigate to="/marketing/agents/pribadi" replace />} />
+                <Route path="marketing/agents/pribadi" element={<PermissionGuard resource="AGENT"><AgentPribadi /></PermissionGuard>} />
+                <Route path="marketing/agents/perusahaan" element={<PermissionGuard resource="AGENT"><AgentPerusahaan /></PermissionGuard>} />
                 <Route path="marketing/fee-agent" element={<PermissionGuard resource="FEE_AGENT"><FeeAgent /></PermissionGuard>} />
                 <Route path="marketing/perusahaan" element={<PermissionGuard resource="AGENT"><PerusahaanAgent /></PermissionGuard>} />
                 <Route path="proyek/spk" element={<PermissionGuard resource="SPK"><SPK /></PermissionGuard>} />

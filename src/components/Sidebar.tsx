@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -22,7 +22,18 @@ import { canReadResource } from '../utils/permissions';
 import { useSidebarBadges } from '../hooks/queries/useSidebarBadges';
 import SidebarBadge from './ui/SidebarBadge';
 
-const menuItems = [
+type SubmenuItem =
+  | { title: string; path: string; resource?: string; resources?: string[]; pengawasOnly?: boolean }
+  | { title: string; resource?: string; resources?: string[]; children: { title: string; path: string }[] };
+
+type MenuItem = {
+  title: string;
+  icon: ReactNode;
+  path?: string;
+  submenus?: SubmenuItem[];
+};
+
+const menuItems: MenuItem[] = [
   {
     title: 'Dashboard',
     path: '/',
@@ -33,8 +44,6 @@ const menuItems = [
     icon: <ShoppingCart size={18} strokeWidth={1.75} />,
     submenus: [
       { title: 'Manajemen Transaksi', path: '/management/manajemen-transaksi', resource: 'PENJUALAN' },
-      { title: 'Data Penjualan', path: '/management/penjualan', resource: 'PENJUALAN' },
-      { title: 'Progress', path: '/management/progress-penjualan', resource: 'PROGRESS_PENJUALAN' },
       { title: 'Ganti Kavling', path: '/management/ganti-kavling', resource: 'GANTI_KAVLING' },
       { title: 'Batal Transaksi', path: '/management/batal-transaksi', resource: 'BATAL_TRANSAKSI' },
     ],
@@ -55,7 +64,7 @@ const menuItems = [
     title: 'Customer',
     icon: <Users size={18} strokeWidth={1.75} />,
     submenus: [
-      { title: 'Administrasi', path: '/customer/administrasi', resource: 'CUSTOMER' },
+      { title: 'Administrasi', path: '/customer/administrasi', resources: ['CUSTOMER', 'PROGRESS_PENJUALAN'] },
       { title: 'Kavling Customer', path: '/customer/kavling', resource: 'CUSTOMER_KAVLING' },
       { title: 'Pembayaran', path: '/customer/tagihan', resource: 'TAGIHAN' },
     ],
@@ -64,7 +73,14 @@ const menuItems = [
     title: 'Marketing',
     icon: <UserCircle size={18} strokeWidth={1.75} />,
     submenus: [
-      { title: 'Agents', path: '/marketing/agents', resource: 'AGENT' },
+      {
+        title: 'Agents',
+        resource: 'AGENT',
+        children: [
+          { title: 'Agent Pribadi', path: '/marketing/agents/pribadi' },
+          { title: 'Agent Perusahaan', path: '/marketing/agents/perusahaan' },
+        ],
+      },
       { title: 'Fee Agent', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
       { title: 'Perusahaan Agent', path: '/marketing/perusahaan', resource: 'AGENT' },
     ],
@@ -119,6 +135,17 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { getBadgeForPath, getSectionBadge } = useSidebarBadges();
 
+  const canAccessSubmenu = (sub: SubmenuItem) => {
+    if ('pengawasOnly' in sub && sub.pengawasOnly) {
+      return user?.role === 'PENGAWAS' || user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
+    }
+    if ('resources' in sub && sub.resources) {
+      return sub.resources.some((resource) => canReadResource(user, resource));
+    }
+    if (!sub.resource) return true;
+    return canReadResource(user, sub.resource);
+  };
+
   const filteredMenuItems = menuItems.map(item => {
     if (!item.submenus) {
       if (item.path === '/' && (user?.role === 'MANDOR' || user?.role === 'PENGAWAS')) {
@@ -126,27 +153,54 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       }
       return item;
     }
-    const filteredSubmenus = item.submenus.filter(sub => {
-      if ('pengawasOnly' in sub && sub.pengawasOnly) {
-        return user?.role === 'PENGAWAS' || user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
-      }
-      if (!sub.resource) return true;
-      return canReadResource(user, sub.resource);
-    });
+    const filteredSubmenus = item.submenus
+      .filter(canAccessSubmenu)
+      .map((sub) => {
+        if ('children' in sub && sub.children) {
+          return { ...sub, children: sub.children };
+        }
+        return sub;
+      })
+      .filter((sub) => {
+        if ('children' in sub && sub.children) return sub.children.length > 0;
+        return true;
+      });
     return { ...item, submenus: filteredSubmenus };
   }).filter(item => {
     if (!item) return false;
     return item.submenus ? item.submenus.length > 0 : true;
   });
 
+  const isSubmenuPathActive = (sub: SubmenuItem) => {
+    if ('path' in sub && sub.path) {
+      return location.pathname.startsWith(sub.path);
+    }
+    if ('children' in sub && sub.children) {
+      return sub.children.some((child) => location.pathname.startsWith(child.path));
+    }
+    return false;
+  };
+
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
     const initialOpenMenus: Record<string, boolean> = {};
     menuItems.forEach(item => {
-      if (item.submenus?.some(sub => location.pathname.startsWith(sub.path))) {
+      if (item.submenus?.some(isSubmenuPathActive)) {
         initialOpenMenus[item.title] = true;
       }
     });
     return initialOpenMenus;
+  });
+
+  const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>(() => {
+    const initialOpenSubMenus: Record<string, boolean> = {};
+    menuItems.forEach(item => {
+      item.submenus?.forEach((sub) => {
+        if ('children' in sub && sub.children?.some((child) => location.pathname.startsWith(child.path))) {
+          initialOpenSubMenus[`${item.title}::${sub.title}`] = true;
+        }
+      });
+    });
+    return initialOpenSubMenus;
   });
 
   const handleMenuClick = (title: string) => {
@@ -158,10 +212,21 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     }
   };
 
-  const checkActive = (path?: string, submenus?: { path: string }[]) => {
+  const checkActive = (path?: string, submenus?: SubmenuItem[]) => {
     if (path && location.pathname === path) return true;
-    if (submenus && submenus.some((sub) => location.pathname === sub.path)) return true;
+    if (submenus && submenus.some(isSubmenuPathActive)) return true;
     return false;
+  };
+
+  const handleSubMenuClick = (parentTitle: string, subTitle: string) => {
+    const key = `${parentTitle}::${subTitle}`;
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      setOpenMenus((prev) => ({ ...prev, [parentTitle]: true }));
+      setOpenSubMenus((prev) => ({ ...prev, [key]: true }));
+    } else {
+      setOpenSubMenus((prev) => ({ ...prev, [key]: !prev[key] }));
+    }
   };
 
   const handleLogout = () => {
@@ -282,13 +347,71 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                       </button>
 
                       {/* Submenu */}
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpenMenu && !isCollapsed ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpenMenu && !isCollapsed ? 'max-h-[520px] opacity-100' : 'max-h-0 opacity-0'}`}>
                         <div className="ml-4 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
                           {item.submenus!.map((sub) => {
+                            if ('children' in sub && sub.children) {
+                              const subKey = `${item.title}::${sub.title}`;
+                              const isNestedOpen = openSubMenus[subKey];
+                              const isNestedActive = isSubmenuPathActive(sub);
+
+                              return (
+                                <div key={sub.title}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSubMenuClick(item.title, sub.title)}
+                                    className={`
+                                      w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200 cursor-pointer
+                                      ${isNestedActive
+                                        ? 'bg-white/10 text-slate-200'
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                      }
+                                    `}
+                                  >
+                                    <span className="flex items-center gap-2 min-w-0">
+                                      <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
+                                      <span className="truncate">{sub.title}</span>
+                                    </span>
+                                    <ChevronDown
+                                      size={12}
+                                      className={`shrink-0 transition-transform duration-200 ${isNestedOpen ? 'rotate-180' : ''}`}
+                                    />
+                                  </button>
+
+                                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isNestedOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                    <div className="ml-3 mt-0.5 pl-3 border-l border-white/10 space-y-0.5">
+                                      {sub.children.map((child) => {
+                                        const badgeCount = getBadgeForPath(child.path);
+                                        return (
+                                          <NavLink
+                                            key={child.path}
+                                            to={child.path}
+                                            className={({ isActive: linkActive }) => `
+                                              flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium transition-all duration-200
+                                              ${linkActive
+                                                ? 'bg-blue-500/20 text-blue-300 font-semibold'
+                                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 hover:translate-x-0.5'
+                                              }
+                                            `}
+                                          >
+                                            <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
+                                            <span className="flex-1 truncate">{child.title}</span>
+                                            <SidebarBadge count={badgeCount} />
+                                          </NavLink>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            if (!('path' in sub)) return null;
+
                             const badgeCount = getBadgeForPath(sub.path);
                             return (
                               <NavLink
-                                key={sub.title}
+                                key={sub.path}
                                 to={sub.path}
                                 className={({ isActive: linkActive }) => `
                                   flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200
