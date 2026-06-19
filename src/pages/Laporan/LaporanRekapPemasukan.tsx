@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
   ChevronDown,
@@ -18,13 +19,6 @@ import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/R
 import ReportMetricCard from '../../components/laporan/ReportMetricCard';
 import { formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
-
-const STATUS_OPTIONS = [
-  { value: 'ALL', label: 'Semua (non batal)' },
-  { value: 'BOOKED', label: 'Booked' },
-  { value: 'PROSES', label: 'Proses' },
-  { value: 'LUNAS', label: 'Lunas' },
-];
 
 const CARA_BAYAR_OPTIONS = [
   { value: '', label: 'Semua' },
@@ -115,50 +109,65 @@ function SkemaCard({
 }
 
 const LaporanRekapPemasukan = () => {
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
-  const [searchInput, setSearchInput] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
-  const [filters, setFilters] = useState({
-    status: 'ALL',
-    caraPembayaran: '',
-    blok: '',
-    startDate: '',
-    endDate: '',
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const page = Number(searchParams.get('page')) || 1;
+  const search = searchParams.get('search') || '';
+  const limitParam = Number(searchParams.get('limit'));
+  const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
+    ? limitParam
+    : DEFAULT_PAGE_SIZE;
+  const caraPembayaran = searchParams.get('caraPembayaran') || '';
+  const blok = searchParams.get('blok') || '';
+  const startDate = searchParams.get('startDate') || '';
+  const endDate = searchParams.get('endDate') || '';
+
+  const [filterDraft, setFilterDraft] = useState({
+    caraPembayaran,
+    blok,
+    startDate,
+    endDate,
   });
-  const [appliedFilters, setAppliedFilters] = useState(filters);
+  const [searchInput, setSearchInput] = useState(search);
   const [isFilterOpen, setIsFilterOpen] = useState(true);
 
-  const { perumahanId: defaultPerumahanId, isLoading: loadingPerumahan } =
-    useDefaultPerumahanId();
+  useEffect(() => {
+    setFilterDraft({ caraPembayaran, blok, startDate, endDate });
+  }, [caraPembayaran, blok, startDate, endDate]);
+
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const next = searchInput.trim();
-      setAppliedSearch((prev) => (prev === next ? prev : next));
+      if (next === search) return;
+      setSearchParams((prev) => {
+        if (next) prev.set('search', next);
+        else prev.delete('search');
+        prev.set('page', '1');
+        return prev;
+      });
     }, 400);
     return () => clearTimeout(timeoutId);
-  }, [searchInput]);
+  }, [searchInput, search, setSearchParams]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [appliedSearch]);
+  const { perumahanId: defaultPerumahanId, isLoading: loadingPerumahan } =
+    useDefaultPerumahanId();
 
   const queryParams = useMemo(
     () => ({
       ...(defaultPerumahanId ? { perumahanId: defaultPerumahanId } : {}),
-      status: appliedFilters.status,
-      ...(appliedFilters.caraPembayaran
-        ? { caraPembayaran: appliedFilters.caraPembayaran }
-        : {}),
-      ...(appliedFilters.blok.trim() ? { blok: appliedFilters.blok.trim() } : {}),
-      ...(appliedFilters.startDate ? { startDate: appliedFilters.startDate } : {}),
-      ...(appliedFilters.endDate ? { endDate: appliedFilters.endDate } : {}),
-      ...(appliedSearch ? { search: appliedSearch } : {}),
+      ...(caraPembayaran ? { caraPembayaran } : {}),
+      ...(blok ? { blok } : {}),
+      ...(startDate ? { startDate } : {}),
+      ...(endDate ? { endDate } : {}),
+      ...(search ? { search } : {}),
       page,
       limit,
     }),
-    [defaultPerumahanId, appliedFilters, appliedSearch, page, limit],
+    [defaultPerumahanId, caraPembayaran, blok, startDate, endDate, search, page, limit],
   );
 
   const { data: report, isLoading, isFetching } = useGetRekapPemasukanReport(
@@ -188,12 +197,49 @@ const LaporanRekapPemasukan = () => {
     return range;
   }, [currentPage, totalPages]);
 
+  const handlePageChange = (newPage: number) => {
+    setSearchParams((prev) => {
+      if (newPage <= 1) prev.delete('page');
+      else prev.set('page', String(newPage));
+      return prev;
+    });
+  };
+
+  const handlePageSizeChange = (newLimit: number) => {
+    setSearchParams((prev) => {
+      if (newLimit === DEFAULT_PAGE_SIZE) prev.delete('limit');
+      else prev.set('limit', String(newLimit));
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
   const handleFilterSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setAppliedFilters({ ...filters });
-    setPage(1);
-    setSearchInput('');
-    setAppliedSearch('');
+    setSearchParams((prev) => {
+      if (filterDraft.caraPembayaran) {
+        prev.set('caraPembayaran', filterDraft.caraPembayaran);
+      } else {
+        prev.delete('caraPembayaran');
+      }
+      if (filterDraft.blok.trim()) {
+        prev.set('blok', filterDraft.blok.trim());
+      } else {
+        prev.delete('blok');
+      }
+      if (filterDraft.startDate) {
+        prev.set('startDate', filterDraft.startDate);
+      } else {
+        prev.delete('startDate');
+      }
+      if (filterDraft.endDate) {
+        prev.set('endDate', filterDraft.endDate);
+      } else {
+        prev.delete('endDate');
+      }
+      prev.set('page', '1');
+      return prev;
+    });
   };
 
   if (loadingPerumahan || (isLoading && !report)) {
@@ -202,7 +248,7 @@ const LaporanRekapPemasukan = () => {
 
   const cashBertahapItems = report
     ? [
-        report.cashBertahap.cicilan,
+        report.cashBertahap.dp,
         ...(report.cashBertahap.cicilanDp ? [report.cashBertahap.cicilanDp] : []),
         ...(report.cashBertahap.cicilanRumah ? [report.cashBertahap.cicilanRumah] : []),
       ]
@@ -239,18 +285,12 @@ const LaporanRekapPemasukan = () => {
             onSubmit={handleFilterSubmit}
             className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-              <Select
-                label="Status Penjualan"
-                value={filters.status}
-                onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}
-                options={STATUS_OPTIONS}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               <Select
                 label="Cara Pembayaran"
-                value={filters.caraPembayaran}
+                value={filterDraft.caraPembayaran}
                 onChange={(e) =>
-                  setFilters((p) => ({ ...p, caraPembayaran: e.target.value }))
+                  setFilterDraft((p) => ({ ...p, caraPembayaran: e.target.value }))
                 }
                 options={CARA_BAYAR_OPTIONS}
               />
@@ -258,8 +298,8 @@ const LaporanRekapPemasukan = () => {
                 <label className="block text-[11px] font-bold text-slate-500 mb-1.5">Blok</label>
                 <input
                   type="text"
-                  value={filters.blok}
-                  onChange={(e) => setFilters((p) => ({ ...p, blok: e.target.value }))}
+                  value={filterDraft.blok}
+                  onChange={(e) => setFilterDraft((p) => ({ ...p, blok: e.target.value }))}
                   placeholder="Contoh: AA18"
                   className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
@@ -270,8 +310,10 @@ const LaporanRekapPemasukan = () => {
                 </label>
                 <input
                   type="date"
-                  value={filters.startDate}
-                  onChange={(e) => setFilters((p) => ({ ...p, startDate: e.target.value }))}
+                  value={filterDraft.startDate}
+                  onChange={(e) =>
+                    setFilterDraft((p) => ({ ...p, startDate: e.target.value }))
+                  }
                   className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -281,8 +323,10 @@ const LaporanRekapPemasukan = () => {
                 </label>
                 <input
                   type="date"
-                  value={filters.endDate}
-                  onChange={(e) => setFilters((p) => ({ ...p, endDate: e.target.value }))}
+                  value={filterDraft.endDate}
+                  onChange={(e) =>
+                    setFilterDraft((p) => ({ ...p, endDate: e.target.value }))
+                  }
                   className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -347,6 +391,9 @@ const LaporanRekapPemasukan = () => {
                       <p className="text-[12px] font-bold text-slate-700">{item.label}</p>
                       {!item.calculable && item.note && (
                         <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
+                      )}
+                      {item.calculable && item.note && (
+                        <p className="text-[10px] text-slate-400 mt-0.5">{item.note}</p>
                       )}
                     </div>
                     <KategoriValue item={item} />
@@ -492,10 +539,7 @@ const LaporanRekapPemasukan = () => {
                       Per halaman
                       <select
                         value={limit}
-                        onChange={(e) => {
-                          setLimit(Number(e.target.value));
-                          setPage(1);
-                        }}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                         className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold"
                       >
                         {PAGE_SIZE_OPTIONS.map((size) => (
@@ -510,7 +554,7 @@ const LaporanRekapPemasukan = () => {
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
                         className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-50"
                       >
@@ -525,7 +569,7 @@ const LaporanRekapPemasukan = () => {
                           <button
                             key={num}
                             type="button"
-                            onClick={() => setPage(num as number)}
+                            onClick={() => handlePageChange(num as number)}
                             className={`min-w-[32px] h-8 rounded-lg text-xs font-semibold ${
                               currentPage === num
                                 ? 'bg-slate-900 text-white'
@@ -538,7 +582,7 @@ const LaporanRekapPemasukan = () => {
                       )}
                       <button
                         type="button"
-                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
                         className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-50"
                       >

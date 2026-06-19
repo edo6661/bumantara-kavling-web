@@ -12,6 +12,8 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 const Select = ({ label, options, error, ...props }: SelectProps) => {
+  const hasEmptyOption = options.some((opt) => opt.value === '');
+
   return (
     <div className="flex flex-col gap-1.5 mb-4 group w-full">
       {label && (
@@ -33,7 +35,11 @@ const Select = ({ label, options, error, ...props }: SelectProps) => {
             }`}
           {...props}
         >
-          <option value="" disabled>Pilih {label || 'Opsi'}...</option>
+          {!hasEmptyOption && (
+            <option value="" disabled>
+              Pilih {label || 'Opsi'}...
+            </option>
+          )}
           {options.map((opt) => (
             <option key={opt.value} value={opt.value} className="py-2">
               {opt.label}
