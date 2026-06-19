@@ -51,113 +51,115 @@ const PembayaranTerbayarModal = ({
         title={`Detail Pembayaran${jenisPembayaran ? ` — ${jenisPembayaran}` : ''}`}
         size="lg"
       >
-        <div className="space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
+        <div className="space-y-3">
           {!showCustomerPerItem && (customerNama || kavlingLabel) && (
-            <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
-              {customerNama && (
-                <p className="text-[13px] font-bold text-slate-800">{customerNama}</p>
-              )}
-              {kavlingLabel && (
-                <p className="text-[11px] text-slate-500 mt-0.5">Kavling {kavlingLabel}</p>
-              )}
-            </div>
+            <p className="text-[12px] text-slate-600">
+              {customerNama && <span className="font-bold text-slate-800">{customerNama}</span>}
+              {customerNama && kavlingLabel && ' · '}
+              {kavlingLabel && <span>Kavling {kavlingLabel}</span>}
+            </p>
           )}
 
-          <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-            <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide">
-              {details.length} Pembayaran · Total dibayar
-            </p>
-            <p className="text-[15px] font-black text-emerald-900 tabular-nums">
-              {formatTanpaDesimal(totalNominal)}
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {details.map((detail, index) => {
-              const buktiList = getTagihanFileBuktiList(detail);
-              return (
-                <div
-                  key={`${detail.tagihanId}-${index}`}
-                  className="rounded-xl border border-slate-100 bg-white p-4 space-y-3"
-                >
-                  {showCustomerPerItem && (detail.customerNama || detail.kavlingLabel) && (
-                    <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
-                      {detail.customerNama && (
-                        <p className="text-[12px] font-bold text-slate-800">{detail.customerNama}</p>
-                      )}
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        {detail.kavlingLabel && <>Kavling {detail.kavlingLabel}</>}
-                        {detail.kavlingLabel && detail.noTransaksi && ' · '}
-                        {detail.noTransaksi && <>#{detail.noTransaksi}</>}
-                      </p>
-                    </div>
+          <div className="overflow-auto custom-scrollbar max-h-[65vh] rounded-xl border border-slate-100">
+            <table className="w-full text-[12px] border-collapse min-w-[640px]">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/95">
+                  {showCustomerPerItem && (
+                    <>
+                      <th className="py-2 px-3 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="py-2 px-3 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                        Kavling
+                      </th>
+                    </>
                   )}
-
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[12px] font-bold text-slate-800">
-                      {detail.pembayaran}
-                    </p>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-green-100 text-green-700 rounded-md shrink-0">
-                      <CheckCircle2 size={10} />
-                      {detail.status === 'LUNAS' ? 'Lunas' : detail.status}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
-                        No. Tagihan
-                      </p>
-                      <p className="text-[12px] font-semibold text-slate-800">{detail.noTagihan}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
-                        Nominal
-                      </p>
-                      <p className="text-[13px] font-semibold text-emerald-600 tabular-nums">
+                  <th className="py-2 px-3 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Pembayaran
+                  </th>
+                  <th className="py-2 px-3 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Nominal
+                  </th>
+                  <th className="py-2 px-3 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Jatuh Tempo
+                  </th>
+                  <th className="py-2 px-3 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Tgl Bayar
+                  </th>
+                  <th className="py-2 px-3 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Bukti
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {details.map((detail, index) => {
+                  const buktiList = getTagihanFileBuktiList(detail);
+                  return (
+                    <tr
+                      key={`${detail.tagihanId}-${index}`}
+                      className="border-b border-slate-50 align-top hover:bg-slate-50/60"
+                    >
+                      {showCustomerPerItem && (
+                        <>
+                          <td className="py-2 px-3 font-semibold text-slate-800 whitespace-nowrap">
+                            {detail.customerNama ?? '-'}
+                          </td>
+                          <td className="py-2 px-3 text-slate-600 whitespace-nowrap">
+                            {detail.kavlingLabel ?? '-'}
+                          </td>
+                        </>
+                      )}
+                      <td className="py-2 px-3 text-slate-800">
+                        <p className="font-semibold">{detail.pembayaran}</p>
+                        <span className="inline-flex items-center gap-0.5 mt-0.5 text-[10px] font-bold uppercase text-green-700">
+                          <CheckCircle2 size={10} />
+                          {detail.status === 'LUNAS' ? 'Lunas' : detail.status}
+                        </span>
+                      </td>
+                      <td className="py-2 px-3 text-right font-semibold text-emerald-600 tabular-nums whitespace-nowrap">
                         {formatTanpaDesimal(detail.nominal)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
-                        Jatuh Tempo
-                      </p>
-                      <p className="text-[12px] font-semibold text-slate-800">
+                      </td>
+                      <td className="py-2 px-3 text-slate-700 whitespace-nowrap">
                         {formatDate(detail.jatuhTempo)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">
-                        Tanggal Pembayaran
-                      </p>
-                      <p className="text-[12px] font-semibold text-slate-800">
+                      </td>
+                      <td className="py-2 px-3 text-slate-700 whitespace-nowrap">
                         {formatDate(detail.updatedAt)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">
-                      Bukti Pembayaran
-                    </p>
-                    {buktiList.length === 0 ? (
-                      <p className="text-[11px] text-slate-400 italic">Tidak ada bukti pembayaran.</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {buktiList.map((url, buktiIndex) => (
-                          <BuktiFileThumbnail
-                            key={`${detail.tagihanId}-bukti-${buktiIndex}`}
-                            url={url}
-                            onClick={() => setPreviewImage(url)}
-                            className="w-24 h-16"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                      </td>
+                      <td className="py-2 px-3">
+                        {buktiList.length === 0 ? (
+                          <span className="text-[11px] text-slate-400 italic">-</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {buktiList.map((url, buktiIndex) => (
+                              <BuktiFileThumbnail
+                                key={`${detail.tagihanId}-bukti-${buktiIndex}`}
+                                url={url}
+                                onClick={() => setPreviewImage(url)}
+                                className="w-12 h-8"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-emerald-50/80 border-t border-emerald-200">
+                  <td
+                    colSpan={showCustomerPerItem ? 3 : 1}
+                    className="py-2 px-3 text-[11px] font-bold text-emerald-800 uppercase tracking-wide"
+                  >
+                    Total ({details.length} pembayaran)
+                  </td>
+                  <td className="py-2 px-3 text-right font-black text-emerald-900 tabular-nums">
+                    {formatTanpaDesimal(totalNominal)}
+                  </td>
+                  <td colSpan={3} />
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
       </Modal>

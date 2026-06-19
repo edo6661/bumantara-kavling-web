@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
+  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -138,7 +139,7 @@ function KategoriValue({ item }: { item: RekapPemasukanKategori }) {
   );
 }
 
-function SkemaCard({
+function SkemaTable({
   title,
   accentClass,
   items,
@@ -152,38 +153,47 @@ function SkemaCard({
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div className={`h-1 ${accentClass}`} />
-      <div className="px-5 py-4 border-b border-slate-100">
+      <div className="px-5 py-3 border-b border-slate-100">
         <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-wide">{title}</h3>
-        <p className="text-[10px] text-slate-400 mt-0.5">Uang riil diterima (tagihan lunas)</p>
       </div>
-      <div className="divide-y divide-slate-50">
-        {items.map((item) => {
-          const clickable =
-            !!onItemClick && item.calculable && (item.terbayar ?? 0) > 0;
-          return (
-            <button
-              key={item.key}
-              type="button"
-              onClick={clickable ? () => onItemClick(item) : undefined}
-              disabled={!clickable}
-              className={`w-full flex items-start justify-between gap-4 px-5 py-3.5 text-left transition-colors ${
-                clickable ? 'hover:bg-slate-50/80 cursor-pointer' : 'cursor-default'
-              }`}
-              title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
-            >
-              <div className="min-w-0">
-                <p className="text-[12px] font-bold text-slate-700">{item.label}</p>
-                {item.calculable && item.note && (
-                  <p className="text-[10px] text-slate-400 mt-0.5">{item.note}</p>
-                )}
-              </div>
-              <div className="text-right shrink-0">
-                <KategoriValue item={item} />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      <table className="w-full text-[12px]">
+        <thead>
+          <tr className="border-b border-slate-100 bg-slate-50/60">
+            <th className="py-2 px-5 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+              Kategori
+            </th>
+            <th className="py-2 px-5 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+              Terbayar
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => {
+            const clickable =
+              !!onItemClick && item.calculable && (item.terbayar ?? 0) > 0;
+            return (
+              <tr
+                key={item.key}
+                onClick={clickable ? () => onItemClick(item) : undefined}
+                className={`border-b border-slate-50 last:border-b-0 ${
+                  clickable ? 'cursor-pointer hover:bg-slate-50/80' : ''
+                }`}
+                title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
+              >
+                <td className="py-2.5 px-5">
+                  <p className="font-bold text-slate-700">{item.label}</p>
+                  {!item.calculable && item.note && (
+                    <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
+                  )}
+                </td>
+                <td className="py-2.5 px-5">
+                  <KategoriValue item={item} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -213,6 +223,38 @@ function ClickableAmountTd({
         <span className={clickable ? 'font-semibold text-emerald-700 hover:underline' : ''}>
           {formatTanpaDesimal(amount)}
         </span>
+      ) : (
+        <span className="text-slate-400 text-[11px]">-</span>
+      )}
+    </td>
+  );
+}
+
+function ClickableBookingTd({
+  amount,
+  details,
+  onOpen,
+}: {
+  amount: number;
+  details: PemasukanTerbayarDetail[];
+  onOpen: () => void;
+}) {
+  const clickable = amount > 0 && details.length > 0;
+
+  return (
+    <td
+      className={`py-2.5 px-3 text-center ${
+        clickable ? 'cursor-pointer hover:bg-slate-100/80 active:bg-slate-100' : ''
+      }`}
+      onClick={clickable ? onOpen : undefined}
+      title={clickable ? 'Klik untuk lihat detail pembayaran booking fee' : undefined}
+    >
+      {amount > 0 ? (
+        <CheckCircle2
+          size={18}
+          className={`inline text-emerald-600 ${clickable ? 'hover:opacity-80' : ''}`}
+          aria-label="Booking fee lunas"
+        />
       ) : (
         <span className="text-slate-400 text-[11px]">-</span>
       )}
@@ -411,7 +453,6 @@ const LaporanRekapPemasukan = () => {
   const cashBertahapItems = report
     ? [
         report.cashBertahap.dp,
-        ...(report.cashBertahap.cicilanDp ? [report.cashBertahap.cicilanDp] : []),
         ...(report.cashBertahap.cicilanRumah ? [report.cashBertahap.cicilanRumah] : []),
       ]
     : [];
@@ -545,42 +586,51 @@ const LaporanRekapPemasukan = () => {
                   Semua Kategori Pemasukan
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                {ringkasanItems.map((item) => {
-                  const clickable =
-                    item.calculable &&
-                    (item.terbayar ?? 0) > 0 &&
-                    !!resolveKategoriKey(item.key) &&
-                    (report.kategoriTerbayar?.[resolveKategoriKey(item.key)!]?.length ?? 0) > 0;
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={
-                        clickable
-                          ? () => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
-                          : undefined
-                      }
-                      disabled={!clickable}
-                      className={`flex items-start justify-between gap-4 px-5 py-3.5 text-left w-full transition-colors ${
-                        clickable ? 'hover:bg-slate-50/80 cursor-pointer' : 'cursor-default'
-                      }`}
-                      title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
-                    >
-                      <div>
-                        <p className="text-[12px] font-bold text-slate-700">{item.label}</p>
-                        {!item.calculable && item.note && (
-                          <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
-                        )}
-                        {item.calculable && item.note && (
-                          <p className="text-[10px] text-slate-400 mt-0.5">{item.note}</p>
-                        )}
-                      </div>
-                      <KategoriValue item={item} />
-                    </button>
-                  );
-                })}
-              </div>
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/40">
+                    <th className="py-2 px-5 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                      Kategori
+                    </th>
+                    <th className="py-2 px-5 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                      Terbayar
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ringkasanItems.map((item) => {
+                    const clickable =
+                      item.calculable &&
+                      (item.terbayar ?? 0) > 0 &&
+                      !!resolveKategoriKey(item.key) &&
+                      (report.kategoriTerbayar?.[resolveKategoriKey(item.key)!]?.length ?? 0) > 0;
+                    return (
+                      <tr
+                        key={item.key}
+                        onClick={
+                          clickable
+                            ? () => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
+                            : undefined
+                        }
+                        className={`border-b border-slate-50 last:border-b-0 ${
+                          clickable ? 'cursor-pointer hover:bg-slate-50/80' : ''
+                        }`}
+                        title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
+                      >
+                        <td className="py-2.5 px-5">
+                          <p className="font-bold text-slate-700">{item.label}</p>
+                          {!item.calculable && item.note && (
+                            <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-5">
+                          <KategoriValue item={item} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </section>
 
@@ -588,7 +638,7 @@ const LaporanRekapPemasukan = () => {
           <section>
             <ReportSectionLabel>Rekap per Skema Pembayaran</ReportSectionLabel>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <SkemaCard
+              <SkemaTable
                 title="KPR"
                 accentClass="bg-gradient-to-r from-pink-400 to-rose-500"
                 items={[
@@ -603,7 +653,7 @@ const LaporanRekapPemasukan = () => {
                 ]}
                 onItemClick={(item) => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})}
               />
-              <SkemaCard
+              <SkemaTable
                 title="Cash Bertahap"
                 accentClass="bg-gradient-to-r from-violet-400 to-purple-500"
                 items={cashBertahapItems}
@@ -664,9 +714,8 @@ const LaporanRekapPemasukan = () => {
                         {[
                           { label: 'Customer', align: 'left' },
                           { label: 'Blok', align: 'left' },
-                          { label: 'Skema', align: 'left' },
                           { label: 'Pembiayaan', align: 'left' },
-                          { label: 'Booking', align: 'right' },
+                          { label: 'Booking', align: 'center' },
                           { label: 'DP', align: 'right' },
                           { label: 'Cic. Cash', align: 'right' },
                           { label: 'Cic. DP', align: 'right' },
@@ -678,7 +727,11 @@ const LaporanRekapPemasukan = () => {
                           <th
                             key={h.label}
                             className={`py-2.5 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider ${
-                              h.align === 'right' ? 'text-right' : 'text-left'
+                              h.align === 'right'
+                                ? 'text-right'
+                                : h.align === 'center'
+                                  ? 'text-center'
+                                  : 'text-left'
                             }`}
                           >
                             {h.label}
@@ -698,12 +751,15 @@ const LaporanRekapPemasukan = () => {
                           <td className="py-2.5 px-3 text-slate-600 border-r border-slate-100">
                             <p className="font-medium">{row.kavlingLabel}</p>
                           </td>
-                          <td className="py-2.5 px-3 text-slate-500">
-                            {row.caraPembayaran?.replace('_', ' ') ?? '-'}
-                          </td>
                           <td className="py-2.5 px-3 text-slate-500">{row.pembiayaan ?? '-'}</td>
 
-                          {TABLE_COLUMN_KEYS.map((columnKey) => (
+                          <ClickableBookingTd
+                            amount={row.bookingFee}
+                            details={getRowTerbayarByColumn(row, 'bookingFee')}
+                            onOpen={() => handleOpenRowModal(row, 'bookingFee')}
+                          />
+
+                          {TABLE_COLUMN_KEYS.filter((key) => key !== 'bookingFee').map((columnKey) => (
                             <ClickableAmountTd
                               key={columnKey}
                               amount={row[columnKey]}
