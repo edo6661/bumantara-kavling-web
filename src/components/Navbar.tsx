@@ -61,6 +61,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
 
   const getPageTitle = () => {
     const path = location.pathname;
+    if (path === '/profile' && user?.role === 'AGENT') return 'Profil Agent';
     if (routeLabels[path]) return routeLabels[path];
     if (path.startsWith('/customer-detail')) return 'Detail Customer';
     const paths = path.split('/').filter(Boolean);

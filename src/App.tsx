@@ -40,14 +40,13 @@ const CustomerDetail = lazy(() => import('./pages/Bank/CustomerDetail'));
 
 const AgentLogin = lazy(() => import('./pages/Public/AgentLogin'));
 const AgentRegister = lazy(() => import('./pages/Public/AgentRegister'));
-const AgentPortalDashboard = lazy(() => import('./pages/AgentPortal/PortalDashboard'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const ApprovePembayaran = lazy(() => import('./pages/Finance/ApprovePembayaran'));
 const BayarKodeBillingPph = lazy(() => import('./pages/Finance/BayarKodeBillingPph'));
 const BayarSpkPembayaran = lazy(() => import('./pages/Finance/BayarSpkPembayaran'));
 const BayarNotarisPembayaran = lazy(() => import('./pages/Finance/BayarNotarisPembayaran'));
 const BayarBankKprPembayaran = lazy(() => import('./pages/Finance/BayarBankKprPembayaran'));
 const BayarAgent = lazy(() => import('./pages/Finance/BayarAgent'));
-const Profile = lazy(() => import('./pages/Profile'));
 const LaporanEksekutif = lazy(() => import('./pages/Laporan/LaporanEksekutif'));
 const LaporanPenjualan = lazy(() => import('./pages/Laporan/LaporanPenjualan'));
 const LaporanProgressProyek = lazy(() => import('./pages/Laporan/LaporanProgressProyek'));
@@ -90,11 +89,11 @@ const CustomerPortalGuard = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const AgentPortalGuard = ({ children }: { children: React.ReactNode }) => {
+const AgentPortalRedirect = () => {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/agent-login" replace />;
   if (user?.role !== 'AGENT') return <Navigate to="/" replace />;
-  return <>{children}</>;
+  return <Navigate to="/profile" replace />;
 };
 
 const App = () => {
@@ -119,14 +118,10 @@ const App = () => {
               <Route path="/agent-login" element={<AgentLogin />} />
               <Route path="/agent-register" element={<AgentRegister />} />
               <Route path="/agent-register-success" element={<AgentRegisterSuccess />} />
-              <Route path="/agent-portal" element={
-                <AgentPortalGuard>
-                  <AgentPortalDashboard />
-                </AgentPortalGuard>
-              } />
+              <Route path="/agent-portal" element={<AgentPortalRedirect />} />
 
               <Route path="/" element={<ProtectedRoute><RootLayout /></ProtectedRoute>}>
-                <Route path="profile" element={<Profile />} />
+                <Route path="profile" element={<ProfilePage />} />
                 <Route index element={
                   <PermissionGuard resource="DASHBOARD"><Dashboard /></PermissionGuard>
                 } />

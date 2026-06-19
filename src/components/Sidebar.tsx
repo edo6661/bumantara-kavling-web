@@ -42,7 +42,7 @@ const menuItems: MenuItem[] = [
   },
   {
     title: 'Profil Agent',
-    path: '/agent-portal',
+    path: '/profile',
     icon: <UserCircle size={18} strokeWidth={1.75} />,
     agentOnly: true,
   },
