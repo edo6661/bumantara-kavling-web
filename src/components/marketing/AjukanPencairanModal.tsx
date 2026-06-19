@@ -9,7 +9,10 @@ import { calcSelectedPencairanTotal } from '../../utils/agentPencairanPreview';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
 import AgentPencairanHistoryTable from './AgentPencairanHistoryTable';
 import FileInput from '../shared/FileInput';
-import { Info } from 'lucide-react';
+import { Info, X } from 'lucide-react';
+import {
+  MAX_AGENT_PENCAIRAN_INVOICE_FILES,
+} from '../../utils/agentPencairanInvoice';
 
 interface AjukanPencairanModalProps {
   isOpen: boolean;
@@ -19,7 +22,7 @@ interface AjukanPencairanModalProps {
   pencairanHistory?: AgentPencairanData[];
   requireInvoice?: boolean;
   isSubmitting: boolean;
-  onConfirm: (selected: Set<PencairanKomponenKey>, fileInvoice?: File) => void;
+  onConfirm: (selected: Set<PencairanKomponenKey>, fileInvoices?: File[]) => void;
 }
 
 const KomponenRow = ({
@@ -86,13 +89,13 @@ const AjukanPencairanModal = ({
   onConfirm,
 }: AjukanPencairanModalProps) => {
   const [selected, setSelected] = useState<Set<PencairanKomponenKey>>(new Set());
-  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [invoiceFiles, setInvoiceFiles] = useState<File[]>([]);
   const [invoiceError, setInvoiceError] = useState<string | undefined>();
 
   useEffect(() => {
     if (!preview) return;
     setSelected(new Set(preview.komponenSekarang.map((k) => k.key)));
-    setInvoiceFile(null);
+    setInvoiceFiles([]);
     setInvoiceError(undefined);
   }, [preview]);
 
@@ -112,31 +115,48 @@ const AjukanPencairanModal = ({
 
   const handleConfirm = () => {
     if (!preview || selected.size === 0) return;
-    if (requireInvoice && !invoiceFile) {
+    if (requireInvoice && invoiceFiles.length === 0) {
       setInvoiceError('Invoice wajib diunggah (PDF atau gambar).');
       return;
     }
-    onConfirm(selected, invoiceFile ?? undefined);
+    onConfirm(selected, invoiceFiles.length > 0 ? invoiceFiles : undefined);
   };
 
   const handleInvoiceChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setInvoiceFile(null);
-      return;
-    }
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+    const picked = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (picked.length === 0) return;
+
+    const invalid = picked.find(
+      (file) => !file.type.startsWith('image/') && file.type !== 'application/pdf',
+    );
+    if (invalid) {
       setInvoiceError('Hanya file gambar dan PDF yang diperbolehkan.');
-      setInvoiceFile(null);
-      e.target.value = '';
       return;
     }
+
+    setInvoiceFiles((prev) => {
+      const merged = [...prev, ...picked];
+      if (merged.length > MAX_AGENT_PENCAIRAN_INVOICE_FILES) {
+        setInvoiceError(
+          `Maksimal ${MAX_AGENT_PENCAIRAN_INVOICE_FILES} file invoice per pengajuan.`,
+        );
+        return prev;
+      }
+      setInvoiceError(undefined);
+      return merged;
+    });
+  };
+
+  const removeInvoiceFile = (index: number) => {
+    setInvoiceFiles((prev) => prev.filter((_, i) => i !== index));
     setInvoiceError(undefined);
-    setInvoiceFile(file);
   };
 
   const canSubmit =
-    selected.size > 0 && (!requireInvoice || !!invoiceFile) && !isSubmitting;
+    selected.size > 0 &&
+    (!requireInvoice || invoiceFiles.length > 0) &&
+    !isSubmitting;
 
   if (!preview) return null;
 
@@ -287,16 +307,38 @@ const AjukanPencairanModal = ({
         )}
 
         {requireInvoice && (
-          <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
+          <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4 space-y-3">
             <FileInput
-              label="Upload Invoice *"
+              label={`Upload Invoice * (${invoiceFiles.length}/${MAX_AGENT_PENCAIRAN_INVOICE_FILES})`}
               accept="image/*,.pdf"
+              multiple
               onChange={handleInvoiceChange}
-              disabled={isSubmitting}
+              disabled={isSubmitting || invoiceFiles.length >= MAX_AGENT_PENCAIRAN_INVOICE_FILES}
               error={invoiceError}
             />
-            <p className="text-[11px] text-amber-800 -mt-2">
-              Wajib untuk agent perusahaan. Format PDF atau gambar (JPG, PNG, dll).
+            {invoiceFiles.length > 0 && (
+              <ul className="space-y-1.5">
+                {invoiceFiles.map((file, index) => (
+                  <li
+                    key={`${file.name}-${index}`}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-amber-100 bg-white px-3 py-2 text-xs"
+                  >
+                    <span className="truncate text-slate-700 font-medium">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeInvoiceFile(index)}
+                      disabled={isSubmitting}
+                      className="shrink-0 p-1 text-slate-400 hover:text-red-600 rounded"
+                      title="Hapus file"
+                    >
+                      <X size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[11px] text-amber-800">
+              Wajib untuk agent perusahaan. Bisa lebih dari 1 file (PDF atau gambar).
             </p>
           </div>
         )}

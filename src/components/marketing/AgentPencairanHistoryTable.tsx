@@ -2,6 +2,7 @@ import BuktiFileThumbnail from '../shared/BuktiFileThumbnail';
 import { formatDate, formatRupiah } from '../../utils/formatters';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
 import { sortPencairanRecords } from '../../utils/agentPencairan';
+import { getAgentPencairanInvoiceUrls } from '../../utils/agentPencairanInvoice';
 import { CheckCircle2, Clock } from 'lucide-react';
 
 const thClass =
@@ -57,6 +58,7 @@ const AgentPencairanHistoryTable = ({
         <tbody>
           {sorted.map((row) => {
             const paid = row.status === 'SUDAH_DIBAYAR';
+            const invoiceUrls = getAgentPencairanInvoiceUrls(row);
             return (
               <tr key={row.id} className="hover:bg-slate-50/60">
                 <td className={tdClass}>
@@ -105,12 +107,17 @@ const AgentPencairanHistoryTable = ({
                 )}
                 {showInvoice && (
                   <td className={tdClass}>
-                    {row.fileInvoice && onPreviewInvoice ? (
-                      <BuktiFileThumbnail
-                        url={row.fileInvoice}
-                        onClick={() => onPreviewInvoice(row.fileInvoice!)}
-                        className="w-12 h-8"
-                      />
+                    {invoiceUrls.length > 0 && onPreviewInvoice ? (
+                      <div className="flex flex-wrap gap-1">
+                        {invoiceUrls.map((url) => (
+                          <BuktiFileThumbnail
+                            key={url}
+                            url={url}
+                            onClick={() => onPreviewInvoice(url)}
+                            className="w-12 h-8"
+                          />
+                        ))}
+                      </div>
                     ) : (
                       <span className="text-slate-400 text-xs">—</span>
                     )}

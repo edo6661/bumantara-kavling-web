@@ -20,6 +20,7 @@ import {
 } from '../../hooks/queries/useAgentPencairan';
 import { handleApiError } from '../../utils/errorHandler';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
+import { getAgentPencairanInvoiceUrls } from '../../utils/agentPencairanInvoice';
 
 const thClass =
   'px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50 border-b border-slate-200 whitespace-nowrap';
@@ -234,6 +235,7 @@ const BayarAgent = () => {
                 {items.map((row) => {
                   const paid = row.status === 'SUDAH_DIBAYAR';
                   const kavling = row.penjualan?.kavling;
+                  const invoiceUrls = getAgentPencairanInvoiceUrls(row);
 
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/50">
@@ -287,12 +289,17 @@ const BayarAgent = () => {
                         )}
                       </td>
                       <td className={tdClass}>
-                        {row.fileInvoice ? (
-                          <BuktiFileThumbnail
-                            url={row.fileInvoice}
-                            onClick={() => setPreviewUrl(row.fileInvoice!)}
-                            className="w-12 h-8"
-                          />
+                        {invoiceUrls.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {invoiceUrls.map((url) => (
+                              <BuktiFileThumbnail
+                                key={url}
+                                url={url}
+                                onClick={() => setPreviewUrl(url)}
+                                className="w-12 h-8"
+                              />
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-slate-400 text-xs">—</span>
                         )}

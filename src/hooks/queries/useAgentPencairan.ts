@@ -35,17 +35,17 @@ export const useAjukanAgentPencairan = () => {
       feeAgentId,
       includeClosing,
       includeMarketing,
-      fileInvoice,
+      fileInvoices,
     }: {
       feeAgentId: number;
       includeClosing: boolean;
       includeMarketing: boolean;
-      fileInvoice?: File;
+      fileInvoices?: File[];
     }) =>
       agentPencairanService.ajukan(feeAgentId, {
         includeClosing,
         includeMarketing,
-        fileInvoice,
+        fileInvoices,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: AGENT_PENCAIRAN_KEYS.all });

@@ -29,6 +29,7 @@ import {
   getPerusahaanById,
   isAgentPerusahaan,
 } from '../../utils/agentCommercialProfile';
+import { hasAgentPencairanInvoice } from '../../utils/agentPencairanInvoice';
 import type { AgentData, PenjualanAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
 
@@ -110,7 +111,7 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
     if (!pencairanModal || !isAgentPerusahaan(agent.type)) return false;
     const pencairanList = pencairanByFeeAgentId.get(pencairanModal.feeRecord.id) ?? [];
     const pendingWithInvoice = pencairanList.some(
-      (p) => p.status === 'MENUNGGU_PEMBAYARAN' && p.fileInvoice,
+      (p) => p.status === 'MENUNGGU_PEMBAYARAN' && hasAgentPencairanInvoice(p),
     );
     return !pendingWithInvoice;
   }, [pencairanModal, pencairanByFeeAgentId, agent.type]);
@@ -130,7 +131,7 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
 
   const handleConfirmAjukanPencairan = async (
     selected: Set<PencairanKomponenKey>,
-    fileInvoice?: File,
+    fileInvoices?: File[],
   ) => {
     if (!pencairanModal) return;
     try {
@@ -138,7 +139,7 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
         feeAgentId: pencairanModal.feeRecord.id,
         includeClosing: selected.has('closing'),
         includeMarketing: selected.has('marketing'),
-        fileInvoice,
+        fileInvoices,
       });
       alert('Pengajuan pencairan berhasil dikirim ke finance.');
       setPencairanModal(null);
@@ -426,7 +427,7 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
         }
         requireInvoice={requireInvoiceForModal}
         isSubmitting={ajukanPencairanMutation.isPending}
-        onConfirm={(selected, fileInvoice) => void handleConfirmAjukanPencairan(selected, fileInvoice)}
+        onConfirm={(selected, fileInvoices) => void handleConfirmAjukanPencairan(selected, fileInvoices)}
       />
 
       <PencairanHistoryModal

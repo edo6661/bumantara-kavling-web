@@ -15,6 +15,7 @@ export interface AgentPencairanData {
   totalNominal: number;
   status: AgentPencairanStatus;
   fileInvoice: string | null;
+  fileInvoiceList: string[];
   buktiPembayaran: string | null;
   tanggalPembayaran: string | null;
   bsiCmsDilaporkan: boolean;
@@ -93,16 +94,16 @@ export const agentPencairanService = {
     options: {
       includeClosing: boolean;
       includeMarketing: boolean;
-      fileInvoice?: File;
+      fileInvoices?: File[];
     },
   ) => {
     const formData = new FormData();
     formData.append('feeAgentId', String(feeAgentId));
     formData.append('includeClosing', String(options.includeClosing));
     formData.append('includeMarketing', String(options.includeMarketing));
-    if (options.fileInvoice) {
-      formData.append('fileInvoice', options.fileInvoice);
-    }
+    options.fileInvoices?.forEach((file) => {
+      formData.append('fileInvoice', file);
+    });
     const response = await api.post('/agent-pencairan', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

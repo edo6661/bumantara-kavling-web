@@ -3,6 +3,7 @@ import AgentPencairanHistoryTable from './AgentPencairanHistoryTable';
 import { formatRupiah } from '../../utils/formatters';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
 import { summarizePencairanHistory } from '../../utils/agentPencairan';
+import { hasAgentPencairanInvoice } from '../../utils/agentPencairanInvoice';
 
 interface PencairanHistoryModalProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ const PencairanHistoryModal = ({
 
           <AgentPencairanHistoryTable
             records={records}
-            showInvoice={records.some((r) => r.fileInvoice)}
+            showInvoice={records.some((r) => hasAgentPencairanInvoice(r))}
             onPreviewBukti={onPreviewBukti}
             onPreviewInvoice={onPreviewBukti}
           />
