@@ -5,6 +5,7 @@ import { canReadResource } from '../../utils/permissions';
 import { spkPembayaranService } from '../../services/spkPembayaran.service';
 import { tagihanService } from '../../services/tagihan.service';
 import { kodeBillingPphService } from '../../services/kodeBillingPph.service';
+import { agentPencairanService } from '../../services/agentPencairan.service';
 
 export const SIDEBAR_BADGE_KEYS = {
   all: ['sidebar-badges'] as const,
@@ -12,6 +13,7 @@ export const SIDEBAR_BADGE_KEYS = {
   spkBayar: () => [...SIDEBAR_BADGE_KEYS.all, 'spk-bayar'] as const,
   tagihanApprove: () => [...SIDEBAR_BADGE_KEYS.all, 'tagihan-approve'] as const,
   kodeBillingPph: () => [...SIDEBAR_BADGE_KEYS.all, 'kode-billing-pph'] as const,
+  agentPencairanBayar: () => [...SIDEBAR_BADGE_KEYS.all, 'agent-pencairan-bayar'] as const,
 };
 
 export const invalidateSidebarBadges = (queryClient: QueryClient) =>
@@ -22,6 +24,7 @@ type BadgeCounts = {
   spkBayar: number;
   tagihanApprove: number;
   kodeBillingPph: number;
+  agentPencairanBayar: number;
 };
 
 /** Path → jumlah item yang menunggu tindakan user */
@@ -30,6 +33,7 @@ const PATH_BADGE_MAP: Record<string, keyof BadgeCounts> = {
   '/finance/bayar-spk': 'spkBayar',
   '/finance/approve-pembayaran': 'tagihanApprove',
   '/finance/bayar-kode-billing-pph': 'kodeBillingPph',
+  '/finance/bayar-agent': 'agentPencairanBayar',
 };
 
 const SECTION_PATHS: Record<string, string[]> = {
@@ -37,6 +41,7 @@ const SECTION_PATHS: Record<string, string[]> = {
     '/finance/approve-pembayaran',
     '/finance/bayar-kode-billing-pph',
     '/finance/bayar-spk',
+    '/finance/bayar-agent',
   ],
   Proyek: ['/proyek/approve-kasbon'],
 };
@@ -63,6 +68,12 @@ export const useSidebarBadges = () => {
       user?.role === 'SUPERADMIN');
 
   const canKodeBillingPph =
+    canReadResource(user, 'TAGIHAN') &&
+    (user?.role === 'FINANCE' ||
+      user?.role === 'ADMIN' ||
+      user?.role === 'SUPERADMIN');
+
+  const canAgentPencairanBayar =
     canReadResource(user, 'TAGIHAN') &&
     (user?.role === 'FINANCE' ||
       user?.role === 'ADMIN' ||
@@ -128,6 +139,20 @@ export const useSidebarBadges = () => {
         staleTime: 30_000,
         refetchOnWindowFocus: true,
       },
+      {
+        queryKey: SIDEBAR_BADGE_KEYS.agentPencairanBayar(),
+        queryFn: async () => {
+          const res = await agentPencairanService.getPaginated({
+            page: 1,
+            limit: 1,
+            status: 'MENUNGGU_PEMBAYARAN',
+          });
+          return res.meta.totalItems;
+        },
+        enabled: enabled && canAgentPencairanBayar,
+        staleTime: 30_000,
+        refetchOnWindowFocus: true,
+      },
     ],
   });
 
@@ -137,8 +162,15 @@ export const useSidebarBadges = () => {
       spkBayar: results[1].data ?? 0,
       tagihanApprove: results[2].data ?? 0,
       kodeBillingPph: results[3].data ?? 0,
+      agentPencairanBayar: results[4].data ?? 0,
     }),
-    [results[0].data, results[1].data, results[2].data, results[3].data],
+    [
+      results[0].data,
+      results[1].data,
+      results[2].data,
+      results[3].data,
+      results[4].data,
+    ],
   );
 
   const getBadgeForPath = (path: string): number => {

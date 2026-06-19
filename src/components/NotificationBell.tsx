@@ -10,6 +10,7 @@ import {
   Loader2,
   RefreshCw,
   Wallet,
+  Users,
 } from 'lucide-react';
 import { invalidateQueriesForNotification } from '../utils/notificationQueryInvalidation';
 import { useNotifications } from '../hooks/queries/useNotifications';
@@ -54,6 +55,12 @@ const TYPE_CONFIG: Record<
     bg: 'bg-rose-100',
     text: 'text-rose-600',
     label: 'PPh',
+  },
+  AGENT_PENCAIRAN: {
+    icon: Users,
+    bg: 'bg-cyan-100',
+    text: 'text-cyan-600',
+    label: 'Agent',
   },
 };
 

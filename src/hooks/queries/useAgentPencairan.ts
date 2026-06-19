@@ -3,6 +3,7 @@ import {
   agentPencairanService,
   type AgentPencairanListParams,
 } from '../../services/agentPencairan.service';
+import { invalidateSidebarBadges } from './useSidebarBadges';
 
 export const AGENT_PENCAIRAN_KEYS = {
   all: ['agent-pencairan'] as const,
@@ -42,6 +43,7 @@ export const useAjukanAgentPencairan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: AGENT_PENCAIRAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ['fee-agents'] });
+      invalidateSidebarBadges(queryClient);
     },
   });
 };
@@ -61,6 +63,7 @@ export const useBayarAgentPencairan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: AGENT_PENCAIRAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ['fee-agents'] });
+      invalidateSidebarBadges(queryClient);
     },
   });
 };

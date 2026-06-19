@@ -4,7 +4,8 @@ export type NotificationType =
   | 'SPK_DIBAYAR'
   | 'UPLOAD_BUKTI'
   | 'GANTI_KAVLING'
-  | 'KODE_BILLING_PPH';
+  | 'KODE_BILLING_PPH'
+  | 'AGENT_PENCAIRAN';
 
 export interface NotificationItem {
   id: number;
