@@ -10,10 +10,11 @@ export const AGENT_KEYS = {
 };
 
 /** Daftar agent lengkap (max 300) — untuk lookup/dropdown, tanpa pagination. */
-export const useGetAgents = () => {
+export const useGetAgents = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: AGENT_KEYS.list,
     queryFn: agentService.getAll,
+    enabled: options?.enabled ?? true,
   });
 };
 

@@ -16,7 +16,7 @@ const AgentLogin = () => {
     const result = await loginAgent(formData.email, formData.password);
 
     if (result.success) {
-      navigate('/agent-portal', { replace: true });
+      navigate('/management/manajemen-transaksi', { replace: true });
     } else {
       setError(result.message || 'Email atau password salah');
     }

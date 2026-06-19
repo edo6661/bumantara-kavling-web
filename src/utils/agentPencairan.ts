@@ -301,7 +301,7 @@ export const getPencairanKomponen = (
         marketing.alasan = 'Belum SP3K';
       } else if (!hasAkadKreditComplete(detail?.progressPenjualan)) {
         marketing.alasan =
-          'Upload dokumen PPJB atau AJB (akad kredit) di menu Progress Penjualan';
+          'Upload Dokumen PPJB atau AJB';
       } else if (nilaiAjb <= 0) {
         marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
       } else {
@@ -323,7 +323,7 @@ export const getPencairanKomponen = (
       marketing.alasan = 'Belum SP3K';
     } else if (!hasAkadKreditComplete(detail?.progressPenjualan)) {
       marketing.alasan =
-        'Upload dokumen PPJB atau AJB (akad kredit) di menu Progress Penjualan';
+        'Upload Dokumen PPJB atau AJB';
     } else {
       marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
     }

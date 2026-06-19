@@ -362,6 +362,66 @@ export interface PemasukanPenjualanReportData {
   };
 }
 
+export interface RekapPemasukanReportParams {
+  perumahanId?: number;
+  blok?: string;
+  status?: string;
+  caraPembayaran?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface RekapPemasukanKategori {
+  key: string;
+  label: string;
+  terbayar: number | null;
+  calculable: boolean;
+  note?: string;
+}
+
+export interface RekapPemasukanSkema {
+  dp: RekapPemasukanKategori;
+  cicilan: RekapPemasukanKategori;
+  cicilanDp?: RekapPemasukanKategori;
+  cicilanRumah?: RekapPemasukanKategori;
+}
+
+export interface RekapPemasukanDetailItem {
+  penjualanId: number;
+  noTransaksi: string;
+  customerNama: string;
+  kavlingLabel: string;
+  caraPembayaran: string | null;
+  pembiayaan: string | null;
+  bookingFee: number;
+  dp: number;
+  cicilanCashBertahap: number;
+  cicilanDp: number;
+  cicilanRumah: number;
+  dpKpr: number;
+  cicilanKpr: number;
+  totalTerima: number;
+}
+
+export interface RekapPemasukanReportData {
+  filters: RekapPemasukanReportParams;
+  ringkasan: RekapPemasukanKategori[];
+  kpr: RekapPemasukanSkema;
+  cashBertahap: RekapPemasukanSkema;
+  totalTerima: number;
+  jumlahPenjualan: number;
+  items: RekapPemasukanDetailItem[];
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
 export interface PenjualanReportData {
   filters: PenjualanReportParams;
   summary: {
@@ -417,6 +477,13 @@ export const reportService = {
     params: PemasukanPenjualanReportParams = {},
   ): Promise<PemasukanPenjualanReportData> => {
     const response = await api.get("/reports/pemasukan-penjualan", { params });
+    return response.data.data;
+  },
+
+  getRekapPemasukan: async (
+    params: RekapPemasukanReportParams = {},
+  ): Promise<RekapPemasukanReportData> => {
+    const response = await api.get("/reports/rekap-pemasukan", { params });
     return response.data.data;
   },
 

@@ -56,6 +56,7 @@ const LaporanKeuangan = lazy(() => import('./pages/Laporan/LaporanKeuangan'));
 const LaporanMarketing = lazy(() => import('./pages/Laporan/LaporanMarketing'));
 const LaporanRekapPembayaran = lazy(() => import('./pages/Laporan/LaporanRekapPembayaran'));
 const LaporanPemasukanPenjualan = lazy(() => import('./pages/Laporan/LaporanPemasukanPenjualan'));
+const LaporanRekapPemasukan = lazy(() => import('./pages/Laporan/LaporanRekapPemasukan'));
 const ManajemenTransaksi = lazy(() => import('./pages/transaksi/ManajemenTransaksi'));
 
 const PenjualanTagihanRedirect = () => {
@@ -69,7 +70,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
   if (user?.role === 'CUSTOMER') return <Navigate to="/portal" replace />;
-  if (user?.role === 'AGENT') return <Navigate to="/agent-portal" replace />;
+  if (user?.role === 'AGENT' && location.pathname === '/') {
+    return <Navigate to="/management/manajemen-transaksi" replace />;
+  }
   if (user?.role === 'MANDOR' && location.pathname === '/') {
     return <Navigate to="/proyek/progress" replace />;
   }
@@ -166,6 +169,7 @@ const App = () => {
                 <Route path="laporan/penjualan" element={<PermissionGuard resource="LAPORAN"><LaporanPenjualan /></PermissionGuard>} />
                 <Route path="laporan/rekap-pembayaran" element={<PermissionGuard resource="LAPORAN"><LaporanRekapPembayaran /></PermissionGuard>} />
                 <Route path="laporan/pemasukan-penjualan" element={<PermissionGuard resource="LAPORAN"><LaporanPemasukanPenjualan /></PermissionGuard>} />
+                <Route path="laporan/rekap-pemasukan" element={<PermissionGuard resource="LAPORAN"><LaporanRekapPemasukan /></PermissionGuard>} />
                 <Route path="laporan/progress-proyek" element={<PermissionGuard resource="LAPORAN"><LaporanProgressProyek /></PermissionGuard>} />
                 <Route path="laporan/biaya-proyek" element={<PermissionGuard resource="LAPORAN"><LaporanBiayaProyek /></PermissionGuard>} />
                 <Route path="laporan/keuangan" element={<PermissionGuard resource="LAPORAN"><LaporanKeuangan /></PermissionGuard>} />

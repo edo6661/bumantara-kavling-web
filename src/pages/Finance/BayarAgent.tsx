@@ -193,11 +193,7 @@ const BayarAgent = () => {
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-lg font-black text-slate-900">Bayar Agent</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Proses pembayaran dan riwayat pencairan fee agent. Satu penjualan bisa punya
-            beberapa pengajuan (tahap PPJB/AJB). Filter &quot;Semua&quot; untuk melihat histori
-            lengkap.
-          </p>
+         
           {statusFilter !== 'SUDAH_DIBAYAR' && menungguCount > 0 && (
             <p className="text-xs font-semibold text-amber-700 mt-2">
               {meta?.totalItems ?? menungguCount} pengajuan menunggu pembayaran
@@ -214,7 +210,6 @@ const BayarAgent = () => {
             <table className="w-full min-w-[1100px] border-collapse">
               <thead>
                 <tr>
-                  <th className={thClass}>Tahap</th>
                   <th className={thClass}>Agent</th>
                   <th className={thClass}>Customer</th>
                   <th className={thClass}>Kavling</th>
@@ -236,11 +231,7 @@ const BayarAgent = () => {
 
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/50">
-                      <td className={tdClass}>
-                        <span className="inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-slate-100 text-slate-700">
-                          {row.tahap}
-                        </span>
-                      </td>
+                     
                       <td className={tdClass}>
                         <p className="font-bold text-slate-900">{row.agent?.nama ?? '-'}</p>
                         <p className="text-[10px] text-slate-500">

@@ -31,6 +31,7 @@ type MenuItem = {
   icon: ReactNode;
   path?: string;
   submenus?: SubmenuItem[];
+  agentOnly?: boolean;
 };
 
 const menuItems: MenuItem[] = [
@@ -38,6 +39,12 @@ const menuItems: MenuItem[] = [
     title: 'Dashboard',
     path: '/',
     icon: <LayoutDashboard size={18} strokeWidth={1.75} />,
+  },
+  {
+    title: 'Profil Agent',
+    path: '/agent-portal',
+    icon: <UserCircle size={18} strokeWidth={1.75} />,
+    agentOnly: true,
   },
   {
     title: 'Penjualan',
@@ -65,8 +72,8 @@ const menuItems: MenuItem[] = [
     icon: <Users size={18} strokeWidth={1.75} />,
     submenus: [
       { title: 'Administrasi', path: '/customer/administrasi', resources: ['CUSTOMER', 'PROGRESS_PENJUALAN'] },
-      { title: 'Kavling Customer', path: '/customer/kavling', resource: 'CUSTOMER_KAVLING' },
-      { title: 'Pembayaran', path: '/customer/tagihan', resource: 'TAGIHAN' },
+      // { title: 'Kavling Customer', path: '/customer/kavling', resource: 'CUSTOMER_KAVLING' },
+      // { title: 'Pembayaran', path: '/customer/tagihan', resource: 'TAGIHAN' },
     ],
   },
   {
@@ -114,6 +121,7 @@ const menuItems: MenuItem[] = [
       { title: 'Eksekutif', path: '/laporan/eksekutif', resource: 'LAPORAN' },
       { title: 'Penjualan & Koleksi', path: '/laporan/penjualan', resource: 'LAPORAN' },
       { title: 'Pemasukan Penjualan', path: '/laporan/pemasukan-penjualan', resource: 'LAPORAN' },
+      { title: 'Rekap Pemasukan', path: '/laporan/rekap-pemasukan', resource: 'LAPORAN' },
       { title: 'Rekap Pembayaran', path: '/laporan/rekap-pembayaran', resource: 'LAPORAN' },
       { title: 'Progress Proyek', path: '/laporan/progress-proyek', resource: 'LAPORAN' },
       { title: 'Biaya Proyek', path: '/laporan/biaya-proyek', resource: 'LAPORAN' },
@@ -147,6 +155,8 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   };
 
   const filteredMenuItems = menuItems.map(item => {
+    if (item.agentOnly && user?.role !== 'AGENT') return null;
+    if (!item.agentOnly && user?.role === 'AGENT' && item.path === '/') return null;
     if (!item.submenus) {
       if (item.path === '/' && (user?.role === 'MANDOR' || user?.role === 'PENGAWAS')) {
         return null;
@@ -230,8 +240,9 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   };
 
   const handleLogout = () => {
+    const isAgent = user?.role === 'AGENT';
     logout();
-    navigate('/login', { replace: true });
+    navigate(isAgent ? '/agent-login' : '/login', { replace: true });
   };
 
   const sidebarWidth = isCollapsed ? 'md:w-[72px]' : 'md:w-[260px]';

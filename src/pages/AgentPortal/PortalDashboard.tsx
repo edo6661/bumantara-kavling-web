@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   useGetMyAgentProfile,
   useUploadMyAgentDoc,
@@ -124,9 +125,17 @@ const AgentPortalDashboard = () => {
           <Briefcase className="text-blue-600" size={24} />
           <h1 className="text-lg font-black text-slate-900 tracking-tight">Agent<span className="text-blue-600">Portal</span></h1>
         </div>
-        <button onClick={logout} className="flex items-center gap-2 text-sm font-bold text-red-500 hover:text-red-700 transition-colors cursor-pointer">
-          <LogOut size={16} /> Keluar
-        </button>
+        <div className="flex items-center gap-4">
+          <Link
+            to="/management/manajemen-transaksi"
+            className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            <ShoppingCart size={16} /> Penjualan & Customer
+          </Link>
+          <button onClick={logout} className="flex items-center gap-2 text-sm font-bold text-red-500 hover:text-red-700 transition-colors cursor-pointer">
+            <LogOut size={16} /> Keluar
+          </button>
+        </div>
       </header>
 
       <main className="max-w-6xl mx-auto mt-8 px-4 space-y-8 animate-in fade-in duration-500">

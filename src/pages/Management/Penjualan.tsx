@@ -25,6 +25,8 @@ import { useGetBankRekening } from "../../hooks/queries/useBankRekening";
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
 import { useAuth } from "../../context/AuthContext";
+import { usePermission } from "../../hooks/usePermission";
+import { useGetMyAgentProfile } from "../../hooks/queries/useAgentPortal";
 import SignatureCanvas from 'react-signature-canvas';
 import { handleApiError } from '../../utils/errorHandler';
 import type { AgentData } from '../../types/models/agent';
@@ -171,7 +173,9 @@ interface BiayaTambahan {
 }
 
 const Penjualan = () => {
-  const { selectedPerumahan } = useAuth();
+  const { selectedPerumahan, user } = useAuth();
+  const { canCreate, canUpdate } = usePermission('PENJUALAN');
+  const isAgentUser = user?.role === 'AGENT';
   // const queryClient = useQueryClient();
 
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -204,7 +208,8 @@ const Penjualan = () => {
   const meta = penjualanResponse?.meta;
   const summary = meta?.summary || {};
 
-  const { data: agentData = [] } = useGetAgents();
+  const { data: agentData = [] } = useGetAgents({ enabled: !isAgentUser });
+  const { data: myAgentProfile } = useGetMyAgentProfile({ enabled: isAgentUser });
   const { data: perumahanData = [] } = useGetPerumahan();
   const { data: kavlingResponse } = useGetKavlings({ limit: 500 });
   const { data: bankList = [] } = useGetBankRekening();
@@ -679,7 +684,7 @@ const Penjualan = () => {
                     <div className="h-px bg-blue-500/50 mx-2 my-0.5" />
                   )}
 
-                  {row.fileBuktiBooking && (
+                  {row.fileBuktiBooking && canUpdate && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -741,6 +746,7 @@ const Penjualan = () => {
     }
   ];
   const openModal = (item?: PenjualanData) => {
+    if (item && !canUpdate) return;
     if (item) {
       let calculatedPersentaseDp = item.persentaseDp || 40;
       let calculatedCicilan = item.cicilanPerBulan || 0;
@@ -812,6 +818,7 @@ const Penjualan = () => {
         ...initialFormState,
         tanggal: new Date().toISOString().split('T')[0],
         perumahan: selectedPerumahan ? selectedPerumahan.nama : '',
+        agent: isAgentUser ? (myAgentProfile?.nama ?? '') : '',
       });
       setOriginalKavling({ blok: '', unit: '' });
       setIsEditing(false);
@@ -1297,7 +1304,7 @@ const Penjualan = () => {
           luasBangunan: Number(formData.luasBangunan),
           luasTanah: Number(formData.luasTanah),
           tanggal: formData.tanggal,
-          agent: formData.agent,
+          agent: isAgentUser ? (formData.agent || myAgentProfile?.nama || '') : formData.agent,
           rekeningTujuanId: formData.rekeningTujuanId ? Number(formData.rekeningTujuanId) : undefined,
 
           hargaDasar: formData.hargaDasar,
@@ -1415,7 +1422,7 @@ const Penjualan = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              {((row.status === 'BOOKED' || row.status === 'PROSES')) && (
+              {canUpdate && ((row.status === 'BOOKED' || row.status === 'PROSES')) && (
                 <button
                   onClick={() => {
                     setSelectedCancelRow(row);
@@ -1838,7 +1845,7 @@ const Penjualan = () => {
         title="Data Penjualan"
         columns={columns}
         data={penjualanData}
-        onAdd={() => openModal()}
+        onAdd={canCreate ? () => openModal() : undefined}
         expandedRowRender={expandedRowRender}
         serverSide={true}
         searchTerm={search}
@@ -1859,7 +1866,15 @@ const Penjualan = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-2 gap-y-1">
               <div className="md:col-span-2 p-3 bg-blue-50/40 rounded-xl border border-blue-100/60 mb-2">
-                {!isNewAgent ? (
+                {isAgentUser ? (
+                  <Input
+                    label="Agent Marketing"
+                    name="agent"
+                    value={formData.agent || myAgentProfile?.nama || ''}
+                    readOnly
+                    disabled
+                  />
+                ) : !isNewAgent ? (
                   <Select
                     label="Agent Marketing"
                     name="agent"

@@ -6,10 +6,11 @@ export const AGENT_PORTAL_KEYS = {
   profile: ["agent-portal-profile"] as const,
 };
 
-export const useGetMyAgentProfile = () => {
+export const useGetMyAgentProfile = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: AGENT_PORTAL_KEYS.profile,
     queryFn: agentPortalService.getProfile,
+    enabled: options?.enabled ?? true,
   });
 };
 

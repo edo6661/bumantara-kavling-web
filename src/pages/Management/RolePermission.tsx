@@ -22,6 +22,7 @@ const CONFIGURABLE_ROLES = [
   { id: "ADMIN", name: "Administrator" },
   { id: "FINANCE", name: "Finance & Keuangan" },
   { id: "MARKETING", name: "Tim Marketing" },
+  { id: "AGENT", name: "Agent Portal" },
   { id: "CUSTOMER", name: "Customer Portal" },
   { id: "BANK", name: "Bank" },
   { id: "MANDOR", name: "Mandor Lapangan" },

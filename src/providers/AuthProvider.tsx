@@ -8,6 +8,7 @@ import { disconnectSocket, refreshSocketAuth } from '../lib/socket';
 import { handleApiError } from '../utils/errorHandler';
 import type { User } from '../types/models/user';
 import { useQueryClient } from '@tanstack/react-query';
+import { perumahanService } from '../services/perumahan.service';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!storage.getToken());
@@ -82,6 +83,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         storage.setUser(response.data.user);
         setIsAuthenticated(true);
         setUser(response.data.user);
+        try {
+          const perumahanList = await perumahanService.getAll();
+          if (perumahanList.length > 0) {
+            storage.setPerumahan(perumahanList[0]);
+            setSelectedPerumahanState(perumahanList[0]);
+          }
+        } catch {
+          // Perumahan opsional saat login agent
+        }
         return { success: true };
       }
       return { success: false, message: response.message || 'Login gagal.' };

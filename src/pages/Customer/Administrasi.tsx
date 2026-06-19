@@ -30,6 +30,7 @@ import {
 } from "../../hooks/queries/useCustomer";
 import type { CustomerData, CreateCustomerDTO, CustomerDocType } from "../../services/customer.service";
 import { handleApiError } from '../../utils/errorHandler';
+import { usePermission } from '../../hooks/usePermission';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -48,6 +49,7 @@ const initialFormState: CreateCustomerDTO = {
 };
 
 const Administrasi = () => {
+  const { canCreate, canUpdate, canDelete } = usePermission('CUSTOMER');
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -214,6 +216,7 @@ const Administrasi = () => {
           >
             <Edit2 size={16} />
           </button>
+          {canUpdate && (
           <button
             onClick={(e) => { e.stopPropagation(); openUploadModal(row); }}
             className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-all cursor-pointer"
@@ -221,6 +224,8 @@ const Administrasi = () => {
           >
             <UploadCloud size={16} />
           </button>
+          )}
+          {canUpdate && (
           <button
             onClick={(e) => { e.stopPropagation(); handleGenerateAccount(row); }}
             className={`p-1.5 rounded-md transition-all cursor-pointer ${row.hasAccount
@@ -231,6 +236,8 @@ const Administrasi = () => {
           >
             <Key size={16} />
           </button>
+          )}
+          {canUpdate && (
           <button
             onClick={(e) => { e.stopPropagation(); handleCopyBankLink(row); }}
             className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-all cursor-pointer"
@@ -238,6 +245,8 @@ const Administrasi = () => {
           >
             <LinkIcon size={16} />
           </button>
+          )}
+          {canDelete && (
           <button
             onClick={(e) => { e.stopPropagation(); handleDelete(row); }}
             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
@@ -245,6 +254,7 @@ const Administrasi = () => {
           >
             <Trash2 size={16} />
           </button>
+          )}
         </div>
       )
     }
@@ -588,7 +598,7 @@ const Administrasi = () => {
         title="Administrasi Customer"
         columns={columns}
         data={customers}
-        onAdd={() => openEditModal()}
+        onAdd={canCreate ? () => openEditModal() : undefined}
         expandedRowRender={expandedRowRender}
         serverSide={true}
         toolbarPrefix={tableToolbar}

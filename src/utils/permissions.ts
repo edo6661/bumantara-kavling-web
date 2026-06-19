@@ -19,6 +19,14 @@ const NO_ACCESS: PermissionFlags = {
   canDelete: false,
 };
 
+/** Default akses agent — selaras dengan rolePermissionSeed & API backend */
+const AGENT_ROLE_DEFAULTS: Record<string, PermissionFlags> = {
+  PENJUALAN: { canCreate: true, canRead: true, canUpdate: false, canDelete: false },
+  CUSTOMER: { canCreate: false, canRead: true, canUpdate: true, canDelete: false },
+  KAVLING: { canCreate: false, canRead: true, canUpdate: false, canDelete: false },
+  BANK: { canCreate: false, canRead: true, canUpdate: false, canDelete: false },
+};
+
 /** Default akses mandor — selaras dengan rolePermissionSeed & API backend */
 const MANDOR_ROLE_DEFAULTS: Record<string, PermissionFlags> = {
   PENJUALAN: { canCreate: false, canRead: true, canUpdate: false, canDelete: false },
@@ -55,6 +63,10 @@ export function resolvePermission(
 
   if (user?.role === 'MANDOR') {
     return MANDOR_ROLE_DEFAULTS[normalized] ?? NO_ACCESS;
+  }
+
+  if (user?.role === 'AGENT') {
+    return AGENT_ROLE_DEFAULTS[normalized] ?? NO_ACCESS;
   }
 
   if (user?.role === 'PENGAWAS') {
