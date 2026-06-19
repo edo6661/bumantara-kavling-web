@@ -10,6 +10,7 @@ export interface PerusahaanAgentData {
   feeMarketingPct?: number | null;
   feeClosingNominal?: number | null;
   potonganPph?: number | null;
+  isPkp?: boolean;
   akte: string | null;
   createdAt: string;
   updatedAt: string;
@@ -24,6 +25,7 @@ export interface CreatePerusahaanAgentDTO {
   feeMarketingPct?: number;
   feeClosingNominal?: number;
   potonganPph?: number;
+  isPkp?: boolean;
 }
 
 export const perusahaanAgentService = {

@@ -38,6 +38,7 @@ export interface AgentData {
   feeMarketingPct: number | null;
   feeClosingNominal: number | null;
   potonganPph: number | null;
+  isPkp?: boolean;
   fileKtp: string | null;
   fileNpwp: string | null;
   kwitansiBookingFee: string | null;

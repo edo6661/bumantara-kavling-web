@@ -34,6 +34,7 @@ const PerusahaanAgent = () => {
     feeMarketingPct: "" as number | "",
     feeClosingNominal: "" as number | "",
     potonganPph: "" as number | "",
+    isPkp: false,
   };
   const [formData, setFormData] = useState(emptyForm);
   const [isEditing, setIsEditing] = useState(false);
@@ -54,8 +55,22 @@ const PerusahaanAgent = () => {
     {
       header: "Fee Closing (Rp)",
       accessor: "feeClosingNominal",
-      render: (val: number | null) => (
-        <span className="text-xs tabular-nums">{val != null ? formatRupiah(val) : "-"}</span>
+      render: (val: number | null, row: PerusahaanAgentData) => (
+        <div className="text-xs tabular-nums">
+          <span>{val != null ? formatRupiah(val) : "-"}</span>
+          {row.isPkp && val != null ? (
+            <p className="text-[10px] text-emerald-700 font-medium mt-0.5">Termasuk PPN 11%</p>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: "PKP",
+      accessor: "isPkp",
+      render: (val: boolean | undefined) => (
+        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${val ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+          {val ? "PKP" : "Non-PKP"}
+        </span>
       ),
     },
     {
@@ -127,6 +142,7 @@ const PerusahaanAgent = () => {
         feeMarketingPct: item.feeMarketingPct ?? "",
         feeClosingNominal: item.feeClosingNominal ?? "",
         potonganPph: item.potonganPph ?? "",
+        isPkp: item.isPkp ?? false,
       });
       setIsEditing(true);
     } else {
@@ -170,6 +186,7 @@ const PerusahaanAgent = () => {
         feeMarketingPct: formData.feeMarketingPct !== "" ? Number(formData.feeMarketingPct) : undefined,
         feeClosingNominal: formData.feeClosingNominal !== "" ? Number(formData.feeClosingNominal) : undefined,
         potonganPph: formData.potonganPph !== "" ? Number(formData.potonganPph) : undefined,
+        isPkp: formData.isPkp,
       };
       if (isEditing && formData.id) {
         await updateMutation.mutateAsync({ id: Number(formData.id), data: payload });
@@ -264,13 +281,20 @@ const PerusahaanAgent = () => {
               onChange={handleChange}
               placeholder="Contoh: 2.5"
             />
-            <CurrencyInput
-              label="Fee Closing (Rp)"
-              name="feeClosingNominal"
-              value={Number(formData.feeClosingNominal) || 0}
-              onValueChange={(_, val) => handleCurrencyChange("feeClosingNominal", val)}
-              placeholder="0"
-            />
+            <div>
+              <CurrencyInput
+                label="Fee Closing (Rp)"
+                name="feeClosingNominal"
+                value={Number(formData.feeClosingNominal) || 0}
+                onValueChange={(_, val) => handleCurrencyChange("feeClosingNominal", val)}
+                placeholder="0"
+              />
+              {formData.isPkp ? (
+                <p className="text-[11px] text-emerald-700 mt-1">
+                  Nominal PKP sudah termasuk PPN 11%. DPP dihitung otomatis untuk PPh.
+                </p>
+              ) : null}
+            </div>
             <Input
               label="Potongan PPh (%)"
               name="potonganPph"
@@ -281,6 +305,21 @@ const PerusahaanAgent = () => {
               placeholder="Contoh: 2.5"
             />
           </div>
+
+          <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.isPkp}
+              onChange={(e) => setFormData((prev) => ({ ...prev, isPkp: e.target.checked }))}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+            />
+            <span>
+              <span className="block text-sm font-bold text-slate-900">Agent perusahaan PKP</span>
+              <span className="block text-xs text-slate-500 mt-0.5">
+                Centang jika perusahaan wajib PPN. Fee closing diinput bruto (sudah termasuk PPN 11%); default tidak dicentang.
+              </span>
+            </span>
+          </label>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input

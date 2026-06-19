@@ -12,6 +12,7 @@ export function applyPerusahaanCommercialToAgent(
     | 'feeMarketingPct'
     | 'feeClosingNominal'
     | 'potonganPph'
+    | 'isPkp'
     | 'namaBank'
     | 'noRekening'
     | 'atasNamaRekening'
@@ -24,6 +25,7 @@ export function applyPerusahaanCommercialToAgent(
     feeMarketingPct: perusahaan.feeMarketingPct ?? null,
     feeClosingNominal: perusahaan.feeClosingNominal ?? null,
     potonganPph: perusahaan.potonganPph ?? null,
+    isPkp: perusahaan.isPkp ?? false,
     namaBank: perusahaan.namaBank ?? null,
     noRekening: perusahaan.noRekening ?? null,
     atasNamaRekening: perusahaan.atasNamaRekening ?? null,

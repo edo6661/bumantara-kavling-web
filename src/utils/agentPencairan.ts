@@ -1,6 +1,7 @@
 import type { AgentData } from '../types/models/agent';
 import type { FeeAgentData } from '../services/feeAgent.service';
 import type { AgentPencairanData } from '../services/agentPencairan.service';
+import { extractClosingDpp } from './agentPkpTax';
 
 export const KOMISI_CASH_PPJB_RATIO = 0.5;
 
@@ -119,7 +120,9 @@ export const getClosingFull = (
   detail?: SaleDetail,
 ) => {
   if (!isBookingFeePaid(detail)) return 0;
-  return Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0;
+  const gross =
+    Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0;
+  return extractClosingDpp(gross, !!agent.isPkp);
 };
 
 export const getFullMarketingFee = (agent: AgentData, detail?: SaleDetail) => {
