@@ -26,7 +26,7 @@ const BatalTransaksi = () => {
   const [refundFile, setRefundFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const user = storage.getUser();
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
   const handleApproveReject = async (id: number, isApproved: boolean) => {
     const actionText = isApproved ? 'menyetujui' : 'menolak';
     if (!window.confirm(`Apakah Anda yakin ingin ${actionText} pengajuan pembatalan ini?`)) return;

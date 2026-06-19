@@ -28,7 +28,7 @@ const routeLabels: Record<string, string> = {
   '/marketing/agents': 'Agents',
   '/marketing/agents/pribadi': 'Agent Pribadi',
   '/marketing/agents/perusahaan': 'Agent Perusahaan',
-  '/marketing/fee-agent': 'Fee Agent',
+  '/marketing/fee-agent': 'Riwayat Pencairan Agent',
   '/marketing/perusahaan': 'Perusahaan Agent',
   '/finance/approve-pembayaran': 'Approve Pembayaran',
   '/finance/bayar-kode-billing-pph': 'Kode Billing PPh',

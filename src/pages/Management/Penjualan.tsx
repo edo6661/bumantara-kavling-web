@@ -793,6 +793,20 @@ const Penjualan = () => {
       })));
       setBiayaTambahanList([]);
       setBiayaTambahanKprList([]);
+
+      const caraBayar = item.caraPembayaran
+        ? caraPembayaranToFormValue(item.caraPembayaran)
+        : '';
+      const base = Number(item.hargaDasar || item.hargaJual) || 0;
+      const diskon = Number(item.diskonPenjualan) || 0;
+      const bf = Number(item.bookingFee) || 5000000;
+      const plafonAwal = Number(item.plafonAwal) || Math.max(0, base - diskon - bf);
+      const storedPlafonKredit = Number(item.plafonKredit) || 0;
+      const isZeroBiayaKprMode =
+        caraBayar === 'KPR' &&
+        storedPlafonKredit > 0 &&
+        Math.abs(storedPlafonKredit - plafonAwal) < 1;
+      setIsBiayaKprNol(isZeroBiayaKprMode);
     } else {
       setFormData({
         ...initialFormState,
@@ -801,6 +815,7 @@ const Penjualan = () => {
       });
       setOriginalKavling({ blok: '', unit: '' });
       setIsEditing(false);
+      setIsBiayaKprNol(false);
     }
     setIsNewAgent(false);
     setErrors({});
@@ -924,6 +939,7 @@ const Penjualan = () => {
     setFormData(initialFormState);
     setIsEditing(false);
     setIsNewAgent(false);
+    setIsBiayaKprNol(false);
     setErrors({});
   };
 
@@ -1244,7 +1260,9 @@ const Penjualan = () => {
           hargaJual: formData.hargaJual,
           plafonAwal: formData.caraPembayaran === 'KPR' ? formData.plafonAwal : undefined,
           plafonAcc: formData.caraPembayaran === 'KPR' ? formData.plafonAcc : undefined,
-          biayaKpr: formData.caraPembayaran === 'KPR' ? formData.biayaKpr : undefined,
+          biayaKpr: formData.caraPembayaran === 'KPR'
+            ? (isBiayaKprNol ? 0 : formData.biayaKpr)
+            : undefined,
           plafonKredit: formData.caraPembayaran === 'KPR' ? formData.plafonKredit : undefined,
           dpTidakDibayar: formData.caraPembayaran === 'KPR' ? formData.dpTidakDibayar : undefined,
           dpDibayar: formData.caraPembayaran === 'KPR' ? formData.dpDibayar : undefined,
@@ -2142,9 +2160,22 @@ const Penjualan = () => {
                         <div className="flex items-center justify-between mt-3">
                           <div className="w-full flex flex-col sm:flex-row sm:items-center gap-1.5">
                             <span className="text-sm font-bold text-slate-600">+ Biaya KPR</span>
-                            <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
-                              Default (6%): Rp {formatTanpaDesimal((formData.plafonAwal || 0) * 0.06)}
-                            </span>
+                            {!isBiayaKprNol && (
+                              <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-md font-mono w-max shadow-sm">
+                                Default (6%): Rp {formatTanpaDesimal((formData.plafonAwal || 0) * 0.06)}
+                              </span>
+                            )}
+                            <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isBiayaKprNol}
+                                onChange={(e) => handleBiayaKprNolToggle(e.target.checked)}
+                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                              />
+                              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">
+                                Tanpa Biaya KPR (0%)
+                              </span>
+                            </label>
                           </div>
                           <div className="w-40 sm:w-44 shrink-0">
                             <CurrencyInput
@@ -2152,6 +2183,7 @@ const Penjualan = () => {
                               value={formData.biayaKpr || 0}
                               onValueChange={handleCurrencyChange}
                               placeholder="0"
+                              disabled={isBiayaKprNol}
                             />
                           </div>
                         </div>

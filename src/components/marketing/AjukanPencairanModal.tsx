@@ -6,6 +6,8 @@ import type {
   PencairanKomponenKey,
 } from '../../utils/agentPencairanPreview';
 import { calcSelectedPencairanTotal } from '../../utils/agentPencairanPreview';
+import type { AgentPencairanData } from '../../services/agentPencairan.service';
+import AgentPencairanHistoryTable from './AgentPencairanHistoryTable';
 import { Info } from 'lucide-react';
 
 interface AjukanPencairanModalProps {
@@ -13,6 +15,7 @@ interface AjukanPencairanModalProps {
   onClose: () => void;
   preview: PencairanAjukanPreview | null;
   saleLabel: string;
+  pencairanHistory?: AgentPencairanData[];
   isSubmitting: boolean;
   onConfirm: (selected: Set<PencairanKomponenKey>) => void;
 }
@@ -75,6 +78,7 @@ const AjukanPencairanModal = ({
   onClose,
   preview,
   saleLabel,
+  pencairanHistory = [],
   isSubmitting,
   onConfirm,
 }: AjukanPencairanModalProps) => {
@@ -115,22 +119,66 @@ const AjukanPencairanModal = ({
 
         <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-xs text-slate-600 flex gap-2">
           <Info size={16} className="shrink-0 text-blue-500 mt-0.5" />
-          <div>
+          <div className="space-y-1">
             <p>
-              Total fee (+ closing) referensi:{' '}
+              Closing fee:{' '}
+              <span className="font-bold text-slate-800 tabular-nums">
+                {formatRupiah(preview.closingFeeFull)}
+              </span>
+              {' + '}
+              Marketing fee:{' '}
+              <span className="font-bold text-slate-800 tabular-nums">
+                {formatRupiah(preview.marketingFeeFull)}
+              </span>
+            </p>
+            <p>
+              Total fee:{' '}
               <span className="font-bold text-slate-800 tabular-nums">
                 {formatRupiah(preview.totalFeeReferensi)}
               </span>
             </p>
-            <p className="mt-1">
-              Pot. PPh ({preview.potonganPphPct}%):{' '}
+            <p>
+              Pot. PPh ({preview.potonganPphPct}% × total fee):{' '}
               <span className="font-bold text-red-600 tabular-nums">
-                {formatRupiah(preview.potonganPph)}
+                {formatRupiah(preview.potonganPphTotal)}
+              </span>
+              {preview.potonganPphSudah > 0 && (
+                <span className="text-slate-500">
+                  {' '}
+                  (sudah dipotong {formatRupiah(preview.potonganPphSudah)})
+                </span>
+              )}
+            </p>
+            <p>
+              Total transfer penuh (total fee − pot. PPh):{' '}
+              <span className="font-bold text-emerald-700 tabular-nums">
+                {formatRupiah(preview.grandTotalPenuh)}
               </span>
             </p>
-            <p className="mt-1 text-slate-500">{preview.catatanTahap}</p>
+            {preview.potonganPph > 0 && (
+              <p>
+                Pot. PPh pengajuan ini:{' '}
+                <span className="font-bold text-red-600 tabular-nums">
+                  {formatRupiah(preview.potonganPph)}
+                </span>
+              </p>
+            )}
+            <p className="text-slate-500 pt-0.5">{preview.catatanTahap}</p>
           </div>
         </div>
+
+        {pencairanHistory.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+              Riwayat pengajuan sebelumnya
+            </p>
+            <AgentPencairanHistoryTable
+              records={pencairanHistory}
+              compact
+              showBukti={false}
+            />
+          </div>
+        )}
 
         {preview.komponenSekarang.length > 0 && (
           <div className="space-y-2">
@@ -171,6 +219,9 @@ const AjukanPencairanModal = ({
 
         {totals && (
           <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 pb-1">
+              Pengajuan ini
+            </p>
             <div className="flex justify-between text-sm">
               <span className="text-slate-600">Closing diajukan</span>
               <span className="font-medium tabular-nums text-slate-900">{formatRupiah(totals.closingNominal)}</span>
@@ -179,9 +230,19 @@ const AjukanPencairanModal = ({
               <span className="text-slate-600">Marketing diajukan</span>
               <span className="font-medium tabular-nums text-slate-900">{formatRupiah(totals.marketingNominal)}</span>
             </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-600">Subtotal diajukan</span>
+              <span className="font-medium tabular-nums text-slate-900">
+                {formatRupiah(totals.closingNominal + totals.marketingNominal)}
+              </span>
+            </div>
             <div className="flex justify-between text-sm text-red-600">
-              <span>Pot. PPh (dari total referensi)</span>
-              <span className="font-medium tabular-nums">− {formatRupiah(totals.potonganPph)}</span>
+              <span>Pot. PPh (pengajuan ini)</span>
+              <span className="font-medium tabular-nums">
+                {totals.potonganPph > 0
+                  ? `− ${formatRupiah(totals.potonganPph)}`
+                  : formatRupiah(0)}
+              </span>
             </div>
             <div className="flex justify-between text-sm font-bold border-t border-slate-100 pt-2">
               <span className="text-slate-800">Total transfer</span>

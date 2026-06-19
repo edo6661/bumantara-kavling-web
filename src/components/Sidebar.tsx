@@ -81,7 +81,7 @@ const menuItems: MenuItem[] = [
           { title: 'Agent Perusahaan', path: '/marketing/agents/perusahaan' },
         ],
       },
-      { title: 'Fee Agent', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
+      { title: 'Riwayat Pencairan', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
       { title: 'Perusahaan Agent', path: '/marketing/perusahaan', resource: 'AGENT' },
     ],
   },

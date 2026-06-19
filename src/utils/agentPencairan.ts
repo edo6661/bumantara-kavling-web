@@ -113,17 +113,22 @@ const sumSudahDiajukan = (pencairanList: AgentPencairanData[]) => ({
   marketingNominal: pencairanList.reduce((s, p) => s + Number(p.marketingNominal), 0),
 });
 
-const getClosingFull = (agent: AgentData, feeRecord: FeeAgentData, detail?: SaleDetail) => {
+export const getClosingFull = (
+  agent: AgentData,
+  feeRecord: FeeAgentData,
+  detail?: SaleDetail,
+) => {
   if (!isBookingFeePaid(detail)) return 0;
   return Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0;
 };
 
-const getFullMarketingFee = (agent: AgentData, detail?: SaleDetail) => {
+export const getFullMarketingFee = (agent: AgentData, detail?: SaleDetail) => {
   if (isPenjualanBatal(detail?.status)) return 0;
   const nilaiAjb = Number(detail?.progressPenjualan?.nilaiAjb) || 0;
   const hargaJual = Number(detail?.hargaJual) || 0;
   const pct = Number(agent.feeMarketingPct) || 0;
-  const base = nilaiAjb > 0 ? nilaiAjb : hargaJual;
+  const isCash = isCashPayment(detail?.caraPembayaran);
+  const base = nilaiAjb > 0 ? nilaiAjb : isCash ? hargaJual : 0;
   return base > 0 && pct > 0 ? base * (pct / 100) : 0;
 };
 
@@ -154,14 +159,38 @@ export const getTotalFeeReferensi = (
   return getClosingFull(agent, feeRecord, detail) + getFullMarketingFee(agent, detail);
 };
 
+/** Total fee = closing fee + marketing fee */
+export const getTotalFeeBruto = getTotalFeeReferensi;
+
+/** Pot. PPh = total fee × (potonganPph% / 100) — sekali per penjualan */
 export const calcPotonganPphFromReferensi = (
   agent: AgentData,
   feeRecord: FeeAgentData,
   detail?: SaleDetail,
 ) => {
-  const total = getTotalFeeReferensi(agent, feeRecord, detail);
+  const totalFee = getTotalFeeReferensi(agent, feeRecord, detail);
   const pct = Number(agent.potonganPph) || 0;
-  return total * (pct / 100);
+  return totalFee * (pct / 100);
+};
+
+export const calcPotonganPphTotal = calcPotonganPphFromReferensi;
+
+/** Grand total transfer (penuh) = total fee − pot. PPh */
+export const calcGrandTotalTransfer = (
+  totalFee: number,
+  potonganPph: number,
+) => Math.max(0, totalFee - potonganPph);
+
+/** PPh yang masih perlu dipotong pada pengajuan ini (total sekali per penjualan) */
+export const calcPotonganPphUntukPengajuan = (
+  agent: AgentData,
+  feeRecord: FeeAgentData,
+  pencairanList: AgentPencairanData[],
+  detail?: SaleDetail,
+) => {
+  const total = calcPotonganPphFromReferensi(agent, feeRecord, detail);
+  const sudah = pencairanList.reduce((s, p) => s + Number(p.potonganPph), 0);
+  return Math.max(0, total - sudah);
 };
 
 export interface PencairanKomponenInfo {
@@ -193,7 +222,7 @@ export const getPencairanKomponen = (
     nominalPenuh: closingFull,
     nominalSisa: closingSisa,
     eligible: false,
-    alasan: closingSisa > 0 ? 'Belum memenuhi syarat closing fee' : 'Closing fee sudah diajukan semua',
+    alasan: closingSisa > 0 ? 'Belum memenuhi syarat closing fee' : 'Closing fee sudah diajukan',
   };
 
   if (closingSisa > 0) {
@@ -209,9 +238,9 @@ export const getPencairanKomponen = (
       closing.eligible = true;
       closing.alasan = 'Dokumen SP3K sudah diunggah & booking lunas';
     } else if (isCash) {
-      closing.alasan = 'Upload dokumen PPJB di menu Progress Penjualan';
+      closing.alasan = 'Belum PPJB';
     } else {
-      closing.alasan = 'Upload dokumen SP3K di menu Progress Penjualan';
+      closing.alasan = 'Belum SP3K';
     }
   }
 
@@ -246,11 +275,11 @@ export const getPencairanKomponen = (
           if (ajbOk) parts.push('50% tahap AJB');
           marketing.alasan = `Komisi tersedia: ${parts.join(' + ')}`;
         } else if (buckets.ppjbSisa > 0) {
-          marketing.alasan = 'Upload dokumen PPJB di menu Progress Penjualan (tahap 50%)';
+          marketing.alasan = 'Belum PPJB (tahap 50%)';
         } else {
           marketing.alasan = hasAjbComplete(detail?.progressPenjualan)
             ? 'Isi nilai AJB di menu Progress Penjualan'
-            : 'Upload dokumen AJB di menu Progress Penjualan (sisa 50%)';
+            : 'Belum AJB (sisa 50%)';
         }
       }
     } else {
@@ -259,7 +288,7 @@ export const getPencairanKomponen = (
       if (marketing.nominalSisa <= 0) {
         marketing.alasan = 'Komisi marketing sudah diajukan semua';
       } else if (!hasSp3kComplete(detail?.progressPenjualan)) {
-        marketing.alasan = 'Upload dokumen SP3K di menu Progress Penjualan';
+        marketing.alasan = 'Belum SP3K';
       } else if (!hasAkadKreditComplete(detail?.progressPenjualan)) {
         marketing.alasan =
           'Upload dokumen PPJB atau AJB (akad kredit) di menu Progress Penjualan';
@@ -274,6 +303,15 @@ export const getPencairanKomponen = (
     marketing.alasan = 'Booking fee belum lunas';
   } else if (isBatal) {
     marketing.alasan = 'Transaksi batal — komisi marketing tidak dicairkan';
+  } else if (!isCash && fullMarketing <= 0) {
+    if (!hasSp3kComplete(detail?.progressPenjualan)) {
+      marketing.alasan = 'Belum SP3K';
+    } else if (!hasAkadKreditComplete(detail?.progressPenjualan)) {
+      marketing.alasan =
+        'Upload dokumen PPJB atau AJB (akad kredit) di menu Progress Penjualan';
+    } else {
+      marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
+    }
   }
 
   return [closing, marketing];
@@ -303,22 +341,176 @@ export const getPencairanBlockReason = (
   if (!feeRecord) return 'Data fee agent belum ada';
 
   const komponen = getPencairanKomponen(agent, feeRecord, pencairanList, detail);
-  const first = komponen.find((k) => k.nominalSisa > 0 || !k.eligible);
-  return first?.alasan ?? 'Semua komponen sudah diajukan';
+  const feeTotals = getPencairanFeeTotals(agent, feeRecord, detail);
+  const summary = summarizePencairanHistory(pencairanList);
+  const fullySubmitted = isPencairanFullySubmitted(pencairanList, feeTotals);
+
+  // Utamakan komponen yang masih punya sisa — jangan tampilkan "closing sudah" saat marketing masih pending
+  const withSisa = komponen.filter((k) => k.nominalSisa > 0);
+  if (withSisa.length > 0) {
+    const blocked = withSisa.find((k) => !k.eligible);
+    return blocked?.alasan ?? withSisa[0]?.alasan ?? null;
+  }
+
+  if (summary.jumlahPengajuan === 0) {
+    const blocked = komponen.find(
+      (k) => !k.eligible && (k.nominalPenuh > 0 || k.key === 'marketing'),
+    );
+    return blocked?.alasan ?? 'Belum memenuhi syarat pencairan';
+  }
+
+  if (summary.jumlahMenunggu > 0) {
+    return 'Menunggu pembayaran finance';
+  }
+
+  if (fullySubmitted) {
+    return 'Sudah dibayar';
+  }
+
+  // Tahap sebelumnya sudah terbayar; tahap berikutnya belum memenuhi syarat
+  const nextBlocked = komponen.find((k) => !k.eligible);
+  return nextBlocked?.alasan ?? 'Menunggu syarat tahap pencairan berikutnya';
 };
 
-export const getPencairanPaymentStatus = (pencairanList: AgentPencairanData[]) => {
+export interface PencairanFeeTotals {
+  closingFull: number;
+  marketingFull: number;
+}
+
+export const getPencairanFeeTotals = (
+  agent: AgentData,
+  feeRecord: FeeAgentData,
+  detail?: SaleDetail,
+): PencairanFeeTotals => {
+  const closingFull = getClosingFull(agent, feeRecord, detail);
+  const marketingFull = getFullMarketingFee(agent, detail);
+  return { closingFull, marketingFull };
+};
+
+export const isPencairanFullySubmitted = (
+  pencairanList: AgentPencairanData[],
+  feeTotals: PencairanFeeTotals,
+) => {
+  const summary = summarizePencairanHistory(pencairanList);
+  const diajukanGross =
+    summary.totalClosingDiajukan + summary.totalMarketingDiajukan;
+  const fullGross = feeTotals.closingFull + feeTotals.marketingFull;
+  return fullGross <= 0 || diajukanGross >= fullGross - 1;
+};
+
+export const sortPencairanRecords = (pencairanList: AgentPencairanData[]) =>
+  [...pencairanList].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+
+export interface PencairanHistorySummary {
+  jumlahPengajuan: number;
+  jumlahTerbayar: number;
+  jumlahMenunggu: number;
+  totalClosingDiajukan: number;
+  totalMarketingDiajukan: number;
+  totalClosingTerbayar: number;
+  totalMarketingTerbayar: number;
+  totalNominalTerbayar: number;
+  totalNominalMenunggu: number;
+}
+
+export const summarizePencairanHistory = (
+  pencairanList: AgentPencairanData[],
+): PencairanHistorySummary => {
+  let totalClosingDiajukan = 0;
+  let totalMarketingDiajukan = 0;
+  let totalClosingTerbayar = 0;
+  let totalMarketingTerbayar = 0;
+  let totalNominalTerbayar = 0;
+  let totalNominalMenunggu = 0;
+  let jumlahTerbayar = 0;
+  let jumlahMenunggu = 0;
+
+  for (const row of pencairanList) {
+    totalClosingDiajukan += Number(row.closingNominal);
+    totalMarketingDiajukan += Number(row.marketingNominal);
+
+    if (row.status === 'SUDAH_DIBAYAR') {
+      jumlahTerbayar += 1;
+      totalClosingTerbayar += Number(row.closingNominal);
+      totalMarketingTerbayar += Number(row.marketingNominal);
+      totalNominalTerbayar += Number(row.totalNominal);
+    } else {
+      jumlahMenunggu += 1;
+      totalNominalMenunggu += Number(row.totalNominal);
+    }
+  }
+
+  return {
+    jumlahPengajuan: pencairanList.length,
+    jumlahTerbayar,
+    jumlahMenunggu,
+    totalClosingDiajukan,
+    totalMarketingDiajukan,
+    totalClosingTerbayar,
+    totalMarketingTerbayar,
+    totalNominalTerbayar,
+    totalNominalMenunggu,
+  };
+};
+
+export const getPencairanPaymentStatus = (
+  pencairanList: AgentPencairanData[],
+  feeTotals?: PencairanFeeTotals,
+) => {
   if (pencairanList.length === 0) {
-    return { label: 'Belum', className: 'bg-red-100 text-red-700' };
+    return { label: 'Belum', className: 'bg-red-100 text-red-700', hint: undefined as string | undefined };
   }
-  const allPaid = pencairanList.every((p) => p.status === 'SUDAH_DIBAYAR');
-  const anyWaiting = pencairanList.some((p) => p.status === 'MENUNGGU_PEMBAYARAN');
 
-  if (allPaid) {
-    return { label: 'Sudah', className: 'bg-green-100 text-green-700' };
+  const summary = summarizePencairanHistory(pencairanList);
+  const fullGross = feeTotals
+    ? feeTotals.closingFull + feeTotals.marketingFull
+    : 0;
+  const diajukanGross =
+    summary.totalClosingDiajukan + summary.totalMarketingDiajukan;
+  const fullySubmitted =
+    !feeTotals || isPencairanFullySubmitted(pencairanList, feeTotals);
+  const sisaBelumDiajukan = Math.max(0, fullGross - diajukanGross);
+
+  if (summary.jumlahMenunggu > 0 && summary.jumlahTerbayar === 0) {
+    return {
+      label: summary.jumlahMenunggu > 1 ? `Menunggu (${summary.jumlahMenunggu}x)` : 'Menunggu',
+      className: 'bg-amber-100 text-amber-700',
+      hint: undefined,
+    };
   }
-  if (anyWaiting) {
-    return { label: 'Menunggu', className: 'bg-amber-100 text-amber-700' };
+
+  if (summary.jumlahMenunggu > 0 && summary.jumlahTerbayar > 0) {
+    return {
+      label: `Sebagian (${summary.jumlahTerbayar}/${summary.jumlahPengajuan})`,
+      className: 'bg-blue-100 text-blue-700',
+      hint: feeTotals && sisaBelumDiajukan > 0
+        ? `Sisa belum diajukan: ${formatRupiahCompact(sisaBelumDiajukan)}`
+        : undefined,
+    };
   }
-  return { label: 'Sebagian', className: 'bg-blue-100 text-blue-700' };
+
+  // Semua pengajuan sudah dibayar finance, tapi masih ada komponen belum diajukan
+  if (!fullySubmitted) {
+    return {
+      label: 'Belum penuh',
+      className: 'bg-indigo-100 text-indigo-800',
+      hint: `Sudah ${formatRupiahCompact(diajukanGross)} dari ${formatRupiahCompact(fullGross)}`,
+    };
+  }
+
+  return {
+    label: summary.jumlahPengajuan > 1 ? `Lunas (${summary.jumlahPengajuan}x)` : 'Lunas',
+    className: 'bg-green-100 text-green-700',
+    hint: undefined,
+  };
 };
+
+const formatRupiahCompact = (n: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(n);

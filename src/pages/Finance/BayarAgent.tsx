@@ -29,7 +29,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
 const formatKavlingLabel = (blok: string, nomorUnit: string) =>
-  `Blok ${blok} No. ${nomorUnit}`;
+  `${blok} ${nomorUnit}`;
 
 const BayarAgent = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -194,8 +194,9 @@ const BayarAgent = () => {
         <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-lg font-black text-slate-900">Bayar Agent</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Daftar pengajuan pencairan fee agent dari marketing/admin. Upload bukti transfer
-            sesuai total nominal yang diajukan (closing fee + marketing fee − PPh).
+            Proses pembayaran dan riwayat pencairan fee agent. Satu penjualan bisa punya
+            beberapa pengajuan (tahap PPJB/AJB). Filter &quot;Semua&quot; untuk melihat histori
+            lengkap.
           </p>
           {statusFilter !== 'SUDAH_DIBAYAR' && menungguCount > 0 && (
             <p className="text-xs font-semibold text-amber-700 mt-2">
@@ -222,6 +223,7 @@ const BayarAgent = () => {
                   <th className={`${thClass} text-right`}>Pot. PPh</th>
                   <th className={`${thClass} text-right`}>Total Bayar</th>
                   <th className={thClass}>Diajukan</th>
+                  <th className={thClass}>Tgl Bayar</th>
                   <th className={thClass}>Status</th>
                   <th className={thClass}>Bukti</th>
                   <th className={`${thClass} text-center`}>Aksi</th>
@@ -247,7 +249,6 @@ const BayarAgent = () => {
                       </td>
                       <td className={tdClass}>
                         <p className="font-medium">{row.penjualan?.customer?.nama ?? '-'}</p>
-                        <p className="text-[10px] text-slate-500">{row.penjualan?.noTransaksi}</p>
                       </td>
                       <td className={tdClass}>
                         {kavling
@@ -269,6 +270,11 @@ const BayarAgent = () => {
                       <td className={`${tdClass} text-xs text-slate-500`}>
                         <p>{row.diajukanOleh?.username ?? '-'}</p>
                         <p>{formatDate(row.createdAt)}</p>
+                      </td>
+                      <td className={`${tdClass} text-xs text-slate-500`}>
+                        {paid
+                          ? formatDate(row.tanggalPembayaran ?? row.updatedAt)
+                          : '—'}
                       </td>
                       <td className={tdClass}>
                         {paid ? (

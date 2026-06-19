@@ -2,7 +2,11 @@ import type { AgentData } from '../types/models/agent';
 import type { FeeAgentData } from '../services/feeAgent.service';
 import type { AgentPencairanData } from '../services/agentPencairan.service';
 import {
+  calcGrandTotalTransfer,
   calcPotonganPphFromReferensi,
+  calcPotonganPphUntukPengajuan,
+  getClosingFull,
+  getFullMarketingFee,
   getPencairanKomponen,
   getTotalFeeReferensi,
   type PencairanKomponenKey,
@@ -24,9 +28,18 @@ export interface PencairanKomponenPreview {
 export interface PencairanAjukanPreview {
   komponenSekarang: PencairanKomponenPreview[];
   komponenBelum: PencairanKomponenPreview[];
-  potonganPph: number;
-  totalTransfer: number;
+  closingFeeFull: number;
+  marketingFeeFull: number;
+  /** Total fee = closing fee + marketing fee */
   totalFeeReferensi: number;
+  /** Pot. PPh = total fee × % — sekali per penjualan */
+  potonganPphTotal: number;
+  /** Pot. PPh yang dipotong pada pengajuan ini */
+  potonganPph: number;
+  potonganPphSudah: number;
+  /** Total transfer penuh = total fee − pot. PPh */
+  grandTotalPenuh: number;
+  totalTransfer: number;
   potonganPphPct: number;
   catatanTahap: string;
 }
@@ -41,8 +54,18 @@ export const buildPencairanAjukanPreview = (
   const eligible = komponen.filter((k) => k.eligible && k.nominalSisa > 0);
   if (eligible.length === 0) return null;
 
+  const closingFeeFull = getClosingFull(agent, feeRecord, detail);
+  const marketingFeeFull = getFullMarketingFee(agent, detail);
   const totalFeeReferensi = getTotalFeeReferensi(agent, feeRecord, detail);
-  const potonganPph = calcPotonganPphFromReferensi(agent, feeRecord, detail);
+  const potonganPphTotal = calcPotonganPphFromReferensi(agent, feeRecord, detail);
+  const potonganPph = calcPotonganPphUntukPengajuan(
+    agent,
+    feeRecord,
+    pencairanList,
+    detail,
+  );
+  const potonganPphSudah = potonganPphTotal - potonganPph;
+  const grandTotalPenuh = calcGrandTotalTransfer(totalFeeReferensi, potonganPphTotal);
   const potonganPphPct = Number(agent.potonganPph) || 0;
 
   const komponenSekarang: PencairanKomponenPreview[] = komponen
@@ -78,16 +101,30 @@ export const buildPencairanAjukanPreview = (
       ? ' Jika semua syarat sudah lengkap, closing fee dan komisi marketing bisa diajukan sekaligus dalam satu pengajuan (keduanya tercentang otomatis).'
       : '';
 
+  const pphRumus =
+    `Total fee = closing fee (${formatRupiahShort(closingFeeFull)}) + marketing fee (${formatRupiahShort(marketingFeeFull)}). ` +
+    `Pot. PPh = total fee × ${formatPct(potonganPphPct)}% = ${formatRupiahShort(potonganPphTotal)}. ` +
+    `Total transfer penuh = total fee − pot. PPh = ${formatRupiahShort(grandTotalPenuh)}.`;
+
+  const pphCatatan =
+    potonganPphSudah > 0
+      ? ` Pot. PPh total ${formatRupiahShort(potonganPphTotal)} sudah dipotong ${formatRupiahShort(potonganPphSudah)} pada pengajuan sebelumnya — pengajuan ini tanpa potongan PPh tambahan.`
+      : ` ${pphRumus}`;
+
   const catatanTahap =
     'Pilih komponen yang ingin diajukan.' +
     cairSekaligusHint +
-    ' Pot. PPh dihitung dari total fee (+ closing) penuh, ' +
-    `bukan hanya komponen terpilih. Rumus: ${formatPct(potonganPphPct)}% × ${formatRupiahShort(totalFeeReferensi)} = ${formatRupiahShort(potonganPph)}.`;
+    pphCatatan;
 
   return {
     komponenSekarang,
     komponenBelum,
+    closingFeeFull,
+    marketingFeeFull,
+    potonganPphTotal,
     potonganPph,
+    potonganPphSudah,
+    grandTotalPenuh,
     totalTransfer,
     totalFeeReferensi,
     potonganPphPct,

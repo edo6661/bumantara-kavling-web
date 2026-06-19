@@ -8,7 +8,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Banknote, Clock } from "lucide-react";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Banknote, Clock, History } from "lucide-react";
 import {
   useGetAgentsPaginated,
   useCreateAgent,
@@ -23,10 +23,15 @@ import { useGetAllAgentPencairan, useAjukanAgentPencairan } from "../../hooks/qu
 import type { FeeAgentData } from "../../services/feeAgent.service";
 import type { AgentPencairanData } from "../../services/agentPencairan.service";
 import AjukanPencairanModal from "../../components/marketing/AjukanPencairanModal";
+import PencairanHistoryModal from "../../components/marketing/PencairanHistoryModal";
 import {
   hasAnyEligiblePencairan,
   getPencairanBlockReason,
   getPencairanPaymentStatus,
+  getPencairanFeeTotals,
+  getFullMarketingFee,
+  getTotalFeeReferensi,
+  calcPotonganPphFromReferensi,
   resolveSaleDetail,
   type SaleDetail,
 } from "../../utils/agentPencairan";
@@ -85,27 +90,14 @@ const getFeeForSale = (feeList: FeeAgentData[], agentId: number, saleId: number,
 
 const calcAgentFees = (
   agent: AgentData,
-  nilaiAjb: number | null | undefined,
-  feeRecord?: FeeAgentData
+  feeRecord: FeeAgentData | undefined,
+  detail?: SaleDetail,
 ) => {
-  const ajb = nilaiAjb ? Number(nilaiAjb) : 0;
-  const feeMarketingPct = Number(agent.feeMarketingPct) || 0;
-  const potonganPph = Number(agent.potonganPph) || 0;
-
-  const marketingFee = ajb > 0 ? ajb * (feeMarketingPct / 100) : 0;
-  const closingFee =
-    Number(feeRecord?.closingNominal) ||
-    Number(agent.feeClosingNominal) ||
-    0;
-
-  const totalFeePlusClosing = marketingFee + closingFee;
-  const potPph = (marketingFee + closingFee) * (potonganPph / 100);
-
-  return {
-    fee: marketingFee,
-    totalFee: totalFeePlusClosing,
-    potPph,
-  };
+  if (!feeRecord) return { fee: 0, totalFee: 0, potPph: 0 };
+  const fee = getFullMarketingFee(agent, detail);
+  const totalFee = getTotalFeeReferensi(agent, feeRecord, detail);
+  const potPph = calcPotonganPphFromReferensi(agent, feeRecord, detail);
+  return { fee, totalFee, potPph };
 };
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
@@ -181,6 +173,11 @@ const Agents = ({ agentType }: AgentsProps) => {
     saleLabel: string;
     detail?: SaleDetail;
   } | null>(null);
+  const [historyModal, setHistoryModal] = useState<{
+    saleLabel: string;
+    records: AgentPencairanData[];
+  } | null>(null);
+  const [historyPreviewUrl, setHistoryPreviewUrl] = useState<string | null>(null);
 
   const pencairanPreview = useMemo(() => {
     if (!pencairanModal) return null;
@@ -667,7 +664,7 @@ const Agents = ({ agentType }: AgentsProps) => {
                   <th className="px-4 py-3 text-right font-bold">Harga Jual</th>
                   <th className="px-4 py-3 text-right font-bold">Nilai AJB</th>
                   <th className="px-4 py-3 text-right font-bold">Fee</th>
-                  <th className="px-4 py-3 text-right font-bold">Total Fee (+ Closing)</th>
+                  <th className="px-4 py-3 text-right font-bold">Total Fee</th>
                   <th className="px-4 py-3 text-right font-bold">Pot PPh</th>
                   <th className="px-4 py-3 text-center font-bold">Dibayar</th>
                   <th className="px-4 py-3 rounded-r-lg text-center font-bold w-24">Aksi</th>
@@ -676,11 +673,19 @@ const Agents = ({ agentType }: AgentsProps) => {
               <tbody className="divide-y divide-slate-50">
                 {relatedSales.map((sale: PenjualanAgentData) => {
                   const detail = resolveSaleDetail(sale, penjualanList);
+                  const saleDetailForModal = { ...sale, ...detail };
+                  const openSaleDetailModal = () => setSelectedDetailPenjualan(saleDetailForModal);
                   const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
                   const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
                   const pencairanList = feeRecord ? (pencairanByFeeAgentId.get(feeRecord.id) ?? []) : [];
-                  const { fee, totalFee, potPph } = calcAgentFees(row, nilaiAjb, feeRecord);
-                  const paymentStatus = getPencairanPaymentStatus(pencairanList);
+                  const { fee, totalFee, potPph } = calcAgentFees(row, feeRecord, detail);
+                  const feeTotals = feeRecord
+                    ? getPencairanFeeTotals(row, feeRecord, detail)
+                    : undefined;
+                  const paymentStatus = getPencairanPaymentStatus(
+                    pencairanList,
+                    feeTotals,
+                  );
                   const saleLabel = `${sale.customer?.nama || "-"} — Blok ${sale.kavling?.blok || "-"} No. ${sale.kavling?.nomorUnit || "-"}`;
                   const canAjukan = feeRecord
                     ? hasAnyEligiblePencairan(row, feeRecord, pencairanList, detail)
@@ -702,59 +707,66 @@ const Agents = ({ agentType }: AgentsProps) => {
                   >
                     <td
                       className="px-4 py-3 font-medium cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {sale.customer?.nama || '-'}
                     </td>
                     <td
                       className="px-4 py-3 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                        {sale.kavling?.blok}
                     </td>
                     <td
                       className="px-4 py-3 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                        {sale.kavling?.nomorUnit}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-bold text-slate-700 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {formatRupiah(sale.hargaJual)}
                     </td>
                     <td
                       className="px-4 py-3 text-right text-slate-700 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {nilaiAjb ? formatRupiah(nilaiAjb) : '-'}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {nilaiAjb ? formatRupiah(fee) : '-'}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {formatRupiah(totalFee)}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {formatRupiah(potPph)}
                     </td>
                     <td
                       className="px-4 py-3 text-center cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
-                      <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${paymentStatus.className}`}>
-                        {paymentStatus.label}
-                      </span>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${paymentStatus.className}`}>
+                          {paymentStatus.label}
+                        </span>
+                        {paymentStatus.hint && (
+                          <span className="text-[9px] text-slate-500 leading-tight max-w-[110px]">
+                            {paymentStatus.hint}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex flex-col items-center justify-center gap-1 min-w-[88px]">
@@ -772,6 +784,19 @@ const Agents = ({ agentType }: AgentsProps) => {
                             >
                               <Banknote size={14} />
                               Ajukan
+                            </button>
+                          )}
+                          {pencairanList.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHistoryModal({ saleLabel, records: pencairanList });
+                              }}
+                              className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"
+                              title="Riwayat pencairan"
+                            >
+                              <History size={16} />
                             </button>
                           )}
                           {waitingPencairan.map((p) => (
@@ -1232,7 +1257,7 @@ const Agents = ({ agentType }: AgentsProps) => {
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
                   <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}</p>
-                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.id || selectedDetailPenjualan.noTransaksi}</p>
+                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.noTransaksi || selectedDetailPenjualan.id}</p>
                 </div>
                 <div className="text-right">
                   <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :
@@ -1283,8 +1308,27 @@ const Agents = ({ agentType }: AgentsProps) => {
         onClose={() => setPencairanModal(null)}
         preview={pencairanPreview}
         saleLabel={pencairanModal?.saleLabel ?? ""}
+        pencairanHistory={
+          pencairanModal
+            ? (pencairanByFeeAgentId.get(pencairanModal.feeRecord.id) ?? [])
+            : []
+        }
         isSubmitting={ajukanPencairanMutation.isPending}
         onConfirm={(selected) => void handleConfirmAjukanPencairan(selected)}
+      />
+
+      <PencairanHistoryModal
+        isOpen={!!historyModal}
+        onClose={() => {
+          setHistoryModal(null);
+          setHistoryPreviewUrl(null);
+        }}
+        title="Riwayat Pencairan Agent"
+        subtitle={historyModal?.saleLabel}
+        records={historyModal?.records ?? []}
+        previewUrl={historyPreviewUrl}
+        onPreviewBukti={setHistoryPreviewUrl}
+        onClosePreview={() => setHistoryPreviewUrl(null)}
       />
 
     </div>
