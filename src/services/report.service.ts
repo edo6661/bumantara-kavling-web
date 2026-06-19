@@ -382,6 +382,33 @@ export interface RekapPemasukanKategori {
   note?: string;
 }
 
+export type RekapPemasukanKategoriKey =
+  | 'bookingFee'
+  | 'dp'
+  | 'cicilanDp'
+  | 'pencairanKpr'
+  | 'cicilanCashBertahap'
+  | 'dpKpr'
+  | 'cicilanRumah'
+  | 'dpCashBertahap';
+
+export interface RekapPemasukanTerbayarBuckets {
+  bookingFee: PemasukanTerbayarDetail[];
+  dp: PemasukanTerbayarDetail[];
+  cicilanCashBertahap: PemasukanTerbayarDetail[];
+  cicilanDp: PemasukanTerbayarDetail[];
+  cicilanRumah: PemasukanTerbayarDetail[];
+  dpKpr: PemasukanTerbayarDetail[];
+  cicilanKpr: PemasukanTerbayarDetail[];
+}
+
+export interface RekapPemasukanTerbayarDetail extends PemasukanTerbayarDetail {
+  penjualanId: number;
+  noTransaksi: string;
+  customerNama: string;
+  kavlingLabel: string;
+}
+
 export interface RekapPemasukanSkema {
   dp: RekapPemasukanKategori;
   cicilan: RekapPemasukanKategori;
@@ -404,6 +431,7 @@ export interface RekapPemasukanDetailItem {
   dpKpr: number;
   cicilanKpr: number;
   totalTerima: number;
+  terbayar: RekapPemasukanTerbayarBuckets;
 }
 
 export interface RekapPemasukanReportData {
@@ -413,6 +441,7 @@ export interface RekapPemasukanReportData {
   cashBertahap: RekapPemasukanSkema;
   totalTerima: number;
   jumlahPenjualan: number;
+  kategoriTerbayar: Partial<Record<RekapPemasukanKategoriKey, RekapPemasukanTerbayarDetail[]>>;
   items: RekapPemasukanDetailItem[];
   meta: {
     page: number;

@@ -9,7 +9,7 @@ import { calcSelectedPencairanTotal } from '../../utils/agentPencairanPreview';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
 import AgentPencairanHistoryTable from './AgentPencairanHistoryTable';
 import FileInput from '../shared/FileInput';
-import { Info, X } from 'lucide-react';
+import { FileText, Info, X, ZoomIn } from 'lucide-react';
 import {
   MAX_AGENT_PENCAIRAN_INVOICE_FILES,
 } from '../../utils/agentPencairanInvoice';
@@ -90,12 +90,23 @@ const AjukanPencairanModal = ({
 }: AjukanPencairanModalProps) => {
   const [selected, setSelected] = useState<Set<PencairanKomponenKey>>(new Set());
   const [invoiceFiles, setInvoiceFiles] = useState<File[]>([]);
+  const [invoicePreviewUrls, setInvoicePreviewUrls] = useState<string[]>([]);
+  const [invoiceZoomIndex, setInvoiceZoomIndex] = useState<number | null>(null);
   const [invoiceError, setInvoiceError] = useState<string | undefined>();
+
+  useEffect(() => {
+    const urls = invoiceFiles.map((file) => URL.createObjectURL(file));
+    setInvoicePreviewUrls(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [invoiceFiles]);
 
   useEffect(() => {
     if (!preview) return;
     setSelected(new Set(preview.komponenSekarang.map((k) => k.key)));
     setInvoiceFiles([]);
+    setInvoiceZoomIndex(null);
     setInvoiceError(undefined);
   }, [preview]);
 
@@ -150,8 +161,18 @@ const AjukanPencairanModal = ({
 
   const removeInvoiceFile = (index: number) => {
     setInvoiceFiles((prev) => prev.filter((_, i) => i !== index));
+    setInvoiceZoomIndex((prev) => {
+      if (prev === null) return null;
+      if (prev === index) return null;
+      if (prev > index) return prev - 1;
+      return prev;
+    });
     setInvoiceError(undefined);
   };
+
+  const zoomedInvoice = invoiceZoomIndex != null ? invoiceFiles[invoiceZoomIndex] : null;
+  const zoomedInvoiceUrl =
+    invoiceZoomIndex != null ? invoicePreviewUrls[invoiceZoomIndex] : null;
 
   const canSubmit =
     selected.size > 0 &&
@@ -161,6 +182,7 @@ const AjukanPencairanModal = ({
   if (!preview) return null;
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} title="Ajukan Pencairan Agent" size="md">
       <div className="p-6 space-y-5">
         <div>
@@ -317,25 +339,48 @@ const AjukanPencairanModal = ({
               error={invoiceError}
             />
             {invoiceFiles.length > 0 && (
-              <ul className="space-y-1.5">
-                {invoiceFiles.map((file, index) => (
-                  <li
-                    key={`${file.name}-${index}`}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-amber-100 bg-white px-3 py-2 text-xs"
-                  >
-                    <span className="truncate text-slate-700 font-medium">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeInvoiceFile(index)}
-                      disabled={isSubmitting}
-                      className="shrink-0 p-1 text-slate-400 hover:text-red-600 rounded"
-                      title="Hapus file"
-                    >
-                      <X size={14} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <div className="flex flex-wrap gap-2">
+                {invoiceFiles.map((file, index) => {
+                  const url = invoicePreviewUrls[index];
+                  const isPdf = file.type === 'application/pdf';
+                  return (
+                    <div key={`${file.name}-${file.size}-${index}`} className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceZoomIndex(index)}
+                        disabled={!url}
+                        className="relative w-20 h-14 rounded-lg border border-amber-200 overflow-hidden bg-white hover:border-blue-400 transition cursor-zoom-in"
+                        title="Perbesar preview"
+                      >
+                        {isPdf ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-red-500">
+                            <FileText size={18} />
+                            <span className="text-[8px] font-bold mt-0.5">PDF</span>
+                          </div>
+                        ) : (
+                          <img
+                            src={url}
+                            alt="Preview invoice"
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-black/30 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <ZoomIn className="text-white" size={14} />
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeInvoiceFile(index)}
+                        disabled={isSubmitting}
+                        className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 shadow-sm"
+                        title="Hapus file"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             )}
             <p className="text-[11px] text-amber-800">
               Wajib untuk agent perusahaan. Bisa lebih dari 1 file (PDF atau gambar).
@@ -363,6 +408,32 @@ const AjukanPencairanModal = ({
         </div>
       </div>
     </Modal>
+
+    <Modal
+      isOpen={invoiceZoomIndex !== null && !!zoomedInvoiceUrl}
+      onClose={() => setInvoiceZoomIndex(null)}
+      title="Preview Invoice"
+      size="md"
+    >
+      {zoomedInvoiceUrl && zoomedInvoice && (
+        <div className="p-4 flex justify-center">
+          {zoomedInvoice.type === 'application/pdf' ? (
+            <iframe
+              src={zoomedInvoiceUrl}
+              className="w-full h-[60vh] rounded-lg border border-slate-200"
+              title="Preview invoice PDF"
+            />
+          ) : (
+            <img
+              src={zoomedInvoiceUrl}
+              alt="Preview invoice"
+              className="max-h-[70vh] rounded-lg object-contain"
+            />
+          )}
+        </div>
+      )}
+    </Modal>
+    </>
   );
 };
 

@@ -31,6 +31,7 @@ export interface AgentData {
   status: string;
   type: string;
   ttdData?: string;
+  perusahaanAgentId?: number | null;
   perusahaanAgent?: { id: number; nama: string };
   namaBank: string | null;
   noRekening: string | null;

@@ -12,11 +12,18 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useGetRekapPemasukanReport } from '../../hooks/queries/useRekapPemasukanReport';
-import type { RekapPemasukanKategori } from '../../services/report.service';
+import type {
+  PemasukanTerbayarDetail,
+  RekapPemasukanDetailItem,
+  RekapPemasukanKategori,
+  RekapPemasukanKategoriKey,
+  RekapPemasukanTerbayarDetail,
+} from '../../services/report.service';
 import PageLoader from '../PageLoader';
 import Select from '../../components/shared/Select';
 import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/ReportPageLayout';
 import ReportMetricCard from '../../components/laporan/ReportMetricCard';
+import PembayaranTerbayarModal from '../../components/laporan/PembayaranTerbayarModal';
 import { formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
 import CustomerNameActionTd from '../../components/laporan/CustomerNameActionTd';
@@ -31,7 +38,61 @@ const CARA_BAYAR_OPTIONS = [
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 25;
 
-/** Pencairan KPR = cicilan KPR (satu kategori); normalisasi respons API lama. */
+const TABLE_COLUMN_KEYS = [
+  'bookingFee',
+  'dp',
+  'cicilanCashBertahap',
+  'cicilanDp',
+  'cicilanRumah',
+  'dpKpr',
+  'cicilanKpr',
+] as const;
+
+type TableColumnKey = (typeof TABLE_COLUMN_KEYS)[number];
+
+const TABLE_COLUMN_LABELS: Record<TableColumnKey, string> = {
+  bookingFee: 'Booking',
+  dp: 'DP',
+  cicilanCashBertahap: 'Cic. Cash',
+  cicilanDp: 'Cic. DP',
+  cicilanRumah: 'Cic. Rumah',
+  dpKpr: 'DP KPR',
+  cicilanKpr: 'Penc. KPR',
+};
+
+function getRowTerbayarByColumn(
+  row: RekapPemasukanDetailItem,
+  column: TableColumnKey,
+): PemasukanTerbayarDetail[] {
+  return row.terbayar?.[column] ?? [];
+}
+
+function getAllRowTerbayar(row: RekapPemasukanDetailItem): PemasukanTerbayarDetail[] {
+  if (!row.terbayar) return [];
+  const all = TABLE_COLUMN_KEYS.flatMap((key) => row.terbayar[key]);
+  const seen = new Set<number>();
+  return all.filter((item) => {
+    if (seen.has(item.tagihanId)) return false;
+    seen.add(item.tagihanId);
+    return true;
+  });
+}
+
+function resolveKategoriKey(itemKey: string): RekapPemasukanKategoriKey | null {
+  const valid: RekapPemasukanKategoriKey[] = [
+    'bookingFee',
+    'dp',
+    'cicilanDp',
+    'pencairanKpr',
+    'cicilanCashBertahap',
+    'dpKpr',
+    'cicilanRumah',
+    'dpCashBertahap',
+  ];
+  return valid.includes(itemKey as RekapPemasukanKategoriKey)
+    ? (itemKey as RekapPemasukanKategoriKey)
+    : null;
+}
 function normalizeRingkasan(
   ringkasan: RekapPemasukanKategori[],
   kprCicilan: RekapPemasukanKategori,
@@ -71,7 +132,7 @@ function KategoriValue({ item }: { item: RekapPemasukanKategori }) {
   }
 
   return (
-    <p className="text-[15px] font-black text-emerald-700 tabular-nums">
+    <p className="text-[15px] font-black text-emerald-700 tabular-nums text-right">
       {formatRupiah(item.terbayar ?? 0)}
     </p>
   );
@@ -81,10 +142,12 @@ function SkemaCard({
   title,
   accentClass,
   items,
+  onItemClick,
 }: {
   title: string;
   accentClass: string;
   items: RekapPemasukanKategori[];
+  onItemClick?: (item: RekapPemasukanKategori) => void;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -94,24 +157,66 @@ function SkemaCard({
         <p className="text-[10px] text-slate-400 mt-0.5">Uang riil diterima (tagihan lunas)</p>
       </div>
       <div className="divide-y divide-slate-50">
-        {items.map((item) => (
-          <div
-            key={item.key}
-            className="flex items-start justify-between gap-4 px-5 py-3.5 hover:bg-slate-50/50 transition-colors"
-          >
-            <div className="min-w-0">
-              <p className="text-[12px] font-bold text-slate-700">{item.label}</p>
-              {item.calculable && item.note && (
-                <p className="text-[10px] text-slate-400 mt-0.5">{item.note}</p>
-              )}
-            </div>
-            <div className="text-right shrink-0">
-              <KategoriValue item={item} />
-            </div>
-          </div>
-        ))}
+        {items.map((item) => {
+          const clickable =
+            !!onItemClick && item.calculable && (item.terbayar ?? 0) > 0;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={clickable ? () => onItemClick(item) : undefined}
+              disabled={!clickable}
+              className={`w-full flex items-start justify-between gap-4 px-5 py-3.5 text-left transition-colors ${
+                clickable ? 'hover:bg-slate-50/80 cursor-pointer' : 'cursor-default'
+              }`}
+              title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
+            >
+              <div className="min-w-0">
+                <p className="text-[12px] font-bold text-slate-700">{item.label}</p>
+                {item.calculable && item.note && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">{item.note}</p>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <KategoriValue item={item} />
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function ClickableAmountTd({
+  amount,
+  details,
+  onOpen,
+  className = '',
+}: {
+  amount: number;
+  details: PemasukanTerbayarDetail[];
+  onOpen: () => void;
+  className?: string;
+}) {
+  const clickable = amount > 0 && details.length > 0;
+
+  return (
+    <td
+      className={`py-2.5 px-3 text-right tabular-nums text-slate-700 ${className} ${
+        clickable ? 'cursor-pointer hover:bg-slate-100/80 active:bg-slate-100' : ''
+      }`}
+      onClick={clickable ? onOpen : undefined}
+      title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
+    >
+      {amount > 0 ? (
+        <span className={clickable ? 'font-semibold text-emerald-700 hover:underline' : ''}>
+          {formatTanpaDesimal(amount)}
+        </span>
+      ) : (
+        <span className="text-slate-400 text-[11px]">-</span>
+      )}
+    </td>
   );
 }
 
@@ -137,6 +242,56 @@ const LaporanRekapPemasukan = () => {
   });
   const [searchInput, setSearchInput] = useState(search);
   const [isFilterOpen, setIsFilterOpen] = useState(true);
+  const [modalDetails, setModalDetails] = useState<
+    (PemasukanTerbayarDetail | RekapPemasukanTerbayarDetail)[]
+  >([]);
+  const [modalContext, setModalContext] = useState<{
+    customerNama?: string;
+    kavlingLabel?: string;
+    jenisPembayaran: string;
+    showCustomerPerItem: boolean;
+  } | null>(null);
+
+  const handleCloseModal = () => {
+    setModalDetails([]);
+    setModalContext(null);
+  };
+
+  const handleOpenKategoriModal = (
+    item: RekapPemasukanKategori,
+    kategoriTerbayar: Partial<
+      Record<RekapPemasukanKategoriKey, RekapPemasukanTerbayarDetail[]>
+    >,
+  ) => {
+    if (!item.calculable || (item.terbayar ?? 0) <= 0) return;
+    const key = resolveKategoriKey(item.key);
+    if (!key) return;
+    const details = kategoriTerbayar[key] ?? [];
+    if (details.length === 0) return;
+    setModalDetails(details);
+    setModalContext({
+      jenisPembayaran: item.label,
+      showCustomerPerItem: true,
+    });
+  };
+
+  const handleOpenRowModal = (
+    row: RekapPemasukanDetailItem,
+    column: TableColumnKey | 'total',
+  ) => {
+    const jenisPembayaran =
+      column === 'total' ? 'Semua Pembayaran' : TABLE_COLUMN_LABELS[column];
+    const details =
+      column === 'total' ? getAllRowTerbayar(row) : getRowTerbayarByColumn(row, column);
+    if (details.length === 0) return;
+    setModalDetails(details);
+    setModalContext({
+      customerNama: row.customerNama,
+      kavlingLabel: row.kavlingLabel,
+      jenisPembayaran,
+      showCustomerPerItem: false,
+    });
+  };
 
   useEffect(() => {
     setFilterDraft({ caraPembayaran, blok, startDate, endDate });
@@ -391,23 +546,40 @@ const LaporanRekapPemasukan = () => {
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                {ringkasanItems.map((item) => (
-                  <div
-                    key={item.key}
-                    className="flex items-start justify-between gap-4 px-5 py-3.5"
-                  >
-                    <div>
-                      <p className="text-[12px] font-bold text-slate-700">{item.label}</p>
-                      {!item.calculable && item.note && (
-                        <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
-                      )}
-                      {item.calculable && item.note && (
-                        <p className="text-[10px] text-slate-400 mt-0.5">{item.note}</p>
-                      )}
-                    </div>
-                    <KategoriValue item={item} />
-                  </div>
-                ))}
+                {ringkasanItems.map((item) => {
+                  const clickable =
+                    item.calculable &&
+                    (item.terbayar ?? 0) > 0 &&
+                    !!resolveKategoriKey(item.key) &&
+                    (report.kategoriTerbayar?.[resolveKategoriKey(item.key)!]?.length ?? 0) > 0;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={
+                        clickable
+                          ? () => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
+                          : undefined
+                      }
+                      disabled={!clickable}
+                      className={`flex items-start justify-between gap-4 px-5 py-3.5 text-left w-full transition-colors ${
+                        clickable ? 'hover:bg-slate-50/80 cursor-pointer' : 'cursor-default'
+                      }`}
+                      title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
+                    >
+                      <div>
+                        <p className="text-[12px] font-bold text-slate-700">{item.label}</p>
+                        {!item.calculable && item.note && (
+                          <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
+                        )}
+                        {item.calculable && item.note && (
+                          <p className="text-[10px] text-slate-400 mt-0.5">{item.note}</p>
+                        )}
+                      </div>
+                      <KategoriValue item={item} />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -429,11 +601,13 @@ const LaporanRekapPemasukan = () => {
                     note: undefined,
                   },
                 ]}
+                onItemClick={(item) => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})}
               />
               <SkemaCard
                 title="Cash Bertahap"
                 accentClass="bg-gradient-to-r from-violet-400 to-purple-500"
                 items={cashBertahapItems}
+                onItemClick={(item) => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})}
               />
             </div>
           </section>
@@ -462,7 +636,8 @@ const LaporanRekapPemasukan = () => {
                   <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
                     <Landmark size={12} />
                     Nilai di bawah = total tagihan lunas per kategori (uang riil diterima). Klik
-                    nama customer untuk navigasi ke penjualan atau tagihan.
+                    nominal atau total untuk detail pembayaran. Klik nama customer untuk navigasi
+                    ke penjualan atau tagihan.
                   </p>
                   <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-600">
                     <span className="inline-flex items-center gap-1.5 font-medium">
@@ -528,28 +703,21 @@ const LaporanRekapPemasukan = () => {
                           </td>
                           <td className="py-2.5 px-3 text-slate-500">{row.pembiayaan ?? '-'}</td>
 
-                          {[
-                            row.bookingFee,
-                            row.dp,
-                            row.cicilanCashBertahap,
-                            row.cicilanDp,
-                            row.cicilanRumah,
-                            row.dpKpr,
-                            row.cicilanKpr,
-                          ].map((val, idx) => (
-                            <td
-                              key={idx}
-                              className="py-2.5 px-3 text-right tabular-nums text-slate-700"
-                            >
-                              {val > 0 ? formatTanpaDesimal(val) : (
-                                <span className="text-slate-400 text-[11px]">-</span>
-                              )}
-                            </td>
+                          {TABLE_COLUMN_KEYS.map((columnKey) => (
+                            <ClickableAmountTd
+                              key={columnKey}
+                              amount={row[columnKey]}
+                              details={getRowTerbayarByColumn(row, columnKey)}
+                              onOpen={() => handleOpenRowModal(row, columnKey)}
+                            />
                           ))}
 
-                          <td className="py-2.5 px-3 text-right font-bold tabular-nums text-emerald-700">
-                            {formatTanpaDesimal(row.totalTerima)}
-                          </td>
+                          <ClickableAmountTd
+                            amount={row.totalTerima}
+                            details={getAllRowTerbayar(row)}
+                            onOpen={() => handleOpenRowModal(row, 'total')}
+                            className="font-bold text-emerald-700"
+                          />
                         </tr>
                       ))}
                     </tbody>
@@ -637,6 +805,16 @@ const LaporanRekapPemasukan = () => {
           </section>
         </>
       )}
+
+      <PembayaranTerbayarModal
+        isOpen={modalDetails.length > 0}
+        onClose={handleCloseModal}
+        details={modalDetails}
+        customerNama={modalContext?.customerNama}
+        kavlingLabel={modalContext?.kavlingLabel}
+        jenisPembayaran={modalContext?.jenisPembayaran}
+        showCustomerPerItem={modalContext?.showCustomerPerItem}
+      />
     </ReportPageLayout>
   );
 };

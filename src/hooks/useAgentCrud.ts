@@ -40,6 +40,26 @@ const commercialFieldsFromPerusahaan = (
   atasNamaRekening: perusahaan?.atasNamaRekening ?? '',
 });
 
+const resolvePerusahaanAgentIdFromAgent = (
+  item: AgentData,
+  options?: OpenAgentModalOptions,
+): number | '' => {
+  const candidate =
+    options?.perusahaanAgentId ?? item.perusahaanAgent?.id ?? item.perusahaanAgentId ?? '';
+  if (candidate === '' || candidate == null) return '';
+  const id = Number(candidate);
+  return Number.isFinite(id) && id > 0 ? id : '';
+};
+
+const toPayloadPerusahaanAgentId = (
+  type: string,
+  perusahaanAgentId: number | '',
+): number | null => {
+  if (!isAgentPerusahaan(type)) return null;
+  const id = Number(perusahaanAgentId);
+  return Number.isFinite(id) && id > 0 ? id : null;
+};
+
 export const createInitialFormState = (defaultAgentType: UseAgentCrudOptions['defaultAgentType']): AgentFormState => ({
   id: '',
   nik: '',
@@ -104,8 +124,9 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
 
   const openModal = (item?: AgentData, options?: OpenAgentModalOptions) => {
     if (item) {
-      const perusahaan = item.perusahaanAgent?.id
-        ? getPerusahaanById(perusahaanList, item.perusahaanAgent.id)
+      const perusahaanAgentId = resolvePerusahaanAgentIdFromAgent(item, options);
+      const perusahaan = perusahaanAgentId
+        ? getPerusahaanById(perusahaanList, perusahaanAgentId)
         : null;
       const commercial = isAgentPerusahaan(item.type)
         ? applyPerusahaanCommercialToAgent(item, perusahaan)
@@ -118,7 +139,7 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
         noHp: item.noHp,
         email: item.email || '',
         type: lockAgentType ? defaultAgentType : (item.type || defaultAgentType),
-        perusahaanAgentId: item.perusahaanAgent?.id || '',
+        perusahaanAgentId,
         namaBank: commercial.namaBank || '',
         noRekening: commercial.noRekening || '',
         atasNamaRekening: commercial.atasNamaRekening || '',
@@ -249,8 +270,14 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
     }
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    if (isAgentPerusahaan(formData.type) && !formData.perusahaanAgentId) {
-      newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
+    if (isAgentPerusahaan(formData.type)) {
+      const perusahaanId = toPayloadPerusahaanAgentId(formData.type, formData.perusahaanAgentId);
+      if (perusahaanId == null) {
+        newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
+      } else if (!perusahaanList.some((p) => p.id === perusahaanId)) {
+        newErrors.perusahaanAgentId =
+          'Perusahaan tidak ditemukan. Pilih ulang perusahaan yang masih terdaftar.';
+      }
     }
 
     setErrors(newErrors);
@@ -272,6 +299,7 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
     });
 
     const isPerusahaan = isAgentPerusahaan(formData.type);
+    const perusahaanAgentId = toPayloadPerusahaanAgentId(formData.type, formData.perusahaanAgentId);
 
     const payload: CreateAgentDTO = {
       nik: formData.nik,
@@ -280,7 +308,7 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
       email: formData.email || undefined,
       alamat: formData.alamat || undefined,
       type: formData.type,
-      perusahaanAgentId: isPerusahaan ? Number(formData.perusahaanAgentId) : null,
+      perusahaanAgentId,
       namaBank: isPerusahaan ? null : (formData.namaBank || null),
       noRekening: isPerusahaan ? null : (formData.noRekening || null),
       atasNamaRekening: isPerusahaan ? null : (formData.atasNamaRekening || null),

@@ -183,7 +183,12 @@ const AgentPerusahaan = () => {
                       </div>
                     </button>
                     <div className="flex items-center shrink-0 pr-1">
-                      <AgentActionButtons agent={agent} crud={crud} stopPropagation />
+                      <AgentActionButtons
+                        agent={agent}
+                        crud={crud}
+                        openModalOptions={{ perusahaanAgentId: perusahaan.id }}
+                        stopPropagation
+                      />
                     </div>
                   </div>
 

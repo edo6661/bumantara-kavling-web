@@ -6,13 +6,21 @@ import type { PemasukanTerbayarDetail } from '../../services/report.service';
 import { formatDate, formatTanpaDesimal } from '../../utils/formatters';
 import { getTagihanFileBuktiList } from '../../utils/tagihanBukti';
 
+type DetailWithCustomer = PemasukanTerbayarDetail & {
+  customerNama?: string;
+  kavlingLabel?: string;
+  noTransaksi?: string;
+};
+
 type PembayaranTerbayarModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  details: PemasukanTerbayarDetail[];
+  details: DetailWithCustomer[];
   customerNama?: string;
   kavlingLabel?: string;
   jenisPembayaran?: string;
+  /** Tampilkan customer/kavling per baris (untuk ringkasan agregat). */
+  showCustomerPerItem?: boolean;
 };
 
 const PembayaranTerbayarModal = ({
@@ -22,6 +30,7 @@ const PembayaranTerbayarModal = ({
   customerNama,
   kavlingLabel,
   jenisPembayaran,
+  showCustomerPerItem = false,
 }: PembayaranTerbayarModalProps) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -43,7 +52,7 @@ const PembayaranTerbayarModal = ({
         size="lg"
       >
         <div className="space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar pr-1">
-          {(customerNama || kavlingLabel) && (
+          {!showCustomerPerItem && (customerNama || kavlingLabel) && (
             <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
               {customerNama && (
                 <p className="text-[13px] font-bold text-slate-800">{customerNama}</p>
@@ -71,6 +80,19 @@ const PembayaranTerbayarModal = ({
                   key={`${detail.tagihanId}-${index}`}
                   className="rounded-xl border border-slate-100 bg-white p-4 space-y-3"
                 >
+                  {showCustomerPerItem && (detail.customerNama || detail.kavlingLabel) && (
+                    <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
+                      {detail.customerNama && (
+                        <p className="text-[12px] font-bold text-slate-800">{detail.customerNama}</p>
+                      )}
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        {detail.kavlingLabel && <>Kavling {detail.kavlingLabel}</>}
+                        {detail.kavlingLabel && detail.noTransaksi && ' · '}
+                        {detail.noTransaksi && <>#{detail.noTransaksi}</>}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[12px] font-bold text-slate-800">
                       {detail.pembayaran}

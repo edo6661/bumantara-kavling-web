@@ -1,7 +1,7 @@
 import type { MouseEvent } from 'react';
 import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle } from 'lucide-react';
 import type { AgentData } from '../../types/models/agent';
-import type { AgentCrudApi } from '../../hooks/useAgentCrud';
+import type { AgentCrudApi, OpenAgentModalOptions } from '../../hooks/useAgentCrud';
 
 interface AgentActionButtonsProps {
   agent: AgentData;
@@ -9,6 +9,7 @@ interface AgentActionButtonsProps {
     AgentCrudApi,
     'handleApprove' | 'openDetailModal' | 'openModal' | 'openUploadModal' | 'handleGenerateAccount' | 'handleDelete'
   >;
+  openModalOptions?: OpenAgentModalOptions;
   /** Stop event propagation (for nested clickable rows) */
   stopPropagation?: boolean;
   className?: string;
@@ -17,6 +18,7 @@ interface AgentActionButtonsProps {
 const AgentActionButtons = ({
   agent,
   crud,
+  openModalOptions,
   stopPropagation = true,
   className = '',
 }: AgentActionButtonsProps) => {
@@ -46,7 +48,7 @@ const AgentActionButtons = ({
         <Eye size={16} />
       </button>
       <button
-        onClick={wrap(() => crud.openModal(agent))}
+        onClick={wrap(() => crud.openModal(agent, openModalOptions))}
         className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
         title="Edit"
         type="button"
