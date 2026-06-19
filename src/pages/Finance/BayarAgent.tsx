@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
 import BuktiFileThumbnail from '../../components/shared/BuktiFileThumbnail';
-import { formatDate, formatRupiah } from '../../utils/formatters';
+import { formatDate, formatTanpaDesimal } from '../../utils/formatters';
 import {
   Clock,
   CheckCircle2,
@@ -40,7 +40,10 @@ const BayarAgent = () => {
 
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
-  const statusFilter = searchParams.get('status') ?? 'MENUNGGU_PEMBAYARAN';
+  const statusParam = searchParams.get('status');
+  const statusFilter =
+    statusParam === 'ALL' || statusParam === 'SUDAH_DIBAYAR' ? statusParam : 'MENUNGGU_PEMBAYARAN';
+  const showTanggalBayar = statusFilter !== 'MENUNGGU_PEMBAYARAN';
   const limitParam = Number(searchParams.get('limit'));
   const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
     ? limitParam
@@ -50,7 +53,7 @@ const BayarAgent = () => {
     page,
     limit,
     search: search || undefined,
-    status: statusFilter === 'ALL' ? 'ALL' : (statusFilter as 'MENUNGGU_PEMBAYARAN' | 'SUDAH_DIBAYAR'),
+    status: statusFilter,
   });
 
   const items = response?.items ?? [];
@@ -89,7 +92,9 @@ const BayarAgent = () => {
 
   const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSearchParams((prev) => {
-      prev.set('status', e.target.value);
+      const value = e.target.value;
+      if (!value) prev.delete('status');
+      else prev.set('status', value);
       prev.set('page', '1');
       return prev;
     });
@@ -163,13 +168,13 @@ const BayarAgent = () => {
             <div>
               <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
               <select
-                value={statusFilter}
+                value={statusParam ?? ''}
                 onChange={handleStatusFilterChange}
                 className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
               >
-                <option value="ALL">Semua</option>
-                <option value="MENUNGGU_PEMBAYARAN">Menunggu Pembayaran</option>
+                <option value="">Belum Dibayar</option>
                 <option value="SUDAH_DIBAYAR">Sudah Dibayar</option>
+                <option value="ALL">Semua</option>
               </select>
             </div>
             <div>
@@ -215,10 +220,10 @@ const BayarAgent = () => {
                   <th className={thClass}>Kavling</th>
                   <th className={`${thClass} text-right`}>Closing</th>
                   <th className={`${thClass} text-right`}>Marketing</th>
-                  <th className={`${thClass} text-right`}>Pot. PPh</th>
-                  <th className={`${thClass} text-right`}>Total Bayar</th>
+                  <th className={`${thClass} text-right`}>PPh</th>
+                  <th className={`${thClass} text-right`}>Total</th>
                   <th className={thClass}>Diajukan</th>
-                  <th className={thClass}>Tgl Bayar</th>
+                  {showTanggalBayar && <th className={thClass}>Tgl Bayar</th>}
                   <th className={thClass}>Status</th>
                   <th className={thClass}>Bukti</th>
                   <th className={`${thClass} text-center`}>Aksi</th>
@@ -247,34 +252,36 @@ const BayarAgent = () => {
                           : '-'}
                       </td>
                       <td className={`${tdClass} text-right tabular-nums`}>
-                        {formatRupiah(row.closingNominal)}
+                        {formatTanpaDesimal(row.closingNominal)}
                       </td>
                       <td className={`${tdClass} text-right tabular-nums`}>
-                        {formatRupiah(row.marketingNominal)}
+                        {formatTanpaDesimal(row.marketingNominal)}
                       </td>
                       <td className={`${tdClass} text-right tabular-nums text-red-600`}>
-                        {formatRupiah(row.potonganPph)}
+                        {formatTanpaDesimal(row.potonganPph)}
                       </td>
                       <td className={`${tdClass} text-right font-bold text-emerald-700 tabular-nums`}>
-                        {formatRupiah(row.totalNominal)}
+                        {formatTanpaDesimal(row.totalNominal)}
                       </td>
                       <td className={`${tdClass} text-xs text-slate-500`}>
                         <p>{row.diajukanOleh?.username ?? '-'}</p>
                         <p>{formatDate(row.createdAt)}</p>
                       </td>
-                      <td className={`${tdClass} text-xs text-slate-500`}>
-                        {paid
-                          ? formatDate(row.tanggalPembayaran ?? row.updatedAt)
-                          : '—'}
-                      </td>
+                      {showTanggalBayar && (
+                        <td className={`${tdClass} text-xs text-slate-500`}>
+                          {paid
+                            ? formatDate(row.tanggalPembayaran ?? row.updatedAt)
+                            : '—'}
+                        </td>
+                      )}
                       <td className={tdClass}>
                         {paid ? (
                           <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-green-100 text-green-700 rounded w-fit">
-                            <CheckCircle2 size={10} /> Terbayar
+                            <CheckCircle2 size={10} />
                           </span>
                         ) : (
                           <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-yellow-100 text-yellow-700 rounded w-fit">
-                            <Clock size={10} /> Menunggu
+                            <Clock size={10} />
                           </span>
                         )}
                       </td>
@@ -298,7 +305,7 @@ const BayarAgent = () => {
                             className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
                           >
                             <UploadCloud size={12} />
-                            Upload Bukti
+                            
                           </button>
                         )}
                       </td>
