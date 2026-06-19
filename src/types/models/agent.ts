@@ -60,7 +60,7 @@ export interface CreateAgentDTO {
   email?: string;
   status?: string;
   type?: string;
-  perusahaanAgentId?: number;
+  perusahaanAgentId?: number | null;
   namaBank: string | null;
   noRekening: string | null;
   atasNamaRekening: string | null;

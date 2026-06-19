@@ -6,12 +6,14 @@ import {
   calcPotonganPphFromReferensi,
   calcPotonganPphUntukPengajuan,
   getClosingFull,
+  getClosingGross,
   getFullMarketingFee,
   getPencairanKomponen,
   getTotalFeeReferensi,
   type PencairanKomponenKey,
   type SaleDetail,
 } from './agentPencairan';
+import { PPN_PKP_RATE } from './agentPkpTax';
 
 export type { PencairanKomponenKey };
 
@@ -29,6 +31,10 @@ export interface PencairanAjukanPreview {
   komponenSekarang: PencairanKomponenPreview[];
   komponenBelum: PencairanKomponenPreview[];
   closingFeeFull: number;
+  /** Nominal bruto closing (PKP, incl. PPN) — sama dengan master perusahaan */
+  closingFeeGross?: number;
+  isPkp?: boolean;
+  closingPkpHint?: string;
   marketingFeeFull: number;
   /** Total fee = closing fee + marketing fee */
   totalFeeReferensi: number;
@@ -54,7 +60,13 @@ export const buildPencairanAjukanPreview = (
   const eligible = komponen.filter((k) => k.eligible && k.nominalSisa > 0);
   if (eligible.length === 0) return null;
 
+  const isPkp = !!agent.isPkp;
+  const closingFeeGross = isPkp ? getClosingGross(agent, feeRecord, detail) : undefined;
   const closingFeeFull = getClosingFull(agent, feeRecord, detail);
+  const closingPkpHint =
+    isPkp && closingFeeGross != null && closingFeeGross > 0
+      ? `Agent PKP: closing ${formatRupiahShort(closingFeeFull)} (DPP) dari bruto ${formatRupiahShort(closingFeeGross)} incl. PPN ${Math.round(PPN_PKP_RATE * 100)}%.`
+      : undefined;
   const marketingFeeFull = getFullMarketingFee(agent, detail);
   const totalFeeReferensi = getTotalFeeReferensi(agent, feeRecord, detail);
   const potonganPphTotal = calcPotonganPphFromReferensi(agent, feeRecord, detail);
@@ -68,16 +80,24 @@ export const buildPencairanAjukanPreview = (
   const grandTotalPenuh = calcGrandTotalTransfer(totalFeeReferensi, potonganPphTotal);
   const potonganPphPct = Number(agent.potonganPph) || 0;
 
+  const pkpClosingAlasanSuffix =
+    closingPkpHint != null
+      ? ` ${closingPkpHint}`
+      : '';
+
   const komponenSekarang: PencairanKomponenPreview[] = komponen
     .filter((k) => k.eligible && k.nominalSisa > 0)
     .map((k) => ({
       key: k.key,
-      label: k.label,
+      label: k.key === 'closing' && isPkp ? 'Closing Fee (DPP)' : k.label,
       nominalPenuh: k.nominalPenuh,
       nominalDicairkan: k.nominalSisa,
       dicairkanSekarang: true,
       bisaPilih: true,
-      alasan: k.alasan,
+      alasan:
+        k.key === 'closing' && closingPkpHint
+          ? `${k.alasan ?? ''}${pkpClosingAlasanSuffix}`.trim()
+          : k.alasan,
     }));
 
   const komponenBelum: PencairanKomponenPreview[] = komponen
@@ -120,6 +140,9 @@ export const buildPencairanAjukanPreview = (
     komponenSekarang,
     komponenBelum,
     closingFeeFull,
+    closingFeeGross,
+    isPkp,
+    closingPkpHint,
     marketingFeeFull,
     potonganPphTotal,
     potonganPph,

@@ -114,25 +114,27 @@ const sumSudahDiajukan = (pencairanList: AgentPencairanData[]) => ({
   marketingNominal: pencairanList.reduce((s, p) => s + Number(p.marketingNominal), 0),
 });
 
-export const getClosingFull = (
+export const getClosingGross = (
   agent: AgentData,
   feeRecord: FeeAgentData,
   detail?: SaleDetail,
 ) => {
   if (!isBookingFeePaid(detail)) return 0;
-  const gross =
-    Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0;
-  return extractClosingDpp(gross, !!agent.isPkp);
+  return Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0;
 };
+
+/** DPP closing — untuk PKP di-extract dari bruto (÷ 1,11) */
+export const getClosingFull = (
+  agent: AgentData,
+  feeRecord: FeeAgentData,
+  detail?: SaleDetail,
+) => extractClosingDpp(getClosingGross(agent, feeRecord, detail), !!agent.isPkp);
 
 export const getFullMarketingFee = (agent: AgentData, detail?: SaleDetail) => {
   if (isPenjualanBatal(detail?.status)) return 0;
   const nilaiAjb = Number(detail?.progressPenjualan?.nilaiAjb) || 0;
-  const hargaJual = Number(detail?.hargaJual) || 0;
   const pct = Number(agent.feeMarketingPct) || 0;
-  const isCash = isCashPayment(detail?.caraPembayaran);
-  const base = nilaiAjb > 0 ? nilaiAjb : isCash ? hargaJual : 0;
-  return base > 0 && pct > 0 ? base * (pct / 100) : 0;
+  return nilaiAjb > 0 && pct > 0 ? nilaiAjb * (pct / 100) : 0;
 };
 
 const getCashMarketingBuckets = (
@@ -264,7 +266,10 @@ export const getPencairanKomponen = (
       if (marketing.nominalSisa <= 0) {
         marketing.alasan = 'Komisi marketing sudah diajukan semua';
       } else {
-        const ppjbOk = buckets.ppjbSisa > 0 && hasPpjbComplete(detail?.progressPenjualan);
+        const ppjbOk =
+          buckets.ppjbSisa > 0 &&
+          hasPpjbComplete(detail?.progressPenjualan) &&
+          nilaiAjb > 0;
         const ajbOk =
           buckets.ajbSisa > 0 &&
           hasPpjbComplete(detail?.progressPenjualan) &&
@@ -277,8 +282,10 @@ export const getPencairanKomponen = (
           if (ppjbOk) parts.push('50% tahap PPJB');
           if (ajbOk) parts.push('50% tahap AJB');
           marketing.alasan = `Komisi tersedia: ${parts.join(' + ')}`;
-        } else if (buckets.ppjbSisa > 0) {
+        } else if (buckets.ppjbSisa > 0 && !hasPpjbComplete(detail?.progressPenjualan)) {
           marketing.alasan = 'Belum PPJB (tahap 50%)';
+        } else if (buckets.ppjbSisa > 0 && nilaiAjb <= 0) {
+          marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
         } else {
           marketing.alasan = hasAjbComplete(detail?.progressPenjualan)
             ? 'Isi nilai AJB di menu Progress Penjualan'
@@ -306,6 +313,11 @@ export const getPencairanKomponen = (
     marketing.alasan = 'Booking fee belum lunas';
   } else if (isBatal) {
     marketing.alasan = 'Transaksi batal — komisi marketing tidak dicairkan';
+  } else if (isCash && fullMarketing <= 0 && isBookingFeePaid(detail)) {
+    marketing.alasan =
+      nilaiAjb <= 0
+        ? 'Isi nilai AJB di menu Progress Penjualan'
+        : 'Komisi marketing belum tersedia';
   } else if (!isCash && fullMarketing <= 0) {
     if (!hasSp3kComplete(detail?.progressPenjualan)) {
       marketing.alasan = 'Belum SP3K';

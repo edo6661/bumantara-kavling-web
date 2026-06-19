@@ -62,8 +62,19 @@ interface AgentFormState {
   feeMarketingPct: number | '';
   feeClosingNominal: number | '';
   potonganPph: number | '';
+  isPkp: boolean;
   pics: PicAgentData[];
 }
+
+const commercialFieldsFromPerusahaan = (perusahaan: ReturnType<typeof getPerusahaanById>) => ({
+  feeMarketingPct: perusahaan?.feeMarketingPct ?? '',
+  feeClosingNominal: perusahaan?.feeClosingNominal ?? '',
+  potonganPph: perusahaan?.potonganPph ?? '',
+  isPkp: perusahaan?.isPkp ?? false,
+  namaBank: perusahaan?.namaBank ?? '',
+  noRekening: perusahaan?.noRekening ?? '',
+  atasNamaRekening: perusahaan?.atasNamaRekening ?? '',
+});
 
 const initialFormState: AgentFormState = {
   id: '',
@@ -80,6 +91,7 @@ const initialFormState: AgentFormState = {
   feeMarketingPct: '',
   feeClosingNominal: '',
   potonganPph: '',
+  isPkp: false,
   pics: [{ nama: '', noHp: '', alamat: '' }]
 };
 
@@ -217,6 +229,14 @@ const Agents = ({ agentType }: AgentsProps) => {
 
   const pageTitle = agentType === 'PRIBADI' ? 'Agent Pribadi' : 'Agent Perusahaan';
 
+  const resolveAgentCommercial = (agent: AgentData) =>
+    isAgentPerusahaan(agent.type) && agent.perusahaanAgent?.id
+      ? applyPerusahaanCommercialToAgent(
+          agent,
+          getPerusahaanById(perusahaanList, agent.perusahaanAgent.id),
+        )
+      : agent;
+
   const filterSelectClass =
     'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
 
@@ -352,6 +372,7 @@ const Agents = ({ agentType }: AgentsProps) => {
         feeMarketingPct: commercial.feeMarketingPct ?? '',
         feeClosingNominal: commercial.feeClosingNominal ?? '',
         potonganPph: commercial.potonganPph ?? '',
+        isPkp: commercial.isPkp ?? false,
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
       setIsEditing(true);
@@ -374,15 +395,7 @@ const Agents = ({ agentType }: AgentsProps) => {
       const next = { ...prev, [name]: value };
       if (name === 'perusahaanAgentId' && isAgentPerusahaan(prev.type)) {
         const perusahaan = getPerusahaanById(perusahaanList, value);
-        return {
-          ...next,
-          feeMarketingPct: perusahaan?.feeMarketingPct ?? '',
-          feeClosingNominal: perusahaan?.feeClosingNominal ?? '',
-          potonganPph: perusahaan?.potonganPph ?? '',
-          namaBank: perusahaan?.namaBank ?? '',
-          noRekening: perusahaan?.noRekening ?? '',
-          atasNamaRekening: perusahaan?.atasNamaRekening ?? '',
-        };
+        return { ...next, ...commercialFieldsFromPerusahaan(perusahaan) };
       }
       if (name === 'type' && value === 'PERUSAHAAN') {
         return {
@@ -391,6 +404,7 @@ const Agents = ({ agentType }: AgentsProps) => {
           feeMarketingPct: '',
           feeClosingNominal: '',
           potonganPph: '',
+          isPkp: false,
           namaBank: '',
           noRekening: '',
           atasNamaRekening: '',
@@ -400,6 +414,10 @@ const Agents = ({ agentType }: AgentsProps) => {
         return {
           ...next,
           perusahaanAgentId: '',
+          feeMarketingPct: '',
+          feeClosingNominal: '',
+          potonganPph: '',
+          isPkp: false,
         };
       }
       return next;
@@ -456,7 +474,9 @@ const Agents = ({ agentType }: AgentsProps) => {
     if (formData.nik.trim().length !== 16 && formData.nik.trim().length !== 15) newErrors.nik = 'NIK tidak valid (minimal 15-16 digit)';
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    if (agentType === 'PERUSAHAAN' && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
+    if (isAgentPerusahaan(formData.type) && !formData.perusahaanAgentId) {
+      newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -476,7 +496,7 @@ const Agents = ({ agentType }: AgentsProps) => {
       }
     });
 
-    const isPerusahaan = agentType === 'PERUSAHAAN';
+    const isPerusahaan = isAgentPerusahaan(formData.type);
 
     const payload: CreateAgentDTO = {
       nik: formData.nik,
@@ -484,8 +504,10 @@ const Agents = ({ agentType }: AgentsProps) => {
       noHp: formData.noHp,
       email: formData.email || undefined,
       alamat: formData.alamat || undefined,
-      type: agentType,
-      perusahaanAgentId: isPerusahaan ? Number(formData.perusahaanAgentId) : undefined,
+      type: formData.type,
+      perusahaanAgentId: isPerusahaan
+        ? Number(formData.perusahaanAgentId)
+        : null,
       namaBank: isPerusahaan ? null : (formData.namaBank || null),
       noRekening: isPerusahaan ? null : (formData.noRekening || null),
       atasNamaRekening: isPerusahaan ? null : (formData.atasNamaRekening || null),
@@ -578,12 +600,19 @@ const Agents = ({ agentType }: AgentsProps) => {
     agent: AgentData,
     detail?: SaleDetail,
   ) => {
+    const agentResolved =
+      isAgentPerusahaan(agent.type) && agent.perusahaanAgent?.id
+        ? applyPerusahaanCommercialToAgent(
+            agent,
+            getPerusahaanById(perusahaanList, agent.perusahaanAgent.id),
+          )
+        : agent;
     const pencairanList = pencairanByFeeAgentId.get(feeRecord.id) ?? [];
-    if (!hasAnyEligiblePencairan(agent, feeRecord, pencairanList, detail)) {
-      alert(getPencairanBlockReason(agent, feeRecord, pencairanList, detail) ?? "Belum memenuhi syarat pencairan.");
+    if (!hasAnyEligiblePencairan(agentResolved, feeRecord, pencairanList, detail)) {
+      alert(getPencairanBlockReason(agentResolved, feeRecord, pencairanList, detail) ?? "Belum memenuhi syarat pencairan.");
       return;
     }
-    setPencairanModal({ feeRecord, saleLabel, agent, detail });
+    setPencairanModal({ feeRecord, saleLabel, agent: agentResolved, detail });
   };
 
   const handleConfirmAjukanPencairan = async (selected: Set<PencairanKomponenKey>) => {
@@ -627,6 +656,7 @@ const Agents = ({ agentType }: AgentsProps) => {
   };
 
   const expandedRowRender = (row: AgentData) => {
+    const commercial = resolveAgentCommercial(row);
     const relatedSales = row.penjualan || [];
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -637,19 +667,27 @@ const Agents = ({ agentType }: AgentsProps) => {
           <span>
             Fee Marketing:{" "}
             <span className="font-semibold text-slate-600 tabular-nums">
-              {row.feeMarketingPct != null ? `${row.feeMarketingPct}%` : "-"}
+              {commercial.feeMarketingPct != null ? `${commercial.feeMarketingPct}%` : "-"}
             </span>
           </span>
           <span>
             Fee Closing:{" "}
             <span className="font-semibold text-slate-600 tabular-nums">
-              {row.feeClosingNominal != null ? formatRupiah(row.feeClosingNominal) : "-"}
+              {commercial.feeClosingNominal != null ? formatRupiah(commercial.feeClosingNominal) : "-"}
             </span>
           </span>
+          {isAgentPerusahaan(row.type) && (
+            <span>
+              PKP:{" "}
+              <span className="font-semibold text-slate-600">
+                {commercial.isPkp ? "PKP" : "Non-PKP"}
+              </span>
+            </span>
+          )}
           <span>
             Potongan PPh:{" "}
             <span className="font-semibold text-slate-600 tabular-nums">
-              {row.potonganPph != null ? `${row.potonganPph}%` : "-"}
+              {commercial.potonganPph != null ? `${commercial.potonganPph}%` : "-"}
             </span>
           </span>
         </p>
@@ -678,9 +716,9 @@ const Agents = ({ agentType }: AgentsProps) => {
                   const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
                   const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
                   const pencairanList = feeRecord ? (pencairanByFeeAgentId.get(feeRecord.id) ?? []) : [];
-                  const { fee, totalFee, potPph } = calcAgentFees(row, feeRecord, detail);
+                  const { fee, totalFee, potPph } = calcAgentFees(commercial, feeRecord, detail);
                   const feeTotals = feeRecord
-                    ? getPencairanFeeTotals(row, feeRecord, detail)
+                    ? getPencairanFeeTotals(commercial, feeRecord, detail)
                     : undefined;
                   const paymentStatus = getPencairanPaymentStatus(
                     pencairanList,
@@ -688,10 +726,10 @@ const Agents = ({ agentType }: AgentsProps) => {
                   );
                   const saleLabel = `${sale.customer?.nama || "-"} — Blok ${sale.kavling?.blok || "-"} No. ${sale.kavling?.nomorUnit || "-"}`;
                   const canAjukan = feeRecord
-                    ? hasAnyEligiblePencairan(row, feeRecord, pencairanList, detail)
+                    ? hasAnyEligiblePencairan(commercial, feeRecord, pencairanList, detail)
                     : false;
                   const blockReason = getPencairanBlockReason(
-                    row,
+                    commercial,
                     feeRecord,
                     pencairanList,
                     detail
@@ -776,7 +814,7 @@ const Agents = ({ agentType }: AgentsProps) => {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openAjukanPencairanModal(feeRecord!, saleLabel, row, detail);
+                                openAjukanPencairanModal(feeRecord!, saleLabel, commercial, detail);
                               }}
                               disabled={ajukanPencairanMutation.isPending}
                               className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"
@@ -869,7 +907,19 @@ const Agents = ({ agentType }: AgentsProps) => {
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {agentType === 'PERUSAHAAN' && (
+              <Select
+                label="Tipe Agent"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                error={errors.type}
+                options={[
+                  { value: 'PRIBADI', label: 'Pribadi' },
+                  { value: 'PERUSAHAAN', label: 'Perusahaan' },
+                ]}
+              />
+
+              {isAgentPerusahaan(formData.type) && (
                 <Select
                   label="Pilih Perusahaan"
                   name="perusahaanAgentId"
@@ -888,7 +938,7 @@ const Agents = ({ agentType }: AgentsProps) => {
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
               <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
               <div className="md:col-span-2">
-                {agentType === 'PERUSAHAAN' ? (
+                {isAgentPerusahaan(formData.type) ? (
                   <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
                     <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">
                       Fee & Rekening — otomatis dari perusahaan
@@ -896,7 +946,7 @@ const Agents = ({ agentType }: AgentsProps) => {
                     {!formData.perusahaanAgentId ? (
                       <p className="text-sm text-slate-600">Pilih perusahaan terlebih dahulu.</p>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
                         <div>
                           <p className="text-[10px] font-bold text-slate-500 uppercase">Fee Marketing</p>
                           <p className="font-semibold text-slate-900">{formData.feeMarketingPct !== '' ? `${formData.feeMarketingPct}%` : '-'}</p>
@@ -904,6 +954,13 @@ const Agents = ({ agentType }: AgentsProps) => {
                         <div>
                           <p className="text-[10px] font-bold text-slate-500 uppercase">Fee Closing</p>
                           <p className="font-semibold text-slate-900">{formData.feeClosingNominal !== '' ? formatRupiah(Number(formData.feeClosingNominal)) : '-'}</p>
+                          {formData.isPkp && formData.feeClosingNominal !== '' ? (
+                            <p className="text-[10px] text-emerald-700 font-medium mt-0.5">Termasuk PPN 11%</p>
+                          ) : null}
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase">PKP</p>
+                          <p className="font-semibold text-slate-900">{formData.isPkp ? 'PKP' : 'Non-PKP'}</p>
                         </div>
                         <div>
                           <p className="text-[10px] font-bold text-slate-500 uppercase">Pot. PPh</p>
@@ -1090,7 +1147,9 @@ const Agents = ({ agentType }: AgentsProps) => {
 
       {/* MODAL DETAIL AGENT */}
       <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Informasi Detail Agent">
-        {selectedAgentDetail && (
+        {selectedAgentDetail && (() => {
+          const detailCommercial = resolveAgentCommercial(selectedAgentDetail);
+          return (
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm ring-1 ring-slate-900/5">
               <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
@@ -1126,15 +1185,23 @@ const Agents = ({ agentType }: AgentsProps) => {
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Marketing (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeMarketingPct ?? '-'} %</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{detailCommercial.feeMarketingPct ?? '-'} %</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingNominal ?? '-'} %</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (Rp)</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">
+                    {detailCommercial.feeClosingNominal != null ? formatRupiah(detailCommercial.feeClosingNominal) : '-'}
+                  </p>
                 </div>
+                {isAgentPerusahaan(selectedAgentDetail.type) && (
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">PKP</p>
+                    <p className="text-sm font-medium text-slate-800">{detailCommercial.isPkp ? 'PKP' : 'Non-PKP'}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Potongan PPh (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.potonganPph ?? '-'} %</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{detailCommercial.potonganPph ?? '-'} %</p>
                 </div>
                 <div className="md:col-span-2">
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Alamat Lengkap</p>
@@ -1143,15 +1210,15 @@ const Agents = ({ agentType }: AgentsProps) => {
                 <div className="md:col-span-2 mt-2 p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Bank Agent</p>
-                    <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.namaBank || '-'}</p>
+                    <p className="text-sm font-bold text-slate-900">{detailCommercial.namaBank || '-'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Nomor Rekening</p>
-                    <p className="text-lg font-black text-blue-600 font-mono tabular-nums">{selectedAgentDetail.noRekening || '-'}</p>
+                    <p className="text-lg font-black text-blue-600 font-mono tabular-nums">{detailCommercial.noRekening || '-'}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Atas Nama (A/N)</p>
-                    <p className="text-sm font-bold text-slate-900">{selectedAgentDetail.atasNamaRekening || '-'}</p>
+                    <p className="text-sm font-bold text-slate-900">{detailCommercial.atasNamaRekening || '-'}</p>
                   </div>
                 </div>
               </div>
@@ -1226,7 +1293,8 @@ const Agents = ({ agentType }: AgentsProps) => {
               </button>
             </div>
           </div>
-        )}
+          );
+        })()}
       </Modal>
 
       {/* MODAL LIGHTBOX PREVIEW GAMBAR */}

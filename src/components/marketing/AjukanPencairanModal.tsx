@@ -121,7 +121,7 @@ const AjukanPencairanModal = ({
           <Info size={16} className="shrink-0 text-blue-500 mt-0.5" />
           <div className="space-y-1">
             <p>
-              Closing fee:{' '}
+              Closing fee{preview.isPkp ? ' (DPP)' : ''}:{' '}
               <span className="font-bold text-slate-800 tabular-nums">
                 {formatRupiah(preview.closingFeeFull)}
               </span>
@@ -131,6 +131,11 @@ const AjukanPencairanModal = ({
                 {formatRupiah(preview.marketingFeeFull)}
               </span>
             </p>
+            {preview.closingPkpHint && (
+              <p className="text-emerald-800 bg-emerald-50/80 rounded-lg px-2 py-1.5 leading-snug">
+                {preview.closingPkpHint}
+              </p>
+            )}
             <p>
               Total fee:{' '}
               <span className="font-bold text-slate-800 tabular-nums">
