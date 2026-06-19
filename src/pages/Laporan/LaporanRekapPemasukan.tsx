@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
+  BarChart3,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -283,7 +284,8 @@ const LaporanRekapPemasukan = () => {
     endDate,
   });
   const [searchInput, setSearchInput] = useState(search);
-  const [isFilterOpen, setIsFilterOpen] = useState(true);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isRingkasanOpen, setIsRingkasanOpen] = useState(false);
   const [modalDetails, setModalDetails] = useState<
     (PemasukanTerbayarDetail | RekapPemasukanTerbayarDetail)[]
   >([]);
@@ -463,7 +465,7 @@ const LaporanRekapPemasukan = () => {
         key: 'pencairanKpr',
         label: 'Pencairan KPR',
         calculable: true,
-      })
+      }).filter((item) => item.key !== 'cicilanDp')
     : [];
 
   return (
@@ -552,7 +554,18 @@ const LaporanRekapPemasukan = () => {
         <>
           {/* ── Ringkasan Utama ── */}
           <section>
-            <ReportSectionLabel>Ringkasan Utama</ReportSectionLabel>
+            <button
+              type="button"
+              onClick={() => setIsRingkasanOpen((v) => !v)}
+              className="flex items-center gap-2 text-[12px] font-bold text-slate-500 hover:text-slate-700 mb-3"
+            >
+              <BarChart3 size={14} />
+              Ringkasan Utama
+              {isRingkasanOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {isRingkasanOpen && (
+              <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <ReportMetricCard
                 label="Total Uang Diterima"
@@ -632,6 +645,8 @@ const LaporanRekapPemasukan = () => {
                 </tbody>
               </table>
             </div>
+              </>
+            )}
           </section>
 
           {/* ── Rekap per Skema ── */}

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
 import Modal from '../shared/Modal';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../shared/BuktiFileThumbnail';
 import type { PemasukanTerbayarDetail } from '../../services/report.service';
@@ -111,10 +110,7 @@ const PembayaranTerbayarModal = ({
                       )}
                       <td className="py-2 px-3 text-slate-800">
                         <p className="font-semibold">{detail.pembayaran}</p>
-                        <span className="inline-flex items-center gap-0.5 mt-0.5 text-[10px] font-bold uppercase text-green-700">
-                          <CheckCircle2 size={10} />
-                          {detail.status === 'LUNAS' ? 'Lunas' : detail.status}
-                        </span>
+                       
                       </td>
                       <td className="py-2 px-3 text-right font-semibold text-emerald-600 tabular-nums whitespace-nowrap">
                         {formatTanpaDesimal(detail.nominal)}
