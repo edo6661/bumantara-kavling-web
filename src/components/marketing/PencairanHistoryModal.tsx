@@ -64,7 +64,9 @@ const PencairanHistoryModal = ({
 
           <AgentPencairanHistoryTable
             records={records}
+            showInvoice={records.some((r) => r.fileInvoice)}
             onPreviewBukti={onPreviewBukti}
+            onPreviewInvoice={onPreviewBukti}
           />
 
           <div className="flex justify-end pt-2">
@@ -79,7 +81,7 @@ const PencairanHistoryModal = ({
         </div>
       </Modal>
 
-      <Modal isOpen={!!previewUrl} onClose={onClosePreview} title="Bukti Pembayaran">
+      <Modal isOpen={!!previewUrl} onClose={onClosePreview} title="Pratinjau Dokumen">
         {previewUrl && (
           <div className="flex justify-center">
             {previewUrl.toLowerCase().includes('.pdf') ? (

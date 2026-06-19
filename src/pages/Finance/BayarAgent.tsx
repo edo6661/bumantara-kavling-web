@@ -225,6 +225,7 @@ const BayarAgent = () => {
                   <th className={thClass}>Diajukan</th>
                   {showTanggalBayar && <th className={thClass}>Tgl Bayar</th>}
                   <th className={thClass}>Status</th>
+                  <th className={thClass}>Invoice</th>
                   <th className={thClass}>Bukti</th>
                   <th className={`${thClass} text-center`}>Aksi</th>
                 </tr>
@@ -283,6 +284,17 @@ const BayarAgent = () => {
                           <span className="flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold uppercase bg-yellow-100 text-yellow-700 rounded w-fit">
                             <Clock size={10} />
                           </span>
+                        )}
+                      </td>
+                      <td className={tdClass}>
+                        {row.fileInvoice ? (
+                          <BuktiFileThumbnail
+                            url={row.fileInvoice}
+                            onClick={() => setPreviewUrl(row.fileInvoice!)}
+                            className="w-12 h-8"
+                          />
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
                         )}
                       </td>
                       <td className={tdClass}>
@@ -375,7 +387,7 @@ const BayarAgent = () => {
         )}
       </div>
 
-      <Modal isOpen={!!previewUrl} onClose={() => setPreviewUrl(null)} title="Bukti Pembayaran">
+      <Modal isOpen={!!previewUrl} onClose={() => setPreviewUrl(null)} title="Pratinjau Dokumen">
         {previewUrl && (
           <div className="flex justify-center">
             {previewUrl.toLowerCase().includes('.pdf') ? (

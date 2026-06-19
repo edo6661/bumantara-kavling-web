@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import Modal from '../shared/Modal';
 import { formatRupiah } from '../../utils/formatters';
 import type {
@@ -8,6 +8,7 @@ import type {
 import { calcSelectedPencairanTotal } from '../../utils/agentPencairanPreview';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
 import AgentPencairanHistoryTable from './AgentPencairanHistoryTable';
+import FileInput from '../shared/FileInput';
 import { Info } from 'lucide-react';
 
 interface AjukanPencairanModalProps {
@@ -16,8 +17,9 @@ interface AjukanPencairanModalProps {
   preview: PencairanAjukanPreview | null;
   saleLabel: string;
   pencairanHistory?: AgentPencairanData[];
+  requireInvoice?: boolean;
   isSubmitting: boolean;
-  onConfirm: (selected: Set<PencairanKomponenKey>) => void;
+  onConfirm: (selected: Set<PencairanKomponenKey>, fileInvoice?: File) => void;
 }
 
 const KomponenRow = ({
@@ -79,14 +81,19 @@ const AjukanPencairanModal = ({
   preview,
   saleLabel,
   pencairanHistory = [],
+  requireInvoice = false,
   isSubmitting,
   onConfirm,
 }: AjukanPencairanModalProps) => {
   const [selected, setSelected] = useState<Set<PencairanKomponenKey>>(new Set());
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [invoiceError, setInvoiceError] = useState<string | undefined>();
 
   useEffect(() => {
     if (!preview) return;
     setSelected(new Set(preview.komponenSekarang.map((k) => k.key)));
+    setInvoiceFile(null);
+    setInvoiceError(undefined);
   }, [preview]);
 
   const totals = useMemo(() => {
@@ -105,8 +112,31 @@ const AjukanPencairanModal = ({
 
   const handleConfirm = () => {
     if (!preview || selected.size === 0) return;
-    onConfirm(selected);
+    if (requireInvoice && !invoiceFile) {
+      setInvoiceError('Invoice wajib diunggah (PDF atau gambar).');
+      return;
+    }
+    onConfirm(selected, invoiceFile ?? undefined);
   };
+
+  const handleInvoiceChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setInvoiceFile(null);
+      return;
+    }
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      setInvoiceError('Hanya file gambar dan PDF yang diperbolehkan.');
+      setInvoiceFile(null);
+      e.target.value = '';
+      return;
+    }
+    setInvoiceError(undefined);
+    setInvoiceFile(file);
+  };
+
+  const canSubmit =
+    selected.size > 0 && (!requireInvoice || !!invoiceFile) && !isSubmitting;
 
   if (!preview) return null;
 
@@ -256,6 +286,21 @@ const AjukanPencairanModal = ({
           </div>
         )}
 
+        {requireInvoice && (
+          <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
+            <FileInput
+              label="Upload Invoice *"
+              accept="image/*,.pdf"
+              onChange={handleInvoiceChange}
+              disabled={isSubmitting}
+              error={invoiceError}
+            />
+            <p className="text-[11px] text-amber-800 -mt-2">
+              Wajib untuk agent perusahaan. Format PDF atau gambar (JPG, PNG, dll).
+            </p>
+          </div>
+        )}
+
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
@@ -268,7 +313,7 @@ const AjukanPencairanModal = ({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={isSubmitting || selected.size === 0}
+            disabled={!canSubmit}
             className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
           >
             {isSubmitting ? 'Mengajukan...' : 'Ajukan ke Finance'}

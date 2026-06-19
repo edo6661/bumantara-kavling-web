@@ -19,6 +19,7 @@ import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/R
 import ReportMetricCard from '../../components/laporan/ReportMetricCard';
 import { formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
+import CustomerNameActionTd from '../../components/laporan/CustomerNameActionTd';
 
 const CARA_BAYAR_OPTIONS = [
   { value: '', label: 'Semua' },
@@ -46,6 +47,12 @@ function normalizeRingkasan(
         }
       : item,
   );
+}
+
+function getRowSchemeClass(caraPembayaran: string | null | undefined): string {
+  if (caraPembayaran === 'KPR') return 'bg-pink-100/90 hover:bg-pink-100';
+  if (caraPembayaran === 'CASH_BERTAHAP') return 'bg-purple-100/90 hover:bg-purple-100';
+  return 'hover:bg-slate-50/60';
 }
 
 function KategoriValue({ item }: { item: RekapPemasukanKategori }) {
@@ -269,6 +276,7 @@ const LaporanRekapPemasukan = () => {
       subtitle="Catat uang riil yang diterima dari penjualan kavling, dikelompokkan per kategori dan skema pembayaran"
       icon={Wallet}
     >
+      {/* ── Filter ── */}
       <section>
         <button
           type="button"
@@ -346,6 +354,7 @@ const LaporanRekapPemasukan = () => {
 
       {report && (
         <>
+          {/* ── Ringkasan Utama ── */}
           <section>
             <ReportSectionLabel>Ringkasan Utama</ReportSectionLabel>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -403,6 +412,7 @@ const LaporanRekapPemasukan = () => {
             </div>
           </section>
 
+          {/* ── Rekap per Skema ── */}
           <section>
             <ReportSectionLabel>Rekap per Skema Pembayaran</ReportSectionLabel>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -428,27 +438,43 @@ const LaporanRekapPemasukan = () => {
             </div>
           </section>
 
+          {/* ── Detail per Transaksi ── */}
           <section>
             <ReportSectionLabel>Detail per Transaksi</ReportSectionLabel>
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+
+              {/* Toolbar: search + legend */}
               <div className="p-4 border-b border-slate-100">
                 <div className="relative max-w-md group">
                   <Search
                     size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-700"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-700 transition-colors"
                   />
                   <input
                     type="text"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="Cari customer, blok, atau no transaksi..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[13px] focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400 shadow-sm"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1.5">
-                  <Landmark size={12} />
-                  Nilai di bawah = total tagihan lunas per kategori (uang riil diterima)
-                </p>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2">
+                  <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                    <Landmark size={12} />
+                    Nilai di bawah = total tagihan lunas per kategori (uang riil diterima). Klik
+                    nama customer untuk navigasi ke penjualan atau tagihan.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-600">
+                    <span className="inline-flex items-center gap-1.5 font-medium">
+                      <span className="w-3 h-3 rounded-sm bg-pink-200 border border-pink-400 shrink-0" />
+                      Pink = KPR
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 font-medium">
+                      <span className="w-3 h-3 rounded-sm bg-purple-200 border border-purple-400 shrink-0" />
+                      Ungu = Bertahap
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {report.items.length === 0 ? (
@@ -456,29 +482,31 @@ const LaporanRekapPemasukan = () => {
                   Tidak ada data untuk filter yang dipilih.
                 </p>
               ) : (
-                <div className="overflow-auto custom-scrollbar max-h-[60vh]">
-                  <table className="w-full text-[11px] min-w-[1100px] border-collapse">
-                    <thead className="sticky top-0 z-10 bg-slate-50/95 shadow-sm">
-                      <tr className="border-b border-slate-200">
+                <div className="overflow-auto custom-scrollbar max-h-[65vh]">
+                  <table className="w-full text-[12px] min-w-[1100px] border-collapse">
+                    <thead className="sticky top-0 z-10 shadow-sm ring-1 ring-slate-100">
+                      <tr className="border-b border-slate-200 bg-slate-50/95">
                         {[
-                          'Customer',
-                          'Blok',
-                          'Skema',
-                          'Pembiayaan',
-                          'Booking',
-                          'DP',
-                          'Cic. Cash',
-                          'Cic. DP',
-                          'Cic. Rumah',
-                          'DP KPR',
-                          'Penc. KPR',
-                          'Total',
+                          { label: 'Customer', align: 'left' },
+                          { label: 'Blok', align: 'left' },
+                          { label: 'Skema', align: 'left' },
+                          { label: 'Pembiayaan', align: 'left' },
+                          { label: 'Booking', align: 'right' },
+                          { label: 'DP', align: 'right' },
+                          { label: 'Cic. Cash', align: 'right' },
+                          { label: 'Cic. DP', align: 'right' },
+                          { label: 'Cic. Rumah', align: 'right' },
+                          { label: 'DP KPR', align: 'right' },
+                          { label: 'Penc. KPR', align: 'right' },
+                          { label: 'Total', align: 'right' },
                         ].map((h) => (
                           <th
-                            key={h}
-                            className="text-right py-2.5 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider first:text-left"
+                            key={h.label}
+                            className={`py-2.5 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider ${
+                              h.align === 'right' ? 'text-right' : 'text-left'
+                            }`}
                           >
-                            {h}
+                            {h.label}
                           </th>
                         ))}
                       </tr>
@@ -487,22 +515,19 @@ const LaporanRekapPemasukan = () => {
                       {report.items.map((row) => (
                         <tr
                           key={row.penjualanId}
-                          className={`border-b border-slate-50 hover:bg-slate-50/60 ${
-                            row.caraPembayaran === 'KPR'
-                              ? 'bg-pink-50/30'
-                              : row.caraPembayaran === 'CASH_BERTAHAP'
-                                ? 'bg-purple-50/30'
-                                : ''
-                          }`}
+                          className={`border-b border-slate-50 align-top transition-colors ${getRowSchemeClass(row.caraPembayaran)}`}
                         >
-                          <td className="py-2.5 px-3 font-semibold text-slate-800">
-                            {row.customerNama}
+                          {/* ← CustomerNameActionTd menggantikan td biasa */}
+                          <CustomerNameActionTd customerNama={row.customerNama} />
+
+                          <td className="py-2.5 px-3 text-slate-600 border-r border-slate-100">
+                            <p className="font-medium">{row.kavlingLabel}</p>
                           </td>
-                          <td className="py-2.5 px-3 text-slate-600">{row.kavlingLabel}</td>
                           <td className="py-2.5 px-3 text-slate-500">
                             {row.caraPembayaran?.replace('_', ' ') ?? '-'}
                           </td>
                           <td className="py-2.5 px-3 text-slate-500">{row.pembiayaan ?? '-'}</td>
+
                           {[
                             row.bookingFee,
                             row.dp,
@@ -516,9 +541,12 @@ const LaporanRekapPemasukan = () => {
                               key={idx}
                               className="py-2.5 px-3 text-right tabular-nums text-slate-700"
                             >
-                              {val > 0 ? formatTanpaDesimal(val) : '-'}
+                              {val > 0 ? formatTanpaDesimal(val) : (
+                                <span className="text-slate-400 text-[11px]">-</span>
+                              )}
                             </td>
                           ))}
+
                           <td className="py-2.5 px-3 text-right font-bold tabular-nums text-emerald-700">
                             {formatTanpaDesimal(row.totalTerima)}
                           </td>
@@ -529,18 +557,26 @@ const LaporanRekapPemasukan = () => {
                 </div>
               )}
 
+              {/* ── Pagination ── */}
               {totalItems > 0 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-3 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-3 border-t border-slate-100 bg-white">
                   <div className="flex flex-wrap items-center gap-4">
                     <span className="text-xs font-semibold text-slate-500">
-                      Halaman {currentPage} dari {totalPages} · {totalItems} transaksi
+                      Halaman {currentPage} dari {totalPages}
+                      {totalItems > 0 && (
+                        <span className="text-slate-400 font-normal">
+                          {' '}
+                          · {totalItems} transaksi
+                        </span>
+                      )}
                     </span>
                     <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                      Per halaman
+                      <span className="whitespace-nowrap">Per halaman</span>
                       <select
                         value={limit}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                        className="px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold"
+                        className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm"
+                        aria-label="Jumlah data per halaman"
                       >
                         {PAGE_SIZE_OPTIONS.map((size) => (
                           <option key={size} value={size}>
@@ -556,13 +592,17 @@ const LaporanRekapPemasukan = () => {
                         type="button"
                         onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-50"
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Halaman sebelumnya"
                       >
                         <ChevronLeft size={16} />
                       </button>
                       {pageNumbers.map((num, idx) =>
                         num === '...' ? (
-                          <span key={`e-${idx}`} className="px-2 text-slate-400">
+                          <span
+                            key={`ellipsis-${idx}`}
+                            className="px-2 text-slate-400 font-bold"
+                          >
                             ...
                           </span>
                         ) : (
@@ -570,9 +610,9 @@ const LaporanRekapPemasukan = () => {
                             key={num}
                             type="button"
                             onClick={() => handlePageChange(num as number)}
-                            className={`min-w-[32px] h-8 rounded-lg text-xs font-semibold ${
+                            className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                               currentPage === num
-                                ? 'bg-slate-900 text-white'
+                                ? 'bg-slate-900 text-white shadow-sm'
                                 : 'text-slate-600 hover:bg-slate-100'
                             }`}
                           >
@@ -584,7 +624,8 @@ const LaporanRekapPemasukan = () => {
                         type="button"
                         onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
-                        className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-50"
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Halaman berikutnya"
                       >
                         <ChevronRight size={16} />
                       </button>

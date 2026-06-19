@@ -14,6 +14,7 @@ export interface AgentPencairanData {
   potonganPph: number;
   totalNominal: number;
   status: AgentPencairanStatus;
+  fileInvoice: string | null;
   buktiPembayaran: string | null;
   tanggalPembayaran: string | null;
   bsiCmsDilaporkan: boolean;
@@ -89,12 +90,21 @@ export const agentPencairanService = {
 
   ajukan: async (
     feeAgentId: number,
-    options: { includeClosing: boolean; includeMarketing: boolean },
+    options: {
+      includeClosing: boolean;
+      includeMarketing: boolean;
+      fileInvoice?: File;
+    },
   ) => {
-    const response = await api.post('/agent-pencairan', {
-      feeAgentId,
-      includeClosing: options.includeClosing,
-      includeMarketing: options.includeMarketing,
+    const formData = new FormData();
+    formData.append('feeAgentId', String(feeAgentId));
+    formData.append('includeClosing', String(options.includeClosing));
+    formData.append('includeMarketing', String(options.includeMarketing));
+    if (options.fileInvoice) {
+      formData.append('fileInvoice', options.fileInvoice);
+    }
+    const response = await api.post('/agent-pencairan', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data.data as AgentPencairanData;
   },

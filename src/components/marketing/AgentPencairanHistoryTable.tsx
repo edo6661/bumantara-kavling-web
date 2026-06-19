@@ -12,7 +12,9 @@ interface AgentPencairanHistoryTableProps {
   records: AgentPencairanData[];
   compact?: boolean;
   showBukti?: boolean;
+  showInvoice?: boolean;
   onPreviewBukti?: (url: string) => void;
+  onPreviewInvoice?: (url: string) => void;
   emptyMessage?: string;
 }
 
@@ -20,7 +22,9 @@ const AgentPencairanHistoryTable = ({
   records,
   compact = false,
   showBukti = true,
+  showInvoice = false,
   onPreviewBukti,
+  onPreviewInvoice,
   emptyMessage = 'Belum ada riwayat pencairan.',
 }: AgentPencairanHistoryTableProps) => {
   const sorted = sortPencairanRecords(records);
@@ -46,6 +50,7 @@ const AgentPencairanHistoryTable = ({
             <th className={thClass}>Status</th>
             <th className={thClass}>Diajukan</th>
             {!compact && <th className={thClass}>Dibayar</th>}
+            {showInvoice && <th className={thClass}>Invoice</th>}
             {showBukti && <th className={thClass}>Bukti</th>}
           </tr>
         </thead>
@@ -95,6 +100,19 @@ const AgentPencairanHistoryTable = ({
                       </>
                     ) : (
                       '—'
+                    )}
+                  </td>
+                )}
+                {showInvoice && (
+                  <td className={tdClass}>
+                    {row.fileInvoice && onPreviewInvoice ? (
+                      <BuktiFileThumbnail
+                        url={row.fileInvoice}
+                        onClick={() => onPreviewInvoice(row.fileInvoice!)}
+                        className="w-12 h-8"
+                      />
+                    ) : (
+                      <span className="text-slate-400 text-xs">—</span>
                     )}
                   </td>
                 )}

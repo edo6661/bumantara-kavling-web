@@ -106,6 +106,15 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
     );
   }, [pencairanModal, pencairanByFeeAgentId]);
 
+  const requireInvoiceForModal = useMemo(() => {
+    if (!pencairanModal || !isAgentPerusahaan(agent.type)) return false;
+    const pencairanList = pencairanByFeeAgentId.get(pencairanModal.feeRecord.id) ?? [];
+    const pendingWithInvoice = pencairanList.some(
+      (p) => p.status === 'MENUNGGU_PEMBAYARAN' && p.fileInvoice,
+    );
+    return !pendingWithInvoice;
+  }, [pencairanModal, pencairanByFeeAgentId, agent.type]);
+
   const openAjukanPencairanModal = (
     feeRecord: FeeAgentData,
     saleLabel: string,
@@ -119,13 +128,17 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
     setPencairanModal({ feeRecord, saleLabel, agent: commercial, detail });
   };
 
-  const handleConfirmAjukanPencairan = async (selected: Set<PencairanKomponenKey>) => {
+  const handleConfirmAjukanPencairan = async (
+    selected: Set<PencairanKomponenKey>,
+    fileInvoice?: File,
+  ) => {
     if (!pencairanModal) return;
     try {
       await ajukanPencairanMutation.mutateAsync({
         feeAgentId: pencairanModal.feeRecord.id,
         includeClosing: selected.has('closing'),
         includeMarketing: selected.has('marketing'),
+        fileInvoice,
       });
       alert('Pengajuan pencairan berhasil dikirim ke finance.');
       setPencairanModal(null);
@@ -411,8 +424,9 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
         pencairanHistory={
           pencairanModal ? (pencairanByFeeAgentId.get(pencairanModal.feeRecord.id) ?? []) : []
         }
+        requireInvoice={requireInvoiceForModal}
         isSubmitting={ajukanPencairanMutation.isPending}
-        onConfirm={(selected) => void handleConfirmAjukanPencairan(selected)}
+        onConfirm={(selected, fileInvoice) => void handleConfirmAjukanPencairan(selected, fileInvoice)}
       />
 
       <PencairanHistoryModal
