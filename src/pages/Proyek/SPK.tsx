@@ -874,8 +874,11 @@ const SPK = () => {
                     key={col.accessor}
                     className={`px-3 py-2.5 text-slate-700 font-medium align-top ${col.minWidth ?? ''} ${col.className ?? ''} ${col.nowrap === false ? 'whitespace-normal' : 'whitespace-nowrap'}`}
                   >
-                    {col.render
-                      ? col.render(spk[col.accessor as keyof SpkData], spk)
+                    {(col.render as ((value: unknown, row: SpkData) => React.ReactNode) | undefined)
+                      ? (col.render as (value: unknown, row: SpkData) => React.ReactNode)(
+                          spk[col.accessor as keyof SpkData],
+                          spk,
+                        )
                       : String(spk[col.accessor as keyof SpkData] ?? '')}
                   </td>
                 ))}
