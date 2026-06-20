@@ -133,7 +133,7 @@ const compareKavlingBlokUnit = (
   return a.nomorUnit.localeCompare(b.nomorUnit, undefined, { numeric: true, sensitivity: 'base' });
 };
 
-const SPK_KAVLING_PREVIEW_MAX = 4;
+const SPK_KAVLING_COLLAPSED_COUNT = 1;
 
 /** Tampilan 3 digit nomor urut SPK (mis. 016), bukan digit terakhir gabungan dengan tahun. */
 /** Label singkat KSO di tabel (SGMP / BMS). */
@@ -208,9 +208,10 @@ const SpkKavlingCell = ({ items }: { items: SpkData['kavlingItems'] }) => {
     return <span className="text-xs text-slate-400">-</span>;
   }
 
-  const hasMore = sorted.length > SPK_KAVLING_PREVIEW_MAX;
-  const hiddenCount = sorted.length - SPK_KAVLING_PREVIEW_MAX;
-  const visibleItems = expanded || !hasMore ? sorted : sorted.slice(0, SPK_KAVLING_PREVIEW_MAX);
+  const hasMore = sorted.length > SPK_KAVLING_COLLAPSED_COUNT;
+  const hiddenCount = sorted.length - SPK_KAVLING_COLLAPSED_COUNT;
+  const visibleItems =
+    expanded || !hasMore ? sorted : sorted.slice(0, SPK_KAVLING_COLLAPSED_COUNT);
   const fullLabel = sorted.map(formatKavlingItemLabel).join('\n');
 
   return (
