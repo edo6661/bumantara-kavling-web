@@ -282,7 +282,7 @@ const InfraDetailModal = ({ spkId, onClose, canEditTotalProgress }: InfraDetailM
             <h3 className="text-xl font-black">{data.spk.noSpk}</h3>
             <p className="text-sm text-slate-300 mt-1">{data.spk.judulPekerjaan}</p>
             {data.spk.zonaNama && (
-              <p className="text-xs text-emerald-300 mt-2">Zona: {data.spk.zonaNama}</p>
+              <p className="text-xs text-emerald-300 mt-2">{data.spk.zonaNama}</p>
             )}
           </div>
 
