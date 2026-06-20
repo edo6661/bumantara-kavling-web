@@ -683,6 +683,15 @@ const Agents = ({ agentType }: AgentsProps) => {
               <tbody className="divide-y divide-slate-50">
                 {relatedSales.map((sale: PenjualanAgentData) => {
                   const detail = resolveSaleDetail(sale, penjualanList);
+                  const saleDetailForModal = {
+                    ...sale,
+                    ...detail,
+                    kavling: {
+                      ...sale.kavling,
+                      ...detail.kavling,
+                    },
+                  };
+                  const openSaleDetailModal = () => setSelectedDetailPenjualan(saleDetailForModal);
                   const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
                   const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
                   const pencairanList = feeRecord ? (pencairanByFeeAgentId.get(feeRecord.id) ?? []) : [];
@@ -715,55 +724,55 @@ const Agents = ({ agentType }: AgentsProps) => {
                   >
                     <td
                       className="px-4 py-3 font-medium cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {sale.customer?.nama || '-'}
                     </td>
                     <td
                       className="px-4 py-3 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                        {sale.kavling?.blok}
                     </td>
                     <td
                       className="px-4 py-3 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                        {sale.kavling?.nomorUnit}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-bold text-slate-700 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {formatRupiah(sale.hargaJual)}
                     </td>
                     <td
                       className="px-4 py-3 text-right text-slate-700 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {nilaiAjb ? formatRupiah(nilaiAjb) : '-'}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {nilaiAjb ? formatRupiah(fee) : '-'}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {formatRupiah(totalFee)}
                     </td>
                     <td
                       className="px-4 py-3 text-right font-medium text-slate-800 cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       {formatRupiah(potPph)}
                     </td>
                     <td
                       className="px-4 py-3 text-center cursor-pointer"
-                      onClick={() => setSelectedDetailPenjualan(detail || sale)}
+                      onClick={openSaleDetailModal}
                     >
                       <div className="flex flex-col items-center gap-0.5">
                         <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${paymentStatus.className}`}>
@@ -1137,8 +1146,8 @@ const Agents = ({ agentType }: AgentsProps) => {
                   <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeMarketingPct ?? '-'} %</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingNominal ?? '-'} %</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (Rp)</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingNominal != null ? formatRupiah(selectedAgentDetail.feeClosingNominal) : '-'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Potongan PPh (%)</p>
@@ -1265,7 +1274,7 @@ const Agents = ({ agentType }: AgentsProps) => {
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
                   <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}</p>
-                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.id || selectedDetailPenjualan.noTransaksi}</p>
+                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.noTransaksi || selectedDetailPenjualan.id}</p>
                 </div>
                 <div className="text-right">
                   <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :

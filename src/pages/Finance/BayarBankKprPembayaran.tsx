@@ -550,12 +550,12 @@ const BayarBankKprPembayaran = () => {
                         </td>
                         <td className={`${tdParentClass} text-xs font-medium text-slate-700 whitespace-nowrap`}>
                           {group.bankNama ?? (
-                            <span className="text-amber-600 italic">Belum diisi</span>
+                            <span className="text-amber-600 italic">-</span>
                           )}
                         </td>
                         <td className={`${tdParentClass} text-xs font-mono text-slate-600 whitespace-nowrap`}>
                           {group.bankRekening ?? (
-                            <span className="text-amber-600 italic font-sans">Belum diisi</span>
+                            <span className="text-amber-600 italic font-sans">-</span>
                           )}
                         </td>
                         <td className={`${tdParentClass} text-center`}>

@@ -1936,7 +1936,7 @@ const SpkPembayaranPanel = ({
               {formatRupiah(materialTotalPreview)}
             </span>
           ) : (
-            <span className="text-[10px] font-medium text-slate-400">Belum diisi</span>
+            <span className="text-[10px] font-medium text-slate-400">-</span>
           )
         }
       >
@@ -1956,7 +1956,7 @@ const SpkPembayaranPanel = ({
               {formatRupiah(upahTotalPreview)}
             </span>
           ) : (
-            <span className="text-[10px] font-medium text-slate-400">Belum diisi</span>
+            <span className="text-[10px] font-medium text-slate-400">-</span>
           )
         }
       >

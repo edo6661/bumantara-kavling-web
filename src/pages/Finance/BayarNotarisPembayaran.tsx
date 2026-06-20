@@ -544,7 +544,7 @@ const BayarNotarisPembayaran = () => {
                         </td>
                         <td className={`${tdParentClass} text-xs font-medium text-slate-700 whitespace-nowrap`}>
                           {group.notarisNama ?? (
-                            <span className="text-amber-600 italic">Belum diisi</span>
+                            <span className="text-amber-600 italic">-</span>
                           )}
                         </td>
                         <td className={`${tdParentClass} text-center`}>
