@@ -847,6 +847,7 @@ const Penjualan = () => {
   };
 
   const openSkemaModal = (item: any, isRevisi = false) => {
+    if (!canUpdate) return;
     setBiayaTambahanList([]);
     const tipeKavling = item.tipe?.toLowerCase() || '';
     const autoDiskon = tipeKavling === 'aruna' ? 10000000 : 6000000;
@@ -1028,6 +1029,7 @@ const Penjualan = () => {
   };
 
   const openSprTtdModal = (row: PenjualanData) => {
+    if (!canUpdate) return;
     setActiveSprMenuId(null);
     setTtdSprRow(row);
     setTtdData({
@@ -1382,6 +1384,7 @@ const Penjualan = () => {
   };
 
   const handleUploadBukti = async (id: string, type: "booking" | "dp", e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canUpdate) return;
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -1525,22 +1528,24 @@ const Penjualan = () => {
                                 >
                                   <Eye size={14} className="text-blue-600" /> Lihat SPR
                                 </a>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openSprTtdModal(row);
-                                  }}
-                                  className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                                >
-                                  <PenTool size={14} className="text-slate-600" /> Tanda Tangani SPR
-                                </button>
+                                {canUpdate && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openSprTtdModal(row);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                                  >
+                                    <PenTool size={14} className="text-slate-600" /> Tanda Tangani SPR
+                                  </button>
+                                )}
                               </div>
                             </>
                           )}
                         </div>
 
-                        {row.caraPembayaran === 'KPR' && (
+                        {canUpdate && row.caraPembayaran === 'KPR' && (
                           <>
                             <button
                               onClick={() => {
@@ -1561,24 +1566,28 @@ const Penjualan = () => {
                           </>
                         )}
                       </div>
-                    ) : (
+                    ) : canUpdate ? (
                       <button
                         onClick={() => openSkemaModal(row)}
                         className="w-full flex justify-center items-center gap-1.5 px-3 py-2.5 mt-1 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm cursor-pointer"
                       >
                         <Plus size={14} /> Buat Dokumen SPR
                       </button>
-                    )}
+                    ) : null}
                   </>
                 ) : row.fileBuktiBooking ? (
                   <div className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-lg">
                     <Clock size={14} /> Menunggu Konfirmasi Finance
                   </div>
-                ) : (
+                ) : canUpdate ? (
                   <label className={`flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                     <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Transfer"}
                     <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
                   </label>
+                ) : (
+                  <div className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-slate-100 border border-slate-200 text-slate-500 text-xs font-semibold rounded-lg">
+                    <Clock size={14} /> Belum ada bukti transfer
+                  </div>
                 )}
               </div>
             </div>
@@ -1600,7 +1609,7 @@ const Penjualan = () => {
                     </span>
                   )}
                 </div>
-                {!isBookingFeeApproved(row) && (
+                {canUpdate && !isBookingFeeApproved(row) && (
                   <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
                     {uploadBuktiMutation.isPending ? 'Proses...' : 'Ganti File'}
                     <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
@@ -3206,7 +3215,7 @@ const Penjualan = () => {
         <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-slate-50/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-slate-200 -mx-4 -mb-4 mt-4 z-20">
           
 
-          {printType === 'kwitansi' && (
+          {canUpdate && printType === 'kwitansi' && (
             <button onClick={() => {
               setTtdSprRow(null);
               setTtdData({
