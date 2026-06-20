@@ -121,6 +121,23 @@ function caraPembayaranToFormValue(cara: string | undefined | null): string {
   return cara ?? '';
 }
 
+function getBookingTagihan(row: PenjualanData) {
+  return (row.tagihan ?? []).find(
+    (t: { noTagihan?: string; pembayaran?: string }) =>
+      t.noTagihan === `INV-BF-${row.id}` ||
+      (t.pembayaran ?? '').toLowerCase().includes('booking'),
+  );
+}
+
+function isBookingFeeApproved(row: PenjualanData) {
+  const bookingTagihan = getBookingTagihan(row);
+  return bookingTagihan?.status === 'LUNAS';
+}
+
+function isBookingFeePendingApproval(row: PenjualanData) {
+  return getBookingTagihan(row)?.status === 'MENUNGGU_KONFIRMASI';
+}
+
 const initialFormState: PenjualanData = {
   id: '',
   tanggal: '',
@@ -1369,7 +1386,11 @@ const Penjualan = () => {
     if (!file) return;
     try {
       await uploadBuktiMutation.mutateAsync({ id, type, file });
-      alert(`Bukti ${type === "booking" ? "Booking" : "DP"} berhasil diunggah! SPR akan otomatis di-generate (jika booking).`);
+      alert(
+        type === 'booking'
+          ? 'Bukti booking fee berhasil diunggah dan menunggu konfirmasi finance/admin.'
+          : `Bukti ${type === 'dp' ? 'DP' : type} berhasil diunggah!`,
+      );
     } catch (error: any) {
       const { message } = handleApiError(error);
       alert(message);
@@ -1454,7 +1475,7 @@ const Penjualan = () => {
                   <FileText size={14} className="text-slate-400" /> Invoice
                 </button>
 
-                {row.fileBuktiBooking ? (
+                {isBookingFeeApproved(row) ? (
                   <>
                     <button
                       onClick={() => {
@@ -1549,6 +1570,10 @@ const Penjualan = () => {
                       </button>
                     )}
                   </>
+                ) : row.fileBuktiBooking ? (
+                  <div className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-lg">
+                    <Clock size={14} /> Menunggu Konfirmasi Finance
+                  </div>
                 ) : (
                   <label className={`flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm ${uploadBuktiMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                     <UploadCloud size={14} /> {uploadBuktiMutation.isPending ? "Mengunggah..." : "Upload Bukti Transfer"}
@@ -1562,11 +1587,25 @@ const Penjualan = () => {
           {row.fileBuktiBooking && (
             <div className="pl-0 md:pl-6 md:border-l border-slate-200/60 flex flex-col justify-center">
               <div className="flex justify-between items-center mb-2">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Bukti Transfer (BF)</p>
-                <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
-                  {uploadBuktiMutation.isPending ? 'Proses...' : 'Ganti File'}
-                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
-                </label>
+                <div className="flex items-center gap-2">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Bukti Transfer (BF)</p>
+                  {isBookingFeePendingApproval(row) && (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200">
+                      Pending
+                    </span>
+                  )}
+                  {isBookingFeeApproved(row) && (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      Lunas
+                    </span>
+                  )}
+                </div>
+                {!isBookingFeeApproved(row) && (
+                  <label className={`text-[10px] font-bold text-blue-600 cursor-pointer hover:underline flex items-center gap-1 ${uploadBuktiMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {uploadBuktiMutation.isPending ? 'Proses...' : 'Ganti File'}
+                    <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => handleUploadBukti(row.id!, 'booking', e)} disabled={uploadBuktiMutation.isPending} />
+                  </label>
+                )}
               </div>
 
               <div

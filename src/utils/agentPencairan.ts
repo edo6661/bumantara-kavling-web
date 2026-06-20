@@ -80,13 +80,11 @@ export const isCashPayment = (caraPembayaran?: string | null) => {
 export const isPenjualanBatal = (status?: string | null) =>
   (status ?? '').toUpperCase() === 'BATAL';
 
-export const isBookingFeePaid = (detail?: SaleDetail) => {
-  if (detail?.fileBuktiBooking) return true;
-  return (detail?.tagihan ?? []).some(
+export const isBookingFeePaid = (detail?: SaleDetail) =>
+  (detail?.tagihan ?? []).some(
     (t) =>
       effectiveTagihanTujuan(t) === 'BOOKING_FEE' && t.status === 'LUNAS',
   );
-};
 
 export const hasPpjbComplete = (
   progress?: SaleDetail['progressPenjualan'],
