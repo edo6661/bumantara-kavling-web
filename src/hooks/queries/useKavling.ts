@@ -93,3 +93,39 @@ export const useUploadKavlingSertifikatTambahanDocument = () => {
     },
   });
 };
+
+export const useDeleteKavlingDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      docType,
+    }: {
+      id: number;
+      docType: string;
+    }) => kavlingService.deleteDocument(id, docType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};
+
+export const useDeleteKavlingSertifikatTambahanDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      urutan,
+      docType,
+    }: {
+      id: number;
+      urutan: number;
+      docType: string;
+    }) => kavlingService.deleteSertifikatTambahanDocument(id, urutan, docType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    },
+  });
+};

@@ -1,5 +1,22 @@
 import api from "../lib/axios";
 
+export interface ProgressPenjualanSertifikatTambahanData {
+  urutan: number;
+  filePpjb: string | null;
+  nilaiAjb: number | null;
+  biayaBphtb: number | null;
+  biayaPph: number | null;
+  fileAjb: string | null;
+  nomorAjb: string | null;
+  tanggalAjb: string | null;
+}
+
+export interface ProgressPenjualanTotals {
+  nilaiAjb: number;
+  biayaBphtb: number;
+  biayaPph: number;
+}
+
 export interface ProgressPenjualanData {
   id: number;
   penjualanId: number;
@@ -18,6 +35,8 @@ export interface ProgressPenjualanData {
   tanggalAjb: string | null;
   fileBast: string | null;
   checklistBast: Record<string, string | number | boolean | null> | null;
+  sertifikatTambahan: ProgressPenjualanSertifikatTambahanData[];
+  totals: ProgressPenjualanTotals;
 }
 
 export interface UpdateProgressPenjualanDTO {
@@ -29,6 +48,7 @@ export interface UpdateProgressPenjualanDTO {
   nomorAjb?: string;
   tanggalAjb?: string;
   checklistBast?: Record<string, string | number | boolean | null> | null;
+  sertifikatUrutan?: number;
 }
 
 export const progressPenjualanService = {
@@ -58,6 +78,7 @@ export const progressPenjualanService = {
       | "fileAjb"
       | "fileBast",
     file: File,
+    sertifikatUrutan = 1,
   ): Promise<ProgressPenjualanData> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -65,7 +86,28 @@ export const progressPenjualanService = {
       `/progress-penjualan/${penjualanId}/upload/${docType}`,
       formData,
       {
+        params: sertifikatUrutan > 1 ? { sertifikatUrutan } : undefined,
         headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data.data;
+  },
+
+  deleteDocument: async (
+    penjualanId: number,
+    docType:
+      | "fileSp3k"
+      | "fileSuratPernyataanAkadKredit"
+      | "fileSalinanAjb"
+      | "filePpjb"
+      | "fileAjb"
+      | "fileBast",
+    sertifikatUrutan = 1,
+  ): Promise<ProgressPenjualanData> => {
+    const response = await api.delete(
+      `/progress-penjualan/${penjualanId}/upload/${docType}`,
+      {
+        params: sertifikatUrutan > 1 ? { sertifikatUrutan } : undefined,
       },
     );
     return response.data.data;

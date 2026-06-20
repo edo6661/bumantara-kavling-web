@@ -2,6 +2,14 @@ import type { AgentData } from '../types/models/agent';
 import type { FeeAgentData } from '../services/feeAgent.service';
 import type { AgentPencairanData } from '../services/agentPencairan.service';
 import { extractClosingDpp } from './agentPkpTax';
+import {
+  getTotalNilaiAjb,
+  isAllProgressFileAjbComplete,
+  isAllProgressFilePpjbComplete,
+  type ProgressPenjualanLike,
+} from './progressPenjualanSertifikat';
+
+export { getTotalNilaiAjb } from './progressPenjualanSertifikat';
 
 export const KOMISI_CASH_PPJB_RATIO = 0.5;
 
@@ -10,15 +18,19 @@ export type SaleDetail = {
   caraPembayaran?: string | null;
   hargaJual?: number | null;
   fileBuktiBooking?: string | null;
+  jumlahSertifikatTanah?: number;
   tagihan?: Array<{ pembayaran?: string; tujuan?: string; status?: string }>;
-  progressPenjualan?: {
-    nilaiAjb?: number | null;
-    filePpjb?: string | null;
-    fileAjb?: string | null;
-    fileSp3k?: string | null;
-    fileSuratPernyataanAkadKredit?: string | null;
-  } | null;
+  progressPenjualan?: ProgressPenjualanLike | null;
+  kavling?: { jumlahSertifikatTanah?: number };
 };
+
+export const resolveJumlahSertifikatTanah = (detail?: SaleDetail) =>
+  Math.max(
+    1,
+    Number(
+      detail?.jumlahSertifikatTanah ?? detail?.kavling?.jumlahSertifikatTanah ?? 1,
+    ),
+  );
 
 export type PenjualanSaleRef = {
   id: number;
@@ -65,8 +77,12 @@ export const resolveSaleDetail = (
     caraPembayaran: matched?.caraPembayaran ?? sale.caraPembayaran,
     hargaJual: matched?.hargaJual ?? sale.hargaJual,
     fileBuktiBooking: matched?.fileBuktiBooking,
+    jumlahSertifikatTanah:
+      (matched as SaleDetail | undefined)?.jumlahSertifikatTanah ??
+      (matched as SaleDetail | undefined)?.kavling?.jumlahSertifikatTanah,
     tagihan: matched?.tagihan,
     progressPenjualan: matched?.progressPenjualan,
+    kavling: (matched as SaleDetail | undefined)?.kavling,
   };
 };
 
@@ -88,7 +104,8 @@ export const isBookingFeePaid = (detail?: SaleDetail) =>
 
 export const hasPpjbComplete = (
   progress?: SaleDetail['progressPenjualan'],
-) => !!progress?.filePpjb;
+  jumlahSertifikatTanah = 1,
+) => isAllProgressFilePpjbComplete(jumlahSertifikatTanah, progress);
 
 export const hasSp3kComplete = (
   progress?: SaleDetail['progressPenjualan'],
@@ -96,15 +113,17 @@ export const hasSp3kComplete = (
 
 export const hasAjbComplete = (
   progress?: SaleDetail['progressPenjualan'],
-) => !!progress?.fileAjb;
+  jumlahSertifikatTanah = 1,
+) => isAllProgressFileAjbComplete(jumlahSertifikatTanah, progress);
 
 export const hasAkadKreditComplete = (
   progress?: SaleDetail['progressPenjualan'],
+  jumlahSertifikatTanah = 1,
 ) =>
   !!(
-    progress?.filePpjb ||
-    progress?.fileAjb ||
-    progress?.fileSuratPernyataanAkadKredit
+    progress?.fileSuratPernyataanAkadKredit ||
+    hasPpjbComplete(progress, jumlahSertifikatTanah) ||
+    hasAjbComplete(progress, jumlahSertifikatTanah)
   );
 
 const sumSudahDiajukan = (pencairanList: AgentPencairanData[]) => ({
@@ -130,7 +149,7 @@ export const getClosingFull = (
 
 export const getFullMarketingFee = (agent: AgentData, detail?: SaleDetail) => {
   if (isPenjualanBatal(detail?.status)) return 0;
-  const nilaiAjb = Number(detail?.progressPenjualan?.nilaiAjb) || 0;
+  const nilaiAjb = getTotalNilaiAjb(detail?.progressPenjualan);
   const pct = Number(agent.feeMarketingPct) || 0;
   return nilaiAjb > 0 && pct > 0 ? nilaiAjb * (pct / 100) : 0;
 };
@@ -214,7 +233,9 @@ export const getPencairanKomponen = (
   const sudah = sumSudahDiajukan(pencairanList);
   const isCash = isCashPayment(detail?.caraPembayaran);
   const isBatal = isPenjualanBatal(detail?.status);
-  const nilaiAjb = Number(detail?.progressPenjualan?.nilaiAjb) || 0;
+  const jumlahSertifikatTanah = resolveJumlahSertifikatTanah(detail);
+  const progress = detail?.progressPenjualan;
+  const nilaiAjb = getTotalNilaiAjb(progress);
   const closingFull = getClosingFull(agent, feeRecord, detail);
   const fullMarketing = getFullMarketingFee(agent, detail);
   const closingSisa = Math.max(0, closingFull - sudah.closingNominal);
@@ -234,7 +255,7 @@ export const getPencairanKomponen = (
     } else if (isBatal) {
       closing.eligible = true;
       closing.alasan = 'Transaksi batal — closing fee dapat dicairkan';
-    } else if (isCash && hasPpjbComplete(detail?.progressPenjualan)) {
+    } else if (isCash && hasPpjbComplete(progress, jumlahSertifikatTanah)) {
       closing.eligible = true;
       closing.alasan = 'Dokumen PPJB sudah diunggah & booking lunas';
     } else if (!isCash && hasSp3kComplete(detail?.progressPenjualan)) {
@@ -266,12 +287,12 @@ export const getPencairanKomponen = (
       } else {
         const ppjbOk =
           buckets.ppjbSisa > 0 &&
-          hasPpjbComplete(detail?.progressPenjualan) &&
+          hasPpjbComplete(progress, jumlahSertifikatTanah) &&
           nilaiAjb > 0;
         const ajbOk =
           buckets.ajbSisa > 0 &&
-          hasPpjbComplete(detail?.progressPenjualan) &&
-          hasAjbComplete(detail?.progressPenjualan) &&
+          hasPpjbComplete(progress, jumlahSertifikatTanah) &&
+          hasAjbComplete(progress, jumlahSertifikatTanah) &&
           nilaiAjb > 0;
 
         if (ppjbOk || ajbOk) {
@@ -280,12 +301,12 @@ export const getPencairanKomponen = (
           if (ppjbOk) parts.push('50% tahap PPJB');
           if (ajbOk) parts.push('50% tahap AJB');
           marketing.alasan = `Komisi tersedia: ${parts.join(' + ')}`;
-        } else if (buckets.ppjbSisa > 0 && !hasPpjbComplete(detail?.progressPenjualan)) {
+        } else if (buckets.ppjbSisa > 0 && !hasPpjbComplete(progress, jumlahSertifikatTanah)) {
           marketing.alasan = 'Belum PPJB (tahap 50%)';
         } else if (buckets.ppjbSisa > 0 && nilaiAjb <= 0) {
           marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
         } else {
-          marketing.alasan = hasAjbComplete(detail?.progressPenjualan)
+          marketing.alasan = hasAjbComplete(progress, jumlahSertifikatTanah)
             ? 'Isi nilai AJB di menu Progress Penjualan'
             : 'Belum AJB (sisa 50%)';
         }
@@ -297,7 +318,7 @@ export const getPencairanKomponen = (
         marketing.alasan = 'Komisi marketing sudah diajukan semua';
       } else if (!hasSp3kComplete(detail?.progressPenjualan)) {
         marketing.alasan = 'Belum SP3K';
-      } else if (!hasAkadKreditComplete(detail?.progressPenjualan)) {
+      } else if (!hasAkadKreditComplete(progress, jumlahSertifikatTanah)) {
         marketing.alasan =
           'Upload Dokumen PPJB atau AJB';
       } else if (nilaiAjb <= 0) {
@@ -319,7 +340,7 @@ export const getPencairanKomponen = (
   } else if (!isCash && fullMarketing <= 0) {
     if (!hasSp3kComplete(detail?.progressPenjualan)) {
       marketing.alasan = 'Belum SP3K';
-    } else if (!hasAkadKreditComplete(detail?.progressPenjualan)) {
+    } else if (!hasAkadKreditComplete(progress, jumlahSertifikatTanah)) {
       marketing.alasan =
         'Upload Dokumen PPJB atau AJB';
     } else {

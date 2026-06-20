@@ -200,4 +200,20 @@ export const kavlingService = {
     );
     return response.data.data;
   },
+
+  deleteDocument: async (id: number, docType: string) => {
+    const response = await api.delete(`/kavling/${id}/upload/${docType}`);
+    return response.data.data;
+  },
+
+  deleteSertifikatTambahanDocument: async (
+    id: number,
+    urutan: number,
+    docType: string,
+  ) => {
+    const response = await api.delete(
+      `/kavling/${id}/upload-tambahan/${urutan}/${docType}`,
+    );
+    return response.data.data;
+  },
 };

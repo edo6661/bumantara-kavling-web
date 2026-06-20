@@ -20,7 +20,8 @@ import type { CustomerDocType } from "../../services/customer.service";
 import {
   useGetProgressPenjualan,
   useUpdateProgressPenjualan,
-  useUploadProgressDocument
+  useUploadProgressDocument,
+  useDeleteProgressDocument,
 } from "../../hooks/queries/useProgressPenjualan";
 import {
   Trash2, Plus, UploadCloud,
@@ -33,9 +34,18 @@ import {
 } from 'lucide-react';
 import Input from '../../components/shared/Input';
 import { handleApiError } from '../../utils/errorHandler';
+import {
+  calcPajakFromNilaiAjb,
+  getProgressSlot,
+  getTotalNilaiAjb,
+  hasAnyTanahSertifikat,
+  isAllProgressFileAjbComplete,
+  isAllProgressFilePpjbComplete,
+  isAllTanahSertifikatComplete,
+} from '../../utils/progressPenjualanSertifikat';
 import { useGetNotaris } from '../../hooks/queries/useNotaris';
 import Select from '../../components/shared/Select';
-import { useUploadKavlingDocument, useUploadKavlingSertifikatTambahanDocument } from '../../hooks/queries/useKavling';
+import { useUploadKavlingDocument, useUploadKavlingSertifikatTambahanDocument, useDeleteKavlingDocument, useDeleteKavlingSertifikatTambahanDocument } from '../../hooks/queries/useKavling';
 import { useQueryClient } from '@tanstack/react-query';
 
 const SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh'] as const;
@@ -81,20 +91,25 @@ const ProgressPenjualan = () => {
 
   const updateMutation = useUpdateProgressPenjualan();
   const uploadMutation = useUploadProgressDocument();
+  const deleteProgressDocMutation = useDeleteProgressDocument();
   const uploadCustomerDocMutation = useUploadCustomerDoc();
   const uploadKodeBillingPphMutation = useUploadKodeBillingPph();
   const uploadSuketPphMutation = useUploadSuketPph();
   const updateCustomerMutation = useUpdateCustomer();
   const uploadKavlingDocMutation = useUploadKavlingDocument();
   const uploadKavlingTambahanDocMutation = useUploadKavlingSertifikatTambahanDocument();
+  const deleteKavlingDocMutation = useDeleteKavlingDocument();
+  const deleteKavlingTambahanDocMutation = useDeleteKavlingSertifikatTambahanDocument();
   const queryClient = useQueryClient();
   const [uploadingKavlingDoc, setUploadingKavlingDoc] = useState<string | null>(null);
+  const [deletingKavlingDoc, setDeletingKavlingDoc] = useState<string | null>(null);
 
   const [selectedPenjualan, setSelectedPenjualan] = useState<Record<string, any> | null>(null);
   const [modalStep, setModalStep] = useState<string | null>(null);
   const [newDocName, setNewDocName] = useState("");
   const [notarisForm, setNotarisForm] = useState({ notarisId: '', biayaNotaris: 0 });
   const [uploadingProgressDoc, setUploadingProgressDoc] = useState<string | null>(null);
+  const [deletingProgressDoc, setDeletingProgressDoc] = useState<string | null>(null);
   const [uploadingCustDoc, setUploadingCustDoc] = useState<string | null>(null);
   const [pdfPassword, setPdfPassword] = useState("");
   const [showPdfPasswordModal, setShowPdfPasswordModal] = useState(false);
@@ -225,21 +240,30 @@ const ProgressPenjualan = () => {
     : '';
 
   const [checklist, setChecklist] = useState<{ key: string; value: string }[]>([]);
-  const [nilaiAjbInput, setNilaiAjbInput] = useState<number>(0);
-  const [ajbForm, setAjbForm] = useState({ nomor: '', tanggal: '' });
-  const calculatedPph = nilaiAjbInput ? nilaiAjbInput * 0.025 : 0;
-  const calculatedBphtb = nilaiAjbInput ? Math.max(0, nilaiAjbInput - 80000000) * 0.05 : 0;
+  const [nilaiAjbInputs, setNilaiAjbInputs] = useState<Record<number, number>>({ 1: 0 });
+  const [ajbForms, setAjbForms] = useState<Record<number, { nomor: string; tanggal: string }>>({
+    1: { nomor: '', tanggal: '' },
+  });
 
   useEffect(() => {
     if (progressData) {
-      setNilaiAjbInput(progressData.nilaiAjb || 0);
+      const nextNilaiAjb: Record<number, number> = {};
+      const nextAjbForms: Record<number, { nomor: string; tanggal: string }> = {};
+      for (let urutan = 1; urutan <= jumlahSertifikatTanah; urutan++) {
+        const slot = getProgressSlot(progressData, urutan);
+        nextNilaiAjb[urutan] = slot.nilaiAjb || 0;
+        nextAjbForms[urutan] = {
+          nomor: slot.nomorAjb || '',
+          tanggal: slot.tanggalAjb
+            ? new Date(slot.tanggalAjb).toISOString().split('T')[0]
+            : '',
+        };
+      }
+      setNilaiAjbInputs(nextNilaiAjb);
+      setAjbForms(nextAjbForms);
       setNotarisForm({
         notarisId: progressData.notarisId ? String(progressData.notarisId) : '',
         biayaNotaris: progressData.biayaNotaris || 0
-      });
-      setAjbForm({
-        nomor: progressData.nomorAjb || '',
-        tanggal: progressData.tanggalAjb ? new Date(progressData.tanggalAjb).toISOString().split('T')[0] : ''
       });
       if (progressData.checklistBast) {
         const arr = Object.entries(progressData.checklistBast).map(([k, v]) => ({ key: k, value: String(v || '') }));
@@ -248,7 +272,7 @@ const ProgressPenjualan = () => {
         setChecklist([]);
       }
     }
-  }, [progressData]);
+  }, [progressData, jumlahSertifikatTanah]);
 
   const handleDrag = (e: React.DragEvent, id: string) => {
     e.preventDefault();
@@ -341,12 +365,58 @@ const ProgressPenjualan = () => {
     return row?.[docType] ?? null;
   };
 
+  const handleDeleteKavlingDoc = async (docType: string, urutan = 1, title = 'dokumen') => {
+    if (!selectedPenjualan) return;
+    const fileUrl = getSertifikatTanahFileUrl(docType, urutan);
+    if (!fileUrl) return;
+    const isConfirm = window.confirm(`Apakah Anda yakin ingin menghapus ${title}?`);
+    if (!isConfirm) return;
+
+    const deleteKey = urutan === 1 ? docType : `${urutan}-${docType}`;
+    setDeletingKavlingDoc(deleteKey);
+    try {
+      if (urutan === 1) {
+        await deleteKavlingDocMutation.mutateAsync({
+          id: selectedPenjualan.kavlingId,
+          docType,
+        });
+        setSelectedPenjualan((prev: any) => prev ? { ...prev, [docType]: null } : prev);
+      } else {
+        await deleteKavlingTambahanDocMutation.mutateAsync({
+          id: selectedPenjualan.kavlingId,
+          urutan,
+          docType,
+        });
+        setSelectedPenjualan((prev: any) => {
+          if (!prev) return prev;
+          const existing = Array.isArray(prev.sertifikatTanahTambahan)
+            ? [...prev.sertifikatTanahTambahan]
+            : [];
+          const idx = existing.findIndex((row: { urutan: number }) => row.urutan === urutan);
+          if (idx >= 0) {
+            existing[idx] = { ...existing[idx], [docType]: null };
+          }
+          return { ...prev, sertifikatTanahTambahan: existing };
+        });
+      }
+      alert('Dokumen kavling berhasil dihapus!');
+      queryClient.invalidateQueries({ queryKey: ["penjualan"] });
+    } catch (err: any) {
+      alert(handleApiError(err).message);
+    } finally {
+      setDeletingKavlingDoc(null);
+    }
+  };
+
   const renderKavlingFileBox = (title: string, docType: string, url: string | null, urutan = 1) => {
     const uploadKey = urutan === 1 ? docType : `${urutan}-${docType}`;
     const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf') || url.startsWith('blob:')) : false;
     const isUploading =
       (uploadKavlingDocMutation.isPending || uploadKavlingTambahanDocMutation.isPending) &&
       uploadingKavlingDoc === uploadKey;
+    const isDeleting =
+      (deleteKavlingDocMutation.isPending || deleteKavlingTambahanDocMutation.isPending) &&
+      deletingKavlingDoc === uploadKey;
     const isDrag = dragActive === uploadKey;
 
     return (
@@ -373,18 +443,31 @@ const ProgressPenjualan = () => {
             )}
             <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
           </div>
-          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 cursor-pointer'}`}>
-            {isUploading ? (
-              <><Loader2 size={14} className="animate-spin text-blue-600" /> Mengunggah...</>
-            ) : (
-              <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
+          <div className="flex gap-1">
+            {url && (
+              <button
+                type="button"
+                onClick={() => handleDeleteKavlingDoc(docType, urutan, title)}
+                disabled={isUploading || isDeleting}
+                className="flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 transition-all hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Hapus File"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              </button>
             )}
-            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleUploadKavlingDoc(docType, file, urutan);
-              e.target.value = '';
-            }} disabled={uploadKavlingDocMutation.isPending || uploadKavlingTambahanDocMutation.isPending} />
-          </label>
+            <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading || isDeleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 cursor-pointer'}`}>
+              {isUploading ? (
+                <><Loader2 size={14} className="animate-spin text-blue-600" /> Mengunggah...</>
+              ) : (
+                <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
+              )}
+              <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUploadKavlingDoc(docType, file, urutan);
+                e.target.value = '';
+              }} disabled={uploadKavlingDocMutation.isPending || uploadKavlingTambahanDocMutation.isPending || isDeleting} />
+            </label>
+          </div>
         </div>
 
         <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-blue-400 border-dashed' : 'border-slate-200'}`}>
@@ -392,6 +475,12 @@ const ProgressPenjualan = () => {
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
               <Loader2 size={32} className="animate-spin text-blue-600 mb-3" />
               <span className="text-xs font-bold text-blue-600 animate-pulse">Sedang mengunggah...</span>
+            </div>
+          )}
+          {isDeleting && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+              <Loader2 size={32} className="animate-spin text-red-600 mb-3" />
+              <span className="text-xs font-bold text-red-600 animate-pulse">Sedang menghapus...</span>
             </div>
           )}
           {url ? (
@@ -419,8 +508,11 @@ const ProgressPenjualan = () => {
   const ProgressIcons = ({ row }: { row: Record<string, any> }) => {
     const safeProgress = row.progressPenjualan || {};
     const skema = row.caraPembayaran?.toUpperCase() || '';
-    const hasSertifikat = !!(row.filePbg && row.fileSertifikatTanah && row.fileNopPbb);
-    const hasAnySertifikat = !!(row.filePbg || row.fileSertifikatTanah || row.fileNopPbb);
+    const jumlahTanah = Math.max(1, Number(row.jumlahSertifikatTanah ?? 1));
+    const hasSertifikat = isAllTanahSertifikatComplete(jumlahTanah, row);
+    const hasAnySertifikat = hasAnyTanahSertifikat(jumlahTanah, row);
+    const hasPpjb = isAllProgressFilePpjbComplete(jumlahTanah, safeProgress);
+    const hasAjb = isAllProgressFileAjbComplete(jumlahTanah, safeProgress);
 
     const IconNode = ({ active, icon: Icon, title, step }: { active: boolean, icon: any, title: string, step: string }) => (
       <button
@@ -452,8 +544,8 @@ const ProgressPenjualan = () => {
           <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
           <LineNode active={!!safeProgress.fileSp3k} />
           <IconNode active={!!safeProgress.fileSp3k} icon={Landmark} title="3. SP3K" step="SP3K" />
-          <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="4. AJB" step="AJB" />
+          <LineNode active={hasAjb} />
+          <IconNode active={hasAjb} icon={ScrollText} title="4. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
           <IconNode active={!!safeProgress.fileBast} icon={Key} title="5. BAST" step="BAST" />
         </div>
@@ -465,10 +557,10 @@ const ProgressPenjualan = () => {
           <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
           <LineNode active={hasAnySertifikat} />
           <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
-          <LineNode active={!!safeProgress.filePpjb} />
-          <IconNode active={!!safeProgress.filePpjb} icon={FileSignature} title="3. PPJB" step="PPJB" />
-          <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="4. AJB" step="AJB" />
+          <LineNode active={hasPpjb} />
+          <IconNode active={hasPpjb} icon={FileSignature} title="3. PPJB" step="PPJB" />
+          <LineNode active={hasAjb} />
+          <IconNode active={hasAjb} icon={ScrollText} title="4. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
           <IconNode active={!!safeProgress.fileBast} icon={Key} title="5. BAST" step="BAST" />
         </div>
@@ -480,8 +572,8 @@ const ProgressPenjualan = () => {
           <IconNode active={!!safeProgress.berkasCustomerValid} icon={UserCheck} title="1. Berkas Valid" step="VALIDASI_BERKAS" />
           <LineNode active={hasAnySertifikat} />
           <IconNode active={hasSertifikat} icon={Map} title="2. Sertifikat Kavling" step="SERTIFIKAT_KAVLING" />
-          <LineNode active={!!safeProgress.fileAjb} />
-          <IconNode active={!!safeProgress.fileAjb} icon={ScrollText} title="3. AJB" step="AJB" />
+          <LineNode active={hasAjb} />
+          <IconNode active={hasAjb} icon={ScrollText} title="3. AJB" step="AJB" />
           <LineNode active={!!safeProgress.fileBast} />
           <IconNode active={!!safeProgress.fileBast} icon={Key} title="4. BAST" step="BAST" />        </div>
       );
@@ -507,7 +599,7 @@ const ProgressPenjualan = () => {
       header: 'Nilai AJB',
       accessor: 'nilaiAjb',
       render: (_: unknown, row: Record<string, any>) => {
-        const nilaiAjb = row.progressPenjualan?.nilaiAjb;
+        const nilaiAjb = getTotalNilaiAjb(row.progressPenjualan);
         return (
           <span className="font-medium text-slate-700 tabular-nums">
             {nilaiAjb ? formatRupiah(nilaiAjb) : '-'}
@@ -566,15 +658,21 @@ const ProgressPenjualan = () => {
     }
   };
 
-  const handleUploadProgress = async (docType: string, file: File) => {
+  const handleUploadProgress = async (docType: string, file: File, sertifikatUrutan = 1) => {
     if (!progressData) return;
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       alert("Hanya format gambar dan PDF yang diperbolehkan!");
       return;
     }
-    setUploadingProgressDoc(docType);
+    const uploadKey = sertifikatUrutan > 1 ? `${sertifikatUrutan}-${docType}` : docType;
+    setUploadingProgressDoc(uploadKey);
     try {
-      await uploadMutation.mutateAsync({ id: progressData.penjualanId, docType, file });
+      await uploadMutation.mutateAsync({
+        id: progressData.penjualanId,
+        docType,
+        file,
+        sertifikatUrutan,
+      });
       alert(`Dokumen berhasil diunggah!`);
     } catch (err: any) {
       alert(handleApiError(err).message);
@@ -582,6 +680,32 @@ const ProgressPenjualan = () => {
       setUploadingProgressDoc(null);
     }
   };
+
+  const handleDeleteProgressDoc = async (docType: string, sertifikatUrutan = 1, title = 'dokumen') => {
+    if (!progressData) return;
+    const slot = getProgressSlot(progressData, sertifikatUrutan);
+    const fileUrl = slot[docType as keyof typeof slot] as string | null | undefined;
+    if (!fileUrl) return;
+
+    const isConfirm = window.confirm(`Apakah Anda yakin ingin menghapus ${title}?`);
+    if (!isConfirm) return;
+
+    const deleteKey = sertifikatUrutan > 1 ? `${sertifikatUrutan}-${docType}` : docType;
+    setDeletingProgressDoc(deleteKey);
+    try {
+      await deleteProgressDocMutation.mutateAsync({
+        id: progressData.penjualanId,
+        docType,
+        sertifikatUrutan,
+      });
+      alert(`${title} berhasil dihapus!`);
+    } catch (err: any) {
+      alert(handleApiError(err).message);
+    } finally {
+      setDeletingProgressDoc(null);
+    }
+  };
+
   const handleUploadCustDoc = async (docType: CustomerDocType, file: File) => {
     if (!currentCustomer) return;
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
@@ -1054,11 +1178,18 @@ const ProgressPenjualan = () => {
     return docs.filter((doc) => !isSp3kDokumen(doc.nama));
   }, [currentCustomer?.dokumenLainnya]);
 
-  const handleSaveNilaiAjb = async () => {
+  const handleSaveNilaiAjb = async (urutan = 1) => {
     if (!progressData) return;
     try {
-      await updateMutation.mutateAsync({ id: progressData.penjualanId, data: { nilaiAjb: nilaiAjbInput } });
-      alert("Nilai AJB & Pajak otomatis berhasil dihitung dan disimpan!");
+      await updateMutation.mutateAsync({
+        id: progressData.penjualanId,
+        data: {
+          nilaiAjb: nilaiAjbInputs[urutan] ?? 0,
+          sertifikatUrutan: urutan,
+        },
+      });
+      const tanahLabel = isMultiSertifikat ? ` tanah ke-${urutan}` : '';
+      alert(`Nilai AJB${tanahLabel} & pajak otomatis berhasil dihitung dan disimpan!`);
     } catch (err: any) {
       alert(handleApiError(err).message);
     }
@@ -1075,10 +1206,55 @@ const ProgressPenjualan = () => {
       alert(handleApiError(err).message);
     }
   };
-  const renderFileBox = (title: string, docType: string, url: string | null) => {
+  const renderNilaiAjbBox = (urutan = 1) => {
+    const nilaiAjbInput = nilaiAjbInputs[urutan] ?? 0;
+    const { biayaPph: calculatedPph, biayaBphtb: calculatedBphtb } =
+      calcPajakFromNilaiAjb(nilaiAjbInput);
+
+    return (
+      <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
+        <div>
+          <CurrencyInput
+            label="Nilai AJB"
+            name={`nilaiAjb-${urutan}`}
+            value={nilaiAjbInput}
+            onValueChange={(_, val) =>
+              setNilaiAjbInputs((prev) => ({ ...prev, [urutan]: val }))
+            }
+            placeholder="0"
+          />
+          <div className="grid grid-cols-2 gap-3 mt-3 border-t border-blue-200/50 pt-3">
+            <div>
+              <p className="text-[9px] font-bold text-slate-500 uppercase">BPHTB</p>
+              <p className="text-sm font-black text-slate-900 tabular-nums">
+                {formatRupiah(calculatedBphtb)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[9px] font-bold text-slate-500 uppercase">PPh (2.5%)</p>
+              <p className="text-sm font-black text-slate-900 tabular-nums">
+                {formatRupiah(calculatedPph)}
+              </p>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => handleSaveNilaiAjb(urutan)}
+          disabled={updateMutation.isPending}
+          className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50"
+        >
+          {updateMutation.isPending ? 'Menyimpan...' : 'Hitung & Simpan Nilai AJB'}
+        </button>
+      </div>
+    );
+  };
+
+  const renderFileBox = (title: string, docType: string, url: string | null, urutan = 1, showDelete = false) => {
+    const uploadKey = urutan > 1 ? `${urutan}-${docType}` : docType;
     const isPdf = url ? (url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf')) : false;
-    const isUploading = uploadMutation.isPending && uploadingProgressDoc === docType;
-    const isDrag = dragActive === docType;
+    const isUploading = uploadMutation.isPending && uploadingProgressDoc === uploadKey;
+    const isDeleting = deleteProgressDocMutation.isPending && deletingProgressDoc === uploadKey;
+    const isDrag = dragActive === uploadKey;
 
     return (
       <div
@@ -1086,33 +1262,49 @@ const ProgressPenjualan = () => {
           ${isDrag ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 hover:border-blue-200'}
         `}
         tabIndex={0}
-        onDragEnter={(e) => handleDrag(e, docType)}
-        onDragLeave={(e) => handleDrag(e, docType)}
-        onDragOver={(e) => handleDrag(e, docType)}
+        onDragEnter={(e) => handleDrag(e, uploadKey)}
+        onDragLeave={(e) => handleDrag(e, uploadKey)}
+        onDragOver={(e) => handleDrag(e, uploadKey)}
         onDrop={(e) => {
           e.preventDefault(); e.stopPropagation(); setDragActive(null);
           const file = e.dataTransfer.files?.[0];
-          if (file) handleUploadProgress(docType, file);
+          if (file) handleUploadProgress(docType, file, urutan);
         }}
-        onPaste={(e) => handlePaste(e, (files) => handleUploadProgress(docType, files[0]))}
+        onPaste={(e) => handlePaste(e, (files) => handleUploadProgress(docType, files[0], urutan))}
       >
         <div className="flex justify-between items-center relative z-10">
           <div className="flex flex-col">
             <h5 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide">{title}</h5>
+            {urutan > 1 && (
+              <span className="text-[9px] text-blue-600 font-bold">Sertifikat Tanah ke-{urutan}</span>
+            )}
             <span className="text-[9px] text-slate-400 font-medium">Drag / Paste file di sini</span>
           </div>
-          <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 cursor-pointer'}`}>
-            {isUploading ? (
-              <><Loader2 size={14} className="animate-spin text-blue-600" /> Mengunggah...</>
-            ) : (
-              <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
+          <div className="flex gap-1">
+            {showDelete && url && (
+              <button
+                type="button"
+                onClick={() => handleDeleteProgressDoc(docType, urutan, title)}
+                disabled={isUploading || isDeleting}
+                className="flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-bold rounded-lg border border-red-200 transition-all hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Hapus File"
+              >
+                {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              </button>
             )}
-            <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleUploadProgress(docType, file);
-              e.target.value = '';
-            }} disabled={uploadMutation.isPending} />
-          </label>
+            <label className={`flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-50 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-200 transition-all ${isUploading || isDeleting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 cursor-pointer'}`}>
+              {isUploading ? (
+                <><Loader2 size={14} className="animate-spin text-blue-600" /> Mengunggah...</>
+              ) : (
+                <><UploadCloud size={14} /> {url ? 'Ganti File' : 'Upload File'}</>
+              )}
+              <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleUploadProgress(docType, file, urutan);
+                e.target.value = '';
+              }} disabled={uploadMutation.isPending || isDeleting} />
+            </label>
+          </div>
         </div>
 
         <div className={`w-full h-64 bg-slate-100 rounded-lg border overflow-hidden relative group transition-all ${isDrag ? 'border-blue-400 border-dashed' : 'border-slate-200'}`}>
@@ -1120,6 +1312,12 @@ const ProgressPenjualan = () => {
             <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
               <Loader2 size={32} className="animate-spin text-blue-600 mb-3" />
               <span className="text-xs font-bold text-blue-600 animate-pulse">Sedang mengunggah...</span>
+            </div>
+          )}
+          {isDeleting && (
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+              <Loader2 size={32} className="animate-spin text-red-600 mb-3" />
+              <span className="text-xs font-bold text-red-600 animate-pulse">Sedang menghapus...</span>
             </div>
           )}
           {url ? (
@@ -1144,6 +1342,95 @@ const ProgressPenjualan = () => {
       </div>
     );
   };
+
+  const renderAjbDetailForm = (urutan = 1) => {
+    const ajbForm = ajbForms[urutan] ?? { nomor: '', tanggal: '' };
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+        {isMultiSertifikat && (
+          <p className="md:col-span-2 text-[11px] font-bold text-blue-700 uppercase tracking-wide">
+            Sertifikat Tanah ke-{urutan}
+          </p>
+        )}
+        <Input
+          label="Nomor AJB Resmi"
+          value={ajbForm.nomor}
+          onChange={(e) =>
+            setAjbForms((prev) => ({
+              ...prev,
+              [urutan]: { ...ajbForm, nomor: e.target.value },
+            }))
+          }
+          placeholder="Masukkan nomor AJB..."
+        />
+        <Input
+          label="Tanggal AJB"
+          type="date"
+          value={ajbForm.tanggal}
+          onChange={(e) =>
+            setAjbForms((prev) => ({
+              ...prev,
+              [urutan]: { ...ajbForm, tanggal: e.target.value },
+            }))
+          }
+        />
+        <div className="md:col-span-2">
+          <button
+            onClick={async () => {
+              try {
+                await updateMutation.mutateAsync({
+                  id: progressData!.penjualanId,
+                  data: {
+                    nomorAjb: ajbForm.nomor,
+                    tanggalAjb: ajbForm.tanggal,
+                    sertifikatUrutan: urutan,
+                  },
+                });
+                const tanahLabel = isMultiSertifikat ? ` tanah ke-${urutan}` : '';
+                alert(`Detail nomor & tanggal AJB${tanahLabel} berhasil disimpan!`);
+              } catch (e: any) {
+                alert(handleApiError(e).message);
+              }
+            }}
+            disabled={updateMutation.isPending}
+            className="w-full px-4 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Detail AJB'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderNotarisBox = () => (
+    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+      <Select
+        label="Pilih Notaris"
+        value={notarisForm.notarisId}
+        onChange={(e) => setNotarisForm({ ...notarisForm, notarisId: e.target.value })}
+        options={[
+          { value: '', label: '-- Pilih Notaris --' },
+          ...notarisList.map((n) => ({ value: n.id.toString(), label: n.nama })),
+        ]}
+      />
+      <CurrencyInput
+        label="Biaya Notaris (Rp)"
+        name="biayaNotaris"
+        value={notarisForm.biayaNotaris}
+        onValueChange={(_, val) => setNotarisForm({ ...notarisForm, biayaNotaris: val })}
+        placeholder="0"
+      />
+      <button
+        type="button"
+        onClick={handleSaveNotaris}
+        disabled={updateMutation.isPending}
+        className="w-full mt-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition cursor-pointer disabled:opacity-50"
+      >
+        {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Notaris'}
+      </button>
+    </div>
+  );
 
   const renderChecklistBast = () => (
     <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 mt-6">
@@ -1426,46 +1713,17 @@ const ProgressPenjualan = () => {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <Select
-                              label="Pilih Notaris"
-                              value={notarisForm.notarisId}
-                              onChange={(e) => setNotarisForm({ ...notarisForm, notarisId: e.target.value })}
-                              options={[
-                                { value: '', label: '-- Pilih Notaris --' },
-                                ...notarisList.map(n => ({ value: n.id.toString(), label: n.nama }))
-                              ]}
-                            />
-                            <CurrencyInput
-                              label="Biaya Notaris (Rp)"
-                              name="biayaNotaris"
-                              value={notarisForm.biayaNotaris}
-                              onValueChange={(_, val) => setNotarisForm({ ...notarisForm, biayaNotaris: val })}
-                              placeholder="0"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleSaveNotaris}
-                              disabled={updateMutation.isPending}
-                              className="w-full mt-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition cursor-pointer disabled:opacity-50"
-                            >
-                              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Notaris'}
-                            </button>
-                          </div>
-
-                          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
-                            <div>
-                              <CurrencyInput label="Nilai AJB" name="nilaiAjb" value={nilaiAjbInput} onValueChange={(_, val) => setNilaiAjbInput(val)} placeholder="0" />
-                              <div className="grid grid-cols-2 gap-3 mt-3 border-t border-blue-200/50 pt-3">
-                                <div><p className="text-[9px] font-bold text-slate-500 uppercase">BPHTB</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedBphtb)}</p></div>
-                                <div><p className="text-[9px] font-bold text-slate-500 uppercase">PPh (2.5%)</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedPph)}</p></div>
-                              </div>
+                          {renderNotarisBox()}
+                          {Array.from({ length: jumlahSertifikatTanah }, (_, idx) => idx + 1).map((urutan) => (
+                            <div key={urutan}>
+                              {isMultiSertifikat && (
+                                <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-3">
+                                  Nilai AJB Tanah ke-{urutan}
+                                </p>
+                              )}
+                              {renderNilaiAjbBox(urutan)}
                             </div>
-                            <button onClick={handleSaveNilaiAjb} disabled={updateMutation.isPending} className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50">
-                              {updateMutation.isPending ? 'Menyimpan...' : 'Hitung & Simpan Nilai AJB'}
-                            </button>
-                          </div>
-
+                          ))}
                         </div>
                       </div>
 
@@ -1498,57 +1756,26 @@ const ProgressPenjualan = () => {
                     <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
                       <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Pengikatan Jual Beli (PPJB) & Biaya Notaris</h4>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Kolom 1: Upload PPJB */}
-                        <div>
-                          {renderFileBox("Dokumen PPJB", "filePpjb", progressData.filePpjb)}
-                        </div>
-
-                        {/* Kolom 2: Form Pilih Notaris & Nilai AJB */}
-                        <div className="space-y-4">
-                          {/* Box Pemilihan Notaris */}
-                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <Select
-                              label="Pilih Notaris"
-                              value={notarisForm.notarisId}
-                              onChange={(e) => setNotarisForm({ ...notarisForm, notarisId: e.target.value })}
-                              options={[
-                                { value: '', label: '-- Pilih Notaris --' },
-                                ...notarisList.map((n: any) => ({ value: n.id.toString(), label: n.nama }))
-                              ]}
-                            />
-                            <CurrencyInput
-                              label="Biaya Notaris (Rp)"
-                              name="biayaNotaris"
-                              value={notarisForm.biayaNotaris}
-                              onValueChange={(_, val) => setNotarisForm({ ...notarisForm, biayaNotaris: val })}
-                              placeholder="0"
-                            />
-                            <button
-                              type="button"
-                              onClick={handleSaveNotaris}
-                              disabled={updateMutation.isPending}
-                              className="w-full mt-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-black transition cursor-pointer disabled:opacity-50"
-                            >
-                              {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Notaris'}
-                            </button>
-                          </div>
-
-                          {/* Box Nilai AJB & Pajak */}
-                          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">
-                            <div>
-                              <CurrencyInput label="Nilai AJB" name="nilaiAjb" value={nilaiAjbInput} onValueChange={(_, val) => setNilaiAjbInput(val)} placeholder="0" />
-                              <div className="grid grid-cols-2 gap-3 mt-3 border-t border-blue-200/50 pt-3">
-                                <div><p className="text-[9px] font-bold text-slate-500 uppercase">BPHTB</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedBphtb)}</p></div>
-                                <div><p className="text-[9px] font-bold text-slate-500 uppercase">PPh (2.5%)</p><p className="text-sm font-black text-slate-900 tabular-nums">{formatRupiah(calculatedPph)}</p></div>
-                              </div>
+                      <div className="space-y-6">
+                        {renderNotarisBox()}
+                        {Array.from({ length: jumlahSertifikatTanah }, (_, idx) => idx + 1).map((urutan) => (
+                          <div key={urutan} className={isMultiSertifikat ? 'pt-2 border-t border-slate-100 first:border-t-0 first:pt-0' : ''}>
+                            {isMultiSertifikat && (
+                              <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-3">
+                                Sertifikat Tanah ke-{urutan}
+                              </p>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {renderFileBox(
+                                "Dokumen PPJB",
+                                "filePpjb",
+                                getProgressSlot(progressData, urutan).filePpjb ?? null,
+                                urutan,
+                              )}
+                              {renderNilaiAjbBox(urutan)}
                             </div>
-                            <button onClick={handleSaveNilaiAjb} disabled={updateMutation.isPending} className="w-full mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50">
-                              {updateMutation.isPending ? 'Menyimpan...' : 'Hitung & Simpan Nilai AJB'}
-                            </button>
                           </div>
-
-                        </div>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -1559,41 +1786,18 @@ const ProgressPenjualan = () => {
                     <div className="bg-white p-5 border border-slate-200 rounded-xl shadow-sm">
                       <h4 className="text-sm font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Dokumen Akta Jual Beli (AJB)</h4>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <Input
-                          label="Nomor AJB Resmi"
-                          value={ajbForm.nomor}
-                          onChange={(e) => setAjbForm(prev => ({ ...prev, nomor: e.target.value }))}
-                          placeholder="Masukkan nomor AJB..."
-                        />
-                        <Input
-                          label="Tanggal AJB"
-                          type="date"
-                          value={ajbForm.tanggal}
-                          onChange={(e) => setAjbForm(prev => ({ ...prev, tanggal: e.target.value }))}
-                        />
-                        <div className="md:col-span-2">
-                          <button
-                            onClick={async () => {
-                              try {
-                                await updateMutation.mutateAsync({
-                                  id: progressData.penjualanId,
-                                  data: { nomorAjb: ajbForm.nomor, tanggalAjb: ajbForm.tanggal }
-                                });
-                                alert("Detail Nomor & Tanggal AJB berhasil disimpan!");
-                              } catch (e: any) {
-                                alert(handleApiError(e).message);
-                              }
-                            }}
-                            disabled={updateMutation.isPending}
-                            className="w-full px-4 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition shadow-sm disabled:opacity-50 cursor-pointer"
-                          >
-                            {updateMutation.isPending ? 'Menyimpan...' : 'Simpan Detail AJB'}
-                          </button>
+                      {Array.from({ length: jumlahSertifikatTanah }, (_, idx) => idx + 1).map((urutan) => (
+                        <div key={urutan} className={isMultiSertifikat ? 'mb-6 last:mb-0' : ''}>
+                          {renderAjbDetailForm(urutan)}
+                          {renderFileBox(
+                            "Scan Dokumen AJB",
+                            "fileAjb",
+                            getProgressSlot(progressData, urutan).fileAjb ?? null,
+                            urutan,
+                            true,
+                          )}
                         </div>
-                      </div>
-
-                      {renderFileBox("Scan Dokumen AJB", "fileAjb", progressData.fileAjb)}
+                      ))}
                     </div>
                   </div>
                 )}

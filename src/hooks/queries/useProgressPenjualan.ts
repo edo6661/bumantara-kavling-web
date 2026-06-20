@@ -41,12 +41,47 @@ export const useUploadProgressDocument = () => {
       id,
       docType,
       file,
+      sertifikatUrutan,
     }: {
       id: number;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       docType: any;
       file: File;
-    }) => progressPenjualanService.uploadDocument(id, docType, file),
+      sertifikatUrutan?: number;
+    }) =>
+      progressPenjualanService.uploadDocument(
+        id,
+        docType,
+        file,
+        sertifikatUrutan,
+      ),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: PROGRESS_PENJUALAN_KEYS.detail(variables.id),
+      });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+    },
+  });
+};
+
+export const useDeleteProgressDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      docType,
+      sertifikatUrutan,
+    }: {
+      id: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      docType: any;
+      sertifikatUrutan?: number;
+    }) =>
+      progressPenjualanService.deleteDocument(
+        id,
+        docType,
+        sertifikatUrutan,
+      ),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: PROGRESS_PENJUALAN_KEYS.detail(variables.id),

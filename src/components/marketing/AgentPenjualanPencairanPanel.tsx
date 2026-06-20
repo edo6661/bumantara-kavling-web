@@ -17,6 +17,7 @@ import {
   getPencairanPaymentStatus,
   getPencairanFeeTotals,
   getFullMarketingFee,
+  getTotalNilaiAjb,
   getTotalFeeReferensi,
   calcPotonganPphFromReferensi,
   resolveSaleDetail,
@@ -204,7 +205,7 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
                   const detail = resolveSaleDetail(sale, penjualanList);
                   const saleDetailForModal = { ...sale, ...detail };
                   const openSaleDetailModal = () => setSelectedDetailPenjualan(saleDetailForModal);
-                  const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
+                  const nilaiAjb = getTotalNilaiAjb(detail?.progressPenjualan) || null;
                   const feeRecord = getFeeForSale(feeData, agent.id, sale.id, sale.noTransaksi);
                   const pencairanList = feeRecord ? (pencairanByFeeAgentId.get(feeRecord.id) ?? []) : [];
                   const { fee, totalFee, potPph } = calcAgentFees(commercial, feeRecord, detail);
