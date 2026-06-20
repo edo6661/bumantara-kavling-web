@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -109,6 +110,40 @@ function normalizeRingkasan(
           note: undefined,
         }
       : item,
+  );
+}
+
+function ReportAccordionTrigger({
+  icon: Icon,
+  label,
+  trailing,
+  isOpen,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  trailing?: ReactNode;
+  isOpen: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-5 py-3.5 text-left hover:bg-slate-50/60 transition-colors"
+      aria-expanded={isOpen}
+    >
+      <Icon size={15} className="text-slate-400 shrink-0" strokeWidth={2} />
+      <span className="text-[13px] font-bold text-slate-700">{label}</span>
+      {trailing}
+      <span className="ml-auto shrink-0">
+        {isOpen ? (
+          <ChevronUp size={16} className="text-slate-400" />
+        ) : (
+          <ChevronDown size={16} className="text-slate-400" />
+        )}
+      </span>
+    </button>
   );
 }
 
@@ -505,242 +540,252 @@ const LaporanRekapPemasukan = () => {
       subtitle="Catat uang riil yang diterima dari penjualan kavling, dikelompokkan per kategori dan skema pembayaran"
       icon={Wallet}
     >
-      {/* ── Filter ── */}
-      <section>
-        <button
-          type="button"
-          onClick={() => setIsFilterOpen((v) => !v)}
-          className="flex items-center gap-2 text-[12px] font-bold text-slate-500 hover:text-slate-700 mb-3"
-        >
-          <Filter size={14} />
-          Filter Laporan
-          {isFilterOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </button>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
+        {/* ── Filter ── */}
+        <div className={report ? 'border-b border-slate-100' : undefined}>
+          <ReportAccordionTrigger
+            icon={Filter}
+            label="Filter Laporan"
+            isOpen={isFilterOpen}
+            onClick={() => setIsFilterOpen((v) => !v)}
+          />
 
-        {isFilterOpen && (
-          <form
-            onSubmit={handleFilterSubmit}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              <Select
-                label="Cara Pembayaran"
-                value={filterDraft.caraPembayaran}
-                onChange={(e) =>
-                  setFilterDraft((p) => ({ ...p, caraPembayaran: e.target.value }))
+          {isFilterOpen && (
+            <form
+              onSubmit={handleFilterSubmit}
+              className="px-5 pb-5 pt-1 border-t border-slate-100 bg-slate-50/30"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <Select
+                  label="Cara Pembayaran"
+                  value={filterDraft.caraPembayaran}
+                  onChange={(e) =>
+                    setFilterDraft((p) => ({ ...p, caraPembayaran: e.target.value }))
+                  }
+                  options={CARA_BAYAR_OPTIONS}
+                />
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1.5">Blok</label>
+                  <input
+                    type="text"
+                    value={filterDraft.blok}
+                    onChange={(e) => setFilterDraft((p) => ({ ...p, blok: e.target.value }))}
+                    placeholder="Contoh: AA18"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1.5">
+                    Tanggal Mulai
+                  </label>
+                  <input
+                    type="date"
+                    value={filterDraft.startDate}
+                    onChange={(e) =>
+                      setFilterDraft((p) => ({ ...p, startDate: e.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 mb-1.5">
+                    Tanggal Akhir
+                  </label>
+                  <input
+                    type="date"
+                    value={filterDraft.endDate}
+                    onChange={(e) =>
+                      setFilterDraft((p) => ({ ...p, endDate: e.target.value }))
+                    }
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    disabled={isFetching}
+                    className="w-full rounded-xl bg-blue-600 text-white text-[13px] font-bold py-2.5 hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {isFetching ? 'Memuat...' : 'Terapkan Filter'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {report && (
+          <>
+            {/* ── Ringkasan Utama ── */}
+            <div className="border-b border-slate-100">
+              <ReportAccordionTrigger
+                icon={BarChart3}
+                label="Ringkasan Utama"
+                isOpen={isRingkasanOpen}
+                onClick={() => setIsRingkasanOpen((v) => !v)}
+                trailing={
+                  !isRingkasanOpen ? (
+                    <span className="text-[11px] font-semibold text-emerald-700 tabular-nums">
+                      · {formatRupiah(report.totalTerima)}
+                    </span>
+                  ) : undefined
                 }
-                options={CARA_BAYAR_OPTIONS}
               />
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1.5">Blok</label>
-                <input
-                  type="text"
-                  value={filterDraft.blok}
-                  onChange={(e) => setFilterDraft((p) => ({ ...p, blok: e.target.value }))}
-                  placeholder="Contoh: AA18"
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1.5">
-                  Tanggal Mulai
-                </label>
-                <input
-                  type="date"
-                  value={filterDraft.startDate}
-                  onChange={(e) =>
-                    setFilterDraft((p) => ({ ...p, startDate: e.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1.5">
-                  Tanggal Akhir
-                </label>
-                <input
-                  type="date"
-                  value={filterDraft.endDate}
-                  onChange={(e) =>
-                    setFilterDraft((p) => ({ ...p, endDate: e.target.value }))
-                  }
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  disabled={isFetching}
-                  className="w-full rounded-xl bg-blue-600 text-white text-[13px] font-bold py-2.5 hover:bg-blue-700 disabled:opacity-60"
-                >
-                  {isFetching ? 'Memuat...' : 'Terapkan Filter'}
-                </button>
-              </div>
+
+              {isRingkasanOpen && (
+                <div className="px-5 pb-5 pt-1 border-t border-slate-100 bg-slate-50/30">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <ReportMetricCard
+                      label="Total Uang Diterima"
+                      value={formatRupiah(report.totalTerima)}
+                      hint="Dari kategori yang sudah bisa dihitung"
+                      valueClassName="text-emerald-600"
+                      tone="success"
+                    />
+                    <ReportMetricCard
+                      label="Jumlah Transaksi"
+                      value={String(report.jumlahPenjualan)}
+                      hint="Penjualan aktif (non batal)"
+                    />
+                    <ReportMetricCard
+                      label="Booking Fee"
+                      value={formatRupiah(
+                        report.ringkasan.find((r) => r.key === 'bookingFee')?.terbayar ?? 0,
+                      )}
+                      valueClassName="text-blue-600"
+                    />
+                    <ReportMetricCard
+                      label="DP"
+                      value={formatRupiah(
+                        report.ringkasan.find((r) => r.key === 'dp')?.terbayar ?? 0,
+                      )}
+                      valueClassName="text-indigo-600"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </form>
+
+            {/* ── Semua Kategori Pemasukan ── */}
+            <div className="border-b border-slate-100">
+              <ReportAccordionTrigger
+                icon={Wallet}
+                label="Semua Kategori Pemasukan"
+                isOpen={isKategoriOpen}
+                onClick={() => setIsKategoriOpen((v) => !v)}
+                trailing={
+                  !isKategoriOpen ? (
+                    <span className="text-[11px] font-semibold text-emerald-700 tabular-nums">
+                      · {formatRupiah(report.totalTerima)}
+                    </span>
+                  ) : undefined
+                }
+              />
+
+              {isKategoriOpen && (
+                <div className="px-5 pb-5 pt-1 border-t border-slate-100 bg-slate-50/30">
+                  <div className="rounded-xl border border-slate-100 overflow-hidden bg-white">
+                    <table className="w-full text-[12px]">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/40">
+                          <th className="py-2 px-5 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                            Kategori
+                          </th>
+                          <th className="py-2 px-5 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                            Terbayar
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ringkasanItems.map((item) => {
+                          const clickable =
+                            item.calculable &&
+                            (item.terbayar ?? 0) > 0 &&
+                            !!resolveKategoriKey(item.key) &&
+                            (report.kategoriTerbayar?.[resolveKategoriKey(item.key)!]?.length ??
+                              0) > 0;
+                          return (
+                            <tr
+                              key={item.key}
+                              onClick={
+                                clickable
+                                  ? () =>
+                                      handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
+                                  : undefined
+                              }
+                              className={`border-b border-slate-50 last:border-b-0 ${
+                                clickable ? 'cursor-pointer hover:bg-slate-50/80' : ''
+                              }`}
+                              title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
+                            >
+                              <td className="py-2.5 px-5">
+                                <p className="font-bold text-slate-700">{item.label}</p>
+                                {!item.calculable && item.note && (
+                                  <p className="text-[10px] text-amber-600/90 mt-0.5">
+                                    {item.note}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-5">
+                                <KategoriValue item={item} />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Rekap per Skema ── */}
+            <div>
+              <ReportAccordionTrigger
+                icon={Landmark}
+                label="Rekap per Skema Pembayaran"
+                isOpen={isSkemaOpen}
+                onClick={() => setIsSkemaOpen((v) => !v)}
+              />
+
+              {isSkemaOpen && (
+                <div className="px-5 pb-5 pt-1 border-t border-slate-100 bg-slate-50/30">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <SkemaTable
+                      title="KPR"
+                      accentClass="bg-gradient-to-r from-pink-400 to-rose-500"
+                      items={[
+                        report.kpr.dp,
+                        {
+                          ...report.kpr.cicilan,
+                          key: 'pencairanKpr',
+                          label: 'Pencairan KPR',
+                          calculable: true,
+                          note: undefined,
+                        },
+                      ]}
+                      onItemClick={(item) =>
+                        handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
+                      }
+                    />
+                    <SkemaTable
+                      title="Cash Bertahap"
+                      accentClass="bg-gradient-to-r from-violet-400 to-purple-500"
+                      items={cashBertahapItems}
+                      onItemClick={(item) =>
+                        handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
         )}
-      </section>
+      </div>
 
       {report && (
         <>
-          {/* ── Ringkasan Utama ── */}
-          <section>
-            <button
-              type="button"
-              onClick={() => setIsRingkasanOpen((v) => !v)}
-              className="flex items-center gap-2 text-[12px] font-bold text-slate-500 hover:text-slate-700 mb-3"
-            >
-              <BarChart3 size={14} />
-              Ringkasan Utama
-              {!isRingkasanOpen && (
-                <span className="text-[11px] font-semibold text-emerald-700 tabular-nums">
-                  · {formatRupiah(report.totalTerima)}
-                </span>
-              )}
-              {isRingkasanOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-
-            {isRingkasanOpen && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <ReportMetricCard
-                  label="Total Uang Diterima"
-                  value={formatRupiah(report.totalTerima)}
-                  hint="Dari kategori yang sudah bisa dihitung"
-                  valueClassName="text-emerald-600"
-                  tone="success"
-                />
-                <ReportMetricCard
-                  label="Jumlah Transaksi"
-                  value={String(report.jumlahPenjualan)}
-                  hint="Penjualan aktif (non batal)"
-                />
-                <ReportMetricCard
-                  label="Booking Fee"
-                  value={formatRupiah(
-                    report.ringkasan.find((r) => r.key === 'bookingFee')?.terbayar ?? 0,
-                  )}
-                  valueClassName="text-blue-600"
-                />
-                <ReportMetricCard
-                  label="DP"
-                  value={formatRupiah(report.ringkasan.find((r) => r.key === 'dp')?.terbayar ?? 0)}
-                  valueClassName="text-indigo-600"
-                />
-              </div>
-            )}
-          </section>
-
-          {/* ── Semua Kategori Pemasukan ── */}
-          <section>
-            <button
-              type="button"
-              onClick={() => setIsKategoriOpen((v) => !v)}
-              className="flex items-center gap-2 text-[12px] font-bold text-slate-500 hover:text-slate-700 mb-3"
-            >
-              <Wallet size={14} />
-              Semua Kategori Pemasukan
-              {!isKategoriOpen && (
-                <span className="text-[11px] font-semibold text-emerald-700 tabular-nums">
-                  · {formatRupiah(report.totalTerima)}
-                </span>
-              )}
-              {isKategoriOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-
-            {isKategoriOpen && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4">
-                <table className="w-full text-[12px]">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/40">
-                      <th className="py-2 px-5 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
-                        Kategori
-                      </th>
-                      <th className="py-2 px-5 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
-                        Terbayar
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ringkasanItems.map((item) => {
-                      const clickable =
-                        item.calculable &&
-                        (item.terbayar ?? 0) > 0 &&
-                        !!resolveKategoriKey(item.key) &&
-                        (report.kategoriTerbayar?.[resolveKategoriKey(item.key)!]?.length ?? 0) > 0;
-                      return (
-                        <tr
-                          key={item.key}
-                          onClick={
-                            clickable
-                              ? () => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
-                              : undefined
-                          }
-                          className={`border-b border-slate-50 last:border-b-0 ${
-                            clickable ? 'cursor-pointer hover:bg-slate-50/80' : ''
-                          }`}
-                          title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
-                        >
-                          <td className="py-2.5 px-5">
-                            <p className="font-bold text-slate-700">{item.label}</p>
-                            {!item.calculable && item.note && (
-                              <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
-                            )}
-                          </td>
-                          <td className="py-2.5 px-5">
-                            <KategoriValue item={item} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-
-          {/* ── Rekap per Skema ── */}
-          <section>
-            <button
-              type="button"
-              onClick={() => setIsSkemaOpen((v) => !v)}
-              className="flex items-center gap-2 text-[12px] font-bold text-slate-500 hover:text-slate-700 mb-3"
-            >
-              <Landmark size={14} />
-              Rekap per Skema Pembayaran
-              {isSkemaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-
-            {isSkemaOpen && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-4">
-                <SkemaTable
-                  title="KPR"
-                  accentClass="bg-gradient-to-r from-pink-400 to-rose-500"
-                  items={[
-                    report.kpr.dp,
-                    {
-                      ...report.kpr.cicilan,
-                      key: 'pencairanKpr',
-                      label: 'Pencairan KPR',
-                      calculable: true,
-                      note: undefined,
-                    },
-                  ]}
-                  onItemClick={(item) =>
-                    handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
-                  }
-                />
-                <SkemaTable
-                  title="Cash Bertahap"
-                  accentClass="bg-gradient-to-r from-violet-400 to-purple-500"
-                  items={cashBertahapItems}
-                  onItemClick={(item) =>
-                    handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
-                  }
-                />
-              </div>
-            )}
-          </section>
-
           {/* ── Detail per Transaksi ── */}
           <section>
             <ReportSectionLabel>Detail per Transaksi</ReportSectionLabel>

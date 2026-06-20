@@ -15,6 +15,9 @@ import {
   Building2,
   CheckCircle2,
   AlertCircle,
+  Eye,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -79,6 +82,19 @@ interface KavlingPickerRow {
 interface KavlingBlokGroup {
   blok: string;
   units: KavlingPickerRow[];
+}
+
+interface GroupedSpkByMandor {
+  id: number;
+  mandorId: number;
+  mandorUsername: string;
+  jumlahSpk: number;
+  totalKavling: number;
+  totalNilaiKontrak: number;
+  totalSudahDibayar: number;
+  totalSisaNilai: number;
+  spkSelesai: number;
+  records: SpkData[];
 }
 
 type BlokSelectionState = 'none' | 'partial' | 'all';
@@ -319,6 +335,7 @@ const SPK = () => {
   };
 
   const isMandorRole = user?.role === 'MANDOR';
+  const isAdminRole = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
 
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
@@ -329,14 +346,33 @@ const SPK = () => {
     ? limitParam
     : DEFAULT_PAGE_SIZE;
 
-  const { data: spkResponse, isLoading: loadingSpk, isFetching: fetchingSpk } = useGetSpkPaginated({
-    page,
-    limit,
-    search: search || undefined,
-    orderBy,
-  });
+  const { data: spkResponse, isLoading: loadingSpk, isFetching: fetchingSpk } = useGetSpkPaginated(
+    {
+      page,
+      limit,
+      search: search || undefined,
+      orderBy,
+    },
+    { enabled: !isAdminRole },
+  );
+
+  const {
+    data: adminSpkResponse,
+    isLoading: loadingAdminSpk,
+    isFetching: fetchingAdminSpk,
+  } = useGetSpkPaginated(
+    {
+      page: 1,
+      limit: 500,
+      search: search || undefined,
+      orderBy,
+    },
+    { enabled: isAdminRole },
+  );
+
   const spkData = spkResponse?.items ?? [];
-  const meta = spkResponse?.meta;
+  const adminSpkList = adminSpkResponse?.items ?? [];
+  const meta = isAdminRole ? adminSpkResponse?.meta : spkResponse?.meta;
 
   const { data: spkAllList = [] } = useGetSpk({ limit: 500 });
 
@@ -412,9 +448,10 @@ const SPK = () => {
 
   useEffect(() => {
     if (!detailItem) return;
-    const fresh = spkData.find((s) => s.id === detailItem.id);
+    const source = isAdminRole ? adminSpkList : spkData;
+    const fresh = source.find((s) => s.id === detailItem.id);
     if (fresh) setDetailItem(fresh);
-  }, [spkData, detailItem?.id]);
+  }, [spkData, adminSpkList, detailItem?.id, isAdminRole]);
 
   const bankOptions = useMemo(() => {
     const filtered = selectedPerumahan
@@ -675,6 +712,213 @@ const SPK = () => {
     },
   ];
 
+  const spkDetailColumns = columns.filter((col) => col.accessor !== 'mandor');
+
+  const groupedSpkByMandor = useMemo((): GroupedSpkByMandor[] => {
+    const groups = new Map<number, GroupedSpkByMandor>();
+
+    adminSpkList.forEach((spk) => {
+      const existing = groups.get(spk.mandorId);
+      if (!existing) {
+        groups.set(spk.mandorId, {
+          id: spk.mandorId,
+          mandorId: spk.mandorId,
+          mandorUsername: spk.mandor?.username ?? `Mandor #${spk.mandorId}`,
+          jumlahSpk: 0,
+          totalKavling: 0,
+          totalNilaiKontrak: 0,
+          totalSudahDibayar: 0,
+          totalSisaNilai: 0,
+          spkSelesai: 0,
+          records: [],
+        });
+      }
+
+      const group = groups.get(spk.mandorId)!;
+      group.records.push(spk);
+      group.jumlahSpk += 1;
+      group.totalKavling += spk.kavlingItems.length;
+      group.totalNilaiKontrak += Number(spk.nilaiKontrak ?? 0);
+      group.totalSudahDibayar += Number(spk.nilaiSudahDibayarkan ?? 0);
+      group.totalSisaNilai += Number(spk.sisaNilaiKontrak ?? 0);
+      if (Number(spk.progress ?? 0) === 100) group.spkSelesai += 1;
+    });
+
+    const sortedRecords = (records: SpkData[]) => {
+      if (orderBy === 'id:desc') {
+        return [...records].sort((a, b) => b.id - a.id);
+      }
+      return [...records].sort((a, b) =>
+        (a.mandor?.username ?? '').localeCompare(b.mandor?.username ?? '', 'id', {
+          numeric: true,
+          sensitivity: 'base',
+        }),
+      );
+    };
+
+    let result = Array.from(groups.values()).map((group) => ({
+      ...group,
+      records: sortedRecords(group.records),
+    }));
+
+    if (orderBy === 'mandor:desc') {
+      result = result.sort((a, b) => b.mandorUsername.localeCompare(a.mandorUsername, 'id'));
+    } else if (orderBy === 'mandor:asc') {
+      result = result.sort((a, b) => a.mandorUsername.localeCompare(b.mandorUsername, 'id'));
+    } else {
+      result = result.sort((a, b) => {
+        const latestA = Math.max(...a.records.map((r) => r.id));
+        const latestB = Math.max(...b.records.map((r) => r.id));
+        return latestB - latestA;
+      });
+    }
+
+    return result;
+  }, [adminSpkList, orderBy]);
+
+  const mandorGroupColumns = [
+    {
+      header: 'Mandor',
+      accessor: 'mandorUsername',
+      minWidth: 'min-w-[6rem]',
+      render: (val: string) => (
+        <span className="font-bold text-slate-900 text-sm" title={val}>
+          {val}
+        </span>
+      ),
+    },
+    {
+      header: 'SPK',
+      accessor: 'jumlahSpk',
+      className: 'text-center',
+      render: (val: number, row: GroupedSpkByMandor) => (
+        <div className="text-center">
+          <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold tabular-nums">
+            {val}x
+          </span>
+          <p className="text-[10px] text-slate-500 mt-1">{row.spkSelesai} selesai</p>
+        </div>
+      ),
+    },
+    {
+      header: 'Kavling',
+      accessor: 'totalKavling',
+      className: 'text-center',
+      render: (val: number) => (
+        <span className="text-xs font-bold text-slate-800 tabular-nums">{val}</span>
+      ),
+    },
+    {
+      header: 'Nilai Kontrak',
+      accessor: 'totalNilaiKontrak',
+      minWidth: 'min-w-[8.25rem]',
+      render: (val: number) => (
+        <span className="font-semibold text-slate-800 text-xs tabular-nums whitespace-nowrap">
+          {formatTanpaDesimal(val)}
+        </span>
+      ),
+    },
+    {
+      header: 'Sudah Dibayar',
+      accessor: 'totalSudahDibayar',
+      minWidth: 'min-w-[6.75rem]',
+      render: (val: number) => (
+        <span className="text-xs font-semibold tabular-nums whitespace-nowrap text-emerald-700">
+          {formatTanpaDesimal(val)}
+        </span>
+      ),
+    },
+    {
+      header: 'Sisa Nilai',
+      accessor: 'totalSisaNilai',
+      minWidth: 'min-w-[6.75rem]',
+      render: (val: number) => (
+        <span
+          className={`text-xs font-semibold tabular-nums whitespace-nowrap ${val > 0 ? 'text-red-600' : 'text-slate-400'}`}
+        >
+          {formatTanpaDesimal(val)}
+        </span>
+      ),
+    },
+  ];
+
+  const expandedMandorRowRender = (row: GroupedSpkByMandor) => (
+    <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-3">
+      <h4 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
+        Daftar SPK: <span className="text-blue-600">{row.mandorUsername}</span>
+      </h4>
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="w-full text-sm text-left border-collapse table-auto">
+          <thead>
+            <tr className="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+              {spkDetailColumns.map((col) => (
+                <th
+                  key={col.accessor}
+                  className={`px-3 py-2.5 align-bottom ${col.minWidth ?? ''} ${col.className ?? ''} ${col.headerNowrap === false ? 'whitespace-normal leading-snug' : 'whitespace-nowrap'}`}
+                >
+                  {col.header}
+                </th>
+              ))}
+              <th className="px-3 py-2.5 text-center whitespace-nowrap w-20">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {row.records.map((spk) => (
+              <tr
+                key={spk.id}
+                onClick={() => setHistoriKasbonSpk(spk)}
+                className="bg-white hover:bg-slate-50/80 cursor-pointer transition-colors"
+              >
+                {spkDetailColumns.map((col) => (
+                  <td
+                    key={col.accessor}
+                    className={`px-3 py-2.5 text-slate-700 font-medium align-top ${col.minWidth ?? ''} ${col.className ?? ''} ${col.nowrap === false ? 'whitespace-normal' : 'whitespace-nowrap'}`}
+                  >
+                    {col.render
+                      ? col.render(spk[col.accessor as keyof SpkData], spk)
+                      : String(spk[col.accessor as keyof SpkData] ?? '')}
+                  </td>
+                ))}
+                <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openDetail(spk)}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
+                      title="Detail"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    {canManageSpk && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(spk)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"
+                          title="Edit"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(spk)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                          title="Hapus"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   const tableToolbar = (
     <div className="relative w-full sm:w-56">
       <ArrowUpDown size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -844,7 +1088,12 @@ const SPK = () => {
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const hasUploadedFile = !!formData.fileSpk || !!formData.existingFileSpk;
 
-  if ((loadingSpk && !spkResponse) || loadingKavling) return <PageLoader />;
+  if (
+    ((isAdminRole ? loadingAdminSpk : loadingSpk) && !(isAdminRole ? adminSpkResponse : spkResponse))
+    || loadingKavling
+  ) {
+    return <PageLoader />;
+  }
 
   return (
     <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
@@ -933,30 +1182,46 @@ const SPK = () => {
         )}
       </div>
 
-      <DataTable
-        title={isMandorRole ? 'SPK Saya' : 'Surat Perintah Kerja (SPK)'}
-        columns={columns}
-        dense
-        data={spkData}
-        toolbarPrefix={tableToolbar}
-        serverSide
-        searchTerm={search}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder="Cari mandor, blok, no. SPK..."
-        page={page}
-        totalPages={meta?.totalPages || 1}
-        onPageChange={handlePageChange}
-        pageSize={limit}
-        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
-        onPageSizeChange={handlePageSizeChange}
-        onAdd={canManageSpk ? openCreateModal : undefined}
-        onEdit={canManageSpk ? openEditModal : undefined}
-        onDetail={openDetail}
-        onDelete={canManageSpk ? handleDelete : undefined}
-        alwaysShowActions
-        onRowClick={setHistoriKasbonSpk}
-      />
-      {fetchingSpk && spkResponse && (
+      {isAdminRole ? (
+        <DataTable
+          title="Surat Perintah Kerja (SPK)"
+          columns={mandorGroupColumns}
+          dense
+          data={groupedSpkByMandor}
+          expandedRowRender={expandedMandorRowRender}
+          toolbarPrefix={tableToolbar}
+          serverSide
+          searchTerm={search}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Cari mandor, blok, no. SPK..."
+          onAdd={canManageSpk ? openCreateModal : undefined}
+        />
+      ) : (
+        <DataTable
+          title={isMandorRole ? 'SPK Saya' : 'Surat Perintah Kerja (SPK)'}
+          columns={columns}
+          dense
+          data={spkData}
+          toolbarPrefix={tableToolbar}
+          serverSide
+          searchTerm={search}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Cari mandor, blok, no. SPK..."
+          page={page}
+          totalPages={meta?.totalPages || 1}
+          onPageChange={handlePageChange}
+          pageSize={limit}
+          pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+          onPageSizeChange={handlePageSizeChange}
+          onAdd={canManageSpk ? openCreateModal : undefined}
+          onEdit={canManageSpk ? openEditModal : undefined}
+          onDetail={openDetail}
+          onDelete={canManageSpk ? handleDelete : undefined}
+          alwaysShowActions
+          onRowClick={setHistoriKasbonSpk}
+        />
+      )}
+      {(isAdminRole ? fetchingAdminSpk : fetchingSpk) && (isAdminRole ? adminSpkResponse : spkResponse) && (
         <p className="text-center text-xs text-slate-400 -mt-1 pb-2">Memuat ulang data...</p>
       )}
 

@@ -23,10 +23,14 @@ export const useGetSpk = (params?: { search?: string; limit?: number }) => {
   });
 };
 
-export const useGetSpkPaginated = (params: GetSpkParams) => {
+export const useGetSpkPaginated = (
+  params: GetSpkParams,
+  options?: { enabled?: boolean },
+) => {
   return useQuery({
     queryKey: SPK_KEYS.list(params),
     queryFn: () => spkService.getPaginated(params),
+    enabled: options?.enabled ?? true,
   });
 };
 
