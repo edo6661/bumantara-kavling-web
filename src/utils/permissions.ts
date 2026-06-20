@@ -19,12 +19,10 @@ const NO_ACCESS: PermissionFlags = {
   canDelete: false,
 };
 
-/** Default akses agent — selaras dengan rolePermissionSeed & API backend */
+/** Fallback legacy — hanya dipakai jika permissions belum dimuat dari API */
 const AGENT_ROLE_DEFAULTS: Record<string, PermissionFlags> = {
   PENJUALAN: { canCreate: true, canRead: true, canUpdate: false, canDelete: false },
   CUSTOMER: { canCreate: false, canRead: true, canUpdate: true, canDelete: false },
-  KAVLING: { canCreate: false, canRead: true, canUpdate: false, canDelete: false },
-  BANK: { canCreate: false, canRead: true, canUpdate: false, canDelete: false },
 };
 
 /** Default akses mandor — selaras dengan rolePermissionSeed & API backend */
@@ -66,6 +64,10 @@ export function resolvePermission(
   }
 
   if (user?.role === 'AGENT') {
+    // Agent mengikuti role permission di DB; tidak menambah akses di luar konfigurasi admin.
+    if (Array.isArray(user.permissions)) {
+      return NO_ACCESS;
+    }
     return AGENT_ROLE_DEFAULTS[normalized] ?? NO_ACCESS;
   }
 

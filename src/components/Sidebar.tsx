@@ -157,6 +157,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const filteredMenuItems = menuItems.map(item => {
     if (item.agentOnly && user?.role !== 'AGENT') return null;
     if (!item.agentOnly && user?.role === 'AGENT' && item.path === '/') return null;
+    if (user?.role === 'AGENT' && item.title === 'Management') return null;
     if (!item.submenus) {
       if (item.path === '/' && (user?.role === 'MANDOR' || user?.role === 'PENGAWAS')) {
         return null;
