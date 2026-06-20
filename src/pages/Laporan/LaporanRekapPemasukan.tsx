@@ -145,56 +145,85 @@ function SkemaTable({
   accentClass,
   items,
   onItemClick,
+  defaultOpen = false,
 }: {
   title: string;
   accentClass: string;
   items: RekapPemasukanKategori[];
   onItemClick?: (item: RekapPemasukanKategori) => void;
+  defaultOpen?: boolean;
 }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const calculableTotal = items.reduce(
+    (sum, item) => sum + (item.calculable ? (item.terbayar ?? 0) : 0),
+    0,
+  );
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       <div className={`h-1 ${accentClass}`} />
-      <div className="px-5 py-3 border-b border-slate-100">
-        <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-wide">{title}</h3>
-      </div>
-      <table className="w-full text-[12px]">
-        <thead>
-          <tr className="border-b border-slate-100 bg-slate-50/60">
-            <th className="py-2 px-5 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
-              Kategori
-            </th>
-            <th className="py-2 px-5 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
-              Terbayar
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => {
-            const clickable =
-              !!onItemClick && item.calculable && (item.terbayar ?? 0) > 0;
-            return (
-              <tr
-                key={item.key}
-                onClick={clickable ? () => onItemClick(item) : undefined}
-                className={`border-b border-slate-50 last:border-b-0 ${
-                  clickable ? 'cursor-pointer hover:bg-slate-50/80' : ''
-                }`}
-                title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
-              >
-                <td className="py-2.5 px-5">
-                  <p className="font-bold text-slate-700">{item.label}</p>
-                  {!item.calculable && item.note && (
-                    <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
-                  )}
-                </td>
-                <td className="py-2.5 px-5">
-                  <KategoriValue item={item} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-100 text-left hover:bg-slate-50/60 transition-colors"
+        aria-expanded={isOpen}
+      >
+        <div className="min-w-0">
+          <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-wide">
+            {title}
+          </h3>
+          {!isOpen && calculableTotal > 0 && (
+            <p className="text-[11px] font-semibold text-emerald-700 tabular-nums mt-0.5">
+              {formatRupiah(calculableTotal)}
+            </p>
+          )}
+        </div>
+        {isOpen ? (
+          <ChevronUp size={16} className="shrink-0 text-slate-400" />
+        ) : (
+          <ChevronDown size={16} className="shrink-0 text-slate-400" />
+        )}
+      </button>
+      {isOpen && (
+        <table className="w-full text-[12px]">
+          <thead>
+            <tr className="border-b border-slate-100 bg-slate-50/60">
+              <th className="py-2 px-5 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                Kategori
+              </th>
+              <th className="py-2 px-5 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                Terbayar
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const clickable =
+                !!onItemClick && item.calculable && (item.terbayar ?? 0) > 0;
+              return (
+                <tr
+                  key={item.key}
+                  onClick={clickable ? () => onItemClick(item) : undefined}
+                  className={`border-b border-slate-50 last:border-b-0 ${
+                    clickable ? 'cursor-pointer hover:bg-slate-50/80' : ''
+                  }`}
+                  title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
+                >
+                  <td className="py-2.5 px-5">
+                    <p className="font-bold text-slate-700">{item.label}</p>
+                    {!item.calculable && item.note && (
+                      <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-5">
+                    <KategoriValue item={item} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
@@ -286,6 +315,8 @@ const LaporanRekapPemasukan = () => {
   const [searchInput, setSearchInput] = useState(search);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isRingkasanOpen, setIsRingkasanOpen] = useState(false);
+  const [isKategoriOpen, setIsKategoriOpen] = useState(false);
+  const [isSkemaOpen, setIsSkemaOpen] = useState(false);
   const [modalDetails, setModalDetails] = useState<
     (PemasukanTerbayarDetail | RekapPemasukanTerbayarDetail)[]
   >([]);
@@ -561,120 +592,153 @@ const LaporanRekapPemasukan = () => {
             >
               <BarChart3 size={14} />
               Ringkasan Utama
+              {!isRingkasanOpen && (
+                <span className="text-[11px] font-semibold text-emerald-700 tabular-nums">
+                  · {formatRupiah(report.totalTerima)}
+                </span>
+              )}
               {isRingkasanOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
 
             {isRingkasanOpen && (
-              <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <ReportMetricCard
-                label="Total Uang Diterima"
-                value={formatRupiah(report.totalTerima)}
-                hint="Dari kategori yang sudah bisa dihitung"
-                valueClassName="text-emerald-600"
-                tone="success"
-              />
-              <ReportMetricCard
-                label="Jumlah Transaksi"
-                value={String(report.jumlahPenjualan)}
-                hint="Penjualan aktif (non batal)"
-              />
-              <ReportMetricCard
-                label="Booking Fee"
-                value={formatRupiah(
-                  report.ringkasan.find((r) => r.key === 'bookingFee')?.terbayar ?? 0,
-                )}
-                valueClassName="text-blue-600"
-              />
-              <ReportMetricCard
-                label="DP"
-                value={formatRupiah(report.ringkasan.find((r) => r.key === 'dp')?.terbayar ?? 0)}
-                valueClassName="text-indigo-600"
-              />
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  Semua Kategori Pemasukan
-                </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <ReportMetricCard
+                  label="Total Uang Diterima"
+                  value={formatRupiah(report.totalTerima)}
+                  hint="Dari kategori yang sudah bisa dihitung"
+                  valueClassName="text-emerald-600"
+                  tone="success"
+                />
+                <ReportMetricCard
+                  label="Jumlah Transaksi"
+                  value={String(report.jumlahPenjualan)}
+                  hint="Penjualan aktif (non batal)"
+                />
+                <ReportMetricCard
+                  label="Booking Fee"
+                  value={formatRupiah(
+                    report.ringkasan.find((r) => r.key === 'bookingFee')?.terbayar ?? 0,
+                  )}
+                  valueClassName="text-blue-600"
+                />
+                <ReportMetricCard
+                  label="DP"
+                  value={formatRupiah(report.ringkasan.find((r) => r.key === 'dp')?.terbayar ?? 0)}
+                  valueClassName="text-indigo-600"
+                />
               </div>
-              <table className="w-full text-[12px]">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/40">
-                    <th className="py-2 px-5 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
-                      Kategori
-                    </th>
-                    <th className="py-2 px-5 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
-                      Terbayar
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ringkasanItems.map((item) => {
-                    const clickable =
-                      item.calculable &&
-                      (item.terbayar ?? 0) > 0 &&
-                      !!resolveKategoriKey(item.key) &&
-                      (report.kategoriTerbayar?.[resolveKategoriKey(item.key)!]?.length ?? 0) > 0;
-                    return (
-                      <tr
-                        key={item.key}
-                        onClick={
-                          clickable
-                            ? () => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
-                            : undefined
-                        }
-                        className={`border-b border-slate-50 last:border-b-0 ${
-                          clickable ? 'cursor-pointer hover:bg-slate-50/80' : ''
-                        }`}
-                        title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
-                      >
-                        <td className="py-2.5 px-5">
-                          <p className="font-bold text-slate-700">{item.label}</p>
-                          {!item.calculable && item.note && (
-                            <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-5">
-                          <KategoriValue item={item} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-              </>
+            )}
+          </section>
+
+          {/* ── Semua Kategori Pemasukan ── */}
+          <section>
+            <button
+              type="button"
+              onClick={() => setIsKategoriOpen((v) => !v)}
+              className="flex items-center gap-2 text-[12px] font-bold text-slate-500 hover:text-slate-700 mb-3"
+            >
+              <Wallet size={14} />
+              Semua Kategori Pemasukan
+              {!isKategoriOpen && (
+                <span className="text-[11px] font-semibold text-emerald-700 tabular-nums">
+                  · {formatRupiah(report.totalTerima)}
+                </span>
+              )}
+              {isKategoriOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {isKategoriOpen && (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-4">
+                <table className="w-full text-[12px]">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/40">
+                      <th className="py-2 px-5 text-left font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                        Kategori
+                      </th>
+                      <th className="py-2 px-5 text-right font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                        Terbayar
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ringkasanItems.map((item) => {
+                      const clickable =
+                        item.calculable &&
+                        (item.terbayar ?? 0) > 0 &&
+                        !!resolveKategoriKey(item.key) &&
+                        (report.kategoriTerbayar?.[resolveKategoriKey(item.key)!]?.length ?? 0) > 0;
+                      return (
+                        <tr
+                          key={item.key}
+                          onClick={
+                            clickable
+                              ? () => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
+                              : undefined
+                          }
+                          className={`border-b border-slate-50 last:border-b-0 ${
+                            clickable ? 'cursor-pointer hover:bg-slate-50/80' : ''
+                          }`}
+                          title={clickable ? 'Klik untuk lihat detail pembayaran' : undefined}
+                        >
+                          <td className="py-2.5 px-5">
+                            <p className="font-bold text-slate-700">{item.label}</p>
+                            {!item.calculable && item.note && (
+                              <p className="text-[10px] text-amber-600/90 mt-0.5">{item.note}</p>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-5">
+                            <KategoriValue item={item} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </section>
 
           {/* ── Rekap per Skema ── */}
           <section>
-            <ReportSectionLabel>Rekap per Skema Pembayaran</ReportSectionLabel>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <SkemaTable
-                title="KPR"
-                accentClass="bg-gradient-to-r from-pink-400 to-rose-500"
-                items={[
-                  report.kpr.dp,
-                  {
-                    ...report.kpr.cicilan,
-                    key: 'pencairanKpr',
-                    label: 'Pencairan KPR',
-                    calculable: true,
-                    note: undefined,
-                  },
-                ]}
-                onItemClick={(item) => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})}
-              />
-              <SkemaTable
-                title="Cash Bertahap"
-                accentClass="bg-gradient-to-r from-violet-400 to-purple-500"
-                items={cashBertahapItems}
-                onItemClick={(item) => handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})}
-              />
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsSkemaOpen((v) => !v)}
+              className="flex items-center gap-2 text-[12px] font-bold text-slate-500 hover:text-slate-700 mb-3"
+            >
+              <Landmark size={14} />
+              Rekap per Skema Pembayaran
+              {isSkemaOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {isSkemaOpen && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-4">
+                <SkemaTable
+                  title="KPR"
+                  accentClass="bg-gradient-to-r from-pink-400 to-rose-500"
+                  items={[
+                    report.kpr.dp,
+                    {
+                      ...report.kpr.cicilan,
+                      key: 'pencairanKpr',
+                      label: 'Pencairan KPR',
+                      calculable: true,
+                      note: undefined,
+                    },
+                  ]}
+                  onItemClick={(item) =>
+                    handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
+                  }
+                />
+                <SkemaTable
+                  title="Cash Bertahap"
+                  accentClass="bg-gradient-to-r from-violet-400 to-purple-500"
+                  items={cashBertahapItems}
+                  onItemClick={(item) =>
+                    handleOpenKategoriModal(item, report.kategoriTerbayar ?? {})
+                  }
+                />
+              </div>
+            )}
           </section>
 
           {/* ── Detail per Transaksi ── */}
