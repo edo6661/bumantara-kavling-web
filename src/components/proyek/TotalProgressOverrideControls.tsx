@@ -5,6 +5,7 @@ import {
   useSetTotalProgressByKavling,
 } from '../../hooks/queries/useProgressProyek';
 import { handleApiError } from '../../utils/errorHandler';
+import { getEffectiveTotalProgress } from '../../utils/progressProyek';
 
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 
@@ -23,8 +24,14 @@ const TotalProgressOverrideControls = ({
   const setTotalMutation = useSetTotalProgressByKavling();
   const resetTotalMutation = useResetTotalProgressByKavling();
 
-  const current = clampPercent(Number(data?.persentase ?? 0));
   const isOverride = data?.persentaseIsOverride ?? false;
+  const current = data
+    ? getEffectiveTotalProgress({
+        persentase: Number(data.persentase ?? 0),
+        persentaseIsOverride: isOverride,
+        tahapan: data.tahapan,
+      })
+    : 0;
   const [input, setInput] = useState(String(current));
 
   useEffect(() => {
