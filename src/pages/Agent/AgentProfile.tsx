@@ -4,6 +4,7 @@ import {
   useGetMyAgentProfile,
   useUploadMyAgentDoc,
   useUpdateMyAgentAccount,
+  useUpdateMyAgentProfile,
 } from '../../hooks/queries/useAgentPortal';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
@@ -11,7 +12,7 @@ import Input from '../../components/shared/Input';
 import FileInput from '../../components/shared/FileInput';
 import { useAuth } from '../../context/AuthContext';
 import { formatRupiah } from '../../utils/formatters';
-import { Settings, UploadCloud, Users, ShoppingCart, AlertCircle, FileText, Building2 } from 'lucide-react';
+import { Settings, UploadCloud, Users, ShoppingCart, AlertCircle, FileText, Building2, Pencil } from 'lucide-react';
 import { handleApiError } from '../../utils/errorHandler';
 import { isAgentPerusahaan } from '../../utils/agentCommercialProfile';
 import type { AgentData } from '../../types/models/agent';
@@ -20,17 +21,43 @@ const AgentProfile = () => {
   const { data: agentData, isLoading } = useGetMyAgentProfile();
   const uploadDocMutation = useUploadMyAgentDoc();
   const updateAccountMutation = useUpdateMyAgentAccount();
+  const updateProfileMutation = useUpdateMyAgentProfile();
   const { logout } = useAuth();
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [accountForm, setAccountForm] = useState({ email: '', password: '', confirmPassword: '' });
   const [accountErrors, setAccountErrors] = useState<Record<string, string | undefined>>({});
+  const [profileForm, setProfileForm] = useState({
+    nik: '',
+    nama: '',
+    noHp: '',
+    alamat: '',
+    namaBank: '',
+    noRekening: '',
+    atasNamaRekening: '',
+  });
+  const [profileErrors, setProfileErrors] = useState<Record<string, string | undefined>>({});
 
   if (isLoading) return <PageLoader />;
   if (!agentData) {
     return <div className="p-8 text-center font-bold text-slate-500">Gagal memuat profil Agent.</div>;
   }
+
+  const isPerusahaan = isAgentPerusahaan(agentData.type);
+  const perusahaan = agentData.perusahaanAgent;
+  const commercial = isPerusahaan && perusahaan
+    ? {
+        namaBank: perusahaan.namaBank ?? agentData.namaBank,
+        noRekening: perusahaan.noRekening ?? agentData.noRekening,
+        atasNamaRekening: perusahaan.atasNamaRekening ?? agentData.atasNamaRekening,
+      }
+    : {
+        namaBank: agentData.namaBank,
+        noRekening: agentData.noRekening,
+        atasNamaRekening: agentData.atasNamaRekening,
+      };
 
   const handleUpload = async (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,6 +84,76 @@ const AgentProfile = () => {
     setAccountForm({ email: agentData.email || '', password: '', confirmPassword: '' });
     setAccountErrors({});
     setIsAccountModalOpen(true);
+  };
+
+  const openProfileModal = () => {
+    setProfileForm({
+      nik: agentData.nik || '',
+      nama: agentData.nama || '',
+      noHp: agentData.noHp || '',
+      alamat: agentData.alamat || '',
+      namaBank: commercial.namaBank || '',
+      noRekening: commercial.noRekening || '',
+      atasNamaRekening: commercial.atasNamaRekening || '',
+    });
+    setProfileErrors({});
+    setIsProfileModalOpen(true);
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const payload: {
+      nik?: string;
+      nama?: string;
+      noHp?: string;
+      alamat?: string;
+      namaBank?: string;
+      noRekening?: string;
+      atasNamaRekening?: string;
+    } = {};
+
+    if (profileForm.nik.trim() !== agentData.nik) payload.nik = profileForm.nik.trim();
+    if (profileForm.nama.trim() !== agentData.nama) payload.nama = profileForm.nama.trim();
+    if (profileForm.noHp.trim() !== agentData.noHp) payload.noHp = profileForm.noHp.trim();
+    if (profileForm.alamat.trim() !== (agentData.alamat || '')) {
+      payload.alamat = profileForm.alamat.trim();
+    }
+
+    if (!isPerusahaan) {
+      if (profileForm.namaBank.trim() !== (commercial.namaBank || '')) {
+        payload.namaBank = profileForm.namaBank.trim();
+      }
+      if (profileForm.noRekening.trim() !== (commercial.noRekening || '')) {
+        payload.noRekening = profileForm.noRekening.trim();
+      }
+      if (profileForm.atasNamaRekening.trim() !== (commercial.atasNamaRekening || '')) {
+        payload.atasNamaRekening = profileForm.atasNamaRekening.trim();
+      }
+    }
+
+    if (Object.keys(payload).length === 0) {
+      alert('Tidak ada perubahan data.');
+      setIsProfileModalOpen(false);
+      return;
+    }
+
+    try {
+      await updateProfileMutation.mutateAsync(payload);
+      alert('Data profil berhasil diperbarui!');
+      setIsProfileModalOpen(false);
+    } catch (error: any) {
+      const { message, errors: backendErrors } = handleApiError(error);
+      if (backendErrors && Array.isArray(backendErrors)) {
+        const fieldErrors: Record<string, string> = {};
+        backendErrors.forEach((err: { field: string; message: string }) => {
+          fieldErrors[err.field] = err.message;
+        });
+        setProfileErrors(fieldErrors);
+      } else {
+        alert(message);
+      }
+    }
   };
 
   const handleAccountSubmit = async (e: React.FormEvent) => {
@@ -101,9 +198,6 @@ const AgentProfile = () => {
 
   const baseDocs = [{ key: 'fileSuratPernyataan', label: 'Surat Pernyataan (TTD & Materai)' }];
 
-  const isPerusahaan = isAgentPerusahaan(agentData.type);
-  const perusahaan = agentData.perusahaanAgent;
-
   const documentFields = !isPerusahaan
     ? [
         ...baseDocs,
@@ -116,26 +210,6 @@ const AgentProfile = () => {
         { key: 'fileKtpDirektur', label: 'KTP Direktur' },
         { key: 'fileNpwpPerusahaan', label: 'NPWP Perusahaan' },
       ];
-
-  const commercial = isPerusahaan && perusahaan
-    ? {
-        feeMarketingPct: perusahaan.feeMarketingPct ?? agentData.feeMarketingPct,
-        feeClosingNominal: perusahaan.feeClosingNominal ?? agentData.feeClosingNominal,
-        potonganPph: perusahaan.potonganPph ?? agentData.potonganPph,
-        isPkp: perusahaan.isPkp ?? agentData.isPkp ?? false,
-        namaBank: perusahaan.namaBank ?? agentData.namaBank,
-        noRekening: perusahaan.noRekening ?? agentData.noRekening,
-        atasNamaRekening: perusahaan.atasNamaRekening ?? agentData.atasNamaRekening,
-      }
-    : {
-        feeMarketingPct: agentData.feeMarketingPct,
-        feeClosingNominal: agentData.feeClosingNominal,
-        potonganPph: agentData.potonganPph,
-        isPkp: agentData.isPkp ?? false,
-        namaBank: agentData.namaBank,
-        noRekening: agentData.noRekening,
-        atasNamaRekening: agentData.atasNamaRekening,
-      };
 
   const totalPenjualan = agentData.penjualan?.length || 0;
   const penjualanLunas = agentData.penjualan?.filter((p: any) => p.status === 'LUNAS').length || 0;
@@ -204,55 +278,24 @@ const AgentProfile = () => {
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">NPWP</p>
                   <p className="font-semibold text-slate-800 font-mono">{perusahaan.npwp || '-'}</p>
                 </div>
-                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
+                <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-2">
                   <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wide">
-                    Fee & Rekening — dari master perusahaan
+                    Rekening — dari master perusahaan
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Fee Marketing</p>
-                      <p className="font-semibold text-slate-900">
-                        {commercial.feeMarketingPct != null ? `${commercial.feeMarketingPct}%` : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Fee Closing</p>
-                      <p className="font-semibold text-slate-900">
-                        {commercial.feeClosingNominal != null
-                          ? formatRupiah(commercial.feeClosingNominal)
-                          : '-'}
-                      </p>
-                      {commercial.isPkp && commercial.feeClosingNominal != null ? (
-                        <p className="text-[10px] text-emerald-700 font-medium mt-0.5">Termasuk PPN 11%</p>
-                      ) : null}
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">PKP</p>
-                      <p className="font-semibold text-slate-900">{commercial.isPkp ? 'PKP' : 'Non-PKP'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Pot. PPh</p>
-                      <p className="font-semibold text-slate-900">
-                        {commercial.potonganPph != null ? `${commercial.potonganPph}%` : '-'}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase">Bank</p>
+                    <p className="font-semibold text-slate-900">{commercial.namaBank || '-'}</p>
                   </div>
-                  <div className="pt-2 border-t border-blue-100 space-y-2">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Bank</p>
-                      <p className="font-semibold text-slate-900">{commercial.namaBank || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">No. Rekening</p>
-                      <p className="font-semibold text-slate-900 font-mono">{commercial.noRekening || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Atas Nama</p>
-                      <p className="font-semibold text-slate-900">{commercial.atasNamaRekening || '-'}</p>
-                    </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase">No. Rekening</p>
+                    <p className="font-semibold text-slate-900 font-mono">{commercial.noRekening || '-'}</p>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Perubahan fee atau rekening dilakukan oleh admin melalui menu Perusahaan Agent.
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase">Atas Nama</p>
+                    <p className="font-semibold text-slate-900">{commercial.atasNamaRekening || '-'}</p>
+                  </div>
+                  <p className="text-[11px] text-slate-500 pt-2 border-t border-blue-100">
+                    Perubahan rekening dilakukan oleh admin melalui menu Perusahaan Agent.
                   </p>
                 </div>
               </div>
@@ -264,13 +307,22 @@ const AgentProfile = () => {
               <h3 className="font-bold text-slate-800">
                 {isPerusahaan ? 'Biodata PIC Agent' : 'Biodata Agent'}
               </h3>
-              <button
-                onClick={openAccountModal}
-                className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors cursor-pointer"
-                title="Pengaturan Akun"
-              >
-                <Settings size={16} />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={openProfileModal}
+                  className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors cursor-pointer"
+                  title="Edit Biodata"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  onClick={openAccountModal}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors cursor-pointer"
+                  title="Pengaturan Akun"
+                >
+                  <Settings size={16} />
+                </button>
+              </div>
             </div>
             <div className="space-y-4 text-sm">
               {isPerusahaan && (
@@ -305,55 +357,6 @@ const AgentProfile = () => {
               </div>
             </div>
           </div>
-
-          {!isPerusahaan &&
-            (commercial.feeMarketingPct != null ||
-              commercial.feeClosingNominal != null ||
-              commercial.namaBank) && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-                <h3 className="font-bold text-slate-800 mb-4 border-b border-slate-100 pb-4">
-                  Fee & Rekening
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Fee Marketing</p>
-                      <p className="font-semibold text-slate-900">
-                        {commercial.feeMarketingPct != null ? `${commercial.feeMarketingPct}%` : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Fee Closing</p>
-                      <p className="font-semibold text-slate-900">
-                        {commercial.feeClosingNominal != null
-                          ? formatRupiah(commercial.feeClosingNominal)
-                          : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Pot. PPh</p>
-                      <p className="font-semibold text-slate-900">
-                        {commercial.potonganPph != null ? `${commercial.potonganPph}%` : '-'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t border-slate-100 space-y-2">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Bank</p>
-                      <p className="font-semibold text-slate-900">{commercial.namaBank || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">No. Rekening</p>
-                      <p className="font-semibold text-slate-900 font-mono">{commercial.noRekening || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase">Atas Nama</p>
-                      <p className="font-semibold text-slate-900">{commercial.atasNamaRekening || '-'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
           {agentData.pics && agentData.pics.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
@@ -483,6 +486,134 @@ const AgentProfile = () => {
           </div>
         </div>
       </div>
+
+      <Modal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} title="Edit Biodata Agent">
+        <form onSubmit={handleProfileSubmit} className="space-y-4">
+          <div className="p-4 bg-blue-50/50 rounded-xl border border-blue-100 mb-2">
+            <p className="text-xs text-slate-600 leading-relaxed font-medium">
+              {isPerusahaan
+                ? 'Perbarui data PIC (NIK, nama, WhatsApp, alamat). Informasi rekening mengikuti data perusahaan dan tidak dapat diubah dari sini.'
+                : 'Perbarui data diri, alamat, dan informasi rekening bank Anda.'}
+            </p>
+          </div>
+
+          <Input
+            label="NIK KTP"
+            name="nik"
+            value={profileForm.nik}
+            maxLength={16}
+            error={profileErrors.nik}
+            onChange={(e) => {
+              setProfileForm({ ...profileForm, nik: e.target.value });
+              if (profileErrors.nik) setProfileErrors((prev) => ({ ...prev, nik: undefined }));
+            }}
+            placeholder="16 Digit NIK"
+            required
+          />
+
+          <Input
+            label={isPerusahaan ? 'Nama Agent / PIC' : 'Nama Lengkap'}
+            name="nama"
+            value={profileForm.nama}
+            error={profileErrors.nama}
+            onChange={(e) => {
+              setProfileForm({ ...profileForm, nama: e.target.value });
+              if (profileErrors.nama) setProfileErrors((prev) => ({ ...prev, nama: undefined }));
+            }}
+            placeholder="Sesuai KTP"
+            required
+          />
+
+          <Input
+            label="No. WhatsApp"
+            name="noHp"
+            value={profileForm.noHp}
+            error={profileErrors.noHp}
+            onChange={(e) => {
+              setProfileForm({ ...profileForm, noHp: e.target.value });
+              if (profileErrors.noHp) setProfileErrors((prev) => ({ ...prev, noHp: undefined }));
+            }}
+            placeholder="08xxxxxxxx"
+            required
+          />
+
+          <Input
+            label="Alamat Lengkap"
+            name="alamat"
+            value={profileForm.alamat}
+            error={profileErrors.alamat}
+            onChange={(e) => {
+              setProfileForm({ ...profileForm, alamat: e.target.value });
+              if (profileErrors.alamat) setProfileErrors((prev) => ({ ...prev, alamat: undefined }));
+            }}
+            placeholder="Alamat domisili"
+          />
+
+          {!isPerusahaan && (
+            <div className="pt-4 border-t border-slate-100 space-y-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                Informasi Rekening Bank
+              </h4>
+              <Input
+                label="Nama Bank"
+                name="namaBank"
+                value={profileForm.namaBank}
+                error={profileErrors.namaBank}
+                onChange={(e) => {
+                  setProfileForm({ ...profileForm, namaBank: e.target.value });
+                  if (profileErrors.namaBank) {
+                    setProfileErrors((prev) => ({ ...prev, namaBank: undefined }));
+                  }
+                }}
+                placeholder="Contoh: BCA / BSI"
+              />
+              <Input
+                label="No. Rekening"
+                name="noRekening"
+                value={profileForm.noRekening}
+                error={profileErrors.noRekening}
+                onChange={(e) => {
+                  setProfileForm({ ...profileForm, noRekening: e.target.value });
+                  if (profileErrors.noRekening) {
+                    setProfileErrors((prev) => ({ ...prev, noRekening: undefined }));
+                  }
+                }}
+                placeholder="Nomor rekening"
+              />
+              <Input
+                label="Atas Nama Rekening"
+                name="atasNamaRekening"
+                value={profileForm.atasNamaRekening}
+                error={profileErrors.atasNamaRekening}
+                onChange={(e) => {
+                  setProfileForm({ ...profileForm, atasNamaRekening: e.target.value });
+                  if (profileErrors.atasNamaRekening) {
+                    setProfileErrors((prev) => ({ ...prev, atasNamaRekening: undefined }));
+                  }
+                }}
+                placeholder="Nama pemilik rekening"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
+            <button
+              type="button"
+              onClick={() => setIsProfileModalOpen(false)}
+              className="px-6 py-2.5 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={updateProfileMutation.isPending}
+              className="px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-md transition cursor-pointer disabled:opacity-50"
+            >
+              {updateProfileMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal isOpen={isAccountModalOpen} onClose={() => setIsAccountModalOpen(false)} title="Pengaturan Akun">
         <form onSubmit={handleAccountSubmit} className="space-y-4">
