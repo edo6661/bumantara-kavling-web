@@ -1,6 +1,8 @@
 import api from "../lib/axios";
 import type { SpkPembayaranData } from "./spkPembayaran.service";
 
+export type SpkJenis = "RUMAH" | "INFRASTRUKTUR";
+
 export interface SpkKavlingItem {
   id: number;
   kavlingId: number;
@@ -11,13 +13,34 @@ export interface SpkKavlingItem {
   customerNama: string;
 }
 
+export interface SpkZonaSummary {
+  id: number;
+  nama: string;
+  hgb: string;
+  luas: string;
+  deskripsi: string;
+}
+
+import type { PekerjaanInfraKategori } from "../constants/pekerjaanInfra";
+
+export interface SpkPekerjaanInfraItem {
+  id: number;
+  pekerjaanInfraId: number;
+  nama: string;
+  kategori: PekerjaanInfraKategori;
+  urutan: number;
+}
+
 export interface SpkData {
   id: number;
   noSpk: string;
+  jenis: SpkJenis;
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number;
   bankRekeningPtId: number | null;
+  zonaId: number | null;
+  zona: SpkZonaSummary | null;
   nilaiSudahDibayarkan: number | null;
   sisaNilaiKontrak: number | null;
   progressOverride: number | null;
@@ -29,6 +52,7 @@ export interface SpkData {
   mandorId: number;
   mandor: { id: number; username: string };
   kavlingItems: SpkKavlingItem[];
+  pekerjaanInfraItems: SpkPekerjaanInfraItem[];
   pembayaranList?: SpkPembayaranData[];
   createdAt: string;
   updatedAt: string;
@@ -36,16 +60,19 @@ export interface SpkData {
 
 export interface CreateSpkDTO {
   noSpk: string;
+  jenis?: SpkJenis;
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number;
   bankRekeningPtId?: number | null;
+  zonaId?: number | null;
   nilaiSudahDibayarkan?: number | null;
   sisaNilaiKontrak?: number | null;
   notesPekerjaan?: string;
   jatuhTempo?: string;
   mandorId: number;
-  kavlingIds: number[];
+  kavlingIds?: number[];
+  pekerjaanInfraIds?: number[];
   fileSpk?: File | null;
   progressOverride?: number | null;
 }
@@ -80,12 +107,14 @@ export interface GetSpkParams {
   page?: number;
   limit?: number;
   search?: string;
+  jenis?: SpkJenis;
   orderBy?: "mandor:asc" | "mandor:desc" | "id:desc";
 }
 
 const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
   const formData = new FormData();
   if (data.noSpk !== undefined) formData.append("noSpk", data.noSpk);
+  if (data.jenis !== undefined) formData.append("jenis", data.jenis);
   if (data.tanggalSpk !== undefined) formData.append("tanggalSpk", data.tanggalSpk);
   if (data.judulPekerjaan !== undefined) {
     formData.append("judulPekerjaan", data.judulPekerjaan);
@@ -98,6 +127,9 @@ const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
       "bankRekeningPtId",
       data.bankRekeningPtId == null ? "" : String(data.bankRekeningPtId),
     );
+  }
+  if (data.zonaId !== undefined) {
+    formData.append("zonaId", data.zonaId == null ? "" : String(data.zonaId));
   }
   if (data.nilaiSudahDibayarkan !== undefined) {
     formData.append(
@@ -129,6 +161,9 @@ const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
   if (data.kavlingIds !== undefined) {
     formData.append("kavlingIds", JSON.stringify(data.kavlingIds));
   }
+  if (data.pekerjaanInfraIds !== undefined) {
+    formData.append("pekerjaanInfraIds", JSON.stringify(data.pekerjaanInfraIds));
+  }
   if (data.fileSpk) {
     formData.append("fileSpk", data.fileSpk);
   }
@@ -141,11 +176,12 @@ export const spkService = {
     return response.data.data;
   },
 
-  getAll: async (params?: { search?: string; limit?: number }): Promise<SpkData[]> => {
+  getAll: async (params?: { search?: string; limit?: number; jenis?: SpkJenis }): Promise<SpkData[]> => {
     const result = await spkService.getPaginated({
       page: 1,
       limit: params?.limit ?? 500,
       search: params?.search,
+      jenis: params?.jenis,
     });
     return result.items;
   },

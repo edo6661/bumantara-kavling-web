@@ -20,8 +20,9 @@ import {
   HardHat, UploadCloud, Loader2, Trash2, Edit2,
   Layers, Columns3, BrickWall, Home, LayoutGrid,
   PanelTop, Droplets, Zap, Paintbrush, CheckCircle2, Circle,
-  ArrowUpDown, ChevronDown,
+  ArrowUpDown, ChevronDown, Building2,
 } from 'lucide-react';
+import ProgressInfrastrukturPanel from './ProgressInfrastrukturPanel';
 import type { ProgressProyekData, TahapanProyekData } from '../../services/progressProyek.service';
 import { formatDate } from '../../utils/formatters';
 
@@ -30,6 +31,7 @@ interface ProgressProyekSummary {
   persentaseIsOverride?: boolean;
   mandorId: number | null;
   mandor: { id: number; username: string } | null;
+  tahapanLatest?: Record<string, number>;
 }
 
 interface ProyekRow {
@@ -72,7 +74,7 @@ const TAHAPAN_ICON_MAP: Record<(typeof TAHAPAN_LIST)[number], LucideIcon> = {
   Finishing: Paintbrush,
 };
 
-// Warna per tahapan agar icon lebih informatif
+// Warna per tahapan — hanya dipakai jika tahapan sudah punya progress
 const TAHAPAN_COLOR_MAP: Record<(typeof TAHAPAN_LIST)[number], string> = {
   Pondasi:    'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100',
   Kolom:      'text-orange-600 bg-orange-50 border-orange-200 hover:bg-orange-100',
@@ -85,11 +87,78 @@ const TAHAPAN_COLOR_MAP: Record<(typeof TAHAPAN_LIST)[number], string> = {
   Finishing:  'text-emerald-600 bg-emerald-50 border-emerald-200 hover:bg-emerald-100',
 };
 
+const TAHAPAN_IDLE_CLASS =
+  'text-slate-400 bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300';
+
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
 const Progress = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') === 'infra' ? 'infra' : 'rumah';
+
+  const handleTabChange = (tab: 'rumah' | 'infra') => {
+    setSearchParams((prev) => {
+      if (tab === 'infra') prev.set('tab', 'infra');
+      else prev.delete('tab');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const progressTabBar = (
+    <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+      <button
+        type="button"
+        onClick={() => handleTabChange('rumah')}
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+          activeTab === 'rumah'
+            ? 'bg-white text-blue-700 shadow-sm'
+            : 'text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        <Building2 size={16} />
+        Progress Rumah
+      </button>
+      <button
+        type="button"
+        onClick={() => handleTabChange('infra')}
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+          activeTab === 'infra'
+            ? 'bg-white text-blue-700 shadow-sm'
+            : 'text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        <Layers size={16} />
+        Progress Infrastruktur
+      </button>
+    </div>
+  );
+
+  if (activeTab === 'infra') {
+    return (
+      <div className="space-y-4 animate-in fade-in duration-500">
+        {progressTabBar}
+        <ProgressInfrastrukturPanel />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 animate-in fade-in duration-500">
+      {progressTabBar}
+      <ProgressRumahContent searchParams={searchParams} setSearchParams={setSearchParams} />
+    </div>
+  );
+};
+
+const ProgressRumahContent = ({
+  searchParams,
+  setSearchParams,
+}: {
+  searchParams: URLSearchParams;
+  setSearchParams: ReturnType<typeof useSearchParams>[1];
+}) => {
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const orderBy = searchParams.get('orderBy') || '';
@@ -192,6 +261,7 @@ const Progress = () => {
             persentaseIsOverride: item.progressProyek.persentaseIsOverride,
             mandorId: item.progressProyek.mandorId,
             mandor: item.progressProyek.mandor,
+            tahapanLatest: item.progressProyek.tahapanLatest,
           }
         : null,
       status: item.status,
@@ -273,7 +343,9 @@ const Progress = () => {
         <div className="flex flex-wrap items-center gap-1.5">
           {TAHAPAN_LIST.map((tahapan) => {
             const Icon = TAHAPAN_ICON_MAP[tahapan];
-            const colorClass = TAHAPAN_COLOR_MAP[tahapan];
+            const latest = row.progressProyek?.tahapanLatest?.[tahapan];
+            const hasProgress = latest != null && latest > 0;
+            const colorClass = hasProgress ? TAHAPAN_COLOR_MAP[tahapan] : TAHAPAN_IDLE_CLASS;
             return (
               <button
                 key={tahapan}
@@ -302,7 +374,7 @@ const Progress = () => {
   if (loadingProyek && !proyekResponse) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6">
       {isMandorRole && proyekList.length === 0 && !loadingProyek && page === 1 && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
           <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
@@ -368,7 +440,6 @@ const Progress = () => {
   );
 };
 
-// ── TahapanDirectEditModal ─────────────────────────────────────────────────────
 interface TahapanDirectEditModalProps {
   isOpen: boolean;
   onClose: () => void;

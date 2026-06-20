@@ -3,6 +3,7 @@ import {
   spkService,
   type CreateSpkDTO,
   type GetSpkParams,
+  type SpkJenis,
   type UpdateSpkDTO,
 } from "../../services/spk.service";
 import { PENJUALAN_KEYS } from "./usePenjualan";
@@ -16,10 +17,14 @@ export const SPK_KEYS = {
 };
 
 /** Daftar lengkap (mis. pemetaan kavling di halaman lain). */
-export const useGetSpk = (params?: { search?: string; limit?: number }) => {
+export const useGetSpk = (
+  params?: { search?: string; limit?: number; jenis?: SpkJenis },
+  options?: { enabled?: boolean },
+) => {
   return useQuery({
     queryKey: [...SPK_KEYS.all, "all", params],
     queryFn: () => spkService.getAll(params),
+    enabled: options?.enabled ?? true,
   });
 };
 

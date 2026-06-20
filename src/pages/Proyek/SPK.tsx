@@ -13,6 +13,7 @@ import {
   PieChart,
   HardHat,
   Building2,
+  Layers,
   CheckCircle2,
   AlertCircle,
   Eye,
@@ -42,6 +43,7 @@ import {
 } from "../../hooks/queries/useSpk";
 import type { GetSpkParams, SpkData } from '../../services/spk.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
+import SpkInfrastrukturPanel from './SpkInfrastrukturPanel';
 import CollapsibleDetailSection from '../../components/shared/CollapsibleDetailSection';
 import type { SpkKavlingItem } from '../../services/spk.service';
 import type { KavlingData } from '../../services/kavling.service';
@@ -338,6 +340,7 @@ const SPK = () => {
   const isAdminRole = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') === 'infra' ? 'infra' : 'rumah';
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const orderBy = (searchParams.get('orderBy') || 'mandor:asc') as GetSpkParams['orderBy'];
@@ -352,8 +355,9 @@ const SPK = () => {
       limit,
       search: search || undefined,
       orderBy,
+      jenis: 'RUMAH',
     },
-    { enabled: !isAdminRole },
+    { enabled: !isAdminRole && activeTab === 'rumah' },
   );
 
   const {
@@ -366,15 +370,19 @@ const SPK = () => {
       limit: 500,
       search: search || undefined,
       orderBy,
+      jenis: 'RUMAH',
     },
-    { enabled: isAdminRole },
+    { enabled: isAdminRole && activeTab === 'rumah' },
   );
 
   const spkData = spkResponse?.items ?? [];
   const adminSpkList = adminSpkResponse?.items ?? [];
   const meta = isAdminRole ? adminSpkResponse?.meta : spkResponse?.meta;
 
-  const { data: spkAllList = [] } = useGetSpk({ limit: 500 });
+  const { data: spkAllList = [] } = useGetSpk(
+    { limit: 500, jenis: 'RUMAH' },
+    { enabled: activeTab === 'rumah' },
+  );
 
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [kavlingPickerSearch, setKavlingPickerSearch] = useState('');
@@ -1053,6 +1061,7 @@ const SPK = () => {
     e.preventDefault();
     if (!validateForm()) return;
     const payload = {
+      jenis: 'RUMAH' as const,
       noSpk: formData.noSpk.trim(),
       tanggalSpk: formData.tanggalSpk,
       judulPekerjaan: formData.judulPekerjaan.trim(),
@@ -1091,6 +1100,53 @@ const SPK = () => {
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const hasUploadedFile = !!formData.fileSpk || !!formData.existingFileSpk;
 
+  const handleTabChange = (tab: 'rumah' | 'infra') => {
+    setSearchParams((prev) => {
+      if (tab === 'infra') prev.set('tab', 'infra');
+      else prev.delete('tab');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const spkTabBar = (
+    <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+      <button
+        type="button"
+        onClick={() => handleTabChange('rumah')}
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+          activeTab === 'rumah'
+            ? 'bg-white text-blue-700 shadow-sm'
+            : 'text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        <Building2 size={16} />
+        SPK Rumah
+      </button>
+      <button
+        type="button"
+        onClick={() => handleTabChange('infra')}
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+          activeTab === 'infra'
+            ? 'bg-white text-blue-700 shadow-sm'
+            : 'text-slate-500 hover:text-slate-700'
+        }`}
+      >
+        <Layers size={16} />
+        SPK Infrastruktur
+      </button>
+    </div>
+  );
+
+  if (activeTab === 'infra') {
+    return (
+      <div className="space-y-4 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
+        {spkTabBar}
+        <SpkInfrastrukturPanel />
+      </div>
+    );
+  }
+
   if (
     ((isAdminRole ? loadingAdminSpk : loadingSpk) && !(isAdminRole ? adminSpkResponse : spkResponse))
     || loadingKavling
@@ -1100,6 +1156,7 @@ const SPK = () => {
 
   return (
     <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
+      {spkTabBar}
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
       <div
@@ -1187,7 +1244,7 @@ const SPK = () => {
 
       {isAdminRole ? (
         <DataTable
-          title="Surat Perintah Kerja (SPK)"
+          title="SPK"
           columns={mandorGroupColumns}
           dense
           data={groupedSpkByMandor}

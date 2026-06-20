@@ -15,6 +15,10 @@ export const PROGRESS_PROYEK_KEYS = {
   mandors: ["progress-proyek", "mandors"] as const,
   proyekList: (params?: Record<string, unknown>) =>
     [...PROGRESS_PROYEK_KEYS.all, "proyek", params] as const,
+  infraList: (params?: Record<string, unknown>) =>
+    [...PROGRESS_PROYEK_KEYS.all, "infra", params] as const,
+  infraDetail: (spkId: number) =>
+    [...PROGRESS_PROYEK_KEYS.all, "infra", spkId] as const,
   detail: (scope: ProgressProyekScope) =>
     "penjualanId" in scope
       ? ([...PROGRESS_PROYEK_KEYS.all, "penjualan", scope.penjualanId] as const)
@@ -25,6 +29,21 @@ export const useGetProgressProyekList = (params?: Record<string, unknown>) => {
   return useQuery({
     queryKey: PROGRESS_PROYEK_KEYS.proyekList(params),
     queryFn: () => progressProyekService.getProyekList(params),
+  });
+};
+
+export const useGetProgressInfraList = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: PROGRESS_PROYEK_KEYS.infraList(params),
+    queryFn: () => progressProyekService.getInfraProyekList(params),
+  });
+};
+
+export const useGetProgressInfraDetail = (spkId: number | null) => {
+  return useQuery({
+    queryKey: spkId ? PROGRESS_PROYEK_KEYS.infraDetail(spkId) : ["progress-proyek", "infra", "none"],
+    queryFn: () => progressProyekService.getInfraBySpkId(spkId!),
+    enabled: !!spkId,
   });
 };
 
@@ -172,6 +191,64 @@ export const useResetTotalProgressByKavling = () => {
       }
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+    },
+  });
+};
+
+export const useAddTahapanLogBySpk = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      spkId: number;
+      namaTahapan: string;
+      persentase: number;
+      deskripsi: string;
+      tanggal: string;
+      files: File[];
+    }) =>
+      progressProyekService.addTahapanLogBySpk(data.spkId, {
+        namaTahapan: data.namaTahapan,
+        persentase: data.persentase,
+        deskripsi: data.deskripsi,
+        tanggal: data.tanggal,
+        files: data.files,
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: PROGRESS_PROYEK_KEYS.infraDetail(variables.spkId),
+      });
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+    },
+  });
+};
+
+export const useSetTotalProgressBySpk = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { spkId: number; persentase: number }) =>
+      progressProyekService.setTotalBySpk(payload.spkId, payload.persentase),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: PROGRESS_PROYEK_KEYS.infraDetail(variables.spkId),
+      });
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+    },
+  });
+};
+
+export const useResetTotalProgressBySpk = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { spkId: number }) =>
+      progressProyekService.resetTotalBySpk(payload.spkId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: PROGRESS_PROYEK_KEYS.infraDetail(variables.spkId),
+      });
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
     },
   });

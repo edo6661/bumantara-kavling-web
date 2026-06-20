@@ -11,11 +11,11 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
 }
 
-const Select = ({ label, options, error, ...props }: SelectProps) => {
+const Select = ({ label, options, error, className, ...props }: SelectProps) => {
   const hasEmptyOption = options.some((opt) => opt.value === '');
 
   return (
-    <div className="flex flex-col gap-1.5 mb-4 group w-full">
+    <div className={`flex flex-col gap-1.5 mb-4 group w-full ${className ?? ''}`}>
       {label && (
         <label
           className={`text-[11px] font-bold uppercase tracking-wider transition-colors ml-1 

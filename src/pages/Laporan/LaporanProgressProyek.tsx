@@ -12,6 +12,10 @@ import { useGetSpk } from '../../hooks/queries/useSpk';
 import { useDefaultPerumahanId } from '../../hooks/useDefaultPerumahanId';
 import { DEFAULT_PERUMAHAN_NAME } from '../../constants/perumahan';
 import { formatDate } from '../../utils/formatters';
+import {
+  groupByKategori,
+  type PekerjaanInfraKategori,
+} from '../../constants/pekerjaanInfra';
 
 function progressToRange(progress: number): string {
   if (progress >= 100) return '100%';
@@ -26,6 +30,7 @@ const LaporanProgressProyek = () => {
   const [filters, setFilters] = useState<ProgressProyekReportParams>({});
   const [appliedFilters, setAppliedFilters] = useState<ProgressProyekReportParams>({});
   const [expandedUnit, setExpandedUnit] = useState<number | null>(null);
+  const [expandedInfraSpk, setExpandedInfraSpk] = useState<number | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(true);
 
   const { perumahanId: defaultPerumahanId, isLoading: loadingPerumahan } =
@@ -459,6 +464,175 @@ const LaporanProgressProyek = () => {
           )}
         </div>
       </section>
+
+      {report?.infraSummary && report.infraItems && report.infraItems.length > 0 && (
+        <section>
+          <ReportSectionLabel>Progress Infrastruktur (SPK)</ReportSectionLabel>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+            <ReportMetricCard
+              label="Total SPK Infra"
+              value={report.infraSummary.totalSpk}
+              hint="SPK infrastruktur aktif"
+              valueClassName="text-slate-900 text-xl"
+            />
+            <ReportMetricCard
+              label="Rata-rata"
+              value={`${report.infraSummary.rataRataProgress}%`}
+              hint="Rata-rata progress SPK infra"
+              valueClassName="text-violet-600 text-xl"
+            />
+            <ReportMetricCard
+              label="Selesai"
+              value={report.infraSummary.spkSelesai}
+              hint="Progress 100%"
+              valueClassName="text-emerald-600 text-xl"
+            />
+            <ReportMetricCard
+              label="Proses"
+              value={report.infraSummary.spkProses}
+              valueClassName="text-blue-600 text-xl"
+            />
+            <ReportMetricCard
+              label="Belum Mulai"
+              value={report.infraSummary.spkBelumMulai}
+              valueClassName="text-slate-500 text-xl"
+            />
+            <ReportMetricCard
+              label="Terlambat"
+              value={report.infraSummary.spkTerlambat}
+              valueClassName="text-amber-600 text-xl"
+            />
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  <th className="w-8" />
+                  <th className="text-left py-2.5 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    SPK
+                  </th>
+                  <th className="text-left py-2.5 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Zona
+                  </th>
+                  <th className="text-left py-2.5 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Mandor
+                  </th>
+                  <th className="text-right py-2.5 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Item Selesai
+                  </th>
+                  <th className="text-right py-2.5 px-3 font-bold text-slate-500 text-[10px] uppercase tracking-wider">
+                    Progress
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.infraItems.map((item) => {
+                  const isExpanded = expandedInfraSpk === item.spkId;
+                  return (
+                    <Fragment key={item.spkId}>
+                      <tr
+                        className={`border-b border-slate-50 hover:bg-slate-50/60 cursor-pointer ${
+                          item.isLate ? 'bg-amber-50/20' : ''
+                        }`}
+                        onClick={() =>
+                          setExpandedInfraSpk(isExpanded ? null : item.spkId)
+                        }
+                      >
+                        <td className="py-2 px-3 text-slate-400">
+                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className="font-semibold text-slate-800 block">{item.noSpk}</span>
+                          <span className="text-[11px] text-slate-500">{item.judulPekerjaan}</span>
+                        </td>
+                        <td className="py-2 px-3 text-slate-500">{item.zonaNama ?? '—'}</td>
+                        <td className="py-2 px-3 text-slate-500">{item.mandor.username}</td>
+                        <td className="py-2 px-3 text-right text-slate-600">
+                          {item.pekerjaanSelesai}/{item.jumlahPekerjaan}
+                        </td>
+                        <td
+                          className={`py-2 px-3 text-right font-bold ${
+                            item.isLate ? 'text-amber-600' : 'text-violet-600'
+                          }`}
+                        >
+                          {item.progress}%
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="bg-slate-50/40">
+                          <td colSpan={6} className="py-2 px-4">
+                            {item.tahapan.length === 0 ? (
+                              <p className="text-[11px] text-slate-400 py-1">
+                                Belum ada laporan pekerjaan.
+                              </p>
+                            ) : (
+                              <div className="space-y-3">
+                                {groupByKategori(
+                                  item.tahapan,
+                                  (t) => (t.kategori as PekerjaanInfraKategori) ?? 'LAINNYA',
+                                  (a, b) => a.namaTahapan.localeCompare(b.namaTahapan),
+                                ).map((group) => (
+                                  <div
+                                    key={group.kategori}
+                                    className="border border-slate-100 rounded-lg overflow-hidden bg-white"
+                                  >
+                                    <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100">
+                                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                        {group.label}
+                                      </p>
+                                    </div>
+                                    <table className="w-full text-[11px]">
+                                      <thead>
+                                        <tr className="bg-slate-50/80 text-slate-400">
+                                          <th className="text-left py-1.5 px-3 font-semibold">
+                                            Pekerjaan
+                                          </th>
+                                          <th className="text-right py-1.5 px-3 font-semibold">
+                                            %
+                                          </th>
+                                          <th className="text-left py-1.5 px-3 font-semibold">
+                                            Tanggal
+                                          </th>
+                                          <th className="text-left py-1.5 px-3 font-semibold">
+                                            Pelapor
+                                          </th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {group.items.map((t) => (
+                                          <tr key={t.id} className="border-t border-slate-50">
+                                            <td className="py-1.5 px-3 font-semibold text-slate-800">
+                                              {t.namaTahapan}
+                                            </td>
+                                            <td className="py-1.5 px-3 text-right text-violet-600">
+                                              {t.persentase}%
+                                            </td>
+                                            <td className="py-1.5 px-3 text-slate-500 whitespace-nowrap">
+                                              {formatDate(t.tanggal)}
+                                            </td>
+                                            <td className="py-1.5 px-3 text-slate-500">
+                                              {t.reportedBy ?? '—'}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </ReportPageLayout>
   );
 };

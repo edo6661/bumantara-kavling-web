@@ -104,6 +104,7 @@ export interface ProgressProyekReportParams {
 export interface ProgressProyekTahapan {
   id: number;
   namaTahapan: string;
+  kategori?: string | null;
   persentase: number;
   deskripsi: string | null;
   tanggal: string;
@@ -158,6 +159,28 @@ export interface ProgressProyekReportData {
     proses: number;
   }[];
   items: ProgressProyekUnitItem[];
+  infraSummary?: {
+    totalSpk: number;
+    rataRataProgress: number;
+    spkSelesai: number;
+    spkProses: number;
+    spkBelumMulai: number;
+    spkTerlambat: number;
+  };
+  infraItems?: {
+    spkId: number;
+    noSpk: string;
+    judulPekerjaan: string;
+    zonaNama: string | null;
+    mandor: { id: number; username: string };
+    progress: number;
+    jumlahPekerjaan: number;
+    pekerjaanSelesai: number;
+    tahapTerakhir: string;
+    isLate: boolean;
+    jatuhTempo: string | null;
+    tahapan: ProgressProyekTahapan[];
+  }[];
 }
 
 export interface PenjualanReportParams {
