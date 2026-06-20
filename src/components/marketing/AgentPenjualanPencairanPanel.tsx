@@ -353,9 +353,7 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
                   <p className="text-lg font-black text-slate-900">
                     {selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}
                   </p>
-                  <p className="text-sm text-slate-500 font-medium">
-                    Transaksi: {selectedDetailPenjualan.noTransaksi || selectedDetailPenjualan.id}
-                  </p>
+                 
                 </div>
                 <div className="text-right">
                   <span

@@ -1274,7 +1274,6 @@ const Agents = ({ agentType }: AgentsProps) => {
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Customer / Pembeli</p>
                   <p className="text-lg font-black text-slate-900">{selectedDetailPenjualan.nama || selectedDetailPenjualan.customer?.nama || '-'}</p>
-                  <p className="text-sm text-slate-500 font-medium">Transaksi: {selectedDetailPenjualan.noTransaksi || selectedDetailPenjualan.id}</p>
                 </div>
                 <div className="text-right">
                   <span className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${selectedDetailPenjualan.status === 'LUNAS' ? 'bg-green-100 text-green-800' :
