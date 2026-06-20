@@ -141,6 +141,12 @@ export const useSetTotalProgressByKavling = () => {
         PROGRESS_PROYEK_KEYS.detail({ kavlingId: variables.kavlingId }),
         data,
       );
+      if (data.penjualanId != null) {
+        queryClient.setQueryData(
+          PROGRESS_PROYEK_KEYS.detail({ penjualanId: data.penjualanId }),
+          data,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
@@ -158,6 +164,12 @@ export const useResetTotalProgressByKavling = () => {
         PROGRESS_PROYEK_KEYS.detail({ kavlingId: variables.kavlingId }),
         data,
       );
+      if (data.penjualanId != null) {
+        queryClient.setQueryData(
+          PROGRESS_PROYEK_KEYS.detail({ penjualanId: data.penjualanId }),
+          data,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });

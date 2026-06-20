@@ -3,6 +3,7 @@ import {
   useGetProgressProyek,
   useResetTotalProgressByKavling,
   useSetTotalProgressByKavling,
+  type ProgressProyekScope,
 } from '../../hooks/queries/useProgressProyek';
 import { handleApiError } from '../../utils/errorHandler';
 import { getEffectiveTotalProgress } from '../../utils/progressProyek';
@@ -10,17 +11,19 @@ import { getEffectiveTotalProgress } from '../../utils/progressProyek';
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 
 interface TotalProgressOverrideControlsProps {
+  scope: ProgressProyekScope;
   kavlingId: number;
   canEdit: boolean;
   compact?: boolean;
 }
 
 const TotalProgressOverrideControls = ({
+  scope,
   kavlingId,
   canEdit,
   compact = false,
 }: TotalProgressOverrideControlsProps) => {
-  const { data, isLoading } = useGetProgressProyek({ kavlingId });
+  const { data, isLoading } = useGetProgressProyek(scope);
   const setTotalMutation = useSetTotalProgressByKavling();
   const resetTotalMutation = useResetTotalProgressByKavling();
 

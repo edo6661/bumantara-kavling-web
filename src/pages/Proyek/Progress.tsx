@@ -258,6 +258,7 @@ const Progress = () => {
       accessor: 'progressProyek',
       render: (_val: ProgressProyekSummary | null, row: ProyekRow) => (
         <TotalProgressOverrideControls
+          scope={getProgressScope(row)}
           kavlingId={row.kavlingId}
           canEdit={canEditTotalProgress}
           compact
@@ -483,6 +484,7 @@ const ProgressDetailModal: React.FC<ProgressDetailModalProps> = ({
               <div className="p-4 border border-blue-100 rounded-2xl bg-blue-50/40">
                 <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-2">Total Progress Unit</p>
                 <TotalProgressOverrideControls
+                  scope={scope}
                   kavlingId={proyek.kavlingId}
                   canEdit={canEditTotalProgress}
                 />
