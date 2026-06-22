@@ -16,6 +16,11 @@ import {
   kodeBillingPphPenjualanQueryKey,
 } from "../../hooks/queries/useKodeBillingPph";
 import { useUploadSuketPph, useGetSuketPphByPenjualan, useGetAllSuketPphByPenjualan } from "../../hooks/queries/useSuketPph";
+import {
+  useUploadFakturPajakPpn,
+  useGetFakturPajakPpnByPenjualan,
+  useGetAllFakturPajakPpnByPenjualan,
+} from "../../hooks/queries/useFakturPajakPpn";
 import type { CustomerDocType } from "../../services/customer.service";
 import {
   useGetProgressPenjualan,
@@ -48,9 +53,10 @@ import Select from '../../components/shared/Select';
 import { useUploadKavlingDocument, useUploadKavlingSertifikatTambahanDocument, useDeleteKavlingDocument, useDeleteKavlingSertifikatTambahanDocument } from '../../hooks/queries/useKavling';
 import { useQueryClient } from '@tanstack/react-query';
 
-const SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh'] as const;
+const SP3K_DOKUMEN_NAMES = ['Kode Billing PPh', 'Suket PPh', 'Faktur Pajak PPN'] as const;
 const KODE_BILLING_PPH_DOC_NAME = SP3K_DOKUMEN_NAMES[0];
 const SUKET_PPH_DOC_NAME = SP3K_DOKUMEN_NAMES[1];
+const FAKTUR_PAJAK_PPN_DOC_NAME = SP3K_DOKUMEN_NAMES[2];
 
 const COMBINED_LEGACY_SP3K_NAME = 'Kode Billing PPh dan Suket PPh';
 
@@ -95,6 +101,7 @@ const ProgressPenjualan = () => {
   const uploadCustomerDocMutation = useUploadCustomerDoc();
   const uploadKodeBillingPphMutation = useUploadKodeBillingPph();
   const uploadSuketPphMutation = useUploadSuketPph();
+  const uploadFakturPajakPpnMutation = useUploadFakturPajakPpn();
   const updateCustomerMutation = useUpdateCustomer();
   const uploadKavlingDocMutation = useUploadKavlingDocument();
   const uploadKavlingTambahanDocMutation = useUploadKavlingSertifikatTambahanDocument();
@@ -114,7 +121,7 @@ const ProgressPenjualan = () => {
   const [pdfPassword, setPdfPassword] = useState("");
   const [showPdfPasswordModal, setShowPdfPasswordModal] = useState(false);
   const [pendingUpload, setPendingUpload] = useState<{
-    type: 'cust' | 'lainnya' | 'kodeBillingPph' | 'suketPph';
+    type: 'cust' | 'lainnya' | 'kodeBillingPph' | 'suketPph' | 'fakturPajakPpn';
     docType?: CustomerDocType;
     files: File[];
     groupName?: string;
@@ -232,6 +239,13 @@ const ProgressPenjualan = () => {
     !isMultiSertifikat && modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
   );
   const { data: suketRecords = [] } = useGetAllSuketPphByPenjualan(
+    isMultiSertifikat && modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
+  );
+
+  const { data: fakturPpnRecord } = useGetFakturPajakPpnByPenjualan(
+    !isMultiSertifikat && modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
+  );
+  const { data: fakturPpnRecords = [] } = useGetAllFakturPajakPpnByPenjualan(
     isMultiSertifikat && modalStep && penjualanIdForDocs ? penjualanIdForDocs : null,
   );
 
@@ -746,6 +760,9 @@ const ProgressPenjualan = () => {
   const isSuketPphDoc = (name: string) =>
     name.trim().toLowerCase().startsWith(SUKET_PPH_DOC_NAME.toLowerCase());
 
+  const isFakturPajakPpnDoc = (name: string) =>
+    name.trim().toLowerCase().startsWith(FAKTUR_PAJAK_PPN_DOC_NAME.toLowerCase());
+
   const handleUploadLainnya = async (
     files: File[] | FileList,
     groupNameOverride?: string,
@@ -797,6 +814,29 @@ const ProgressPenjualan = () => {
       return;
     }
 
+    if (isFakturPajakPpnDoc(docName)) {
+      const validFiles = Array.from(files).filter(
+        (f) => f.type.startsWith('image/') || f.type === 'application/pdf',
+      );
+      if (validFiles.length === 0) {
+        alert("Faktur Pajak PPN hanya dapat berupa gambar atau PDF.");
+        return;
+      }
+      if (validFiles.length > 1) {
+        alert("Unggah satu file Faktur Pajak PPN per kavling per kali upload.");
+        return;
+      }
+      const file = validFiles[0]!;
+      if (file.type === 'application/pdf') {
+        setPendingUpload({ type: 'fakturPajakPpn', files: [file], sertifikatUrutan });
+        setPdfPassword("");
+        setShowPdfPasswordModal(true);
+        return;
+      }
+      await doUploadFakturPajakPpn(file, undefined, sertifikatUrutan);
+      return;
+    }
+
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type === 'application/pdf');
     if (validFiles.length === 0) {
       alert("Hanya file gambar dan PDF yang diperbolehkan!");
@@ -832,6 +872,31 @@ const ProgressPenjualan = () => {
       const action = existing ? 'diperbarui' : 'disimpan';
       const tanahLabel = isMultiSertifikat ? ` tanah ke-${sertifikatUrutan}` : '';
       alert(`Suket PPh${tanahLabel} untuk kavling ini berhasil ${action}!`);
+    } catch (error: unknown) {
+      alert(handleApiError(error).message);
+    } finally {
+      setUploadingCustDoc(null);
+    }
+  };
+
+  const doUploadFakturPajakPpn = async (file: File, password?: string, sertifikatUrutan = 1) => {
+    if (!currentCustomer || !selectedPenjualan?.dbId) return;
+    setUploadingCustDoc(`${FAKTUR_PAJAK_PPN_DOC_NAME}-${sertifikatUrutan}`);
+    try {
+      await uploadFakturPajakPpnMutation.mutateAsync({
+        customerId: currentCustomer.id,
+        penjualanId: selectedPenjualan.dbId,
+        sertifikatUrutan,
+        file,
+        pdfPassword: password,
+      });
+      const existing =
+        (isMultiSertifikat ? fakturPpnRecords : fakturPpnRecord ? [fakturPpnRecord] : []).find(
+          (row) => (row?.sertifikatUrutan ?? 1) === sertifikatUrutan,
+        );
+      const action = existing ? 'diperbarui' : 'disimpan';
+      const tanahLabel = isMultiSertifikat ? ` tanah ke-${sertifikatUrutan}` : '';
+      alert(`Faktur Pajak PPN${tanahLabel} untuk kavling ini berhasil ${action}!`);
     } catch (error: unknown) {
       alert(handleApiError(error).message);
     } finally {
@@ -914,6 +979,12 @@ const ProgressPenjualan = () => {
         pdfPassword || undefined,
         pendingUpload.sertifikatUrutan ?? 1,
       );
+    } else if (pendingUpload.type === 'fakturPajakPpn') {
+      await doUploadFakturPajakPpn(
+        pendingUpload.files[0]!,
+        pdfPassword || undefined,
+        pendingUpload.sertifikatUrutan ?? 1,
+      );
     } else if (pendingUpload.type === 'lainnya' && pendingUpload.groupName) {
       await doUploadLainnya(pendingUpload.files, pendingUpload.groupName, pdfPassword || undefined);
     }
@@ -934,7 +1005,8 @@ const ProgressPenjualan = () => {
     const slotUrutan = options?.sertifikatUrutan ?? 1;
     const isKodeBilling = isKodeBillingPphDoc(doc.nama);
     const isSuket = isSuketPphDoc(doc.nama);
-    const isSingleFileSlot = isKodeBilling || isSuket;
+    const isFaktur = isFakturPajakPpnDoc(doc.nama);
+    const isSingleFileSlot = isKodeBilling || isSuket || isFaktur;
     const rawUrls = Array.isArray(doc.fileUrl) ? doc.fileUrl : doc.fileUrl ? [doc.fileUrl] : [];
     const itemsFromOptions = options?.fileItems ?? [];
     const fileUrls =
@@ -956,7 +1028,10 @@ const ProgressPenjualan = () => {
     const isUploadingSuket =
       uploadSuketPphMutation.isPending &&
       uploadingCustDoc === `${SUKET_PPH_DOC_NAME}-${slotUrutan}`;
-    const isUploadingSlot = isUploadingKodeBilling || isUploadingSuket;
+    const isUploadingFaktur =
+      uploadFakturPajakPpnMutation.isPending &&
+      uploadingCustDoc === `${FAKTUR_PAJAK_PPN_DOC_NAME}-${slotUrutan}`;
+    const isUploadingSlot = isUploadingKodeBilling || isUploadingSuket || isUploadingFaktur;
 
     return (
       <div key={doc.id} className="flex flex-col gap-3 p-3 border rounded-xl bg-slate-50 relative shadow-sm">
@@ -987,6 +1062,11 @@ const ProgressPenjualan = () => {
                 1 file per kavling — {hasSingleSlotFile ? 'tombol ganti untuk ubah file' : 'upload suket untuk unit ini'}
               </span>
             )}
+            {isFaktur && (
+              <span className="text-[8px] text-slate-400 mt-0.5">
+                1 file per kavling — {hasSingleSlotFile ? 'tombol ganti untuk ubah file' : 'upload faktur pajak PPN untuk unit ini'}
+              </span>
+            )}
           </div>
           <div className="flex gap-1 shrink-0">
             <label
@@ -1004,6 +1084,10 @@ const ProgressPenjualan = () => {
                     ? hasSingleSlotFile
                       ? 'Ganti File Suket'
                       : 'Upload Suket'
+                    : isFaktur
+                      ? hasSingleSlotFile
+                        ? 'Ganti File Faktur'
+                        : 'Upload Faktur'
                     : 'Tambah File ke Grup Ini'
               }
             >
@@ -1025,7 +1109,8 @@ const ProgressPenjualan = () => {
                 disabled={
                   uploadCustomerDocMutation.isPending ||
                   uploadKodeBillingPphMutation.isPending ||
-                  uploadSuketPphMutation.isPending
+                  uploadSuketPphMutation.isPending ||
+                  uploadFakturPajakPpnMutation.isPending
                 }
                 onChange={(e) => {
                   if (e.target.files?.length) {
@@ -1033,6 +1118,8 @@ const ProgressPenjualan = () => {
                       ? KODE_BILLING_PPH_DOC_NAME
                       : isSuket
                         ? SUKET_PPH_DOC_NAME
+                        : isFaktur
+                          ? FAKTUR_PAJAK_PPN_DOC_NAME
                         : doc.nama;
                     handleUploadLainnya(e.target.files, canonicalName, slotUrutan);
                   }
@@ -1132,6 +1219,9 @@ const ProgressPenjualan = () => {
         const suket = suketRecords.find(
           (row) => (row.sertifikatUrutan ?? 1) === urutan,
         );
+        const faktur = fakturPpnRecords.find(
+          (row) => (row.sertifikatUrutan ?? 1) === urutan,
+        );
         return [
           buildSlot(
             KODE_BILLING_PPH_DOC_NAME,
@@ -1146,6 +1236,12 @@ const ProgressPenjualan = () => {
             urutan,
             suket?.id,
           ),
+          buildSlot(
+            FAKTUR_PAJAK_PPN_DOC_NAME,
+            faktur?.fileFaktur,
+            urutan,
+            faktur?.id,
+          ),
         ];
       }).flat();
     }
@@ -1159,6 +1255,12 @@ const ProgressPenjualan = () => {
         kodeBillingRecord?.kodeBilling,
       ),
       buildSlot(SUKET_PPH_DOC_NAME, suketRecord?.fileSuket, 1, suketRecord?.id),
+      buildSlot(
+        FAKTUR_PAJAK_PPN_DOC_NAME,
+        fakturPpnRecord?.fileFaktur,
+        1,
+        fakturPpnRecord?.id,
+      ),
     ];
   }, [
     selectedPenjualan?.dbId,
@@ -1169,6 +1271,8 @@ const ProgressPenjualan = () => {
     kodeBillingRecords,
     suketRecord,
     suketRecords,
+    fakturPpnRecord,
+    fakturPpnRecords,
   ]);
 
   const kprDokumenLainnya = useMemo(() => {
@@ -1729,7 +1833,7 @@ const ProgressPenjualan = () => {
 
                       <div className="pt-6 mt-6 border-t border-slate-100">
                         <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-1 flex items-center gap-2">
-                          <PlusCircle size={14} className="text-blue-600" /> Dokumen PPh SP3K
+                          <PlusCircle size={14} className="text-blue-600" /> Dokumen PPh & PPN SP3K
                         </h4>
                         {sp3kUnitLabel && (
                           <p className="text-[10px] text-slate-500 mb-3 font-medium">
