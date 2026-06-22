@@ -411,6 +411,20 @@ const BayarSpkPembayaran = () => {
             aria-label={`Pilih pembayaran ${getItemLabel(row)}`}
           />
         </td>
+        <td className="px-4 py-2.5">
+          <div className="flex flex-col gap-0.5" title={getItemLabel(row)}>
+            <span
+              className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded border w-fit ${colors.badge}`}
+            >
+              {SPK_PEMBAYARAN_JENIS_LABEL[row.jenis]}
+            </span>
+            {(row.jenis === 'KASBON' || row.jenis === 'UPAH') && (
+              <span className="text-[10px] text-slate-500 leading-tight max-w-[180px]">
+                {getItemLabel(row)}
+              </span>
+            )}
+          </div>
+        </td>
         <td className={`px-4 py-2.5 text-sm font-bold ${colors.text} whitespace-nowrap`}>
           {formatRupiah(row.nominal)}
         </td>
@@ -716,7 +730,7 @@ const BayarSpkPembayaran = () => {
                               Detail pembayaran — {group.noSpk}
                             </p>
                             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                              <table className="w-full min-w-[520px]">
+                              <table className="w-full min-w-[640px]">
                                 <thead>
                                   <tr className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
                                     <th className="px-4 py-2 w-10" onClick={(e) => e.stopPropagation()}>
@@ -733,6 +747,7 @@ const BayarSpkPembayaran = () => {
                                         aria-label={`Pilih semua pembayaran ${group.noSpk}`}
                                       />
                                     </th>
+                                    <th className="px-4 py-2 text-left">Jenis</th>
                                     <th className="px-4 py-2 text-left">Nominal</th>
                                     <th className="px-4 py-2 text-left">Tanggal Diajukan</th>
                                     <th className="px-4 py-2 text-left">Status</th>
