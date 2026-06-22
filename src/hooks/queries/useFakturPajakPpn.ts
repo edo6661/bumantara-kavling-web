@@ -35,3 +35,18 @@ export const useUploadFakturPajakPpn = () => {
     },
   });
 };
+
+export const useDeleteFakturPajakPpn = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fakturPajakPpnService.delete,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["faktur-pajak-ppn", "penjualan", variables.penjualanId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["faktur-pajak-ppn", "penjualan", variables.penjualanId, "all"],
+      });
+    },
+  });
+};

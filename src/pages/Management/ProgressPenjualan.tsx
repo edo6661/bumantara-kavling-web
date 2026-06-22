@@ -18,6 +18,7 @@ import {
 import { useUploadSuketPph, useGetSuketPphByPenjualan, useGetAllSuketPphByPenjualan } from "../../hooks/queries/useSuketPph";
 import {
   useUploadFakturPajakPpn,
+  useDeleteFakturPajakPpn,
   useGetFakturPajakPpnByPenjualan,
   useGetAllFakturPajakPpnByPenjualan,
 } from "../../hooks/queries/useFakturPajakPpn";
@@ -102,6 +103,7 @@ const ProgressPenjualan = () => {
   const uploadKodeBillingPphMutation = useUploadKodeBillingPph();
   const uploadSuketPphMutation = useUploadSuketPph();
   const uploadFakturPajakPpnMutation = useUploadFakturPajakPpn();
+  const deleteFakturPajakPpnMutation = useDeleteFakturPajakPpn();
   const updateCustomerMutation = useUpdateCustomer();
   const uploadKavlingDocMutation = useUploadKavlingDocument();
   const uploadKavlingTambahanDocMutation = useUploadKavlingSertifikatTambahanDocument();
@@ -118,6 +120,7 @@ const ProgressPenjualan = () => {
   const [uploadingProgressDoc, setUploadingProgressDoc] = useState<string | null>(null);
   const [deletingProgressDoc, setDeletingProgressDoc] = useState<string | null>(null);
   const [uploadingCustDoc, setUploadingCustDoc] = useState<string | null>(null);
+  const [deletingFakturPpnDoc, setDeletingFakturPpnDoc] = useState<string | null>(null);
   const [pdfPassword, setPdfPassword] = useState("");
   const [showPdfPasswordModal, setShowPdfPasswordModal] = useState(false);
   const [pendingUpload, setPendingUpload] = useState<{
@@ -904,6 +907,29 @@ const ProgressPenjualan = () => {
     }
   };
 
+  const handleDeleteFakturPajakPpn = async (sertifikatUrutan = 1) => {
+    if (!selectedPenjualan?.dbId) return;
+    const tanahLabel = isMultiSertifikat ? ` tanah ke-${sertifikatUrutan}` : '';
+    const isConfirm = window.confirm(
+      `Apakah Anda yakin ingin menghapus Faktur Pajak PPN${tanahLabel}?`,
+    );
+    if (!isConfirm) return;
+
+    const deleteKey = `${FAKTUR_PAJAK_PPN_DOC_NAME}-${sertifikatUrutan}`;
+    setDeletingFakturPpnDoc(deleteKey);
+    try {
+      await deleteFakturPajakPpnMutation.mutateAsync({
+        penjualanId: Number(selectedPenjualan.dbId),
+        sertifikatUrutan,
+      });
+      alert(`Faktur Pajak PPN${tanahLabel} berhasil dihapus!`);
+    } catch (error: unknown) {
+      alert(handleApiError(error).message);
+    } finally {
+      setDeletingFakturPpnDoc(null);
+    }
+  };
+
   const doUploadKodeBillingPph = async (file: File, password?: string, sertifikatUrutan = 1) => {
     if (!currentCustomer || !selectedPenjualan?.dbId) return;
     setUploadingCustDoc(`${KODE_BILLING_PPH_DOC_NAME}-${sertifikatUrutan}`);
@@ -1031,6 +1057,9 @@ const ProgressPenjualan = () => {
     const isUploadingFaktur =
       uploadFakturPajakPpnMutation.isPending &&
       uploadingCustDoc === `${FAKTUR_PAJAK_PPN_DOC_NAME}-${slotUrutan}`;
+    const isDeletingFaktur =
+      deleteFakturPajakPpnMutation.isPending &&
+      deletingFakturPpnDoc === `${FAKTUR_PAJAK_PPN_DOC_NAME}-${slotUrutan}`;
     const isUploadingSlot = isUploadingKodeBilling || isUploadingSuket || isUploadingFaktur;
 
     return (
@@ -1064,7 +1093,7 @@ const ProgressPenjualan = () => {
             )}
             {isFaktur && (
               <span className="text-[8px] text-slate-400 mt-0.5">
-                1 file per kavling — {hasSingleSlotFile ? 'tombol ganti untuk ubah file' : 'upload faktur pajak PPN untuk unit ini'}
+                1 file per kavling — {hasSingleSlotFile ? 'ganti atau hapus jika salah upload' : 'upload faktur pajak PPN untuk unit ini'}
               </span>
             )}
           </div>
@@ -1110,7 +1139,8 @@ const ProgressPenjualan = () => {
                   uploadCustomerDocMutation.isPending ||
                   uploadKodeBillingPphMutation.isPending ||
                   uploadSuketPphMutation.isPending ||
-                  uploadFakturPajakPpnMutation.isPending
+                  uploadFakturPajakPpnMutation.isPending ||
+                  deleteFakturPajakPpnMutation.isPending
                 }
                 onChange={(e) => {
                   if (e.target.files?.length) {
@@ -1127,6 +1157,21 @@ const ProgressPenjualan = () => {
                 }}
               />
             </label>
+            {isFaktur && hasSingleSlotFile && (
+              <button
+                type="button"
+                onClick={() => handleDeleteFakturPajakPpn(slotUrutan)}
+                disabled={isUploadingSlot || isDeletingFaktur}
+                className="p-1.5 bg-red-50 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-all z-30 disabled:opacity-50"
+                title="Hapus Faktur PPN"
+              >
+                {isDeletingFaktur ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
+              </button>
+            )}
             {!options?.hideDeleteGroup && (
               <button
                 type="button"
@@ -1163,9 +1208,22 @@ const ProgressPenjualan = () => {
                   <button onClick={() => window.open(item.url, '_blank')} className="p-1.5 bg-white text-slate-800 rounded-md hover:bg-slate-200 transition" title="Lihat">
                     <ZoomIn size={16} />
                   </button>
-                  {!isSingleFileSlot && (
-                    <button onClick={() => handleDeleteSingleItemLainnya(item.docId, item.url)} className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition" title="Hapus Gambar Ini">
-                      <Trash2 size={16} />
+                  {(!isSingleFileSlot || isFaktur) && (
+                    <button
+                      onClick={() =>
+                        isFaktur
+                          ? handleDeleteFakturPajakPpn(slotUrutan)
+                          : handleDeleteSingleItemLainnya(item.docId, item.url)
+                      }
+                      disabled={isFaktur && (isUploadingSlot || isDeletingFaktur)}
+                      className="p-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 transition disabled:opacity-50"
+                      title={isFaktur ? 'Hapus Faktur PPN' : 'Hapus Gambar Ini'}
+                    >
+                      {isFaktur && isDeletingFaktur ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
                     </button>
                   )}
                 </div>

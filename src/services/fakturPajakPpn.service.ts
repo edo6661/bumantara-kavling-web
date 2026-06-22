@@ -49,4 +49,15 @@ export const fakturPajakPpnService = {
     });
     return response.data.data;
   },
+
+  delete: async (params: {
+    penjualanId: number;
+    sertifikatUrutan?: number;
+  }): Promise<void> => {
+    const query =
+      params.sertifikatUrutan != null
+        ? `?sertifikatUrutan=${params.sertifikatUrutan}`
+        : "";
+    await api.delete(`/faktur-pajak-ppn/penjualan/${params.penjualanId}${query}`);
+  },
 };
