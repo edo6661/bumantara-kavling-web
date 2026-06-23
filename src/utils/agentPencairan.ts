@@ -1,4 +1,4 @@
-import type { AgentData } from '../types/models/agent';
+import type { AgentData, PenjualanAgentData } from '../types/models/agent';
 import type { FeeAgentData } from '../services/feeAgent.service';
 import type { AgentPencairanData } from '../services/agentPencairan.service';
 import { extractClosingDpp } from './agentPkpTax';
@@ -104,6 +104,56 @@ export const isBookingFeePaid = (detail?: SaleDetail) =>
     (t) =>
       effectiveTagihanTujuan(t) === 'BOOKING_FEE' && t.status === 'LUNAS',
   );
+
+type PenjualanListItem = PenjualanSaleRef &
+  SaleDetail & {
+    agent?: string;
+    nama?: string;
+    tanggal?: string;
+    blok?: string;
+    nomorUnit?: string;
+    perumahan?: string;
+  };
+
+/** Penjualan batal yang booking fee-nya sudah lunas — eligible closing fee saja */
+export const isBatalClosingEligible = (detail?: SaleDetail) =>
+  isPenjualanBatal(detail?.status) && isBookingFeePaid(detail);
+
+/**
+ * Gabungkan penjualan dari relasi agent dengan penjualan BATAL eligible
+ * yang mungkin belum muncul di API agent (mis. field flag belum ter-select).
+ */
+export const mergeAgentPenjualanWithEligibleBatal = (
+  agent: Pick<AgentData, 'nama' | 'penjualan'>,
+  penjualanList: PenjualanListItem[],
+): PenjualanAgentData[] => {
+  const base = agent.penjualan ?? [];
+  const seen = new Set(base.map((s) => s.id));
+
+  const extras = penjualanList
+    .filter((p) => {
+      if (seen.has(p.id)) return false;
+      if ((p.agent ?? '').trim() !== agent.nama.trim()) return false;
+      return isBatalClosingEligible(resolveSaleDetail(p, penjualanList));
+    })
+    .map(
+      (p): PenjualanAgentData => ({
+        id: p.id,
+        noTransaksi: p.noTransaksi,
+        tanggal: p.tanggal ?? '',
+        hargaJual: Number(p.hargaJual ?? 0),
+        status: p.status ?? 'BATAL',
+        customer: { nama: p.nama ?? '' },
+        kavling: {
+          blok: p.blok ?? '',
+          nomorUnit: p.nomorUnit ?? '',
+          perumahan: p.perumahan ? { nama: p.perumahan } : undefined,
+        },
+      }),
+    );
+
+  return [...base, ...extras];
+};
 
 export const hasPpjbComplete = (
   progress?: SaleDetail['progressPenjualan'],

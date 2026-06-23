@@ -30,6 +30,7 @@ import {
   getPencairanPaymentStatus,
   getPencairanFeeTotals,
   resolveSaleDetail,
+  mergeAgentPenjualanWithEligibleBatal,
   type SaleDetail,
 } from "../../utils/agentPencairan";
 import type { PencairanKomponenKey } from "../../utils/agentPencairanPreview";
@@ -82,7 +83,10 @@ const initialFormState: AgentFormState = {
 
 const getFeeForSale = (feeList: FeeAgentData[], agentId: number, saleId: number, noTransaksi: string) =>
   feeList.find(
-    (f) => f.agentId === agentId && (f.penjualanId === saleId || f.noTransaksi === noTransaksi)
+    (f) => f.agentId === agentId && (f.penjualanId === saleId || f.noTransaksi === noTransaksi),
+  ) ??
+  feeList.find(
+    (f) => f.penjualanId === saleId || f.noTransaksi === noTransaksi,
   );
 
 const calcAgentFees = (
@@ -637,7 +641,7 @@ const Agents = ({ agentType }: AgentsProps) => {
   };
 
   const expandedRowRender = (row: AgentData) => {
-    const relatedSales = row.penjualan || [];
+    const relatedSales = mergeAgentPenjualanWithEligibleBatal(row, penjualanList);
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
         <h4 className="text-sm font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2">

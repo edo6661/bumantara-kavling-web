@@ -21,6 +21,7 @@ import {
   getTotalFeeReferensi,
   calcPotonganPphFromReferensi,
   resolveSaleDetail,
+  mergeAgentPenjualanWithEligibleBatal,
   type SaleDetail,
 } from '../../utils/agentPencairan';
 import type { PencairanKomponenKey } from '../../utils/agentPencairanPreview';
@@ -37,6 +38,9 @@ import { handleApiError } from '../../utils/errorHandler';
 const getFeeForSale = (feeList: FeeAgentData[], agentId: number, saleId: number, noTransaksi: string) =>
   feeList.find(
     (f) => f.agentId === agentId && (f.penjualanId === saleId || f.noTransaksi === noTransaksi),
+  ) ??
+  feeList.find(
+    (f) => f.penjualanId === saleId || f.noTransaksi === noTransaksi,
   );
 
 const calcAgentFees = (
@@ -150,7 +154,7 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
     }
   };
 
-  const relatedSales = agent.penjualan || [];
+  const relatedSales = mergeAgentPenjualanWithEligibleBatal(agent, penjualanList);
 
   return (
     <>
