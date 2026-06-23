@@ -51,8 +51,10 @@ import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 interface SpkGroup {
   spkId: number;
   noSpk: string;
-  judulPekerjaan: string;
   mandorUsername: string;
+  mandorNamaBank: string | null;
+  mandorNoRekening: string | null;
+  mandorAtasNamaRekening: string | null;
   ksoFull: string | null;
   nilaiKontrak: number;
   items: SpkPembayaranData[];
@@ -153,8 +155,10 @@ const BayarSpkPembayaran = () => {
         map.set(row.spkId, {
           spkId: row.spkId,
           noSpk: row.spk?.noSpk ?? `#${row.spkId}`,
-          judulPekerjaan: row.spk?.judulPekerjaan ?? '-',
           mandorUsername: row.spk?.mandor?.username ?? '-',
+          mandorNamaBank: row.spk?.mandor?.namaBank ?? null,
+          mandorNoRekening: row.spk?.mandor?.noRekening ?? null,
+          mandorAtasNamaRekening: row.spk?.mandor?.atasNamaRekening ?? null,
           ksoFull: row.spk?.bankRekeningPt?.atasNama ?? null,
           nilaiKontrak: row.spk?.nilaiKontrak ?? 0,
           items: [row],
@@ -655,7 +659,7 @@ const BayarSpkPembayaran = () => {
                 <tr>
                   <th className={`${thParentClass} w-10`} aria-label="Buka detail" />
                   <th className={thParentClass}>No. SPK</th>
-                  <th className={thParentClass}>Judul Pekerjaan</th>
+                  <th className={thParentClass}>Rekening Mandor</th>
                   <th className={thParentClass}>Mandor</th>
                   <th className={thParentClass}>KSO</th>
                   <th className={thParentClass}>Nilai Kontrak</th>
@@ -689,10 +693,31 @@ const BayarSpkPembayaran = () => {
                         <td className={`${tdParentClass} font-bold text-slate-900 whitespace-nowrap`}>
                           {group.noSpk}
                         </td>
-                        <td className={`${tdParentClass} text-xs text-slate-600 max-w-[200px]`}>
-                          <span className="line-clamp-2" title={group.judulPekerjaan}>
-                            {group.judulPekerjaan}
-                          </span>
+                        <td className={`${tdParentClass} text-xs text-slate-600 max-w-[220px]`}>
+                          {group.mandorNamaBank || group.mandorNoRekening ? (
+                            <div
+                              title={[
+                                group.mandorNamaBank,
+                                group.mandorNoRekening,
+                                group.mandorAtasNamaRekening
+                                  ? `a/n ${group.mandorAtasNamaRekening}`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            >
+                              <p className="font-medium text-slate-700 whitespace-nowrap">
+                                {group.mandorNamaBank ?? '—'} · {group.mandorNoRekening ?? '—'}
+                              </p>
+                              {group.mandorAtasNamaRekening && (
+                                <p className="text-[10px] text-slate-500 truncate">
+                                  a/n {group.mandorAtasNamaRekening}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
                         </td>
                         <td className={`${tdParentClass} font-medium text-slate-700 whitespace-nowrap`}>
                           {group.mandorUsername}
