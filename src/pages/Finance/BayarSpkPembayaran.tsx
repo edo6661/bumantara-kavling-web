@@ -113,20 +113,54 @@ const rekeningSignature = (row: SpkPembayaranData) => {
   return `${rek.namaBank}|${rek.noRekening}|${rek.atasNamaRekening}`;
 };
 
+const tdRekeningClass = 'px-4 text-xs text-slate-600 align-top min-w-0 max-w-0';
+
+const RekeningCell = ({
+  namaBank,
+  noRekening,
+  atasNamaRekening,
+  title,
+}: {
+  namaBank: string | null;
+  noRekening: string | null;
+  atasNamaRekening?: string | null;
+  title?: string;
+}) => {
+  if (!namaBank && !noRekening) {
+    return <span className="text-slate-400">—</span>;
+  }
+
+  const fullTitle =
+    title ??
+    [namaBank, noRekening, atasNamaRekening ? `a/n ${atasNamaRekening}` : null]
+      .filter(Boolean)
+      .join(' · ');
+
+  return (
+    <div className="min-w-0 space-y-0.5" title={fullTitle}>
+      {namaBank && <p className="font-medium text-slate-700 leading-snug break-words">{namaBank}</p>}
+      {noRekening && (
+        <p className="font-mono text-[11px] text-slate-600 leading-snug break-all">{noRekening}</p>
+      )}
+      {atasNamaRekening && (
+        <p className="text-[10px] text-slate-500 leading-snug break-words">a/n {atasNamaRekening}</p>
+      )}
+    </div>
+  );
+};
+
 const renderTransferRekeningCell = (row: SpkPembayaranData) => {
   const rek = resolveSpkPembayaranTransferRekening(row);
   if (!rek?.noRekening && !rek?.namaBank) {
     return <span className="text-slate-400">—</span>;
   }
   return (
-    <div title={formatMandorRekeningLabel(rek)}>
-      <p className="font-medium text-slate-700 whitespace-nowrap">
-        {rek.namaBank ?? '—'} · {rek.noRekening ?? '—'}
-      </p>
-      {rek.atasNamaRekening && (
-        <p className="text-[10px] text-slate-500 truncate">a/n {rek.atasNamaRekening}</p>
-      )}
-    </div>
+    <RekeningCell
+      namaBank={rek.namaBank ?? null}
+      noRekening={rek.noRekening ?? null}
+      atasNamaRekening={rek.atasNamaRekening}
+      title={formatMandorRekeningLabel(rek)}
+    />
   );
 };
 
@@ -469,9 +503,7 @@ const BayarSpkPembayaran = () => {
         <td className={`px-4 py-2.5 text-sm font-bold ${colors.text} whitespace-nowrap`}>
           {formatRupiah(row.nominal)}
         </td>
-        <td className="px-4 py-2.5 text-xs text-slate-600 max-w-[180px]">
-          {renderTransferRekeningCell(row)}
-        </td>
+        <td className={`${tdRekeningClass} py-2.5`}>{renderTransferRekeningCell(row)}</td>
         <td className="px-4 py-2.5 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
         <td className="px-4 py-2.5">
           <div className="flex flex-col gap-1">
@@ -694,7 +726,17 @@ const BayarSpkPembayaran = () => {
           <p className="px-5 py-10 text-center text-sm text-slate-400">Tidak ada data pembayaran.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse">
+            <table className="w-full min-w-[900px] border-collapse table-fixed">
+              <colgroup>
+                <col className="w-10" />
+                <col className="w-[22%]" />
+                <col className="w-[20%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[14%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+              </colgroup>
               <thead>
                 <tr>
                   <th className={`${thParentClass} w-10`} aria-label="Buka detail" />
@@ -730,33 +772,18 @@ const BayarSpkPembayaran = () => {
                             className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-blue-600' : ''}`}
                           />
                         </td>
-                        <td className={`${tdParentClass} font-bold text-slate-900 whitespace-nowrap`}>
+                        <td className={`${tdParentClass} font-bold text-slate-900 break-words align-top`}>
                           {group.noSpk}
                         </td>
-                        <td className={`${tdParentClass} text-xs text-slate-600 max-w-[220px]`}>
+                        <td className={`${tdRekeningClass} py-3`}>
                           {group.mandorNamaBank || group.mandorNoRekening ? (
-                            <div
-                              title={[
-                                group.mandorNamaBank,
-                                group.mandorNoRekening,
-                                group.mandorAtasNamaRekening
-                                  ? `a/n ${group.mandorAtasNamaRekening}`
-                                  : null,
-                              ]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            >
-                              <p className="font-medium text-slate-700 whitespace-nowrap">
-                                {group.mandorNamaBank ?? '—'} · {group.mandorNoRekening ?? '—'}
-                              </p>
-                              {group.mandorAtasNamaRekening && (
-                                <p className="text-[10px] text-slate-500 truncate">
-                                  a/n {group.mandorAtasNamaRekening}
-                                </p>
-                              )}
-                            </div>
+                            <RekeningCell
+                              namaBank={group.mandorNamaBank}
+                              noRekening={group.mandorNoRekening}
+                              atasNamaRekening={group.mandorAtasNamaRekening}
+                            />
                           ) : group.items.some((item) => rekeningSignature(item)) ? (
-                            <span className="text-[10px] font-semibold text-amber-700">
+                            <span className="text-[10px] font-semibold text-amber-700 leading-snug">
                               Beragam per pengajuan
                             </span>
                           ) : (
@@ -799,7 +826,17 @@ const BayarSpkPembayaran = () => {
                               Detail pembayaran — {group.noSpk}
                             </p>
                             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                              <table className="w-full min-w-[640px]">
+                              <table className="w-full min-w-[640px] table-fixed">
+                                <colgroup>
+                                  <col className="w-10" />
+                                  <col className="w-[18%]" />
+                                  <col className="w-[12%]" />
+                                  <col className="w-[20%]" />
+                                  <col className="w-[12%]" />
+                                  <col className="w-[12%]" />
+                                  <col className="w-[10%]" />
+                                  <col className="w-[10%]" />
+                                </colgroup>
                                 <thead>
                                   <tr className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
                                     <th className="px-4 py-2 w-10" onClick={(e) => e.stopPropagation()}>
