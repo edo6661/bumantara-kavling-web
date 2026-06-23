@@ -2,6 +2,7 @@ import type { AgentData, PenjualanAgentData } from '../types/models/agent';
 import type { FeeAgentData } from '../services/feeAgent.service';
 import type { AgentPencairanData } from '../services/agentPencairan.service';
 import { extractClosingDpp } from './agentPkpTax';
+import { isAgentPerusahaan } from './agentCommercialProfile';
 import {
   getTotalNilaiAjb,
   isAllProgressFileAjbComplete,
@@ -195,13 +196,86 @@ const sumSudahDiajukan = (pencairanList: AgentPencairanData[]) => ({
   marketingNominal: pencairanList.reduce((s, p) => s + Number(p.marketingNominal), 0),
 });
 
+/** Nominal bruto closing — prioritas: fee_agent (jika > 0) lalu master agent/perusahaan */
+export const resolveClosingFeeGross = (
+  agent: AgentData,
+  feeRecord?: FeeAgentData | null,
+  detail?: SaleDetail,
+) => {
+  if (isAgentInHouse(agent) || !isBookingFeePaid(detail)) return 0;
+  const fromFeeRecord =
+    feeRecord?.closingNominal != null ? Number(feeRecord.closingNominal) : null;
+  if (fromFeeRecord != null && fromFeeRecord > 0) return fromFeeRecord;
+  return Number(agent.feeClosingNominal) || 0;
+};
+
 export const getClosingGross = (
   agent: AgentData,
   feeRecord: FeeAgentData,
   detail?: SaleDetail,
-) => {
-  if (isAgentInHouse(agent) || !isBookingFeePaid(detail)) return 0;
-  return Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0;
+) => resolveClosingFeeGross(agent, feeRecord, detail);
+
+export const hasAgentClosingFeeConfigured = (agent?: AgentData | null) => {
+  if (!agent || isAgentInHouse(agent)) return false;
+  return (Number(agent.feeClosingNominal) || 0) > 0;
+};
+
+export type BatalClosingPencairanStatus = {
+  canDisburse: boolean;
+  message: string;
+  tone: 'success' | 'warning' | 'muted';
+};
+
+/** Status pencairan closing fee untuk transaksi BATAL (booking lunas + fee agent terkonfigurasi) */
+export const getBatalClosingPencairanStatus = (
+  agent: AgentData | undefined | null,
+  detail?: SaleDetail,
+  feeRecord?: FeeAgentData | null,
+): BatalClosingPencairanStatus => {
+  if (!isBookingFeePaid(detail)) {
+    return {
+      canDisburse: false,
+      message: 'Centang "Sudah bayar booking fee" saat edit transaksi batal',
+      tone: 'warning',
+    };
+  }
+  if (!agent) {
+    return {
+      canDisburse: false,
+      message: 'Agent tidak ditemukan di master — pastikan nama agent sudah terdaftar',
+      tone: 'warning',
+    };
+  }
+  if (isAgentInHouse(agent)) {
+    return {
+      canDisburse: false,
+      message: 'Agent in-house tidak memiliki closing fee',
+      tone: 'muted',
+    };
+  }
+  if (!feeRecord) {
+    return {
+      canDisburse: false,
+      message:
+        'Data fee_agent belum ada — jalankan Backfill Fee Agent di menu Marketing',
+      tone: 'warning',
+    };
+  }
+  const closingGross = resolveClosingFeeGross(agent, feeRecord, detail);
+  if (closingGross <= 0) {
+    return {
+      canDisburse: false,
+      message: isAgentPerusahaan(agent.type)
+        ? 'Fee closing belum diatur di master perusahaan agent'
+        : 'Fee closing belum diatur — edit agent dan isi kolom Fee Closing (Rp)',
+      tone: 'warning',
+    };
+  }
+  return {
+    canDisburse: true,
+    message: 'Dapat diajukan di menu Marketing → Agent',
+    tone: 'success',
+  };
 };
 
 /** DPP closing — untuk PKP di-extract dari bruto (÷ 1,11) */
@@ -472,7 +546,9 @@ export const getPencairanBlockReason = (
       return closing.alasan || 'Closing fee sudah diajukan';
     }
     if (!isAgentInHouse(agent)) {
-      return 'Closing fee belum diatur pada data agent';
+      return isAgentPerusahaan(agent.type)
+        ? 'Fee closing belum diatur di master perusahaan agent'
+        : 'Fee closing belum diatur di data agent — edit agent dan isi kolom Fee Closing (Rp)';
     }
   }
 

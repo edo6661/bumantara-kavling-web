@@ -27,9 +27,8 @@ import {
 import type { PencairanKomponenKey } from '../../utils/agentPencairanPreview';
 import { buildPencairanAjukanPreview } from '../../utils/agentPencairanPreview';
 import {
-  applyPerusahaanCommercialToAgent,
-  getPerusahaanById,
   isAgentPerusahaan,
+  resolveAgentForPencairan,
 } from '../../utils/agentCommercialProfile';
 import { hasAgentPencairanInvoice } from '../../utils/agentPencairanInvoice';
 import type { AgentData, PenjualanAgentData } from '../../types/models/agent';
@@ -78,15 +77,10 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
     return map;
   }, [pencairanData]);
 
-  const commercial = useMemo(() => {
-    if (isAgentPerusahaan(agent.type) && agent.perusahaanAgent?.id) {
-      return applyPerusahaanCommercialToAgent(
-        agent,
-        getPerusahaanById(perusahaanList, agent.perusahaanAgent.id),
-      );
-    }
-    return agent;
-  }, [agent, perusahaanList]);
+  const commercial = useMemo(
+    () => resolveAgentForPencairan(agent, perusahaanList),
+    [agent, perusahaanList],
+  );
 
   const [selectedDetailPenjualan, setSelectedDetailPenjualan] = useState<any>(null);
   const [pencairanModal, setPencairanModal] = useState<{

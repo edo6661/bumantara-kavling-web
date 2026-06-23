@@ -34,6 +34,8 @@ import {
   isAgentInHouse,
   getEffectiveMarketingPct,
   IN_HOUSE_FEE_MARKETING_PCT,
+  hasAgentClosingFeeConfigured,
+  isBatalClosingEligible,
   type SaleDetail,
 } from "../../utils/agentPencairan";
 import type { PencairanKomponenKey } from "../../utils/agentPencairanPreview";
@@ -46,6 +48,7 @@ import {
   applyPerusahaanCommercialToAgent,
   getPerusahaanById,
   isAgentPerusahaan,
+  resolveAgentForPencairan,
 } from '../../utils/agentCommercialProfile';
 import { useAuth } from '../../context/AuthContext';
 
@@ -245,7 +248,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
   const handleBackfillFeeAgent = async () => {
     if (
       !window.confirm(
-        'Backfill fee agent untuk penjualan yang punya agent tapi belum punya data fee_agent?\n\nTermasuk penjualan BATAL yang booking fee-nya sudah lunas (untuk pencairan closing fee).\n\nProses ini aman dijalankan ulang (duplikat akan dilewati).',
+        'Backfill fee agent untuk penjualan yang punya agent tapi belum punya data fee_agent.\n\nJuga menyinkronkan fee closing dari master agent/perusahaan ke baris fee_agent yang masih kosong.\n\nTermasuk penjualan BATAL yang booking fee-nya sudah lunas (untuk pencairan closing fee).\n\nProses ini aman dijalankan ulang (duplikat akan dilewati).',
       )
     ) {
       return;
@@ -688,14 +691,42 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
   };
 
   const expandedRowRender = (row: AgentData) => {
+    const commercial = resolveAgentForPencairan(row, perusahaanList);
     const relatedSales = mergeAgentPenjualanWithEligibleBatal(row, penjualanList);
+    const needsFeeSetup =
+      !isAgentInHouse(commercial) &&
+      !hasAgentClosingFeeConfigured(commercial) &&
+      relatedSales.some((sale) =>
+        isBatalClosingEligible(resolveSaleDetail(sale, penjualanList)),
+      );
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm">
         <h4 className="text-sm font-bold text-slate-800 mb-2 border-b border-slate-100 pb-2">
           Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span>
         </h4>
+        {needsFeeSetup && (
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-xs text-amber-900 leading-relaxed">
+              <span className="font-bold">Fee agent belum lengkap.</span>{' '}
+              Isi <span className="font-semibold">Fee Closing (Rp)</span>,{' '}
+              <span className="font-semibold">Fee Marketing (%)</span>, dan{' '}
+              <span className="font-semibold">Potongan PPh</span> agar pencairan closing fee transaksi batal bisa diajukan.
+              Backfill hanya membuat data penghubung — tidak mengisi nominal fee.
+            </p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openModal(row);
+              }}
+              className="shrink-0 px-3 py-1.5 text-[10px] font-bold uppercase text-amber-900 bg-white border border-amber-300 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
+            >
+              Atur Fee Agent
+            </button>
+          </div>
+        )}
         <p className="text-[10px] text-slate-500 mb-4 flex flex-wrap gap-x-4 gap-y-1">
-          {isAgentInHouse(row) && (
+          {isAgentInHouse(commercial) && (
             <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">
               Agent In-House
             </span>
@@ -703,27 +734,27 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
           <span>
             Fee Marketing:{" "}
             <span className="font-semibold text-slate-600 tabular-nums">
-              {isAgentInHouse(row)
+              {isAgentInHouse(commercial)
                 ? `${IN_HOUSE_FEE_MARKETING_PCT}% (in-house)`
-                : row.feeMarketingPct != null
-                  ? `${row.feeMarketingPct}%`
+                : commercial.feeMarketingPct != null
+                  ? `${commercial.feeMarketingPct}%`
                   : "-"}
             </span>
           </span>
           <span>
             Fee Closing:{" "}
             <span className="font-semibold text-slate-600 tabular-nums">
-              {isAgentInHouse(row)
+              {isAgentInHouse(commercial)
                 ? '-'
-                : row.feeClosingNominal != null
-                  ? formatRupiah(row.feeClosingNominal)
+                : commercial.feeClosingNominal != null
+                  ? formatRupiah(commercial.feeClosingNominal)
                   : "-"}
             </span>
           </span>
           <span>
             Potongan PPh:{" "}
             <span className="font-semibold text-slate-600 tabular-nums">
-              {row.potonganPph != null ? `${row.potonganPph}%` : "-"}
+              {commercial.potonganPph != null ? `${commercial.potonganPph}%` : "-"}
             </span>
           </span>
         </p>
@@ -759,9 +790,9 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                   const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
                   const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
                   const pencairanList = feeRecord ? (pencairanByFeeAgentId.get(feeRecord.id) ?? []) : [];
-                  const { fee, totalFee, potPph } = calcAgentFees(row, nilaiAjb, feeRecord);
+                  const { fee, totalFee, potPph } = calcAgentFees(commercial, nilaiAjb, feeRecord);
                   const feeTotals = feeRecord
-                    ? getPencairanFeeTotals(row, feeRecord, detail)
+                    ? getPencairanFeeTotals(commercial, feeRecord, detail)
                     : undefined;
                   const paymentStatus = getPencairanPaymentStatus(
                     pencairanList,
@@ -769,10 +800,10 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                   );
                   const saleLabel = `${sale.customer?.nama || "-"} — Blok ${sale.kavling?.blok || "-"} No. ${sale.kavling?.nomorUnit || "-"}`;
                   const canAjukan = feeRecord
-                    ? hasAnyEligiblePencairan(row, feeRecord, pencairanList, detail)
+                    ? hasAnyEligiblePencairan(commercial, feeRecord, pencairanList, detail)
                     : false;
                   const blockReason = getPencairanBlockReason(
-                    row,
+                    commercial,
                     feeRecord,
                     pencairanList,
                     detail
@@ -857,7 +888,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openAjukanPencairanModal(feeRecord!, saleLabel, row, detail);
+                                openAjukanPencairanModal(feeRecord!, saleLabel, commercial, detail);
                               }}
                               disabled={ajukanPencairanMutation.isPending}
                               className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-all cursor-pointer disabled:opacity-50"

@@ -41,3 +41,15 @@ export function getPerusahaanById(
   if (id === '' || id == null) return null;
   return perusahaanList.find((p) => p.id === Number(id)) ?? null;
 }
+
+/** Fee & rekening untuk kalkulasi pencairan — agent perusahaan ikut master perusahaan */
+export function resolveAgentForPencairan<T extends AgentCommercialFields & { type?: string; perusahaanAgent?: { id: number } | null }>(
+  agent: T,
+  perusahaanList: PerusahaanAgentData[],
+): T {
+  if (!isAgentPerusahaan(agent.type) || !agent.perusahaanAgent?.id) return agent;
+  return applyPerusahaanCommercialToAgent(
+    agent,
+    getPerusahaanById(perusahaanList, agent.perusahaanAgent.id),
+  );
+}

@@ -13,9 +13,14 @@ import {
 import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan, useUpdateBatalPenjualan } from "../../hooks/queries/usePenjualan";
 import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
+import { useGetFeeAgents } from "../../hooks/queries/useFeeAgent";
+import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import { storage } from "../../utils/storage";
 import { handleApiError } from '../../utils/errorHandler';
-import { isBookingFeePaid } from '../../utils/agentPencairan';
+import { getBatalClosingPencairanStatus, isBookingFeePaid } from '../../utils/agentPencairan';
+import { resolveAgentForPencairan } from '../../utils/agentCommercialProfile';
+import type { AgentData } from '../../types/models/agent';
+import type { FeeAgentData } from '../../services/feeAgent.service';
 
 const inferBookingFeePaid = (row: any) =>
   !!row.bookingFeeLunasBatal || isBookingFeePaid({
@@ -31,6 +36,8 @@ const BatalTransaksi = () => {
   const uploadRefundMutation = useUploadRefundTagihan();
   const updateBatalMutation = useUpdateBatalPenjualan();
   const { data: agentData = [] } = useGetAgents();
+  const { data: feeData = [] } = useGetFeeAgents();
+  const { data: perusahaanList = [] } = useGetPerusahaanAgents();
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedPenjualan, setSelectedPenjualan] = useState<any>(null);
@@ -41,6 +48,33 @@ const BatalTransaksi = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const user = storage.getUser();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+
+  const agentByName = useMemo(() => {
+    const map = new Map<string, AgentData>();
+    agentData.forEach((a) => map.set(a.nama.trim().toLowerCase(), a));
+    return map;
+  }, [agentData]);
+
+  const feeByPenjualanId = useMemo(() => {
+    const map = new Map<number, FeeAgentData>();
+    feeData.forEach((f) => map.set(f.penjualanId, f));
+    return map;
+  }, [feeData]);
+
+  const resolveClosingStatus = (row: any) => {
+    const matched = row.agent
+      ? agentByName.get(String(row.agent).trim().toLowerCase())
+      : undefined;
+    const commercial = matched
+      ? resolveAgentForPencairan(matched, perusahaanList)
+      : null;
+    const feeRecord = row.id ? feeByPenjualanId.get(row.id) : undefined;
+    return getBatalClosingPencairanStatus(commercial, {
+      status: row.status,
+      bookingFeeLunasBatal: row.bookingFeeLunasBatal,
+      tagihan: row.tagihan,
+    }, feeRecord);
+  };
   const handleOpenEdit = (row: any) => {
     setSelectedPenjualan(row);
     setEditAgent(row.agent || '');
@@ -237,6 +271,13 @@ const BatalTransaksi = () => {
   };
   const expandedRowRenderRefund = (row: any) => {
     const tagihanLunas = (row.tagihan || []).filter((t: any) => t.status === 'LUNAS');
+    const closingStatus = resolveClosingStatus(row);
+    const closingToneClass =
+      closingStatus.tone === 'success'
+        ? 'text-green-700'
+        : closingStatus.tone === 'warning'
+          ? 'text-amber-700'
+          : 'text-slate-500';
     return (
       <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm animate-in fade-in duration-300">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-100 pb-3 gap-4">
@@ -250,11 +291,9 @@ const BatalTransaksi = () => {
             <p className="text-slate-500">Agent: <span className="font-bold text-slate-800">{row.agent || '-'}</span></p>
             <p className="text-slate-500 mt-1">
               Closing fee agent:{' '}
-              {inferBookingFeePaid(row) ? (
-                <span className="font-bold text-green-700">Dapat dicairkan di menu Marketing</span>
-              ) : (
-                <span className="font-bold text-amber-700">Centang &quot;Sudah bayar booking fee&quot; saat edit</span>
-              )}
+              <span className={`font-bold ${closingToneClass}`}>
+                {closingStatus.message}
+              </span>
             </p>
           </div>
         </div>
