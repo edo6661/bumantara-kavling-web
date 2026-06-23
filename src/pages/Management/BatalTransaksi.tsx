@@ -8,12 +8,20 @@ import { formatRupiah, formatDate } from "../../utils/formatters";
 import {
   FileUp, Eye, CheckCircle2, AlertCircle, Ban,
   Check, X, Clock,
-  XCircle
+  XCircle, Pencil
 } from 'lucide-react';
-import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan, useUpdateBatalPenjualan } from "../../hooks/queries/usePenjualan";
 import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
+import { useGetAgents } from "../../hooks/queries/useAgent";
 import { storage } from "../../utils/storage";
 import { handleApiError } from '../../utils/errorHandler';
+import { isBookingFeePaid } from '../../utils/agentPencairan';
+
+const inferBookingFeePaid = (row: any) =>
+  !!row.bookingFeeLunasBatal || isBookingFeePaid({
+    tagihan: row.tagihan,
+    bookingFeeLunasBatal: row.bookingFeeLunasBatal,
+  });
 const BatalTransaksi = () => {
   const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('refund');
   const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal('PENDING');
@@ -21,12 +29,47 @@ const BatalTransaksi = () => {
   const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
   const penjualanData = penjualanResponse?.items || [];
   const uploadRefundMutation = useUploadRefundTagihan();
+  const updateBatalMutation = useUpdateBatalPenjualan();
+  const { data: agentData = [] } = useGetAgents();
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedPenjualan, setSelectedPenjualan] = useState<any>(null);
+  const [editAgent, setEditAgent] = useState('');
+  const [editBookingFeeLunas, setEditBookingFeeLunas] = useState(false);
   const [selectedTagihan, setSelectedTagihan] = useState<any>(null);
   const [refundFile, setRefundFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const user = storage.getUser();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+  const handleOpenEdit = (row: any) => {
+    setSelectedPenjualan(row);
+    setEditAgent(row.agent || '');
+    setEditBookingFeeLunas(inferBookingFeePaid(row));
+    setIsEditModalOpen(true);
+  };
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPenjualan) return;
+    if (!editAgent.trim()) {
+      alert('Agent wajib dipilih.');
+      return;
+    }
+    try {
+      await updateBatalMutation.mutateAsync({
+        id: selectedPenjualan.noTransaksi,
+        data: {
+          agent: editAgent.trim(),
+          bookingFeeLunasBatal: editBookingFeeLunas,
+        },
+      });
+      alert('Data penjualan batal berhasil diperbarui.');
+      setIsEditModalOpen(false);
+      setSelectedPenjualan(null);
+    } catch (error: any) {
+      const { message } = handleApiError(error);
+      alert(message);
+    }
+  };
   const handleApproveReject = async (id: number, isApproved: boolean) => {
     const actionText = isApproved ? 'menyetujui' : 'menolak';
     if (!window.confirm(`Apakah Anda yakin ingin ${actionText} pengajuan pembatalan ini?`)) return;
@@ -117,11 +160,48 @@ const BatalTransaksi = () => {
       }
     },
     {
+      header: 'Agent',
+      accessor: 'agent',
+      render: (val: string) => (
+        <span className="font-medium text-slate-700">{val || '-'}</span>
+      ),
+    },
+    {
+      header: 'Booking Fee',
+      accessor: 'bookingFeeLunasBatal',
+      render: (_: any, row: any) => {
+        const paid = inferBookingFeePaid(row);
+        return paid ? (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700">
+            <CheckCircle2 size={12} /> Sudah Bayar
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
+            Belum / Hangus
+          </span>
+        );
+      },
+    },
+    {
       header: 'Status', accessor: 'status', render: (val: string) => (
         <span className="px-2.5 py-1 bg-red-100 text-red-800 text-[10px] font-bold uppercase tracking-wider rounded-md">
           {val}
         </span>
       )
+    },
+    {
+      header: 'Aksi',
+      accessor: 'noTransaksi',
+      render: (_: any, row: any) => (
+        <button
+          type="button"
+          onClick={() => handleOpenEdit(row)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition cursor-pointer"
+          title="Edit data penjualan batal"
+        >
+          <Pencil size={14} /> Edit
+        </button>
+      ),
     },
   ];
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,6 +245,17 @@ const BatalTransaksi = () => {
               <Ban size={16} className="text-red-500" /> Alasan Pembatalan
             </h4>
             <p className="text-sm text-slate-600 mt-1">{row.alasanBatal || 'Tidak ada alasan yang dicantumkan.'}</p>
+          </div>
+          <div className="text-right text-sm">
+            <p className="text-slate-500">Agent: <span className="font-bold text-slate-800">{row.agent || '-'}</span></p>
+            <p className="text-slate-500 mt-1">
+              Closing fee agent:{' '}
+              {inferBookingFeePaid(row) ? (
+                <span className="font-bold text-green-700">Dapat dicairkan di menu Marketing</span>
+              ) : (
+                <span className="font-bold text-amber-700">Centang &quot;Sudah bayar booking fee&quot; saat edit</span>
+              )}
+            </p>
           </div>
         </div>
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 mt-4">Dana yang Masuk (Bisa Di-refund)</h4>
@@ -270,6 +361,72 @@ const BatalTransaksi = () => {
           expandedRowRender={expandedRowRenderRefund}
         />
       )}
+      {/* MODAL EDIT PENJUALAN BATAL */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Data Penjualan Batal"
+      >
+        <form onSubmit={handleEditSubmit} className="space-y-5">
+          {selectedPenjualan && (
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
+              <p className="font-bold text-slate-900">{selectedPenjualan.nama}</p>
+              <p className="text-slate-500 mt-1">
+                {selectedPenjualan.noTransaksi} · Blok {selectedPenjualan.blok}-{selectedPenjualan.nomorUnit}
+              </p>
+            </div>
+          )}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+              Agent Penjualan
+            </label>
+            <select
+              value={editAgent}
+              onChange={(e) => setEditAgent(e.target.value)}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black"
+              required
+            >
+              <option value="">-- Pilih Agent --</option>
+              {agentData.map((agent: { id: number; nama: string }) => (
+                <option key={agent.id} value={agent.nama}>
+                  {agent.nama}
+                </option>
+              ))}
+            </select>
+          </div>
+          <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition">
+            <input
+              type="checkbox"
+              checked={editBookingFeeLunas}
+              onChange={(e) => setEditBookingFeeLunas(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300"
+            />
+            <div>
+              <p className="text-sm font-bold text-slate-900">Customer sudah bayar booking fee</p>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Jika dicentang, marketing dapat mengajukan pencairan closing fee agent untuk transaksi batal ini (komisi marketing tidak dicairkan).
+              </p>
+            </div>
+          </label>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(false)}
+              disabled={updateBatalMutation.isPending}
+              className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={updateBatalMutation.isPending}
+              className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
+            >
+              {updateBatalMutation.isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
       {/* MODAL PROSES REFUND */}
       <Modal isOpen={isRefundModalOpen} onClose={() => setIsRefundModalOpen(false)} title="Proses Pengembalian Dana (Refund)">
         <form onSubmit={handleRefundSubmit} className="space-y-5">

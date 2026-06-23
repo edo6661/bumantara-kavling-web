@@ -15,6 +15,7 @@ export const KOMISI_CASH_PPJB_RATIO = 0.5;
 
 export type SaleDetail = {
   status?: string | null;
+  bookingFeeLunasBatal?: boolean;
   caraPembayaran?: string | null;
   hargaJual?: number | null;
   fileBuktiBooking?: string | null;
@@ -77,6 +78,7 @@ export const resolveSaleDetail = (
     caraPembayaran: matched?.caraPembayaran ?? sale.caraPembayaran,
     hargaJual: matched?.hargaJual ?? sale.hargaJual,
     fileBuktiBooking: matched?.fileBuktiBooking,
+    bookingFeeLunasBatal: (matched as SaleDetail | undefined)?.bookingFeeLunasBatal,
     jumlahSertifikatTanah:
       (matched as SaleDetail | undefined)?.jumlahSertifikatTanah ??
       (matched as SaleDetail | undefined)?.kavling?.jumlahSertifikatTanah,
@@ -97,6 +99,7 @@ export const isPenjualanBatal = (status?: string | null) =>
   (status ?? '').toUpperCase() === 'BATAL';
 
 export const isBookingFeePaid = (detail?: SaleDetail) =>
+  !!detail?.bookingFeeLunasBatal ||
   (detail?.tagihan ?? []).some(
     (t) =>
       effectiveTagihanTujuan(t) === 'BOOKING_FEE' && t.status === 'LUNAS',

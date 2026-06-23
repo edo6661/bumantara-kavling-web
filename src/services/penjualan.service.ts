@@ -99,6 +99,13 @@ export const penjualanService = {
     const response = await api.patch(`/penjualan/${noTransaksi}`, data);
     return response.data.data;
   },
+  updateBatal: async (
+    noTransaksi: string,
+    data: { agent?: string; bookingFeeLunasBatal?: boolean },
+  ) => {
+    const response = await api.patch(`/penjualan/${noTransaksi}/batal`, data);
+    return response.data.data;
+  },
   gantiKavling: async (
     noTransaksi: string,
     data: { kavlingBaruId: number; alasan: string },
