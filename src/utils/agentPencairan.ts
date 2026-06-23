@@ -47,6 +47,7 @@ export type PenjualanSaleRef = {
   status?: string | null;
   hargaJual?: number | null;
   caraPembayaran?: string | null;
+  bookingFeeLunasBatal?: boolean;
 };
 
 const inferTagihanTujuanFromPembayaran = (pembayaran: string) => {
@@ -86,7 +87,8 @@ export const resolveSaleDetail = (
     caraPembayaran: matched?.caraPembayaran ?? sale.caraPembayaran,
     hargaJual: matched?.hargaJual ?? sale.hargaJual,
     fileBuktiBooking: matched?.fileBuktiBooking,
-    bookingFeeLunasBatal: (matched as SaleDetail | undefined)?.bookingFeeLunasBatal,
+    bookingFeeLunasBatal:
+      matched?.bookingFeeLunasBatal ?? sale.bookingFeeLunasBatal,
     jumlahSertifikatTanah:
       (matched as SaleDetail | undefined)?.jumlahSertifikatTanah ??
       (matched as SaleDetail | undefined)?.kavling?.jumlahSertifikatTanah,
@@ -151,6 +153,7 @@ export const mergeAgentPenjualanWithEligibleBatal = (
         tanggal: p.tanggal ?? '',
         hargaJual: Number(p.hargaJual ?? 0),
         status: p.status ?? 'BATAL',
+        bookingFeeLunasBatal: p.bookingFeeLunasBatal ?? true,
         customer: { nama: p.nama ?? '' },
         kavling: {
           blok: p.blok ?? '',
@@ -456,6 +459,22 @@ export const getPencairanBlockReason = (
   const feeTotals = getPencairanFeeTotals(agent, feeRecord, detail);
   const summary = summarizePencairanHistory(pencairanList);
   const fullySubmitted = isPencairanFullySubmitted(pencairanList, feeTotals);
+  const isBatal = isPenjualanBatal(detail?.status);
+  const bookingPaid = isBookingFeePaid(detail);
+  const closing = komponen.find((k) => k.key === 'closing');
+
+  // Transaksi batal + booking lunas: closing fee yang relevan, bukan komisi marketing
+  if (isBatal && bookingPaid && closing) {
+    if (closing.nominalSisa > 0) {
+      return closing.alasan ?? 'Transaksi batal — closing fee dapat dicairkan';
+    }
+    if (closing.nominalPenuh > 0) {
+      return closing.alasan || 'Closing fee sudah diajukan';
+    }
+    if (!isAgentInHouse(agent)) {
+      return 'Closing fee belum diatur pada data agent';
+    }
+  }
 
   // Utamakan komponen yang masih punya sisa — jangan tampilkan "closing sudah" saat marketing masih pending
   const withSisa = komponen.filter((k) => k.nominalSisa > 0);
@@ -466,7 +485,9 @@ export const getPencairanBlockReason = (
 
   if (summary.jumlahPengajuan === 0) {
     const blocked = komponen.find(
-      (k) => !k.eligible && (k.nominalPenuh > 0 || k.key === 'marketing'),
+      (k) =>
+        !k.eligible &&
+        (k.nominalPenuh > 0 || (k.key === 'marketing' && !isBatal)),
     );
     return blocked?.alasan ?? 'Belum memenuhi syarat pencairan';
   }
