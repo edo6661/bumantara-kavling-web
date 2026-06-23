@@ -106,7 +106,6 @@ const BayarKodeBillingPph = () => {
     selectRow,
     clearSelection: clearPasteSelection,
     getRowClassName,
-    handlePasteEvent,
   } = useRowPasteUpload<KodeBillingPphData>({
     canSelect: (row) => row.status === 'MENUNGGU_BAYAR',
     onPasteFiles,
@@ -335,7 +334,6 @@ const BayarKodeBillingPph = () => {
         <PasteUploadBanner
           label={pasteBannerLabel}
           onClear={clearPasteSelection}
-          onPaste={handlePasteEvent}
         />
       )}
 

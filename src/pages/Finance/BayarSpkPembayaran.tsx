@@ -717,7 +717,6 @@ const BayarSpkPembayaran = () => {
             <PasteUploadBanner
               label={`${pasteSelection.row.spk?.noSpk ?? `#${pasteSelection.row.spkId}`} · ${getItemLabel(pasteSelection.row)} · ${formatRupiah(pasteSelection.row.nominal)}${pasteSelection.mode === 'add-bukti' ? ' (tambah bukti)' : ''}`}
               onClear={() => setPasteSelection(null)}
-              onPaste={handlePasteEvent}
             />
           </div>
         )}

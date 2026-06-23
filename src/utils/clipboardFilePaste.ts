@@ -10,17 +10,12 @@ export function getFilesFromClipboard(
 
   const pushFile = (file: File | null) => {
     if (!file?.size) return;
-    const key = `${file.name}|${file.size}|${file.type}|${file.lastModified}`;
+    // Jangan pakai name — clipboard sering mengisi files & items dengan nama berbeda ("" vs "image.png")
+    const key = `${file.size}|${file.type}|${file.lastModified}`;
     if (seen.has(key)) return;
     seen.add(key);
     files.push(file);
   };
-
-  if (dt.files?.length) {
-    for (let i = 0; i < dt.files.length; i++) {
-      pushFile(dt.files[i] ?? null);
-    }
-  }
 
   const items = dt.items;
   if (items?.length) {
@@ -28,6 +23,13 @@ export function getFilesFromClipboard(
       const item = items[i];
       if (!item || item.kind !== 'file') continue;
       pushFile(item.getAsFile());
+    }
+  }
+
+  // Fallback jika browser tidak mengisi items (jarang pada paste gambar)
+  if (!files.length && dt.files?.length) {
+    for (let i = 0; i < dt.files.length; i++) {
+      pushFile(dt.files[i] ?? null);
     }
   }
 

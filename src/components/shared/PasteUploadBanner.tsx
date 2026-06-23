@@ -4,10 +4,9 @@ import { ClipboardPaste, X } from 'lucide-react';
 interface PasteUploadBannerProps {
   label: string;
   onClear: () => void;
-  onPaste: (e: React.ClipboardEvent) => void;
 }
 
-const PasteUploadBanner = ({ label, onClear, onPaste }: PasteUploadBannerProps) => {
+const PasteUploadBanner = ({ label, onClear }: PasteUploadBannerProps) => {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -20,7 +19,6 @@ const PasteUploadBanner = ({ label, onClear, onPaste }: PasteUploadBannerProps) 
       tabIndex={0}
       role="region"
       aria-label="Area paste bukti pembayaran"
-      onPaste={onPaste}
       onClick={() => ref.current?.focus()}
       className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl animate-in fade-in duration-200 outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 cursor-default"
     >

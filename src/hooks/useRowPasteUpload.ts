@@ -68,6 +68,5 @@ export function useRowPasteUpload<T extends { id: number }>({
     clearSelection,
     isSelected,
     getRowClassName,
-    handlePasteEvent,
   };
 }
