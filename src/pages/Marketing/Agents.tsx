@@ -239,7 +239,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
   const handleBackfillFeeAgent = async () => {
     if (
       !window.confirm(
-        'Backfill fee agent untuk penjualan yang punya agent tapi belum punya data fee_agent?\n\nProses ini aman dijalankan ulang (duplikat akan dilewati).',
+        'Backfill fee agent untuk penjualan yang punya agent tapi belum punya data fee_agent?\n\nTermasuk penjualan BATAL yang booking fee-nya sudah lunas (untuk pencairan closing fee).\n\nProses ini aman dijalankan ulang (duplikat akan dilewati).',
       )
     ) {
       return;
