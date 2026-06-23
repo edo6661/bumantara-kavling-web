@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   LayoutDashboard,
   Briefcase,
@@ -136,8 +136,22 @@ interface SidebarProps {
   setIsOpen: (isOpen: boolean) => void;
 }
 
+const isSpkRumahPath = (pathname: string, search: string) =>
+  pathname === '/proyek/spk' && !search.includes('tab=infra');
+
+const isSpkInfraPath = (pathname: string, search: string) =>
+  pathname === '/proyek/spk' && search.includes('tab=infra');
+
+const isSpkChildPathActive = (path: string, pathname: string, search: string) => {
+  if (path.includes('tab=infra')) return isSpkInfraPath(pathname, search);
+  if (path === '/proyek/spk') return isSpkRumahPath(pathname, search);
+  return pathname.startsWith(path);
+};
+
 const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const locationSearch = location.search || (searchParams.toString() ? `?${searchParams.toString()}` : '');
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -170,6 +184,20 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         if ('children' in sub && sub.children) {
           return { ...sub, children: sub.children };
         }
+        if (
+          user?.role === 'SUPERADMIN' &&
+          'path' in sub &&
+          sub.path === '/proyek/spk'
+        ) {
+          return {
+            title: 'SPK',
+            resource: 'SPK',
+            children: [
+              { title: 'SPK Rumah', path: '/proyek/spk' },
+              { title: 'SPK Infrastruktur', path: '/proyek/spk?tab=infra' },
+            ],
+          };
+        }
         return sub;
       })
       .filter((sub) => {
@@ -184,10 +212,15 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
   const isSubmenuPathActive = (sub: SubmenuItem) => {
     if ('path' in sub && sub.path) {
+      if (sub.path === '/proyek/spk') {
+        return location.pathname === '/proyek/spk';
+      }
       return location.pathname.startsWith(sub.path);
     }
     if ('children' in sub && sub.children) {
-      return sub.children.some((child) => location.pathname.startsWith(child.path));
+      return sub.children.some((child) =>
+        isSpkChildPathActive(child.path, location.pathname, locationSearch),
+      );
     }
     return false;
   };
@@ -206,7 +239,12 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     const initialOpenSubMenus: Record<string, boolean> = {};
     menuItems.forEach(item => {
       item.submenus?.forEach((sub) => {
-        if ('children' in sub && sub.children?.some((child) => location.pathname.startsWith(child.path))) {
+        if (
+          'children' in sub &&
+          sub.children?.some((child) =>
+            isSpkChildPathActive(child.path, location.pathname, locationSearch),
+          )
+        ) {
           initialOpenSubMenus[`${item.title}::${sub.title}`] = true;
         }
       });
@@ -405,6 +443,13 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                                                 : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 hover:translate-x-0.5'
                                               }
                                             `}
+                                            isActive={() =>
+                                              isSpkChildPathActive(
+                                                child.path,
+                                                location.pathname,
+                                                locationSearch,
+                                              )
+                                            }
                                           >
                                             <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
                                             <span className="flex-1 truncate">{child.title}</span>

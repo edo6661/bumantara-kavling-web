@@ -337,6 +337,7 @@ const SPK = () => {
   };
 
   const isMandorRole = user?.role === 'MANDOR';
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
   const isAdminRole = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1141,7 +1142,7 @@ const SPK = () => {
   if (activeTab === 'infra') {
     return (
       <div className="space-y-4 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
-        {spkTabBar}
+        {!isSuperAdmin && spkTabBar}
         <SpkInfrastrukturPanel />
       </div>
     );
@@ -1156,7 +1157,7 @@ const SPK = () => {
 
   return (
     <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
-      {spkTabBar}
+      {!isSuperAdmin && spkTabBar}
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
       <div
