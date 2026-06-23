@@ -432,24 +432,22 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                                     <div className="ml-3 mt-0.5 pl-3 border-l border-white/10 space-y-0.5">
                                       {sub.children.map((child) => {
                                         const badgeCount = getBadgeForPath(child.path);
+                                        const childLinkActive = isSpkChildPathActive(
+                                          child.path,
+                                          location.pathname,
+                                          locationSearch,
+                                        );
                                         return (
                                           <NavLink
                                             key={child.path}
                                             to={child.path}
-                                            className={({ isActive: linkActive }) => `
+                                            className={`
                                               flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium transition-all duration-200
-                                              ${linkActive
+                                              ${childLinkActive
                                                 ? 'bg-blue-500/20 text-blue-300 font-semibold'
                                                 : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 hover:translate-x-0.5'
                                               }
                                             `}
-                                            isActive={() =>
-                                              isSpkChildPathActive(
-                                                child.path,
-                                                location.pathname,
-                                                locationSearch,
-                                              )
-                                            }
                                           >
                                             <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
                                             <span className="flex-1 truncate">{child.title}</span>
