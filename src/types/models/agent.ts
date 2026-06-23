@@ -52,6 +52,7 @@ export interface AgentData {
   feeClosingNominal: number | null;
   potonganPph: number | null;
   isPkp?: boolean;
+  isInHouse?: boolean;
   fileKtp: string | null;
   fileNpwp: string | null;
   kwitansiBookingFee: string | null;
@@ -80,5 +81,6 @@ export interface CreateAgentDTO {
   feeMarketingPct?: number;
   feeClosingNominal?: number;
   potonganPph?: number;
+  isInHouse?: boolean;
   pics?: PicAgentData[];
 }

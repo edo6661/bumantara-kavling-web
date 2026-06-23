@@ -31,6 +31,9 @@ import {
   getPencairanFeeTotals,
   resolveSaleDetail,
   mergeAgentPenjualanWithEligibleBatal,
+  isAgentInHouse,
+  getEffectiveMarketingPct,
+  IN_HOUSE_FEE_MARKETING_PCT,
   type SaleDetail,
 } from "../../utils/agentPencairan";
 import type { PencairanKomponenKey } from "../../utils/agentPencairanPreview";
@@ -61,6 +64,7 @@ interface AgentFormState {
   feeMarketingPct: number | '';
   feeClosingNominal: number | '';
   potonganPph: number | '';
+  isInHouse: boolean;
   pics: PicAgentData[];
 }
 
@@ -79,6 +83,7 @@ const initialFormState: AgentFormState = {
   feeMarketingPct: '',
   feeClosingNominal: '',
   potonganPph: '',
+  isInHouse: false,
   pics: [{ nama: '', noHp: '', alamat: '' }]
 };
 
@@ -96,14 +101,15 @@ const calcAgentFees = (
   feeRecord?: FeeAgentData
 ) => {
   const ajb = nilaiAjb ? Number(nilaiAjb) : 0;
-  const feeMarketingPct = Number(agent.feeMarketingPct) || 0;
+  const feeMarketingPct = getEffectiveMarketingPct(agent);
   const potonganPph = Number(agent.potonganPph) || 0;
 
   const marketingFee = ajb > 0 ? ajb * (feeMarketingPct / 100) : 0;
-  const closingFee =
-    Number(feeRecord?.closingNominal) ||
-    Number(agent.feeClosingNominal) ||
-    0;
+  const closingFee = isAgentInHouse(agent)
+    ? 0
+    : Number(feeRecord?.closingNominal) ||
+      Number(agent.feeClosingNominal) ||
+      0;
 
   const totalFeePlusClosing = marketingFee + closingFee;
   const potPph = (marketingFee + closingFee) * (potonganPph / 100);
@@ -400,6 +406,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
         feeMarketingPct: commercial.feeMarketingPct ?? '',
         feeClosingNominal: commercial.feeClosingNominal ?? '',
         potonganPph: commercial.potonganPph ?? '',
+        isInHouse: item.isInHouse ?? false,
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
       setIsEditing(true);
@@ -541,11 +548,17 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
     };
 
     if (!isPerusahaan) {
-      if (formData.feeMarketingPct !== '') {
-        payload.feeMarketingPct = Number(formData.feeMarketingPct);
-      }
-      if (formData.feeClosingNominal !== '') {
-        payload.feeClosingNominal = Number(formData.feeClosingNominal);
+      payload.isInHouse = formData.isInHouse;
+      if (formData.isInHouse) {
+        payload.feeMarketingPct = IN_HOUSE_FEE_MARKETING_PCT;
+        payload.feeClosingNominal = 0;
+      } else {
+        if (formData.feeMarketingPct !== '') {
+          payload.feeMarketingPct = Number(formData.feeMarketingPct);
+        }
+        if (formData.feeClosingNominal !== '') {
+          payload.feeClosingNominal = Number(formData.feeClosingNominal);
+        }
       }
       if (formData.potonganPph !== '') {
         payload.potonganPph = Number(formData.potonganPph);
@@ -682,16 +695,29 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
           Riwayat Penjualan Agent: <span className="text-blue-600">{row.nama}</span>
         </h4>
         <p className="text-[10px] text-slate-500 mb-4 flex flex-wrap gap-x-4 gap-y-1">
+          {isAgentInHouse(row) && (
+            <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">
+              Agent In-House
+            </span>
+          )}
           <span>
             Fee Marketing:{" "}
             <span className="font-semibold text-slate-600 tabular-nums">
-              {row.feeMarketingPct != null ? `${row.feeMarketingPct}%` : "-"}
+              {isAgentInHouse(row)
+                ? `${IN_HOUSE_FEE_MARKETING_PCT}% (in-house)`
+                : row.feeMarketingPct != null
+                  ? `${row.feeMarketingPct}%`
+                  : "-"}
             </span>
           </span>
           <span>
             Fee Closing:{" "}
             <span className="font-semibold text-slate-600 tabular-nums">
-              {row.feeClosingNominal != null ? formatRupiah(row.feeClosingNominal) : "-"}
+              {isAgentInHouse(row)
+                ? '-'
+                : row.feeClosingNominal != null
+                  ? formatRupiah(row.feeClosingNominal)
+                  : "-"}
             </span>
           </span>
           <span>
@@ -986,23 +1012,47 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                   </div>
                 ) : (
                   <>
+                    <label className="flex items-start gap-3 rounded-lg border border-violet-200 bg-violet-50/60 px-4 py-3 cursor-pointer mb-4">
+                      <input
+                        type="checkbox"
+                        checked={formData.isInHouse}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormData((prev) => ({
+                            ...prev,
+                            isInHouse: checked,
+                            feeMarketingPct: checked ? IN_HOUSE_FEE_MARKETING_PCT : '',
+                            feeClosingNominal: checked ? 0 : '',
+                          }));
+                        }}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-violet-700 focus:ring-violet-500"
+                      />
+                      <span>
+                        <span className="block text-sm font-bold text-slate-900">Agent In-House</span>
+                        <span className="block text-xs text-slate-500 mt-0.5">
+                          Tanpa closing fee. Pencairan komisi 0,5% berdasarkan nilai AJB setelah dokumen AJB lengkap.
+                        </span>
+                      </span>
+                    </label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Input
                         label="Fee Marketing (%)"
                         name="feeMarketingPct"
                         type="number"
                         step="any"
-                        value={formData.feeMarketingPct}
+                        value={formData.isInHouse ? IN_HOUSE_FEE_MARKETING_PCT : formData.feeMarketingPct}
                         onChange={handleChange}
                         placeholder="Contoh: 2.5"
+                        disabled={formData.isInHouse}
                       />
                       <div className="w-full">
                         <CurrencyInput
                           label="Fee Closing (Rp)"
                           name="feeClosingNominal"
-                          value={Number(formData.feeClosingNominal) || 0}
+                          value={formData.isInHouse ? 0 : Number(formData.feeClosingNominal) || 0}
                           onValueChange={(_, val) => handleCurrencyChange('feeClosingNominal', val)}
                           placeholder="0"
+                          disabled={formData.isInHouse}
                         />
                       </div>
                       <Input
@@ -1180,12 +1230,28 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                   <p className="text-sm font-medium text-slate-800">{selectedAgentDetail.email || '-'}</p>
                 </div>
                 <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Tipe Agent</p>
+                  <p className="text-sm font-medium text-slate-800">
+                    {isAgentInHouse(selectedAgentDetail) ? 'In-House' : 'Eksternal'}
+                  </p>
+                </div>
+                <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Marketing (%)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeMarketingPct ?? '-'} %</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">
+                    {isAgentInHouse(selectedAgentDetail)
+                      ? `${IN_HOUSE_FEE_MARKETING_PCT}% (in-house)`
+                      : `${selectedAgentDetail.feeMarketingPct ?? '-'} %`}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Fee Closing (Rp)</p>
-                  <p className="text-sm font-medium text-slate-800 tabular-nums">{selectedAgentDetail.feeClosingNominal != null ? formatRupiah(selectedAgentDetail.feeClosingNominal) : '-'}</p>
+                  <p className="text-sm font-medium text-slate-800 tabular-nums">
+                    {isAgentInHouse(selectedAgentDetail)
+                      ? '-'
+                      : selectedAgentDetail.feeClosingNominal != null
+                        ? formatRupiah(selectedAgentDetail.feeClosingNominal)
+                        : '-'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Potongan PPh (%)</p>

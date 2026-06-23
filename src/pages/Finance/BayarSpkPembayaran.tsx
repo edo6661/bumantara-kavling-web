@@ -50,6 +50,7 @@ import {
   formatMandorRekeningLabel,
   resolveSpkPembayaranTransferRekening,
 } from '../../utils/mandorRekening';
+import { formatShortNoSpk } from '../../utils/spk';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 
 interface SpkGroup {
@@ -715,7 +716,7 @@ const BayarSpkPembayaran = () => {
         {pasteSelection && (
           <div className="px-5 pb-4">
             <PasteUploadBanner
-              label={`${pasteSelection.row.spk?.noSpk ?? `#${pasteSelection.row.spkId}`} · ${getItemLabel(pasteSelection.row)} · ${formatRupiah(pasteSelection.row.nominal)}${pasteSelection.mode === 'add-bukti' ? ' (tambah bukti)' : ''}`}
+              label={`${formatShortNoSpk(pasteSelection.row.spk?.noSpk ?? `#${pasteSelection.row.spkId}`)} · ${getItemLabel(pasteSelection.row)} · ${formatRupiah(pasteSelection.row.nominal)}${pasteSelection.mode === 'add-bukti' ? ' (tambah bukti)' : ''}`}
               onClear={() => setPasteSelection(null)}
             />
           </div>
@@ -771,8 +772,11 @@ const BayarSpkPembayaran = () => {
                             className={`text-slate-400 transition-transform ${expanded ? 'rotate-90 text-blue-600' : ''}`}
                           />
                         </td>
-                        <td className={`${tdParentClass} font-bold text-slate-900 break-words align-top`}>
-                          {group.noSpk}
+                        <td
+                          className={`${tdParentClass} font-mono font-bold text-slate-900 align-top`}
+                          title={group.noSpk}
+                        >
+                          {formatShortNoSpk(group.noSpk)}
                         </td>
                         <td className={`${tdRekeningClass} py-3`}>
                           {group.mandorNamaBank || group.mandorNoRekening ? (
@@ -821,8 +825,11 @@ const BayarSpkPembayaran = () => {
                       {expanded && (
                         <tr className="bg-slate-50/50">
                           <td colSpan={8} className="px-4 py-3 border-b border-slate-200">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wide">
-                              Detail pembayaran — {group.noSpk}
+                            <p
+                              className="text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wide"
+                              title={group.noSpk}
+                            >
+                              Detail pembayaran — {formatShortNoSpk(group.noSpk)}
                             </p>
                             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
                               <table className="w-full min-w-[640px] table-fixed">
@@ -849,7 +856,7 @@ const BayarSpkPembayaran = () => {
                                           toggleSelectGroup(group.items, e.target.checked)
                                         }
                                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                        aria-label={`Pilih semua pembayaran ${group.noSpk}`}
+                                        aria-label={`Pilih semua pembayaran ${formatShortNoSpk(group.noSpk)}`}
                                       />
                                     </th>
                                     <th className="px-4 py-2 text-left">Jenis</th>

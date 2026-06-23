@@ -13,6 +13,14 @@ export { getTotalNilaiAjb } from './progressPenjualanSertifikat';
 
 export const KOMISI_CASH_PPJB_RATIO = 0.5;
 
+/** Agent in-house: tanpa closing fee, komisi tetap 0,5% dari nilai AJB */
+export const IN_HOUSE_FEE_MARKETING_PCT = 0.5;
+
+export const isAgentInHouse = (agent: { isInHouse?: boolean | null }) => !!agent.isInHouse;
+
+export const getEffectiveMarketingPct = (agent: AgentData) =>
+  isAgentInHouse(agent) ? IN_HOUSE_FEE_MARKETING_PCT : (Number(agent.feeMarketingPct) || 0);
+
 export type SaleDetail = {
   status?: string | null;
   bookingFeeLunasBatal?: boolean;
@@ -189,7 +197,7 @@ export const getClosingGross = (
   feeRecord: FeeAgentData,
   detail?: SaleDetail,
 ) => {
-  if (!isBookingFeePaid(detail)) return 0;
+  if (isAgentInHouse(agent) || !isBookingFeePaid(detail)) return 0;
   return Number(feeRecord.closingNominal) || Number(agent.feeClosingNominal) || 0;
 };
 
@@ -203,7 +211,7 @@ export const getClosingFull = (
 export const getFullMarketingFee = (agent: AgentData, detail?: SaleDetail) => {
   if (isPenjualanBatal(detail?.status)) return 0;
   const nilaiAjb = getTotalNilaiAjb(detail?.progressPenjualan);
-  const pct = Number(agent.feeMarketingPct) || 0;
+  const pct = getEffectiveMarketingPct(agent);
   return nilaiAjb > 0 && pct > 0 ? nilaiAjb * (pct / 100) : 0;
 };
 
@@ -299,10 +307,14 @@ export const getPencairanKomponen = (
     nominalPenuh: closingFull,
     nominalSisa: closingSisa,
     eligible: false,
-    alasan: closingSisa > 0 ? 'Belum memenuhi syarat closing fee' : 'Closing fee sudah diajukan',
+    alasan: isAgentInHouse(agent)
+      ? 'Agent in-house — tidak ada closing fee'
+      : closingSisa > 0
+        ? 'Belum memenuhi syarat closing fee'
+        : 'Closing fee sudah diajukan',
   };
 
-  if (closingSisa > 0) {
+  if (!isAgentInHouse(agent) && closingSisa > 0) {
     if (!isBookingFeePaid(detail)) {
       closing.alasan = 'Booking fee belum lunas';
     } else if (isBatal) {
@@ -331,7 +343,20 @@ export const getPencairanKomponen = (
   };
 
   if (!isBatal && fullMarketing > 0 && isBookingFeePaid(detail)) {
-    if (isCash) {
+    if (isAgentInHouse(agent)) {
+      marketing.nominalSisa = Math.max(0, fullMarketing - sudah.marketingNominal);
+
+      if (marketing.nominalSisa <= 0) {
+        marketing.alasan = 'Komisi in-house sudah diajukan';
+      } else if (!hasAjbComplete(progress, jumlahSertifikatTanah)) {
+        marketing.alasan = 'Belum AJB';
+      } else if (nilaiAjb <= 0) {
+        marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
+      } else {
+        marketing.eligible = true;
+        marketing.alasan = 'Agent in-house — komisi 0,5% dari nilai AJB';
+      }
+    } else if (isCash) {
       const buckets = getCashMarketingBuckets(agent, detail, sudah.marketingNominal);
       marketing.nominalSisa = buckets.ppjbSisa + buckets.ajbSisa;
 
