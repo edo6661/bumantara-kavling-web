@@ -46,6 +46,10 @@ import {
   JENIS_UI_COLOR,
   type SpkPembayaranJenis,
 } from '../../utils/spkPembayaran';
+import {
+  formatMandorRekeningLabel,
+  resolveSpkPembayaranTransferRekening,
+} from '../../utils/mandorRekening';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 
 interface SpkGroup {
@@ -103,6 +107,29 @@ const formatKsoShortLabel = (atasNama: string) =>
 const getPengajuanTimestamp = (row: SpkPembayaranData) =>
   new Date(row.createdAt).getTime();
 
+const rekeningSignature = (row: SpkPembayaranData) => {
+  const rek = resolveSpkPembayaranTransferRekening(row);
+  if (!rek) return '';
+  return `${rek.namaBank}|${rek.noRekening}|${rek.atasNamaRekening}`;
+};
+
+const renderTransferRekeningCell = (row: SpkPembayaranData) => {
+  const rek = resolveSpkPembayaranTransferRekening(row);
+  if (!rek?.noRekening && !rek?.namaBank) {
+    return <span className="text-slate-400">—</span>;
+  }
+  return (
+    <div title={formatMandorRekeningLabel(rek)}>
+      <p className="font-medium text-slate-700 whitespace-nowrap">
+        {rek.namaBank ?? '—'} · {rek.noRekening ?? '—'}
+      </p>
+      {rek.atasNamaRekening && (
+        <p className="text-[10px] text-slate-500 truncate">a/n {rek.atasNamaRekening}</p>
+      )}
+    </div>
+  );
+};
+
 const BayarSpkPembayaran = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -152,18 +179,28 @@ const BayarSpkPembayaran = () => {
         existing.items.push(row);
         if (row.status === 'MENUNGGU_PEMBAYARAN') existing.menungguCount += 1;
       } else {
+        const firstRek = resolveSpkPembayaranTransferRekening(row);
         map.set(row.spkId, {
           spkId: row.spkId,
           noSpk: row.spk?.noSpk ?? `#${row.spkId}`,
           mandorUsername: row.spk?.mandor?.username ?? '-',
-          mandorNamaBank: row.spk?.mandor?.namaBank ?? null,
-          mandorNoRekening: row.spk?.mandor?.noRekening ?? null,
-          mandorAtasNamaRekening: row.spk?.mandor?.atasNamaRekening ?? null,
+          mandorNamaBank: firstRek?.namaBank ?? row.spk?.mandor?.namaBank ?? null,
+          mandorNoRekening: firstRek?.noRekening ?? row.spk?.mandor?.noRekening ?? null,
+          mandorAtasNamaRekening:
+            firstRek?.atasNamaRekening ?? row.spk?.mandor?.atasNamaRekening ?? null,
           ksoFull: row.spk?.bankRekeningPt?.atasNama ?? null,
           nilaiKontrak: row.spk?.nilaiKontrak ?? 0,
           items: [row],
           menungguCount: row.status === 'MENUNGGU_PEMBAYARAN' ? 1 : 0,
         });
+      }
+    }
+    for (const group of map.values()) {
+      const signatures = new Set(group.items.map(rekeningSignature).filter(Boolean));
+      if (signatures.size > 1) {
+        group.mandorNamaBank = null;
+        group.mandorNoRekening = null;
+        group.mandorAtasNamaRekening = null;
       }
     }
     return Array.from(map.values()).sort((a, b) => {
@@ -431,6 +468,9 @@ const BayarSpkPembayaran = () => {
         </td>
         <td className={`px-4 py-2.5 text-sm font-bold ${colors.text} whitespace-nowrap`}>
           {formatRupiah(row.nominal)}
+        </td>
+        <td className="px-4 py-2.5 text-xs text-slate-600 max-w-[180px]">
+          {renderTransferRekeningCell(row)}
         </td>
         <td className="px-4 py-2.5 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
         <td className="px-4 py-2.5">
@@ -715,6 +755,10 @@ const BayarSpkPembayaran = () => {
                                 </p>
                               )}
                             </div>
+                          ) : group.items.some((item) => rekeningSignature(item)) ? (
+                            <span className="text-[10px] font-semibold text-amber-700">
+                              Beragam per pengajuan
+                            </span>
                           ) : (
                             <span className="text-slate-400">—</span>
                           )}
@@ -774,6 +818,7 @@ const BayarSpkPembayaran = () => {
                                     </th>
                                     <th className="px-4 py-2 text-left">Jenis</th>
                                     <th className="px-4 py-2 text-left">Nominal</th>
+                                    <th className="px-4 py-2 text-left">Rekening Tujuan</th>
                                     <th className="px-4 py-2 text-left">Tanggal Diajukan</th>
                                     <th className="px-4 py-2 text-left">Status</th>
                                     <th className="px-4 py-2 text-left">Bukti</th>

@@ -10,6 +10,16 @@ export interface MandorProfile {
   namaBank: string;
   noRekening: string;
   atasNamaRekening: string;
+  rekeningList?: MandorRekening[];
+}
+
+export interface MandorRekening {
+  id: number;
+  label?: string | null;
+  namaBank: string;
+  noRekening: string;
+  atasNamaRekening: string;
+  isDefault?: boolean;
 }
 
 export interface User {

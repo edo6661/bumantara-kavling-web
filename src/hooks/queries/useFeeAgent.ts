@@ -46,3 +46,13 @@ export const useUploadBuktiFee = () => {
     },
   });
 };
+
+export const useBackfillFeeAgents = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => feeAgentService.backfill(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FEE_AGENT_KEYS.all });
+    },
+  });
+};

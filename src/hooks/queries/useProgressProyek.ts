@@ -54,6 +54,14 @@ export const useGetMandors = () => {
   });
 };
 
+export const useGetMandorRekening = (userId: number | null | undefined, enabled = true) => {
+  return useQuery({
+    queryKey: [...PROGRESS_PROYEK_KEYS.mandors, "rekening", userId] as const,
+    queryFn: () => progressProyekService.getMandorRekening(userId!),
+    enabled: enabled && !!userId,
+  });
+};
+
 export const useGetProgressProyek = (scope: ProgressProyekScope | null) => {
   return useQuery({
     queryKey: scope ? PROGRESS_PROYEK_KEYS.detail(scope) : ["progress-proyek", "none"],

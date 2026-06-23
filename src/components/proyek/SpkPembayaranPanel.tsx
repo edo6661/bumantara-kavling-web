@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, FileText, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import Modal from '../shared/Modal';
+import Select from '../shared/Select';
 import CollapsibleDetailSection from '../shared/CollapsibleDetailSection';
 import CurrencyInput from '../shared/CurrencyInput';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../shared/BuktiFileThumbnail';
@@ -25,6 +26,8 @@ import type {
 } from '../../services/spkPembayaran.service';
 import { useAuth } from '../../context/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
+import { useGetProfile } from '../../hooks/queries/useProfile';
+import { useGetMandorRekening } from '../../hooks/queries/useProgressProyek';
 import type { SpkData } from '../../services/spk.service';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 import {
@@ -44,6 +47,11 @@ import {
   type SpkTerminPembayaranJenis,
 } from '../../utils/spkPembayaran';
 import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi';
+import {
+  formatMandorRekeningLabel,
+  pickDefaultMandorRekeningId,
+  type MandorRekeningData,
+} from '../../utils/mandorRekening';
 import {
   groupKasbonBarisForDisplay,
   kasbonSupplierDisplayName,
@@ -1347,6 +1355,93 @@ const SpkPembayaranPanel = ({
   const updateUpahMutation = useUpdateSpkUpah();
   const deleteMutation = useDeleteSpkPengurangan();
 
+  const { data: profile } = useGetProfile();
+  const { data: mandorRekeningRemote = [] } = useGetMandorRekening(
+    spk.mandorId,
+    canAjukan && !isAssignedMandor,
+  );
+  const mandorRekeningOptions: MandorRekeningData[] = useMemo(() => {
+    if (isAssignedMandor) {
+      const list = profile?.mandor?.rekeningList;
+      if (list?.length) return list;
+      if (profile?.mandor) {
+        return [
+          {
+            id: 0,
+            namaBank: profile.mandor.namaBank,
+            noRekening: profile.mandor.noRekening,
+            atasNamaRekening: profile.mandor.atasNamaRekening,
+            isDefault: true,
+          },
+        ];
+      }
+      return [];
+    }
+    return mandorRekeningRemote;
+  }, [isAssignedMandor, profile?.mandor, mandorRekeningRemote]);
+
+  const [selectedMandorRekeningId, setSelectedMandorRekeningId] = useState<number | ''>('');
+
+  useEffect(() => {
+    if (!canAjukan) return;
+    setSelectedMandorRekeningId(pickDefaultMandorRekeningId(mandorRekeningOptions));
+  }, [canAjukan, mandorRekeningOptions, spk.id]);
+
+  const resolveSubmitMandorRekeningId = (): number | undefined => {
+    if (!mandorRekeningOptions.length) return undefined;
+    if (mandorRekeningOptions.length === 1) {
+      const only = mandorRekeningOptions[0]!;
+      return only.id > 0 ? only.id : undefined;
+    }
+    if (selectedMandorRekeningId === '') return undefined;
+    return Number(selectedMandorRekeningId);
+  };
+
+  const assertMandorRekeningSelected = () => {
+    if (mandorRekeningOptions.length > 1 && selectedMandorRekeningId === '') {
+      alert('Pilih rekening tujuan transfer terlebih dahulu.');
+      return false;
+    }
+    return true;
+  };
+
+  const mandorRekeningSelect =
+    mandorRekeningOptions.length > 0 && canAjukan ? (
+      <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 space-y-2">
+        <p className="text-[10px] font-bold text-blue-800 uppercase tracking-wide">
+          Rekening tujuan transfer
+        </p>
+        {mandorRekeningOptions.length === 1 ? (
+          <p className="text-xs text-blue-900 font-medium">
+            {formatMandorRekeningLabel(mandorRekeningOptions[0]!)}
+            {mandorRekeningOptions[0]?.atasNamaRekening && (
+              <span className="block text-[10px] text-blue-700/80 mt-0.5">
+                a/n {mandorRekeningOptions[0]!.atasNamaRekening}
+              </span>
+            )}
+          </p>
+        ) : (
+          <Select
+            label="Pilih rekening"
+            name="mandorRekeningId"
+            value={selectedMandorRekeningId !== '' ? String(selectedMandorRekeningId) : ''}
+            onChange={(e) =>
+              setSelectedMandorRekeningId(
+                e.target.value === '' ? '' : Number(e.target.value),
+              )
+            }
+            options={[
+              { value: '', label: '— Pilih rekening —' },
+              ...mandorRekeningOptions.map((rek) => ({
+                value: String(rek.id),
+                label: formatMandorRekeningLabel(rek),
+              })),
+            ]}
+          />
+        )}
+      </div>
+    ) : null;
+
   const submittedPembayaranList = useMemo(
     () => pembayaranList.filter((p) => p.status !== 'DRAFT'),
     [pembayaranList],
@@ -1451,6 +1546,8 @@ const SpkPembayaranPanel = ({
       alert(check.reason);
       return;
     }
+    if (!assertMandorRekeningSelected()) return;
+    const mandorRekeningId = resolveSubmitMandorRekeningId();
     if (
       !window.confirm(
         `Ajukan pembayaran ${SPK_PEMBAYARAN_JENIS_LABEL[jenis]} sebesar ${formatRupiah(check.nominal)}?`,
@@ -1459,7 +1556,10 @@ const SpkPembayaranPanel = ({
       return;
     }
     try {
-      await createMutation.mutateAsync({ spkId: spk.id, body: { jenis } });
+      await createMutation.mutateAsync({
+        spkId: spk.id,
+        body: { jenis, mandorRekeningId },
+      });
       alert('Pengajuan pembayaran berhasil dikirim ke pengawas.');
     } catch (err: unknown) {
       alert(handleApiError(err).message);
@@ -1624,6 +1724,9 @@ const SpkPembayaranPanel = ({
       return;
     }
 
+    if (!assertMandorRekeningSelected()) return;
+    const mandorRekeningId = resolveSubmitMandorRekeningId();
+
     try {
       for (const row of rows) {
         await createMutation.mutateAsync({
@@ -1633,6 +1736,7 @@ const SpkPembayaranPanel = ({
             keterangan: row.keterangan.trim(),
             nominal: Number(row.nominal),
             tanggalPo: row.tanggalPo || todayIso(),
+            mandorRekeningId,
           },
         });
       }
@@ -1753,6 +1857,9 @@ const SpkPembayaranPanel = ({
       return;
     }
 
+    if (!assertMandorRekeningSelected()) return;
+    const mandorRekeningId = resolveSubmitMandorRekeningId();
+
     try {
       if (materialSectionUsed) {
         const uploadedSuppliers = await uploadMaterialSupplierFotos(materialSuppliers);
@@ -1768,11 +1875,11 @@ const SpkPembayaranPanel = ({
             spkId: spk.id,
             body: { kasbonBaris: materialBaris },
           });
-          await submitDraftMutation.mutateAsync({ spkId: spk.id });
+          await submitDraftMutation.mutateAsync({ spkId: spk.id, mandorRekeningId });
         } else {
           await createMutation.mutateAsync({
             spkId: spk.id,
-            body: { jenis: 'KASBON', kasbonBaris: materialBaris },
+            body: { jenis: 'KASBON', kasbonBaris: materialBaris, mandorRekeningId },
           });
         }
       } else if (kasbonDraft?.status === 'DRAFT') {
@@ -1787,6 +1894,7 @@ const SpkPembayaranPanel = ({
             tanggalSampai: upahTanggalSampai,
             baris: upahBarisBody,
             upahNominal: upahTotal,
+            mandorRekeningId,
           },
         });
       }
@@ -1865,6 +1973,8 @@ const SpkPembayaranPanel = ({
           {pengurangCheck.reason}
         </p>
       )}
+
+      {mandorRekeningSelect}
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
         <button
@@ -2435,6 +2545,8 @@ const SpkPembayaranPanel = ({
               </div>
             )}
           </div>
+
+          {mandorRekeningSelect}
 
           <div className="overflow-x-auto rounded-lg border border-slate-200 mb-3">
             <table className="w-full text-xs border-collapse min-w-[640px]">

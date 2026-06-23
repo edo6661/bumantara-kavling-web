@@ -91,7 +91,13 @@ export const useSaveKasbonDraft = () => {
 export const useSubmitKasbonDraft = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ spkId }: { spkId: number }) => spkPembayaranService.submitKasbonDraft(spkId),
+    mutationFn: ({
+      spkId,
+      mandorRekeningId,
+    }: {
+      spkId: number;
+      mandorRekeningId?: number;
+    }) => spkPembayaranService.submitKasbonDraft(spkId, { mandorRekeningId }),
     onSuccess: (data) => {
       clearKasbonDraftCache(queryClient, data.spkId);
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });

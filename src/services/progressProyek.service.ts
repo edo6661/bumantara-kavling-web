@@ -129,6 +129,18 @@ export const progressProyekService = {
     return response.data.data;
   },
 
+  getMandorRekening: async (userId: number) => {
+    const response = await api.get(`/progress-proyek/mandors/${userId}/rekening`);
+    return response.data.data as Array<{
+      id: number;
+      label: string | null;
+      namaBank: string;
+      noRekening: string;
+      atasNamaRekening: string;
+      isDefault: boolean;
+    }>;
+  },
+
   getById: async (penjualanId: number): Promise<ProgressProyekData> => {
     const response = await api.get(`/progress-proyek/${penjualanId}`);
     return response.data.data;

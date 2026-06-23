@@ -52,6 +52,15 @@ export interface SpkPembayaranData {
   dibayarOleh: { id: number; username: string } | null;
   createdAt: string;
   updatedAt: string;
+  mandorRekeningId?: number | null;
+  mandorRekening?: {
+    id: number;
+    label?: string | null;
+    namaBank: string;
+    noRekening: string;
+    atasNamaRekening: string;
+    isDefault?: boolean;
+  } | null;
   spk?: {
     id: number;
     noSpk: string;
@@ -95,15 +104,22 @@ export interface SpkPembayaranKasbonBarisBody {
 }
 
 export type CreateSpkPembayaranBody =
-  | { jenis: SpkTerminPembayaranJenis }
-  | { jenis: 'KASBON'; kasbonBaris: SpkPembayaranKasbonBarisBody[] }
-  | { jenis: 'KASBON'; keterangan: string; nominal: number; tanggalPo: string }
+  | { jenis: SpkTerminPembayaranJenis; mandorRekeningId?: number }
+  | { jenis: 'KASBON'; kasbonBaris: SpkPembayaranKasbonBarisBody[]; mandorRekeningId?: number }
+  | {
+      jenis: 'KASBON';
+      keterangan: string;
+      nominal: number;
+      tanggalPo: string;
+      mandorRekeningId?: number;
+    }
   | {
       jenis: 'UPAH';
       tanggalDari: string;
       tanggalSampai: string;
       baris: SpkPembayaranUpahBarisBody[];
       upahNominal: number;
+      mandorRekeningId?: number;
     };
 
 export type UpdateSpkKasbonBody =
@@ -137,8 +153,8 @@ export const spkPembayaranService = {
     return response.data.data as SpkPembayaranData;
   },
 
-  submitKasbonDraft: async (spkId: number) => {
-    const response = await api.post(`/spk-pembayaran/spk/${spkId}/kasbon-draft/submit`);
+  submitKasbonDraft: async (spkId: number, body?: { mandorRekeningId?: number }) => {
+    const response = await api.post(`/spk-pembayaran/spk/${spkId}/kasbon-draft/submit`, body ?? {});
     return response.data.data as SpkPembayaranData;
   },
 

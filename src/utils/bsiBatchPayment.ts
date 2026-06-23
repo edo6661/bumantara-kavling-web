@@ -1,6 +1,7 @@
 import type { SpkPembayaranData } from '../services/spkPembayaran.service';
 import type { NotarisPembayaranData } from '../services/notarisPembayaran.service';
 import type { BankKprPembayaranData } from '../services/bankKprPembayaran.service';
+import { resolveSpkPembayaranTransferRekening } from './mandorRekening';
 
 export const BSI_SOURCE_ACCOUNT_OPTIONS = ['7304466671', '7315321381'] as const;
 export const BSI_DEFAULT_SOURCE_ACCOUNT = BSI_SOURCE_ACCOUNT_OPTIONS[0];
@@ -128,6 +129,7 @@ export function buildBsiBatchRows(
   const sourceAcct = defaults.sourceAcct ?? BSI_DEFAULT_SOURCE_ACCOUNT;
 
   return items.map((row, index) => {
+    const transferRek = resolveSpkPembayaranTransferRekening(row);
     const mandor = row.spk?.mandor;
     const { paymentSubject, additionalMessage } = alignBsiPaymentFields(
       getBsiPaymentSubject(row),
@@ -141,12 +143,13 @@ export function buildBsiBatchRows(
       sourceAcctCcy: 'IDR',
       beneficiaryCountry: 'ID',
       beneficiaryType: 'Beneficiary Account',
-      destination: mandor?.noRekening ?? '',
-      beneficiaryAcctName: mandor?.username ?? '',
+      destination: transferRek?.noRekening ?? mandor?.noRekening ?? '',
+      beneficiaryAcctName:
+        transferRek?.atasNamaRekening ?? mandor?.atasNamaRekening ?? mandor?.username ?? '',
       beneficiaryNotifEmail: BSI_NOTIFY_EMAIL,
       creditAmountCcy: 'IDR',
       amount: row.nominal,
-      bankName: normalizeBsiBankName(mandor?.namaBank ?? ''),
+      bankName: normalizeBsiBankName(transferRek?.namaBank ?? mandor?.namaBank ?? ''),
       bankCode: BSI_BANK_CODE,
       beneficiaryCitizenship: 'R',
       beneficiaryNationality: 'W',

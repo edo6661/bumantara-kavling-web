@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authService } from "../../services/auth.service";
-import type { MandorProfile } from "../../types/models/user";
 
 export const PROFILE_KEYS = {
   me: ["auth-profile"] as const,
@@ -10,7 +9,19 @@ export interface UpdateSelfPayload {
   username?: string;
   email?: string;
   password?: string;
-  mandor?: MandorProfile;
+  mandor?: {
+    namaBank: string;
+    noRekening: string;
+    atasNamaRekening: string;
+  };
+  mandorRekeningList?: Array<{
+    id?: number;
+    label?: string;
+    namaBank: string;
+    noRekening: string;
+    atasNamaRekening: string;
+    isDefault?: boolean;
+  }>;
 }
 
 export const useGetProfile = () => {

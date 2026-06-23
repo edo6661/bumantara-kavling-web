@@ -71,4 +71,12 @@ export const feeAgentService = {
     );
     return response.data.data;
   },
+
+  backfill: async (): Promise<{ created: number; message: string }> => {
+    const response = await api.post("/fee-agents/backfill");
+    return {
+      created: response.data.data.created as number,
+      message: response.data.message as string,
+    };
+  },
 };

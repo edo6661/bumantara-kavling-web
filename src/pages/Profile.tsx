@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import Input from "../components/shared/Input";
 import PageLoader from "./PageLoader";
@@ -6,6 +7,16 @@ import { useGetProfile, useUpdateProfile } from "../hooks/queries/useProfile";
 import { handleApiError } from "../utils/errorHandler";
 import { storage } from "../utils/storage";
 import type { User } from "../types/models/user";
+import type { MandorRekeningFormRow } from "../utils/mandorRekening";
+
+const newRekeningRow = (isDefault = false): MandorRekeningFormRow => ({
+  key: `${Date.now()}-${Math.random()}`,
+  label: "",
+  namaBank: "",
+  noRekening: "",
+  atasNamaRekening: "",
+  isDefault,
+});
 
 const Profile = () => {
   const { user, setUser } = useAuth();
@@ -17,10 +28,10 @@ const Profile = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    namaBank: "",
-    noRekening: "",
-    atasNamaRekening: "",
   });
+  const [rekeningRows, setRekeningRows] = useState<MandorRekeningFormRow[]>([
+    newRekeningRow(true),
+  ]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isMandor = (profile?.role ?? user?.role) === "MANDOR";
@@ -32,10 +43,33 @@ const Profile = () => {
       email: profile.email,
       password: "",
       confirmPassword: "",
-      namaBank: profile.mandor?.namaBank ?? "",
-      noRekening: profile.mandor?.noRekening ?? "",
-      atasNamaRekening: profile.mandor?.atasNamaRekening ?? "",
     });
+
+    const list = profile.mandor?.rekeningList;
+    if (list?.length) {
+      setRekeningRows(
+        list.map((item) => ({
+          key: `rek-${item.id}`,
+          id: item.id,
+          label: item.label ?? "",
+          namaBank: item.namaBank,
+          noRekening: item.noRekening,
+          atasNamaRekening: item.atasNamaRekening,
+          isDefault: !!item.isDefault,
+        })),
+      );
+    } else if (profile.mandor) {
+      setRekeningRows([
+        {
+          key: "rek-default",
+          label: "Utama",
+          namaBank: profile.mandor.namaBank,
+          noRekening: profile.mandor.noRekening,
+          atasNamaRekening: profile.mandor.atasNamaRekening,
+          isDefault: true,
+        },
+      ]);
+    }
   }, [profile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,6 +84,36 @@ const Profile = () => {
     }
   };
 
+  const updateRekeningRow = (
+    key: string,
+    patch: Partial<MandorRekeningFormRow>,
+  ) => {
+    setRekeningRows((prev) =>
+      prev.map((row) => (row.key === key ? { ...row, ...patch } : row)),
+    );
+  };
+
+  const setDefaultRekening = (key: string) => {
+    setRekeningRows((prev) =>
+      prev.map((row) => ({ ...row, isDefault: row.key === key })),
+    );
+  };
+
+  const addRekeningRow = () => {
+    setRekeningRows((prev) => [...prev, newRekeningRow(false)]);
+  };
+
+  const removeRekeningRow = (key: string) => {
+    setRekeningRows((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((row) => row.key !== key);
+      if (!next.some((row) => row.isDefault)) {
+        next[0] = { ...next[0]!, isDefault: true };
+      }
+      return next;
+    });
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.username.trim()) newErrors.username = "Username wajib diisi";
@@ -61,11 +125,16 @@ const Profile = () => {
       newErrors.confirmPassword = "Konfirmasi password tidak cocok";
     }
     if (isMandor) {
-      if (!formData.namaBank.trim()) newErrors.namaBank = "Nama bank wajib diisi";
-      if (!formData.noRekening.trim()) newErrors.noRekening = "Nomor rekening wajib diisi";
-      if (!formData.atasNamaRekening.trim()) {
-        newErrors.atasNamaRekening = "Atas nama rekening wajib diisi";
-      }
+      rekeningRows.forEach((row, index) => {
+        const prefix = `rekening.${index}`;
+        if (!row.namaBank.trim()) newErrors[`${prefix}.namaBank`] = "Nama bank wajib diisi";
+        if (!row.noRekening.trim()) {
+          newErrors[`${prefix}.noRekening`] = "Nomor rekening wajib diisi";
+        }
+        if (!row.atasNamaRekening.trim()) {
+          newErrors[`${prefix}.atasNamaRekening`] = "Atas nama rekening wajib diisi";
+        }
+      });
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -79,7 +148,14 @@ const Profile = () => {
       username?: string;
       email?: string;
       password?: string;
-      mandor?: { namaBank: string; noRekening: string; atasNamaRekening: string };
+      mandorRekeningList?: Array<{
+        id?: number;
+        label?: string;
+        namaBank: string;
+        noRekening: string;
+        atasNamaRekening: string;
+        isDefault?: boolean;
+      }>;
     } = {};
 
     if (formData.username.trim() !== profile.username) {
@@ -91,18 +167,40 @@ const Profile = () => {
     if (formData.password) {
       payload.password = formData.password;
     }
+
     if (isMandor) {
-      const mandorChanged =
-        !profile.mandor ||
-        formData.namaBank.trim() !== profile.mandor.namaBank ||
-        formData.noRekening.trim() !== profile.mandor.noRekening ||
-        formData.atasNamaRekening.trim() !== profile.mandor.atasNamaRekening;
-      if (!profile.mandor || mandorChanged) {
-        payload.mandor = {
-          namaBank: formData.namaBank.trim(),
-          noRekening: formData.noRekening.trim(),
-          atasNamaRekening: formData.atasNamaRekening.trim(),
-        };
+      const nextList = rekeningRows.map((row, index) => ({
+        id: row.id,
+        label: row.label.trim() || (index === 0 ? "Utama" : `Rekening ${index + 1}`),
+        namaBank: row.namaBank.trim(),
+        noRekening: row.noRekening.trim(),
+        atasNamaRekening: row.atasNamaRekening.trim(),
+        isDefault: row.isDefault,
+      }));
+
+      const currentList = profile.mandor?.rekeningList ?? [];
+      const rekeningChanged =
+        nextList.length !== currentList.length ||
+        nextList.some((row, index) => {
+          const current = currentList[index];
+          if (!current) return true;
+          return (
+            row.id !== current.id ||
+            row.label !== (current.label ?? "") ||
+            row.namaBank !== current.namaBank ||
+            row.noRekening !== current.noRekening ||
+            row.atasNamaRekening !== current.atasNamaRekening ||
+            !!row.isDefault !== !!current.isDefault
+          );
+        }) ||
+        (!currentList.length &&
+          profile.mandor &&
+          (nextList[0]?.namaBank !== profile.mandor.namaBank ||
+            nextList[0]?.noRekening !== profile.mandor.noRekening ||
+            nextList[0]?.atasNamaRekening !== profile.mandor.atasNamaRekening));
+
+      if (rekeningChanged) {
+        payload.mandorRekeningList = nextList;
       }
     }
 
@@ -113,12 +211,23 @@ const Profile = () => {
 
     try {
       const updated = await updateMutation.mutateAsync(payload);
+      const defaultRek =
+        updated.mandor?.rekeningList?.find((item: { isDefault?: boolean }) => item.isDefault) ??
+        updated.mandor?.rekeningList?.[0] ??
+        updated.mandor;
       const nextUser: User = {
         id: updated.id,
         username: updated.username,
         email: updated.email,
         role: updated.role ?? profile.role,
-        mandor: updated.mandor ?? null,
+        mandor: defaultRek
+          ? {
+              namaBank: defaultRek.namaBank,
+              noRekening: defaultRek.noRekening,
+              atasNamaRekening: defaultRek.atasNamaRekening,
+              rekeningList: updated.mandor?.rekeningList,
+            }
+          : null,
         permissions: user?.permissions,
       };
       storage.setUser(nextUser);
@@ -136,15 +245,7 @@ const Profile = () => {
       if (backendErrors && Array.isArray(backendErrors)) {
         const fieldErrors: Record<string, string> = {};
         backendErrors.forEach((err: { field: string; message: string }) => {
-          const mappedField =
-            err.field === "mandor.namaBank"
-              ? "namaBank"
-              : err.field === "mandor.noRekening"
-                ? "noRekening"
-                : err.field === "mandor.atasNamaRekening"
-                  ? "atasNamaRekening"
-                  : err.field;
-          fieldErrors[mappedField] = err.message;
+          fieldErrors[err.field] = err.message;
         });
         setErrors(fieldErrors);
       } else {
@@ -205,30 +306,84 @@ const Profile = () => {
 
         {isMandor && (
           <div className="pt-4 border-t border-slate-100 space-y-4">
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
-              Rekening Mandor
-            </h2>
-            <Input
-              label="Nama Bank"
-              name="namaBank"
-              value={formData.namaBank}
-              onChange={handleChange}
-              error={errors.namaBank}
-            />
-            <Input
-              label="Nomor Rekening"
-              name="noRekening"
-              value={formData.noRekening}
-              onChange={handleChange}
-              error={errors.noRekening}
-            />
-            <Input
-              label="Atas Nama Rekening"
-              name="atasNamaRekening"
-              value={formData.atasNamaRekening}
-              onChange={handleChange}
-              error={errors.atasNamaRekening}
-            />
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                Rekening Mandor
+              </h2>
+              <button
+                type="button"
+                onClick={addRekeningRow}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50"
+              >
+                <Plus size={14} />
+                Tambah Rekening
+              </button>
+            </div>
+
+            {rekeningRows.map((row, index) => (
+              <div
+                key={row.key}
+                className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                    Rekening {index + 1}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+                      <input
+                        type="radio"
+                        name="defaultRekening"
+                        checked={row.isDefault}
+                        onChange={() => setDefaultRekening(row.key)}
+                        className="text-blue-600"
+                      />
+                      Utama
+                    </label>
+                    {rekeningRows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeRekeningRow(row.key)}
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                        title="Hapus rekening"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <Input
+                  label="Label (Opsional)"
+                  name={`label-${row.key}`}
+                  value={row.label}
+                  onChange={(e) => updateRekeningRow(row.key, { label: e.target.value })}
+                  placeholder="Contoh: Rekening pribadi"
+                />
+                <Input
+                  label="Nama Bank"
+                  name={`namaBank-${row.key}`}
+                  value={row.namaBank}
+                  onChange={(e) => updateRekeningRow(row.key, { namaBank: e.target.value })}
+                  error={errors[`rekening.${index}.namaBank`]}
+                />
+                <Input
+                  label="Nomor Rekening"
+                  name={`noRekening-${row.key}`}
+                  value={row.noRekening}
+                  onChange={(e) => updateRekeningRow(row.key, { noRekening: e.target.value })}
+                  error={errors[`rekening.${index}.noRekening`]}
+                />
+                <Input
+                  label="Atas Nama Rekening"
+                  name={`atasNamaRekening-${row.key}`}
+                  value={row.atasNamaRekening}
+                  onChange={(e) =>
+                    updateRekeningRow(row.key, { atasNamaRekening: e.target.value })
+                  }
+                  error={errors[`rekening.${index}.atasNamaRekening`]}
+                />
+              </div>
+            ))}
           </div>
         )}
 

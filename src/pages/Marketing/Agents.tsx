@@ -8,7 +8,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Banknote, Clock, History } from "lucide-react";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Banknote, Clock, History, RefreshCw } from "lucide-react";
 import {
   useGetAgentsPaginated,
   useCreateAgent,
@@ -18,7 +18,7 @@ import {
   useGenerateAgentAccount
 } from "../../hooks/queries/useAgent";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
-import { useGetFeeAgents } from "../../hooks/queries/useFeeAgent";
+import { useGetFeeAgents, useBackfillFeeAgents } from "../../hooks/queries/useFeeAgent";
 import { useGetAllAgentPencairan, useAjukanAgentPencairan } from "../../hooks/queries/useAgentPencairan";
 import type { FeeAgentData } from "../../services/feeAgent.service";
 import type { AgentPencairanData } from "../../services/agentPencairan.service";
@@ -44,6 +44,7 @@ import {
   getPerusahaanById,
   isAgentPerusahaan,
 } from '../../utils/agentCommercialProfile';
+import { useAuth } from '../../context/AuthContext';
 
 interface AgentFormState {
   id: number | '';
@@ -121,9 +122,12 @@ type AgentTypeFilter = 'PRIBADI' | 'PERUSAHAAN';
 
 interface AgentsProps {
   agentType: AgentTypeFilter;
+  showFeeAgentBackfill?: boolean;
 }
 
-const Agents = ({ agentType }: AgentsProps) => {
+const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -157,6 +161,7 @@ const Agents = ({ agentType }: AgentsProps) => {
   const uploadDocMutation = useUploadAgentDoc();
   const ajukanPencairanMutation = useAjukanAgentPencairan();
   const generateAccountMutation = useGenerateAgentAccount();
+  const backfillFeeAgentsMutation = useBackfillFeeAgents();
 
   const pencairanByFeeAgentId = useMemo(() => {
     const map = new Map<number, AgentPencairanData[]>();
@@ -231,11 +236,40 @@ const Agents = ({ agentType }: AgentsProps) => {
 
   const pageTitle = agentType === 'PRIBADI' ? 'Agent Pribadi' : 'Agent Perusahaan';
 
+  const handleBackfillFeeAgent = async () => {
+    if (
+      !window.confirm(
+        'Backfill fee agent untuk penjualan yang punya agent tapi belum punya data fee_agent?\n\nProses ini aman dijalankan ulang (duplikat akan dilewati).',
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await backfillFeeAgentsMutation.mutateAsync();
+      alert(result.message);
+    } catch (err: unknown) {
+      const { message } = handleApiError(err);
+      alert(message);
+    }
+  };
+
   const filterSelectClass =
     'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
 
   const tableToolbar = (
     <>
+      {showFeeAgentBackfill && isSuperAdmin && (
+        <button
+          type="button"
+          onClick={handleBackfillFeeAgent}
+          disabled={backfillFeeAgentsMutation.isPending}
+          className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-bold uppercase whitespace-nowrap border border-amber-300 bg-amber-50 text-amber-900 rounded-xl hover:bg-amber-100 disabled:opacity-50 shrink-0"
+          title="Buat data fee_agent untuk penjualan lama yang belum punya"
+        >
+          <RefreshCw size={14} className={backfillFeeAgentsMutation.isPending ? 'animate-spin' : ''} />
+          {backfillFeeAgentsMutation.isPending ? 'Backfill...' : 'Backfill Fee Agent'}
+        </button>
+      )}
       <div className="relative group w-full sm:w-52">
         <select
           className={`${filterSelectClass} pl-9`}
