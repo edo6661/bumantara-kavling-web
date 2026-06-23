@@ -111,7 +111,8 @@ const Tagihan = () => {
   const penjualanFullList = penjualanFullResponse?.items || [];
   const { data: bankList = [] } = useGetBankRekening();
   const { selectedPerumahan, user } = useAuth();
-  const canApprovePayment = user?.role === 'SUPERADMIN' || user?.role === 'FINANCE';
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
+  const canApprovePayment = isSuperAdmin || user?.role === 'FINANCE';
 
   const createMutation = useCreateTagihan();
   const updateMutation = useUpdateTagihan();
@@ -505,16 +506,25 @@ const Tagihan = () => {
       alert(message);
     }
   };
-  const handleApproveBukti = async (id: number, isApproved: boolean) => {
-    const tindakan = isApproved ? "menyetujui" : "menolak";
-    if (window.confirm(`Apakah Anda yakin ingin ${tindakan} bukti pembayaran ini?`)) {
-      try {
-        await approveMutation.mutateAsync({ id, isApproved });
-        alert(isApproved ? "Bukti disetujui! Status menjadi LUNAS." : "Bukti ditolak! Status dikembalikan ke BELUM BAYAR.");
-      } catch (error) {
-        const { message } = handleApiError(error);
-        alert(message);
-      }
+  const handleApproveBukti = async (id: number, isApproved: boolean, tanpaBukti = false) => {
+    const confirmMsg = isApproved
+      ? tanpaBukti
+        ? 'Apakah Anda yakin ingin menyetujui pembayaran ini tanpa bukti pembayaran?'
+        : 'Apakah Anda yakin ingin menyetujui pembayaran ini?'
+      : 'Apakah Anda yakin ingin menolak bukti pembayaran ini?';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      await approveMutation.mutateAsync({ id, isApproved });
+      alert(
+        isApproved
+          ? 'Pembayaran disetujui! Status menjadi LUNAS.'
+          : 'Bukti ditolak! Status dikembalikan ke BELUM BAYAR.',
+      );
+    } catch (error) {
+      const { message } = handleApiError(error);
+      alert(message);
     }
   };
 
@@ -926,9 +936,9 @@ const Tagihan = () => {
                                 <button
                                   onClick={() => handleApproveBukti(c.id, true)}
                                   className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition shadow-sm cursor-pointer"
-                                  title="Setujui Bukti"
+                                  title={isSuperAdmin ? 'Setujui Pembayaran' : 'Setujui Bukti'}
                                 >
-                                  <Check size={12} /> Setujui
+                                  <Check size={12} />
                                 </button>
                                 <button
                                   onClick={() => handleApproveBukti(c.id, false)}
@@ -1004,6 +1014,15 @@ const Tagihan = () => {
                               </>
                             ) : (
                               <>
+                                {isSuperAdmin && (
+                                  <button
+                                    onClick={() => handleApproveBukti(c.id, true, true)}
+                                    className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition shadow-sm cursor-pointer"
+                                    title="Setujui Pembayaran (Tanpa Bukti)"
+                                  >
+                                    <Check size={12} /> Setujui
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => {
                                     setPrintType('invoice');
