@@ -220,6 +220,11 @@ export const hasAgentClosingFeeConfigured = (agent?: AgentData | null) => {
   return (Number(agent.feeClosingNominal) || 0) > 0;
 };
 
+export const getMarketingFeeNotConfiguredReason = (agent: AgentData) =>
+  isAgentPerusahaan(agent.type)
+    ? 'Fee marketing belum diatur di master perusahaan agent'
+    : 'Fee marketing belum diatur — edit agent dan isi kolom Fee Marketing (%)';
+
 export type BatalClosingPencairanStatus = {
   canDisburse: boolean;
   message: string;
@@ -491,15 +496,17 @@ export const getPencairanKomponen = (
     marketing.alasan =
       nilaiAjb <= 0
         ? 'Isi nilai AJB di menu Progress Penjualan'
-        : 'Komisi marketing belum tersedia';
+        : getMarketingFeeNotConfiguredReason(agent);
   } else if (!isCash && fullMarketing <= 0) {
     if (!hasSp3kComplete(detail?.progressPenjualan)) {
       marketing.alasan = 'Belum SP3K';
     } else if (!hasAkadKreditComplete(progress, jumlahSertifikatTanah)) {
       marketing.alasan =
         'Upload Dokumen PPJB atau AJB';
-    } else {
+    } else if (nilaiAjb <= 0) {
       marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
+    } else {
+      marketing.alasan = getMarketingFeeNotConfiguredReason(agent);
     }
   }
 

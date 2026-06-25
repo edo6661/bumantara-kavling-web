@@ -36,6 +36,7 @@ import {
   IN_HOUSE_FEE_MARKETING_PCT,
   hasAgentClosingFeeConfigured,
   isBatalClosingEligible,
+  getTotalNilaiAjb,
   type SaleDetail,
 } from "../../utils/agentPencairan";
 import type { PencairanKomponenKey } from "../../utils/agentPencairanPreview";
@@ -787,7 +788,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                     },
                   };
                   const openSaleDetailModal = () => setSelectedDetailPenjualan(saleDetailForModal);
-                  const nilaiAjb = detail?.progressPenjualan?.nilaiAjb ?? null;
+                  const nilaiAjb = getTotalNilaiAjb(detail?.progressPenjualan) || null;
                   const feeRecord = getFeeForSale(feeData, row.id, sale.id, sale.noTransaksi);
                   const pencairanList = feeRecord ? (pencairanByFeeAgentId.get(feeRecord.id) ?? []) : [];
                   const { fee, totalFee, potPph } = calcAgentFees(commercial, nilaiAjb, feeRecord);
