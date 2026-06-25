@@ -41,6 +41,12 @@ export interface AgentPencairanData {
       blok: string;
       nomorUnit: string;
       perumahan: { nama: string };
+      rekeningTujuan: {
+        id: number;
+        namaBank: string;
+        noRekening: string;
+        atasNama: string;
+      } | null;
     };
   };
 }

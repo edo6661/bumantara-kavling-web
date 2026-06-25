@@ -1,9 +1,12 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
+import PasteUploadBanner from '../../components/shared/PasteUploadBanner';
 import BuktiFileThumbnail from '../../components/shared/BuktiFileThumbnail';
 import { formatDate, formatTanpaDesimal } from '../../utils/formatters';
+import { isUploadableFile } from '../../utils/clipboardFilePaste';
+import { useRowPasteUpload } from '../../hooks/useRowPasteUpload';
 import {
   Clock,
   CheckCircle2,
@@ -31,6 +34,12 @@ const DEFAULT_PAGE_SIZE = 10;
 
 const formatKavlingLabel = (blok: string, nomorUnit: string) =>
   `${blok} ${nomorUnit}`;
+
+const formatKsoShortLabel = (atasNama: string) =>
+  atasNama.trim().split(/\s+/).pop() ?? atasNama;
+
+const getKsoFull = (row: AgentPencairanData) =>
+  row.penjualan?.kavling?.rekeningTujuan?.atasNama ?? null;
 
 const BayarAgent = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -60,6 +69,40 @@ const BayarAgent = () => {
   const items = response?.items ?? [];
   const meta = response?.meta;
   const bayarMutation = useBayarAgentPencairan();
+
+  const processUpload = useCallback(
+    async (row: AgentPencairanData, file: File): Promise<boolean> => {
+      if (!isUploadableFile(file)) {
+        alert('Hanya file gambar dan PDF yang diperbolehkan.');
+        return false;
+      }
+
+      try {
+        await bayarMutation.mutateAsync({ id: row.id, file });
+        alert('Pembayaran agent berhasil diproses.');
+        return true;
+      } catch (error) {
+        alert(handleApiError(error).message);
+        return false;
+      }
+    },
+    [bayarMutation],
+  );
+
+  const onPasteFiles = useCallback(
+    async (row: AgentPencairanData, files: File[]) => processUpload(row, files[0]!),
+    [processUpload],
+  );
+
+  const {
+    pasteTarget,
+    selectRow,
+    clearSelection: clearPasteSelection,
+    getRowClassName,
+  } = useRowPasteUpload<AgentPencairanData>({
+    canSelect: (row) => row.status === 'MENUNGGU_PEMBAYARAN',
+    onPasteFiles,
+  });
 
   const menungguCount = useMemo(
     () => items.filter((row) => row.status === 'MENUNGGU_PEMBAYARAN').length,
@@ -117,6 +160,7 @@ const BayarAgent = () => {
   }, [page, totalPages]);
 
   const openUpload = (row: AgentPencairanData) => {
+    selectRow(row);
     setUploadTarget(row);
     fileInputRef.current?.click();
   };
@@ -126,20 +170,14 @@ const BayarAgent = () => {
     e.target.value = '';
     if (!file || !uploadTarget) return;
 
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      alert('Hanya file gambar dan PDF yang diperbolehkan.');
-      return;
-    }
-
-    try {
-      await bayarMutation.mutateAsync({ id: uploadTarget.id, file });
-      alert('Pembayaran agent berhasil diproses.');
-    } catch (error) {
-      alert(handleApiError(error).message);
-    } finally {
-      setUploadTarget(null);
-    }
+    const ok = await processUpload(uploadTarget, file);
+    if (ok) clearPasteSelection();
+    setUploadTarget(null);
   };
+
+  const pasteBannerLabel = pasteTarget
+    ? `${pasteTarget.agent?.nama ?? 'Agent'} · ${pasteTarget.penjualan?.customer?.nama ?? '-'} · ${formatTanpaDesimal(pasteTarget.totalNominal)}`
+    : '';
 
   if (isLoading) return <PageLoader />;
 
@@ -199,6 +237,9 @@ const BayarAgent = () => {
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
           <h2 className="text-lg font-black text-slate-900">Bayar Agent</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Klik baris yang menunggu pembayaran lalu Ctrl+V untuk paste bukti pembayaran.
+          </p>
          
           {statusFilter !== 'SUDAH_DIBAYAR' && menungguCount > 0 && (
             <p className="text-xs font-semibold text-amber-700 mt-2">
@@ -207,18 +248,25 @@ const BayarAgent = () => {
           )}
         </div>
 
+        {pasteTarget && (
+          <div className="px-5 pb-4">
+            <PasteUploadBanner label={pasteBannerLabel} onClear={clearPasteSelection} />
+          </div>
+        )}
+
         {items.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">
             Tidak ada pengajuan pencairan agent.
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] border-collapse">
+            <table className="w-full min-w-[1180px] border-collapse">
               <thead>
                 <tr>
                   <th className={thClass}>Agent</th>
                   <th className={thClass}>Customer</th>
                   <th className={thClass}>Kavling</th>
+                  <th className={thClass}>KSO</th>
                   <th className={`${thClass} text-right`}>Closing</th>
                   <th className={`${thClass} text-right`}>Marketing</th>
                   <th className={`${thClass} text-right`}>PPh</th>
@@ -236,9 +284,17 @@ const BayarAgent = () => {
                   const paid = row.status === 'SUDAH_DIBAYAR';
                   const kavling = row.penjualan?.kavling;
                   const invoiceUrls = getAgentPencairanInvoiceUrls(row);
+                  const ksoFull = getKsoFull(row);
+                  const canPaste = !paid;
 
                   return (
-                    <tr key={row.id} className="hover:bg-slate-50/50">
+                    <tr
+                      key={row.id}
+                      className={`hover:bg-slate-50/50 ${getRowClassName(row)} ${canPaste ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (canPaste) selectRow(row);
+                      }}
+                    >
                      
                       <td className={tdClass}>
                         <p className="font-bold text-slate-900">{row.agent?.nama ?? '-'}</p>
@@ -253,6 +309,16 @@ const BayarAgent = () => {
                         {kavling
                           ? formatKavlingLabel(kavling.blok, kavling.nomorUnit)
                           : '-'}
+                      </td>
+                      <td
+                        className={`${tdClass} text-xs font-medium text-slate-700 whitespace-nowrap`}
+                        title={ksoFull ?? undefined}
+                      >
+                        {ksoFull ? (
+                          formatKsoShortLabel(ksoFull)
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
                       </td>
                       <td className={`${tdClass} text-right tabular-nums`}>
                         {formatTanpaDesimal(row.closingNominal)}
@@ -319,7 +385,10 @@ const BayarAgent = () => {
                         {!paid && (
                           <button
                             type="button"
-                            onClick={() => openUpload(row)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openUpload(row);
+                            }}
                             disabled={bayarMutation.isPending}
                             className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
                           >
