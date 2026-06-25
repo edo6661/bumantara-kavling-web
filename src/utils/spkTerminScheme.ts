@@ -109,8 +109,13 @@ export function getSpkTerminJenisOrder(spkJenis: SpkJenis = 'RUMAH'): SpkTerminP
   return getSpkTerminScheme(spkJenis).map((step) => step.jenis);
 }
 
-export function getKasbonTargetSteps(scheme: SpkTerminStepConfig[]): SpkTerminStepConfig[] {
-  return scheme.filter((step) => step.jenis !== 'RETENSI');
+export function getKasbonTargetSteps(
+  scheme: SpkTerminStepConfig[],
+): Array<SpkTerminStepConfig & { jenis: SpkKasbonTargetTermin }> {
+  return scheme.filter(
+    (step): step is SpkTerminStepConfig & { jenis: SpkKasbonTargetTermin } =>
+      step.jenis !== 'RETENSI',
+  );
 }
 
 export function getTerminStep(

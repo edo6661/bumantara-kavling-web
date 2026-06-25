@@ -629,6 +629,7 @@ export function canRequestSpkPembayaran(
 export {
   getSpkTerminScheme,
   getSpkTerminJenisOrder,
+  getKasbonTargetSteps,
   buildSpkPembayaranJenisLabel,
   buildSpkKasbonTargetLabel,
 } from './spkTerminScheme';

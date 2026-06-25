@@ -30,7 +30,6 @@ import { useGetProfile } from '../../hooks/queries/useProfile';
 import { useGetMandorRekening } from '../../hooks/queries/useProgressProyek';
 import type { SpkData, SpkJenis } from '../../services/spk.service';
 import {
-  SPK_PEMBAYARAN_JENIS_LABEL,
   buildSpkKasbonTargetLabel,
   buildSpkPembayaranJenisLabel,
   calcSpkPembayaranNominal,
