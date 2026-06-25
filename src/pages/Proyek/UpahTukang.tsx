@@ -13,10 +13,6 @@ import { formatDate, formatRupiah, formatTanpaDesimal } from '../../utils/format
 import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import { formatShortNoSpk } from '../../utils/spk';
-import {
-  SPK_PEMBAYARAN_STATUS_LABEL,
-  type SpkPembayaranStatus,
-} from '../../utils/spkPembayaran';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 
 interface SpkUpahGroup {
@@ -65,19 +61,6 @@ const formatKsoShortLabel = (atasNama: string): string => {
   return atasNama;
 };
 
-const statusBadgeClass = (status: SpkPembayaranStatus) => {
-  switch (status) {
-    case 'SUDAH_DIBAYAR':
-      return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    case 'MENUNGGU_PEMBAYARAN':
-      return 'bg-amber-100 text-amber-800 border-amber-200';
-    case 'MENUNGGU_PERSETUJUAN':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
-    default:
-      return 'bg-slate-100 text-slate-600 border-slate-200';
-  }
-};
-
 const formatPeriode = (row: SpkPembayaranData) => {
   if (row.tanggalDari && row.tanggalSampai) {
     return `${formatDate(row.tanggalDari)} – ${formatDate(row.tanggalSampai)}`;
@@ -98,7 +81,6 @@ const UpahTukang = () => {
   const ksoFilter = searchParams.get('kso') || '';
   const bulan = Number(searchParams.get('bulan')) || now.getMonth() + 1;
   const tahun = Number(searchParams.get('tahun')) || now.getFullYear();
-  const statusFilter = searchParams.get('status') ?? 'ALL';
   const limit = 500;
 
   const { data: bankList } = useGetBankRekening();
@@ -110,14 +92,14 @@ const UpahTukang = () => {
     bankRekeningPtId: ksoFilter ? Number(ksoFilter) : undefined,
     bulan,
     tahun,
-    status:
-      statusFilter === 'ALL'
-        ? 'ALL'
-        : (statusFilter as 'MENUNGGU_PEMBAYARAN' | 'MENUNGGU_PERSETUJUAN' | 'SUDAH_DIBAYAR'),
+    status: 'SUDAH_DIBAYAR',
   });
 
   const items = useMemo(
-    () => (response?.items ?? []).filter((row) => row.jenis === 'UPAH' && row.status !== 'DRAFT'),
+    () =>
+      (response?.items ?? []).filter(
+        (row) => row.jenis === 'UPAH' && row.status === 'SUDAH_DIBAYAR',
+      ),
     [response?.items],
   );
   const meta = response?.meta;
@@ -247,7 +229,7 @@ const UpahTukang = () => {
             <div>
               <h2 className="text-lg font-black text-slate-900">Upah Tukang</h2>
               <p className="text-xs text-slate-500 mt-0.5 max-w-2xl">
-                Rekap pengajuan upah tenaga kerja per SPK, dikelompokkan per mandor. Filter
+                Rekap upah tukang yang sudah dibayar per SPK, dikelompokkan per mandor. Filter
                 berdasarkan KSO (rekening PT), nomor SPK, dan periode bulan.
               </p>
             </div>
@@ -262,7 +244,7 @@ const UpahTukang = () => {
             </span>
           </div>
           <div>
-            <span className="text-slate-500">Pengajuan: </span>
+            <span className="text-slate-500">Sudah dibayar: </span>
             <span className="font-bold text-slate-800 tabular-nums">{items.length}</span>
           </div>
           <div>
@@ -285,7 +267,7 @@ const UpahTukang = () => {
             {isFilterExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
           {isFilterExpanded && (
-            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="text-[10px] font-bold text-slate-500 uppercase">KSO</label>
                 <select
@@ -326,20 +308,7 @@ const UpahTukang = () => {
                   className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
                 />
               </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Status</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => updateParams({ status: e.target.value })}
-                  className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
-                >
-                  <option value="ALL">Semua Status</option>
-                  <option value="MENUNGGU_PERSETUJUAN">Menunggu Pengawas</option>
-                  <option value="MENUNGGU_PEMBAYARAN">Menunggu Finance</option>
-                  <option value="SUDAH_DIBAYAR">Sudah Dibayar</option>
-                </select>
-              </div>
-              <div className="sm:col-span-2 lg:col-span-4">
+              <div className="sm:col-span-2 lg:col-span-3">
                 <label className="text-[10px] font-bold text-slate-500 uppercase">
                   Cari No. SPK / Mandor
                 </label>
@@ -361,7 +330,7 @@ const UpahTukang = () => {
 
         {mandorGroups.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">
-            Tidak ada pengajuan upah tukang pada periode {bulanLabel} {tahun}
+            Tidak ada upah tukang yang sudah dibayar pada periode {bulanLabel} {tahun}
             {ksoFilter ? ' untuk KSO yang dipilih' : ''}.
           </p>
         ) : (
@@ -486,12 +455,10 @@ const UpahTukang = () => {
                                             </span>
                                           </div>
                                         </td>
-                                        <td className="px-4 py-2 border-b border-teal-100/60">
-                                          <span
-                                            className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${statusBadgeClass(row.status)}`}
-                                          >
-                                            {SPK_PEMBAYARAN_STATUS_LABEL[row.status]}
-                                          </span>
+                                        <td className="px-4 py-2 border-b border-teal-100/60 text-xs text-slate-600 whitespace-nowrap">
+                                          {row.tanggalPembayaran
+                                            ? formatDate(row.tanggalPembayaran)
+                                            : '—'}
                                         </td>
                                         <td className="px-4 py-2 border-b border-teal-100/60 font-bold text-teal-800 text-sm tabular-nums">
                                           {formatRupiah(row.nominal)}

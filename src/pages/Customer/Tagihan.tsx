@@ -91,6 +91,16 @@ const ROWS_PER_PAGE = 10;
 /** Ambil semua tagihan (max API) lalu paginate per penjualan di client */
 const TAGIHAN_FETCH_LIMIT = 500;
 
+/** KPR tanpa DP Dibayar: hanya DP Tidak Dibayar (ditanggung bank), tidak ditagihkan ke customer */
+const isKprTanpaDpDibayar = (
+  caraPembayaran: string,
+  dpDibayar?: number | null,
+): boolean => {
+  const normalized = caraPembayaran.replace(/[\s_]/g, '').toUpperCase();
+  if (!normalized.includes('KPR')) return false;
+  return Number(dpDibayar ?? 0) <= 0;
+};
+
 const Tagihan = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -411,13 +421,30 @@ const Tagihan = () => {
       setIsAutoFilled(true);
     } else if (parentGroup) {
       setInitialTujuan(null);
+      const parentPenjualanRow = penjualanFullList.find(
+        (p: any) => Number(p.dbId) === Number(parentGroup.penjualanId),
+      );
+      const parentTargetPenjualan = penjualanList.find(
+        (p: any) => String(p.id) === String(parentGroup.penjualanId),
+      );
+      const parentCaraPembayaran =
+        parentTargetPenjualan?.pembiayaan ??
+        parentPenjualanRow?.caraPembayaran ??
+        parentGroup.caraPembayaran ??
+        '';
+      const defaultTujuan: TagihanTujuan = isKprTanpaDpDibayar(
+        parentCaraPembayaran,
+        parentPenjualanRow?.dpDibayar,
+      )
+        ? 'HARGA_JUAL'
+        : 'DP';
       setFormData({
         ...initialFormState,
         customerId: parentGroup.customerId,
         customerLabel: parentGroup.namaCustomer,
         penjualanId: parentGroup.penjualanId,
         kavlingLabel: parentGroup.kavling,
-        tujuan: 'DP',
+        tujuan: defaultTujuan,
       });
       setExistingBuktiUrls([]);
       setIsEditing(false);
@@ -744,9 +771,17 @@ const Tagihan = () => {
         .filter((t) => t.status === 'LUNAS' && pred(t))
         .reduce((acc, t) => acc + Number(t.nominal), 0);
 
+    const caraPembayaran =
+      targetPenjualan?.pembiayaan ??
+      penjualanRow?.caraPembayaran ??
+      row.caraPembayaran ??
+      '';
+    const kprTanpaDpDibayar = isKprTanpaDpDibayar(caraPembayaran, penjualanRow?.dpDibayar);
+
     const hargaJual = Number(penjualanRow?.hargaJual ?? targetPenjualan?.totalHargaJual ?? 0);
     const targetBooking = Number(penjualanRow?.bookingFee ?? 0);
     const targetDp = Number(penjualanRow?.dp ?? 0);
+    const showDpTagihan = !kprTanpaDpDibayar && targetDp > 0;
     const targetPokok = Math.max(0, hargaJual - targetDp - targetBooking);
 
     const paidDp = sumLunas((t) => effectiveTagihanTujuan(t) === 'DP');
@@ -777,7 +812,7 @@ const Tagihan = () => {
                   <p className="text-sm font-black text-slate-950">{formatRupiah(hargaJual)}</p>
                 </div>
               )}
-              {targetDp > 0 && (
+              {showDpTagihan && (
                 <div className={`px-3 py-2 border rounded-lg ${dpLunas ? 'border-green-200 bg-green-50/90' : 'border-teal-100 bg-teal-50/90'}`}>
                   <div className="flex items-center justify-between gap-1 mb-0.5">
                     <p className={`text-[9px] uppercase tracking-widest font-bold ${dpLunas ? 'text-green-700' : 'text-teal-700'}`}>DP</p>
@@ -805,13 +840,13 @@ const Tagihan = () => {
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              {(targetDp > 0 && paidDp > 0 && !dpLunas) && (
+              {(showDpTagihan && paidDp > 0 && !dpLunas) && (
                 <div className="px-3 py-2 border border-teal-100 rounded-lg bg-teal-50/90">
                   <p className="text-[9px] text-teal-700 uppercase tracking-widest font-bold mb-0.5">DP Terbayar</p>
                   <p className="text-sm font-black text-teal-950">{formatRupiah(paidDp)}</p>
                 </div>
               )}
-              {(targetDp > 0 && !dpLunas) && (
+              {(showDpTagihan && !dpLunas) && (
                 <div className={`px-3 py-2 border rounded-lg ${dpLunas ? 'border-green-200 bg-green-50/90' : 'border-emerald-100 bg-emerald-50/90'}`}>
                   <p className={`text-[9px] uppercase tracking-widest font-bold mb-0.5 ${dpLunas ? 'text-green-700' : 'text-emerald-700'}`}>DP Sisa</p>
                   
@@ -837,7 +872,7 @@ const Tagihan = () => {
                 </div>
               )}
             </div>
-            {targetBooking <= 0 && targetDp <= 0 && targetPokok <= 0 && (
+            {targetBooking <= 0 && !showDpTagihan && targetPokok <= 0 && !kprTanpaDpDibayar && (
               <p className="text-xs text-slate-500 px-2 py-1">Ringkasan sisa membutuhkan data harga jual, booking, dan DP di penjualan.</p>
             )}
           </div>
