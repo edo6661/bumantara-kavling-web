@@ -1,24 +1,33 @@
 import { ExternalLink, FileText } from 'lucide-react';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
+import type { SpkJenis } from '../../services/spk.service';
 import {
-  SPK_PEMBAYARAN_JENIS_LABEL,
-  type SpkPembayaranJenis,
+  buildSpkPembayaranJenisLabel,
+  getSpkTerminJenisOrder,
 } from '../../utils/spkPembayaran';
-
-const JENIS_ORDER: SpkPembayaranJenis[] = ['TERMIN_55', 'TERMIN_100', 'RETENSI'];
-
-const SHORT_LABEL: Record<'TERMIN_55' | 'TERMIN_100' | 'RETENSI', string> = {
-  TERMIN_55: '55%',
-  TERMIN_100: '100%',
-  RETENSI: 'Ret.',
-};
 
 interface SpkPembayaranStatusChipsProps {
   items: SpkPembayaranData[];
   showBuktiLinks?: boolean;
+  spkJenis?: SpkJenis;
 }
 
-const SpkPembayaranStatusChips = ({ items, showBuktiLinks = false }: SpkPembayaranStatusChipsProps) => {
+const SpkPembayaranStatusChips = ({
+  items,
+  showBuktiLinks = false,
+  spkJenis = 'RUMAH',
+}: SpkPembayaranStatusChipsProps) => {
+  const jenisOrder = getSpkTerminJenisOrder(spkJenis);
+  const jenisLabels = buildSpkPembayaranJenisLabel(spkJenis);
+  const shortLabel = Object.fromEntries(
+    jenisOrder.map((jenis) => [
+      jenis,
+      jenisLabels[jenis].includes('Retensi')
+        ? 'Ret.'
+        : jenisLabels[jenis].match(/Termin (\d+%)/)?.[1] ?? jenis,
+    ]),
+  ) as Record<(typeof jenisOrder)[number], string>;
+
   const kasbonItems = items.filter((p) => p.jenis === 'KASBON');
   const upahItems = items.filter((p) => p.jenis === 'UPAH');
   const kasbonMenunggu = kasbonItems.filter(
@@ -46,16 +55,16 @@ const SpkPembayaranStatusChips = ({ items, showBuktiLinks = false }: SpkPembayar
           Upah {upahMenunggu > 0 ? `${upahMenunggu}…` : '✓'}
         </span>
       )}
-      {JENIS_ORDER.map((jenis) => {
+      {jenisOrder.map((jenis) => {
         const row = items.find((p) => p.jenis === jenis);
         if (!row) {
           return (
             <span
               key={jenis}
-              title={SPK_PEMBAYARAN_JENIS_LABEL[jenis]}
+              title={jenisLabels[jenis]}
               className="inline-flex px-1.5 py-0.5 text-[9px] font-bold uppercase rounded bg-slate-100 text-slate-400"
             >
-              {SHORT_LABEL[jenis]} —
+              {shortLabel[jenis]} —
             </span>
           );
         }
@@ -64,12 +73,12 @@ const SpkPembayaranStatusChips = ({ items, showBuktiLinks = false }: SpkPembayar
         return (
           <span key={jenis} className="inline-flex flex-col gap-0.5">
             <span
-              title={SPK_PEMBAYARAN_JENIS_LABEL[jenis]}
+              title={jenisLabels[jenis]}
               className={`inline-flex px-1.5 py-0.5 text-[9px] font-bold uppercase rounded ${
                 paid ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
               }`}
             >
-              {SHORT_LABEL[jenis]} {paid ? '✓' : '…'}
+              {shortLabel[jenis]} {paid ? '✓' : '…'}
             </span>
             {showBuktiLinks && paid && row.buktiPembayaran && (
               <a

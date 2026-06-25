@@ -19,14 +19,11 @@ import { DEFAULT_PERUMAHAN_NAME } from '../../constants/perumahan';
 import { kavlingService } from '../../services/kavling.service';
 import { handleApiError } from '../../utils/errorHandler';
 import { formatRupiah, formatDate } from '../../utils/formatters';
+import { SPK_PEMBAYARAN_JENIS_LABEL } from '../../utils/spkPembayaran';
 
-const JENIS_LABELS: Record<string, string> = {
-  TERMIN_55: 'Termin 55%',
-  TERMIN_100: 'Termin 100%',
-  RETENSI: 'Retensi',
-  KASBON: 'Kasbon Material',
-  UPAH: 'Upah Tukang',
-};
+function jenisLabel(jenis: string): string {
+  return SPK_PEMBAYARAN_JENIS_LABEL[jenis as keyof typeof SPK_PEMBAYARAN_JENIS_LABEL] ?? jenis;
+}
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Semua Status (non draft)' },
@@ -254,7 +251,7 @@ const LaporanBiayaProyek = () => {
                 key={jenis}
                 compact
                 className="bg-white"
-                label={JENIS_LABELS[jenis] ?? jenis}
+                label={jenisLabel(jenis)}
                 value={formatRupiah(nominal)}
                 hint="Total per jenis pembayaran"
               />
