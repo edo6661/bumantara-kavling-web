@@ -86,7 +86,11 @@ export interface SpkPembayaranListParams {
   page?: number;
   limit?: number;
   status?: SpkPembayaranStatus | 'ALL';
+  jenis?: 'UPAH' | 'KASBON';
   search?: string;
+  bankRekeningPtId?: number;
+  bulan?: number;
+  tahun?: number;
 }
 
 export interface SpkPembayaranUpahBarisBody {

@@ -110,6 +110,13 @@ const menuItems: MenuItem[] = [
     submenus: [
       { title: 'SPK', path: '/proyek/spk', resource: 'SPK' },
       { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
+      {
+        title: 'Pembayaran',
+        resource: 'SPK',
+        children: [
+          { title: 'Upah Tukang', path: '/proyek/pembayaran/upah-tukang' },
+        ],
+      },
       { title: 'Tukang', path: '/proyek/tukang', resource: 'SPK' },
       { title: 'Progress Proyek', path: '/proyek/progress', resource: 'PROGRESS_PROYEK' },
     ],
@@ -397,7 +404,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                       </button>
 
                       {/* Submenu */}
-                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpenMenu && !isCollapsed ? 'max-h-[520px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpenMenu && !isCollapsed ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
                         <div className="ml-4 mt-0.5 mb-1 pl-3 border-l border-white/10 space-y-0.5">
                           {item.submenus!.map((sub) => {
                             if ('children' in sub && sub.children) {
