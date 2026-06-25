@@ -738,6 +738,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
   progressData,
   canUpload,
 }) => {
+  const { user } = useAuth();
   const uploadPhotoMutation = useUploadTahapanPhotos();
   const addLogMutation = useAddTahapanLog();
 
@@ -827,6 +828,12 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
 
   const isSaving = uploadPhotoMutation.isPending || addLogMutation.isPending;
   const assignedMandorName = progressData.mandor?.username;
+  const latestPersentase = clampPersentase(
+    Number(getLatestTahapanLog(progressData.tahapan, namaTahapan)?.persentase ?? 0),
+  );
+  const isSuperAdminHistoryOnly =
+    user?.role === 'SUPERADMIN' && canUpload && latestPersentase >= 100;
+  const showUploadForm = canUpload && !isSuperAdminHistoryOnly;
   const riwayat = progressData.tahapan
     .filter((t) => t.namaTahapan === namaTahapan)
     .sort((a, b) => {
@@ -853,7 +860,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
         </div>
       )}
 
-      {canUpload && (
+      {showUploadForm && (
         <form onSubmit={handleSave} className="space-y-5">
           {/* Persentase */}
           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
@@ -988,7 +995,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
         </form>
       )}
 
-      {!canUpload && (
+      {!showUploadForm && (
         <div className="flex justify-end mb-4">
           <button
             type="button"
@@ -1001,7 +1008,7 @@ const EditTahapanModal: React.FC<EditTahapanModalProps> = ({
       )}
 
       {/* Riwayat */}
-      <div className={`${canUpload ? 'mt-8' : 'mt-2'} border-t border-slate-200 pt-6`}>
+      <div className={`${showUploadForm ? 'mt-8' : 'mt-2'} border-t border-slate-200 pt-6`}>
         <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-4">
           Riwayat — {namaTahapan}
         </h4>
