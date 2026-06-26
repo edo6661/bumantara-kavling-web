@@ -18,13 +18,7 @@ export const NOTIFICATION_KEYS = {
   unreadCount: () => [...NOTIFICATION_KEYS.all, 'unread-count'] as const,
 };
 
-const NOTIFICATION_ROLES = new Set([
-  'ADMIN',
-  'SUPERADMIN',
-  'FINANCE',
-  'PENGAWAS',
-  'MANDOR',
-]);
+const NOTIFICATION_ROLES = new Set(['ADMIN', 'SUPERADMIN']);
 
 export const useNotifications = () => {
   const { user, isAuthenticated } = useAuth();

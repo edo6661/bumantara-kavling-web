@@ -2765,7 +2765,7 @@ const SpkPembayaranPanel = ({
           className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-100 text-emerald-700"
           title="Termin sudah lunas melalui pengurangan kasbon"
         >
-          Lunas (kasbon)
+          Lunas (by kasbon)
         </span>
       );
     }

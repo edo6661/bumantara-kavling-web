@@ -42,13 +42,7 @@ const routeLabels: Record<string, string> = {
   '/proyek/progress': 'Progress Proyek',
 };
 
-const NOTIFICATION_ROLES = new Set([
-  'ADMIN',
-  'SUPERADMIN',
-  'FINANCE',
-  'PENGAWAS',
-  'MANDOR',
-]);
+const NOTIFICATION_ROLES = new Set(['ADMIN', 'SUPERADMIN']);
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
   const location = useLocation();
