@@ -604,14 +604,10 @@ export function canRequestKasbon(
   return { allowed: true, targetTermin: target };
 }
 
-export function canRequestSpkPembayaran(
-  jenis: SpkPembayaranJenis,
-  spk: SpkNominalInput & { progress: number },
+function toCalcRowsFromStatus(
   pembayaranList: SpkPembayaranStatusRow[],
-  spkJenis: SpkJenis = 'RUMAH',
-): { allowed: boolean; reason?: string; nominal: number } {
-  const labels = buildSpkPembayaranJenisLabel(spkJenis);
-  const calcRows: SpkPembayaranCalcRow[] = pembayaranList
+): SpkPembayaranCalcRow[] {
+  return pembayaranList
     .filter((p) => p.status !== 'DRAFT')
     .map((p) => ({
       id: p.id,
@@ -620,6 +616,40 @@ export function canRequestSpkPembayaran(
       nominal: p.nominal ?? 0,
       mengurangiTermin: p.mengurangiTermin,
     }));
+}
+
+/** Termin sudah dibayar finance, atau nominal Rp 0 karena lunas via kasbon/upah. */
+export function isTerminFulfilled(
+  jenis: SpkTerminPembayaranJenis,
+  spk: SpkNominalInput,
+  pembayaranList: SpkPembayaranStatusRow[],
+  spkJenis: SpkJenis = 'RUMAH',
+): boolean {
+  if (
+    pembayaranList.some((p) => p.jenis === jenis && p.status === 'SUDAH_DIBAYAR')
+  ) {
+    return true;
+  }
+  if (pembayaranList.some((p) => p.jenis === jenis)) {
+    return false;
+  }
+  const nominal = calcSpkPembayaranNominal(
+    jenis,
+    spk,
+    toCalcRowsFromStatus(pembayaranList),
+    spkJenis,
+  );
+  return nominal <= 0;
+}
+
+export function canRequestSpkPembayaran(
+  jenis: SpkPembayaranJenis,
+  spk: SpkNominalInput & { progress: number },
+  pembayaranList: SpkPembayaranStatusRow[],
+  spkJenis: SpkJenis = 'RUMAH',
+): { allowed: boolean; reason?: string; nominal: number } {
+  const labels = buildSpkPembayaranJenisLabel(spkJenis);
+  const calcRows = toCalcRowsFromStatus(pembayaranList);
 
   if (jenis === 'KASBON' || jenis === 'UPAH') {
     const check = canRequestKasbon(pembayaranList, spk.nilaiKontrak, spkJenis);
@@ -630,6 +660,14 @@ export function canRequestSpkPembayaran(
 
   if (pembayaranList.some((p) => p.jenis === jenis)) {
     return { allowed: false, reason: 'Pengajuan termin ini sudah ada.', nominal };
+  }
+
+  if (nominal <= 0) {
+    return {
+      allowed: false,
+      reason: 'Nominal termin Rp 0 — sudah lunas melalui pengurangan kasbon.',
+      nominal,
+    };
   }
 
   if (spk.progress < getMinProgressForJenis(jenis, spkJenis)) {
@@ -643,7 +681,7 @@ export function canRequestSpkPembayaran(
   const prereq = getPrerequisiteJenis(jenis, spkJenis);
   if (
     prereq &&
-    !pembayaranList.some((p) => p.jenis === prereq && p.status === 'SUDAH_DIBAYAR')
+    !isTerminFulfilled(prereq as SpkTerminPembayaranJenis, spk, pembayaranList, spkJenis)
   ) {
     return {
       allowed: false,

@@ -2745,6 +2745,7 @@ const SpkPembayaranPanel = ({
   const renderStatus = (
     existing: SpkPembayaranData | undefined,
     jenis: SpkTerminPembayaranJenis,
+    nominal: number,
   ) => {
     if (existing) {
       const paid = existing.status === 'SUDAH_DIBAYAR';
@@ -2755,6 +2756,16 @@ const SpkPembayaranPanel = ({
           }`}
         >
           {paid ? 'Terbayar' : 'Menunggu'}
+        </span>
+      );
+    }
+    if (nominal <= 0) {
+      return (
+        <span
+          className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-100 text-emerald-700"
+          title="Termin sudah lunas melalui pengurangan kasbon"
+        >
+          Lunas (kasbon)
         </span>
       );
     }
@@ -2775,24 +2786,24 @@ const SpkPembayaranPanel = ({
   const renderTerminAksi = (
     existing: SpkPembayaranData | undefined,
     jenis: SpkTerminPembayaranJenis,
+    nominal: number,
   ) => {
-    if (existing || !canAjukan) return null;
+    if (existing || !canAjukan || nominal <= 0) return null;
     const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, spkJenis);
+    if (!check.allowed) {
+      return check.reason ? (
+        <span className="text-[9px] text-amber-700 max-w-[140px] leading-tight">{check.reason}</span>
+      ) : null;
+    }
     return (
-      <div className="flex flex-col items-start gap-0.5">
-        <button
-          type="button"
-          disabled={!check.allowed || createMutation.isPending}
-          title={check.reason}
-          onClick={() => handleAjukanTermin(jenis)}
-          className="px-2.5 py-1 text-[10px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 whitespace-nowrap"
-        >
-          Ajukan
-        </button>
-        {!check.allowed && check.reason && (
-          <span className="text-[9px] text-amber-700 max-w-[140px] leading-tight">{check.reason}</span>
-        )}
-      </div>
+      <button
+        type="button"
+        disabled={createMutation.isPending}
+        onClick={() => handleAjukanTermin(jenis)}
+        className="px-2.5 py-1 text-[10px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 whitespace-nowrap"
+      >
+        Ajukan
+      </button>
     );
   };
 
@@ -2894,7 +2905,7 @@ const SpkPembayaranPanel = ({
                         </p>
                         <KalkulasiSingkat jenis={jenis} spk={spk} pembayaranList={pembayaranList} />
                       </td>
-                      <td className={tdClass}>{renderStatus(existing, jenis)}</td>
+                      <td className={tdClass}>{renderStatus(existing, jenis, nominal)}</td>
                       <td className={tdClass}>
                         {existing?.buktiPembayaran ? (
                           <BuktiFileThumbnail
@@ -2906,7 +2917,7 @@ const SpkPembayaranPanel = ({
                           <span className="text-slate-400">—</span>
                         )}
                       </td>
-                      <td className={tdClass}>{renderTerminAksi(existing, jenis)}</td>
+                      <td className={tdClass}>{renderTerminAksi(existing, jenis, nominal)}</td>
                     </tr>
                   );
                 })}
