@@ -299,6 +299,9 @@ const BayarAgent = () => {
                       <td className={tdClass}>
                         <p className="font-bold text-slate-900">{row.agent?.nama ?? '-'}</p>
                         <p className="text-[10px] text-slate-500">
+                          {row.agent?.atasNamaRekening?.trim() || '-'}
+                        </p>
+                        <p className="text-[10px] text-slate-500">
                           {row.agent?.namaBank ?? '-'} · {row.agent?.noRekening ?? '-'}
                         </p>
                       </td>
