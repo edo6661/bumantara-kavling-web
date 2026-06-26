@@ -654,6 +654,36 @@ const SpkInfrastrukturPanel = () => {
         );
       },
     },
+    {
+      header: 'Sisa Nilai',
+      accessor: 'sisaNilaiKontrak',
+      headerNowrap: false,
+      minWidth: 'min-w-[6.75rem]',
+      render: (val: number | null) => {
+        if (val == null) return <span className="text-slate-300 text-xs">—</span>;
+        const unpaid = val > 0;
+        return (
+          <span className={`text-xs font-semibold tabular-nums whitespace-nowrap ${unpaid ? 'text-red-600' : 'text-slate-400'}`}>
+            {formatTanpaDesimal(val)}
+          </span>
+        );
+      },
+    },
+    {
+      header: 'Sudah Dibayar',
+      accessor: 'nilaiSudahDibayarkan',
+      headerNowrap: false,
+      minWidth: 'min-w-[6.75rem]',
+      render: (val: number | null) => {
+        if (val == null) return <span className="text-slate-300 text-xs">—</span>;
+        const paid = val > 0;
+        return (
+          <span className={`text-xs font-semibold tabular-nums whitespace-nowrap ${paid ? 'text-emerald-700' : 'text-slate-400'}`}>
+            {formatTanpaDesimal(val)}
+          </span>
+        );
+      },
+    },
   ];
 
   const spkDetailColumns = columns;
