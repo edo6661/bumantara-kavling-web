@@ -134,6 +134,8 @@ const formatKsoShortLabel = (atasNama: string): string => {
   return atasNama;
 };
 
+const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
+
 const initialZonaForm = () => ({
   nama: '',
   hgb: '',
@@ -145,6 +147,7 @@ const SpkInfrastrukturPanel = () => {
   const { user, selectedPerumahan } = useAuth();
   const { canRead: canReadSpk } = usePermission('SPK');
   const canManageSpk = user?.role !== 'MANDOR';
+  const canEditSpkProgress = canManageSpk;
   const isAdminRole = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -203,6 +206,7 @@ const SpkInfrastrukturPanel = () => {
   const [kasbonQuickSpk, setKasbonQuickSpk] = useState<SpkData | null>(null);
   const [historiKasbonSpk, setHistoriKasbonSpk] = useState<SpkData | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [spkProgressInput, setSpkProgressInput] = useState<string>('');
 
   const spkData = spkResponse?.items ?? [];
   const adminSpkList = adminSpkResponse?.items ?? [];
@@ -553,6 +557,11 @@ const SpkInfrastrukturPanel = () => {
     const fresh = displaySpkData.find((s) => s.id === detailItem.id);
     if (fresh) setDetailItem(fresh);
   }, [displaySpkData, detailItem?.id]);
+
+  useEffect(() => {
+    if (!detailItem) return;
+    setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
+  }, [detailItem?.id, detailItem?.progress]);
 
   const columns = [
     {
@@ -962,21 +971,92 @@ const SpkInfrastrukturPanel = () => {
               </div>
             </CollapsibleDetailSection>
 
-            <CollapsibleDetailSection title="Dokumen SPK" defaultOpen>
-              {detailItem.fileSpk ? (
-                <a
-                  href={detailItem.fileSpk}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:underline"
-                >
-                  <FileText size={14} />
-                  Buka PDF
-                  <ExternalLink size={12} />
-                </a>
-              ) : (
-                <span className="text-xs text-slate-400">Belum ada dokumen</span>
-              )}
+            <CollapsibleDetailSection
+              title="Progress & Dokumen"
+              subtitle={`Progress ${Number(detailItem.progress ?? 0)}%`}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 max-w-[200px] bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${detailItem.progress === 100 ? 'bg-emerald-500' : 'bg-blue-600'}`}
+                      style={{ width: `${Number(detailItem.progress ?? 0)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-blue-800">
+                    {Number(detailItem.progress ?? 0)}%
+                  </span>
+                </div>
+                {canEditSpkProgress && (
+                  <div className="flex items-center gap-2 flex-wrap p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Override %</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={3}
+                        value={spkProgressInput}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, '').slice(0, 3);
+                          if (digits === '') {
+                            setSpkProgressInput('');
+                            return;
+                          }
+                          setSpkProgressInput(String(clampPercent(parseInt(digits, 10))));
+                        }}
+                        onBlur={() => {
+                          if (spkProgressInput === '') {
+                            setSpkProgressInput(String(clampPercent(Number(detailItem.progress ?? 0))));
+                            return;
+                          }
+                          setSpkProgressInput(String(clampPercent(parseInt(spkProgressInput, 10))));
+                        }}
+                        className="w-14 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-center text-black focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400"
+                      />
+                      <span className="text-[10px] font-bold text-slate-400">%</span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={updateMutation.isPending}
+                      className="px-2.5 py-1 text-[10px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={async () => {
+                        const parsed =
+                          spkProgressInput === ''
+                            ? clampPercent(Number(detailItem.progress ?? 0))
+                            : clampPercent(parseInt(spkProgressInput, 10));
+                        try {
+                          await updateMutation.mutateAsync({
+                            id: detailItem.id,
+                            data: { progressOverride: parsed },
+                          });
+                        } catch (err: unknown) {
+                          alert(handleApiError(err).message);
+                        }
+                      }}
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Dokumen SPK</p>
+                  {detailItem.fileSpk ? (
+                    <a
+                      href={detailItem.fileSpk}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                    >
+                      <FileText size={14} />
+                      Buka PDF
+                      <ExternalLink size={12} />
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400">Belum ada dokumen</span>
+                  )}
+                </div>
+              </div>
             </CollapsibleDetailSection>
 
             <SpkPembayaranPanel
