@@ -94,10 +94,19 @@ export const useSubmitKasbonDraft = () => {
     mutationFn: ({
       spkId,
       mandorRekeningId,
+      dokumenInvoice,
+      dokumenMaterial,
     }: {
       spkId: number;
       mandorRekeningId?: number;
-    }) => spkPembayaranService.submitKasbonDraft(spkId, { mandorRekeningId }),
+      dokumenInvoice: string;
+      dokumenMaterial: string;
+    }) =>
+      spkPembayaranService.submitKasbonDraft(spkId, {
+        mandorRekeningId,
+        dokumenInvoice,
+        dokumenMaterial,
+      }),
     onSuccess: (data) => {
       clearKasbonDraftCache(queryClient, data.spkId);
       queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.bySpk(data.spkId) });

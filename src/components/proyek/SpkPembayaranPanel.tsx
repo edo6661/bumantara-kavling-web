@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, FileText, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import Modal from '../shared/Modal';
 import Select from '../shared/Select';
+import FileInput from '../shared/FileInput';
 import CollapsibleDetailSection from '../shared/CollapsibleDetailSection';
 import CurrencyInput from '../shared/CurrencyInput';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../shared/BuktiFileThumbnail';
@@ -21,9 +22,12 @@ import {
 } from '../../hooks/queries/useSpkPembayaran';
 import { useGetTukangList } from '../../hooks/queries/useTukang';
 import type {
+  CreateSpkPembayaranBody,
+  SpkPembayaranData,
   SpkPembayaranKasbonBarisBody,
   SpkPembayaranUpahBarisBody,
 } from '../../services/spkPembayaran.service';
+import { spkPembayaranService } from '../../services/spkPembayaran.service';
 import { useAuth } from '../../context/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
 import { useGetProfile } from '../../hooks/queries/useProfile';
@@ -44,6 +48,7 @@ import {
   getSpkTerminScheme,
   getTerminPaymentStatus,
   validatePengurangTerminNominal,
+  canSpillPengurangToNextTermin,
   type SpkKasbonTargetTermin,
   type SpkPembayaranJenis,
   type SpkPengurangTerminRow,
@@ -64,8 +69,6 @@ import {
   toKasbonDateIso,
 } from '../../utils/kasbonBarisDisplay';
 import { ocrService } from '../../services/ocr.service';
-import { spkPembayaranService } from '../../services/spkPembayaran.service';
-import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 
 const JENIS_UI_COLOR = {
   KASBON: {
@@ -81,6 +84,16 @@ const JENIS_UI_COLOR = {
 } as const;
 
 const todayIso = () => new Date().toISOString().split('T')[0]!;
+
+const isPdfFile = (file: File) =>
+  file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+const uploadPengajuanPdf = async (file: File): Promise<string> => {
+  if (!isPdfFile(file)) {
+    throw new Error('Dokumen harus berformat PDF.');
+  }
+  return spkPembayaranService.uploadDokumenPengajuan(file);
+};
 
 const toDateInputValue = (dateStr: string | null | undefined) => {
   const iso = toKasbonDateIso(dateStr);
@@ -1231,6 +1244,7 @@ const PengurangPlafonBanner = ({
   excludeId,
   terminStatus,
   spkJenis,
+  spkProgress,
 }: {
   nilaiKontrak: number;
   rows: SpkPengurangTerminRow[];
@@ -1239,6 +1253,7 @@ const PengurangPlafonBanner = ({
   excludeId?: number;
   terminStatus?: ReturnType<typeof getTerminPaymentStatus>;
   spkJenis: SpkJenis;
+  spkProgress?: number;
 }) => {
   const kasbonTargetLabels = buildSpkKasbonTargetLabel(spkJenis);
   const targets = getKasbonTargetSteps(getSpkTerminScheme(spkJenis));
@@ -1248,6 +1263,10 @@ const PengurangPlafonBanner = ({
     nextTargetIndex >= 0 && nextTargetIndex < targets.length - 1
       ? kasbonTargetLabels[targets[nextTargetIndex + 1]!.jenis]
       : null;
+  const nextStep =
+    nextTargetIndex >= 0 && nextTargetIndex < targets.length - 1
+      ? targets[nextTargetIndex + 1]
+      : null;
 
   const cap = getPengurangTerminCapacity(nilaiKontrak, rows, termin, {
     excludeId,
@@ -1256,7 +1275,40 @@ const PengurangPlafonBanner = ({
     spkJenis,
   });
 
+  const strictValidation =
+    additionalNominal > 0
+      ? validatePengurangTerminNominal(
+          nilaiKontrak,
+          rows,
+          termin,
+          additionalNominal,
+          excludeId,
+          terminStatus,
+          spkJenis,
+          spkProgress,
+        )
+      : { allowed: true as const };
+  const isAllowed = strictValidation.allowed;
+
   return (
+    <div className="space-y-2">
+      {!isAllowed && strictValidation.reason && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p className="font-bold">Tidak dapat diajukan</p>
+          <p className="text-xs mt-1 leading-relaxed">{strictValidation.reason}</p>
+        </div>
+      )}
+      {spkProgress != null &&
+        additionalNominal > 0 &&
+        nextStep &&
+        !canSpillPengurangToNextTermin(spkProgress, termin, spkJenis) && (
+          <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
+            Progress proyek saat ini <strong>{spkProgress}%</strong>. Material/upah dibatasi
+            sisa plafon <strong>{kasbonTargetLabels[termin]}</strong> ({formatRupiah(cap.sisa)})
+            sampai progress mencapai <strong>{nextStep.minProgress}%</strong>
+            {spillLabel ? ` (termin ${spillLabel})` : ''}.
+          </p>
+        )}
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
       <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Plafon</p>
@@ -1266,9 +1318,9 @@ const PengurangPlafonBanner = ({
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Terpakai</p>
         <p className="font-black text-slate-800">{formatRupiah(cap.terpakai)}</p>
       </div>
-      <div className={`p-2.5 rounded-lg border ${cap.allowed || additionalNominal <= 0 ? 'bg-slate-50 border-slate-200' : 'bg-red-50 border-red-200'}`}>
+      <div className={`p-2.5 rounded-lg border ${isAllowed || additionalNominal <= 0 ? 'bg-slate-50 border-slate-200' : 'bg-red-50 border-red-200'}`}>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sisa</p>
-        <p className={`font-black ${cap.allowed || additionalNominal <= 0 ? 'text-slate-800' : 'text-red-600'}`}>{formatRupiah(cap.sisa)}</p>
+        <p className={`font-black ${isAllowed || additionalNominal <= 0 ? 'text-slate-800' : 'text-red-600'}`}>{formatRupiah(cap.sisa)}</p>
       </div>
       {additionalNominal > 0 && (
         <>
@@ -1276,14 +1328,14 @@ const PengurangPlafonBanner = ({
             <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1">Nominal ini</p>
             <p className="font-black text-blue-700">{formatRupiah(additionalNominal)}</p>
           </div>
-          <div className={`p-2.5 rounded-lg border col-span-2 sm:col-span-2 ${cap.allowed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-200'}`}>
+          <div className={`p-2.5 rounded-lg border col-span-2 sm:col-span-2 ${isAllowed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-200'}`}>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sisa setelah</p>
             <div className="flex items-center gap-2 flex-wrap">
-              <p className={`font-black ${cap.allowed ? 'text-emerald-700' : 'text-red-600'}`}>{formatRupiah(Math.max(0, cap.sisaSetelah))}</p>
-              {!cap.allowed && (
+              <p className={`font-black ${isAllowed ? 'text-emerald-700' : 'text-red-600'}`}>{formatRupiah(Math.max(0, cap.sisaSetelah))}</p>
+              {!isAllowed && (
                 <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">Melebihi plafon</span>
               )}
-              {cap.allowed && cap.spilloverKeTermin100 > 0 && spillLabel && (
+              {isAllowed && cap.spilloverKeTermin100 > 0 && spillLabel && (
                 <span className="text-[10px] font-bold text-violet-700 bg-violet-100 px-1.5 py-0.5 rounded">
                   {formatRupiah(cap.spilloverKeTermin100)} mengurangi {spillLabel}
                 </span>
@@ -1301,6 +1353,7 @@ const PengurangPlafonBanner = ({
           Plafon {nextTarget?.kasbonTargetLabel ?? kasbonTargetLabels[termin]} sudah habis. Pengajuan berikutnya akan mengurangi {spillLabel} (sisa gabungan: {formatRupiah(cap.combinedSisa)}).
         </div>
       )}
+    </div>
     </div>
   );
 };
@@ -1359,6 +1412,17 @@ const SpkPembayaranPanel = ({
   const [upahTanggalSampai, setUpahTanggalSampai] = useState(() => todayIso());
   const [upahBaris, setUpahBaris] = useState<UpahBarisForm[]>(() => [newUpahBaris()]);
   const [upahTotalNominal, setUpahTotalNominal] = useState<number | ''>('');
+  const [materialInvoiceFile, setMaterialInvoiceFile] = useState<File | null>(null);
+  const [materialDokumenFile, setMaterialDokumenFile] = useState<File | null>(null);
+  const [upahInvoiceFile, setUpahInvoiceFile] = useState<File | null>(null);
+  const [legacyKasbonInvoiceFile, setLegacyKasbonInvoiceFile] = useState<File | null>(null);
+  const [legacyKasbonMaterialDocFile, setLegacyKasbonMaterialDocFile] = useState<File | null>(null);
+  const [terminAjukanModal, setTerminAjukanModal] = useState<SpkTerminPembayaranJenis | null>(
+    null,
+  );
+  const [terminInvoiceFile, setTerminInvoiceFile] = useState<File | null>(null);
+  const [terminBaFile, setTerminBaFile] = useState<File | null>(null);
+  const [terminProgressFile, setTerminProgressFile] = useState<File | null>(null);
   const [draftAutoSaveStatus, setDraftAutoSaveStatus] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle');
@@ -1553,25 +1617,45 @@ const SpkPembayaranPanel = ({
   const kasbonLegacyEditTotal =
     kasbonLegacyNominal === '' ? 0 : Number(kasbonLegacyNominal);
 
-  const kasbonCreateOverPlafon =
-    !!pengurangCheck.targetTermin &&
-    activeCreateTotal > 0 &&
-    !getPengurangTerminCapacity(
+  const kasbonCreatePlafonValidation = useMemo(() => {
+    if (!pengurangCheck.targetTermin || activeCreateTotal <= 0) {
+      return { allowed: true as const };
+    }
+    return validatePengurangTerminNominal(
       spk.nilaiKontrak,
       pengurangRows,
       pengurangCheck.targetTermin,
-      { additionalNominal: activeCreateTotal, terminStatus, spkJenis },
-    ).allowed;
+      activeCreateTotal,
+      undefined,
+      terminStatus,
+      spkJenis,
+      spk.progress,
+    );
+  }, [
+    pengurangCheck.targetTermin,
+    activeCreateTotal,
+    spk.nilaiKontrak,
+    pengurangRows,
+    terminStatus,
+    spkJenis,
+    spk.progress,
+  ]);
+
+  const kasbonCreateOverPlafon = !kasbonCreatePlafonValidation.allowed;
 
   const kasbonEditOverPlafon = useMemo(() => {
     if (!editingKasbon?.mengurangiTermin) return false;
     const total = editingKasbonIsBatch ? materialTotalPreview : kasbonLegacyEditTotal;
     if (total <= 0) return false;
-    return !getPengurangTerminCapacity(
+    return !validatePengurangTerminNominal(
       spk.nilaiKontrak,
       pengurangRows,
       editingKasbon.mengurangiTermin,
-      { excludeId: editingKasbon.id, additionalNominal: total, terminStatus, spkJenis },
+      total,
+      editingKasbon.id,
+      terminStatus,
+      spkJenis,
+      spk.progress,
     ).allowed;
   }, [
     editingKasbon,
@@ -1586,22 +1670,61 @@ const SpkPembayaranPanel = ({
   const upahEditOverPlafon = useMemo(() => {
     if (!editingUpah?.mengurangiTermin) return false;
     if (upahTotalPreview <= 0) return false;
-    return !getPengurangTerminCapacity(
+    return !validatePengurangTerminNominal(
       spk.nilaiKontrak,
       pengurangRows,
       editingUpah.mengurangiTermin,
-      { excludeId: editingUpah.id, additionalNominal: upahTotalPreview, terminStatus, spkJenis },
+      upahTotalPreview,
+      editingUpah.id,
+      terminStatus,
+      spkJenis,
+      spk.progress,
     ).allowed;
-  }, [editingUpah, upahTotalPreview, pengurangRows, spk.nilaiKontrak, terminStatus]);
+  }, [editingUpah, upahTotalPreview, pengurangRows, spk.nilaiKontrak, terminStatus, spk.progress]);
 
-  const handleAjukanTermin = async (jenis: SpkTerminPembayaranJenis) => {
+  const handleAjukanTermin = (jenis: SpkTerminPembayaranJenis) => {
     const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, spkJenis);
     if (!check.allowed) {
       alert(check.reason);
       return;
     }
     if (!assertMandorRekeningSelected()) return;
-    const mandorRekeningId = resolveSubmitMandorRekeningId();
+    setTerminInvoiceFile(null);
+    setTerminBaFile(null);
+    setTerminProgressFile(null);
+    setTerminAjukanModal(jenis);
+  };
+
+  const closeTerminAjukanModal = () => {
+    setTerminAjukanModal(null);
+    setTerminInvoiceFile(null);
+    setTerminBaFile(null);
+    setTerminProgressFile(null);
+  };
+
+  const handleConfirmAjukanTermin = async () => {
+    if (!terminAjukanModal) return;
+    const jenis = terminAjukanModal;
+    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, spkJenis);
+    if (!check.allowed) {
+      alert(check.reason);
+      return;
+    }
+    if (!terminInvoiceFile) {
+      alert('Dokumen invoice (PDF) wajib diunggah.');
+      return;
+    }
+    const isRetensi = jenis === 'RETENSI';
+    if (!isRetensi) {
+      if (!terminBaFile) {
+        alert('Dokumen berita acara / BA (PDF) wajib diunggah.');
+        return;
+      }
+      if (!terminProgressFile) {
+        alert('Dokumen progress SPK (PDF) wajib diunggah.');
+        return;
+      }
+    }
     if (
       !window.confirm(
         `Ajukan pembayaran ${jenisLabels[jenis]} sebesar ${formatRupiah(check.nominal)}?`,
@@ -1609,11 +1732,20 @@ const SpkPembayaranPanel = ({
     ) {
       return;
     }
+    const mandorRekeningId = resolveSubmitMandorRekeningId();
     try {
-      await createMutation.mutateAsync({
-        spkId: spk.id,
-        body: { jenis, mandorRekeningId },
-      });
+      const dokumenInvoice = await uploadPengajuanPdf(terminInvoiceFile);
+      const body: CreateSpkPembayaranBody = isRetensi
+        ? { jenis, mandorRekeningId, dokumenInvoice }
+        : {
+            jenis,
+            mandorRekeningId,
+            dokumenInvoice,
+            dokumenBeritaAcara: await uploadPengajuanPdf(terminBaFile!),
+            dokumenProgressSpk: await uploadPengajuanPdf(terminProgressFile!),
+          };
+      await createMutation.mutateAsync({ spkId: spk.id, body });
+      closeTerminAjukanModal();
       alert('Pengajuan pembayaran berhasil dikirim ke pengawas.');
     } catch (err: unknown) {
       alert(handleApiError(err).message);
@@ -1626,6 +1758,11 @@ const SpkPembayaranPanel = ({
     setUpahTanggalSampai(todayIso());
     setUpahBaris([newUpahBaris()]);
     setUpahTotalNominal('');
+    setMaterialInvoiceFile(null);
+    setMaterialDokumenFile(null);
+    setUpahInvoiceFile(null);
+    setLegacyKasbonInvoiceFile(null);
+    setLegacyKasbonMaterialDocFile(null);
     setKasbonInputMode('detail');
     setLegacyCreateRows([newLegacyKasbonRow()]);
     setDraftAutoSaveStatus('idle');
@@ -1757,6 +1894,7 @@ const SpkPembayaranPanel = ({
         undefined,
         terminStatus,
         spkJenis,
+        spk.progress,
       );
       if (!plafon.allowed) {
         alert(plafon.reason);
@@ -1780,9 +1918,19 @@ const SpkPembayaranPanel = ({
     }
 
     if (!assertMandorRekeningSelected()) return;
+    if (!legacyKasbonInvoiceFile) {
+      alert('Dokumen invoice material (PDF) wajib diunggah.');
+      return;
+    }
+    if (!legacyKasbonMaterialDocFile) {
+      alert('Dokumen material (PDF) wajib diunggah.');
+      return;
+    }
     const mandorRekeningId = resolveSubmitMandorRekeningId();
 
     try {
+      const dokumenInvoice = await uploadPengajuanPdf(legacyKasbonInvoiceFile);
+      const dokumenMaterial = await uploadPengajuanPdf(legacyKasbonMaterialDocFile);
       for (const row of rows) {
         await createMutation.mutateAsync({
           spkId: spk.id,
@@ -1792,6 +1940,8 @@ const SpkPembayaranPanel = ({
             nominal: Number(row.nominal),
             tanggalPo: row.tanggalPo || todayIso(),
             mandorRekeningId,
+            dokumenInvoice,
+            dokumenMaterial,
           },
         });
       }
@@ -1886,6 +2036,7 @@ const SpkPembayaranPanel = ({
         undefined,
         terminStatus,
         spkJenis,
+        spk.progress,
       );
       if (!plafon.allowed) {
         alert(plafon.reason);
@@ -1914,9 +2065,35 @@ const SpkPembayaranPanel = ({
     }
 
     if (!assertMandorRekeningSelected()) return;
+    if (materialSectionUsed) {
+      if (!materialInvoiceFile) {
+        alert('Dokumen invoice material (PDF) wajib diunggah.');
+        return;
+      }
+      if (!materialDokumenFile) {
+        alert('Dokumen material (PDF) wajib diunggah.');
+        return;
+      }
+    }
+    if (upahSectionUsed && !upahInvoiceFile) {
+      alert('Dokumen invoice upah mandor (PDF) wajib diunggah.');
+      return;
+    }
     const mandorRekeningId = resolveSubmitMandorRekeningId();
 
     try {
+      const materialDokumen =
+        materialSectionUsed && materialInvoiceFile && materialDokumenFile
+          ? {
+              dokumenInvoice: await uploadPengajuanPdf(materialInvoiceFile),
+              dokumenMaterial: await uploadPengajuanPdf(materialDokumenFile),
+            }
+          : null;
+      const upahDokumenInvoice =
+        upahSectionUsed && upahInvoiceFile
+          ? await uploadPengajuanPdf(upahInvoiceFile)
+          : null;
+
       if (materialSectionUsed) {
         const uploadedSuppliers = await uploadMaterialSupplierFotos(materialSuppliers);
         const materialBaris = flattenMaterialSuppliers(uploadedSuppliers);
@@ -1926,22 +2103,41 @@ const SpkPembayaranPanel = ({
           );
           return;
         }
+        if (!materialDokumen) {
+          alert('Dokumen invoice dan material wajib diunggah.');
+          return;
+        }
         if (kasbonDraft?.status === 'DRAFT') {
           await saveDraftMutation.mutateAsync({
             spkId: spk.id,
             body: { kasbonBaris: materialBaris },
           });
-          await submitDraftMutation.mutateAsync({ spkId: spk.id, mandorRekeningId });
+          await submitDraftMutation.mutateAsync({
+            spkId: spk.id,
+            mandorRekeningId,
+            dokumenInvoice: materialDokumen.dokumenInvoice,
+            dokumenMaterial: materialDokumen.dokumenMaterial,
+          });
         } else {
           await createMutation.mutateAsync({
             spkId: spk.id,
-            body: { jenis: 'KASBON', kasbonBaris: materialBaris, mandorRekeningId },
+            body: {
+              jenis: 'KASBON',
+              kasbonBaris: materialBaris,
+              mandorRekeningId,
+              dokumenInvoice: materialDokumen.dokumenInvoice,
+              dokumenMaterial: materialDokumen.dokumenMaterial,
+            },
           });
         }
       } else if (kasbonDraft?.status === 'DRAFT') {
         await deleteMutation.mutateAsync({ id: kasbonDraft.id, spkId: spk.id });
       }
       if (upahSectionUsed && upahBarisBody) {
+        if (!upahDokumenInvoice) {
+          alert('Dokumen invoice upah mandor wajib diunggah.');
+          return;
+        }
         await createMutation.mutateAsync({
           spkId: spk.id,
           body: {
@@ -1951,6 +2147,7 @@ const SpkPembayaranPanel = ({
             baris: upahBarisBody,
             upahNominal: upahTotal,
             mandorRekeningId,
+            dokumenInvoice: upahDokumenInvoice,
           },
         });
       }
@@ -2143,6 +2340,66 @@ const SpkPembayaranPanel = ({
         </>
       )}
 
+      {kasbonInputMode === 'legacy' ? (
+        <div className="space-y-1 rounded-xl border border-amber-100 bg-amber-50/40 p-4">
+          <FileInput
+            label="Invoice material (PDF)"
+            accept="application/pdf,.pdf"
+            onChange={(e) => setLegacyKasbonInvoiceFile(e.target.files?.[0] ?? null)}
+          />
+          <FileInput
+            label="Dokumen material (PDF)"
+            accept="application/pdf,.pdf"
+            onChange={(e) => setLegacyKasbonMaterialDocFile(e.target.files?.[0] ?? null)}
+          />
+          <p className="text-[11px] text-amber-800/90 leading-relaxed px-1">
+            Dokumen material wajib diunggah pada setiap pengajuan material. Material yang sudah
+            dibayar tidak dapat diajukan kembali untuk reimburs.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+          {(materialSuppliers.some(supplierIsUsed) || materialTotalPreview > 0) && (
+            <>
+              <FileInput
+                label="Invoice material (PDF)"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setMaterialInvoiceFile(e.target.files?.[0] ?? null)}
+              />
+              <FileInput
+                label="Dokumen material (PDF)"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setMaterialDokumenFile(e.target.files?.[0] ?? null)}
+              />
+              <p className="text-[11px] text-slate-600 leading-relaxed px-1 -mt-2">
+                Dokumen material wajib diunggah pada setiap pengajuan material. Material yang sudah
+                dibayar tidak dapat diajukan kembali untuk reimburs.
+              </p>
+            </>
+          )}
+          {(upahTotalPreview > 0 ||
+            upahBaris.some((r) => r.nik.trim() || r.nama.trim())) && (
+            <FileInput
+              label="Invoice upah mandor (PDF)"
+              accept="application/pdf,.pdf"
+              onChange={(e) => setUpahInvoiceFile(e.target.files?.[0] ?? null)}
+            />
+          )}
+        </div>
+      )}
+
+      {pengurangCheck.targetTermin && activeCreateTotal > 0 && (
+        <PengurangPlafonBanner
+          nilaiKontrak={spk.nilaiKontrak}
+          rows={pengurangRows}
+          termin={pengurangCheck.targetTermin}
+          additionalNominal={activeCreateTotal}
+          terminStatus={terminStatus}
+          spkJenis={spkJenis}
+          spkProgress={spk.progress}
+        />
+      )}
+
       <div className="border-t border-slate-100 pt-4 space-y-3">
         <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
           <div>
@@ -2204,7 +2461,7 @@ const SpkPembayaranPanel = ({
             onClick={handleAjukanKasbon}
             title={
               kasbonCreateOverPlafon
-                ? 'Total kasbon melebihi sisa plafon termin'
+                ? kasbonCreatePlafonValidation.reason ?? 'Total kasbon melebihi sisa plafon termin'
                 : !pengurangCheck.allowed
                   ? pengurangCheck.reason
                   : undefined
@@ -2345,6 +2602,7 @@ const SpkPembayaranPanel = ({
         editingUpah.id,
         terminStatus,
         spkJenis,
+        spk.progress,
       );
       if (!plafon.allowed) {
         alert(plafon.reason);
@@ -2396,6 +2654,7 @@ const SpkPembayaranPanel = ({
           editingKasbon.id,
           terminStatus,
           spkJenis,
+          spk.progress,
         );
         if (!plafon.allowed) {
           alert(plafon.reason);
@@ -2453,6 +2712,7 @@ const SpkPembayaranPanel = ({
         editingKasbon.id,
         terminStatus,
         spkJenis,
+        spk.progress,
       );
       if (!plafon.allowed) {
         alert(plafon.reason);
@@ -3150,6 +3410,71 @@ const SpkPembayaranPanel = ({
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!terminAjukanModal}
+        onClose={closeTerminAjukanModal}
+        title={
+          terminAjukanModal
+            ? `Ajukan ${jenisLabels[terminAjukanModal]}`
+            : 'Ajukan Termin'
+        }
+        size="md"
+      >
+        {terminAjukanModal && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Nominal diajukan:{' '}
+              <strong className="text-slate-900">
+                {formatRupiah(
+                  canRequestSpkPembayaran(
+                    terminAjukanModal,
+                    spkInput,
+                    statusRows,
+                    spkJenis,
+                  ).nominal,
+                )}
+              </strong>
+            </p>
+            <FileInput
+              label="Invoice (PDF)"
+              accept="application/pdf,.pdf"
+              onChange={(e) => setTerminInvoiceFile(e.target.files?.[0] ?? null)}
+            />
+            {terminAjukanModal !== 'RETENSI' && (
+              <>
+                <FileInput
+                  label="Berita Acara / BA (PDF)"
+                  accept="application/pdf,.pdf"
+                  onChange={(e) => setTerminBaFile(e.target.files?.[0] ?? null)}
+                />
+                <FileInput
+                  label={`Progress SPK — ${jenisLabels[terminAjukanModal]} (PDF)`}
+                  accept="application/pdf,.pdf"
+                  onChange={(e) => setTerminProgressFile(e.target.files?.[0] ?? null)}
+                />
+              </>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={closeTerminAjukanModal}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={createMutation.isPending}
+                onClick={() => void handleConfirmAjukanTermin()}
+                className="px-4 py-2 text-sm font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                Ajukan
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal

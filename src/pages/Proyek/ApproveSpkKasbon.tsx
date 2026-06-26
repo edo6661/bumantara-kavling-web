@@ -24,6 +24,8 @@ import {
   SPK_PEMBAYARAN_JENIS_LABEL,
 } from '../../utils/spkPembayaran';
 import KasbonGroupedTable from '../../components/proyek/KasbonGroupedTable';
+import SpkPembayaranDokumenCell from '../../components/proyek/SpkPembayaranDokumenCell';
+import SpkPembayaranDokumenPanel from '../../components/proyek/SpkPembayaranDokumenPanel';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 
 interface SpkGroup {
@@ -67,7 +69,7 @@ const ApproveSpkKasbon = () => {
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [expandedSpkIds, setExpandedSpkIds] = useState<Set<number>>(new Set());
   const [detailRow, setDetailRow] = useState<SpkPembayaranData | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<{ url: string; title: string } | null>(null);
 
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
@@ -153,6 +155,14 @@ const ApproveSpkKasbon = () => {
         </td>
         <td className="px-4 py-2.5 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
         <td className="px-4 py-2.5 text-xs text-slate-600">{row.diajukanOleh.username}</td>
+        <td className="px-4 py-2.5">
+          <SpkPembayaranDokumenCell
+            row={row}
+            onPreview={(item) =>
+              setFilePreview({ url: item.url, title: `Dokumen Pengajuan — ${item.label}` })
+            }
+          />
+        </td>
         <td className="px-4 py-2.5">
           <div className="flex flex-wrap gap-2">
             <button
@@ -281,6 +291,7 @@ const ApproveSpkKasbon = () => {
                                     <th className="px-4 py-2 text-left">Nominal</th>
                                     <th className="px-4 py-2 text-left">Diajukan</th>
                                     <th className="px-4 py-2 text-left">Oleh</th>
+                                    <th className="px-4 py-2 text-left">Dok. Pengajuan</th>
                                     <th className="px-4 py-2 text-left">Aksi</th>
                                   </tr>
                                 </thead>
@@ -336,10 +347,19 @@ const ApproveSpkKasbon = () => {
               </div>
             </div>
 
+            <SpkPembayaranDokumenPanel
+              row={detailRow}
+              onPreview={(item) =>
+                setFilePreview({ url: item.url, title: `Dokumen Pengajuan — ${item.label}` })
+              }
+            />
+
             {detailRow.jenis === 'KASBON' && detailRow.kasbonBaris && detailRow.kasbonBaris.length > 0 && (
               <KasbonGroupedTable
                 baris={detailRow.kasbonBaris}
-                onPreviewFoto={setPreviewUrl}
+                onPreviewFoto={(url) =>
+                  setFilePreview({ url, title: 'Foto Bon Kasbon' })
+                }
               />
             )}
 
@@ -389,16 +409,16 @@ const ApproveSpkKasbon = () => {
       </Modal>
 
       <Modal
-        isOpen={!!previewUrl}
-        onClose={() => setPreviewUrl(null)}
-        title="Foto Bon"
+        isOpen={!!filePreview}
+        onClose={() => setFilePreview(null)}
+        title={filePreview?.title ?? 'Preview Dokumen'}
         size="lg"
       >
-        {previewUrl && (
+        {filePreview && (
           <div className="flex justify-center">
-            {isBuktiPdfUrl(previewUrl) ? (
+            {isBuktiPdfUrl(filePreview.url) ? (
               <a
-                href={previewUrl}
+                href={filePreview.url}
                 target="_blank"
                 rel="noreferrer"
                 className="flex flex-col items-center gap-2 text-red-600 font-bold"
@@ -407,7 +427,7 @@ const ApproveSpkKasbon = () => {
                 Buka PDF
               </a>
             ) : (
-              <img src={previewUrl} alt="Foto bon" className="max-h-[70vh] rounded-lg" />
+              <img src={filePreview.url} alt={filePreview.title} className="max-h-[70vh] rounded-lg" />
             )}
           </div>
         )}

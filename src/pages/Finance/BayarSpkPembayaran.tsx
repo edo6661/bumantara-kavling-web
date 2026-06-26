@@ -4,6 +4,7 @@ import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
 import PasteUploadBanner from '../../components/shared/PasteUploadBanner';
 import BuktiFileThumbnail, { isBuktiPdfUrl } from '../../components/shared/BuktiFileThumbnail';
+import SpkPembayaranDokumenCell from '../../components/proyek/SpkPembayaranDokumenCell';
 import {
   getFilesFromClipboard,
   isUploadableFile,
@@ -171,7 +172,7 @@ const BayarSpkPembayaran = () => {
   const [uploadTarget, setUploadTarget] = useState<SpkPembayaranData | null>(null);
   const [uploadMode, setUploadMode] = useState<UploadMode>('bayar');
   const [pasteSelection, setPasteSelection] = useState<PasteSelection | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [filePreview, setFilePreview] = useState<{ url: string; title: string } | null>(null);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [expandedSpkIds, setExpandedSpkIds] = useState<Set<number>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -536,6 +537,14 @@ const BayarSpkPembayaran = () => {
           </div>
         </td>
         <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+          <SpkPembayaranDokumenCell
+            row={row}
+            onPreview={(item) =>
+              setFilePreview({ url: item.url, title: `Dokumen Pengajuan — ${item.label}` })
+            }
+          />
+        </td>
+        <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
           {buktiList.length > 0 ? (
             <div className="flex items-center gap-1.5">
               {buktiList.slice(0, 3).map((url, index) => {
@@ -543,7 +552,9 @@ const BayarSpkPembayaran = () => {
                   <div key={`${row.id}-${url}-${index}`} className="relative">
                     <BuktiFileThumbnail
                       url={url}
-                      onClick={() => setPreviewUrl(url)}
+                      onClick={() =>
+                        setFilePreview({ url, title: 'Bukti Pembayaran SPK' })
+                      }
                       className="w-12 h-8"
                     />
                     {paid && (
@@ -832,16 +843,17 @@ const BayarSpkPembayaran = () => {
                               Detail pembayaran — {formatShortNoSpk(group.noSpk)}
                             </p>
                             <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-                              <table className="w-full min-w-[640px] table-fixed">
+                              <table className="w-full min-w-[720px] table-fixed">
                                 <colgroup>
                                   <col className="w-10" />
+                                  <col className="w-[16%]" />
+                                  <col className="w-[11%]" />
                                   <col className="w-[18%]" />
-                                  <col className="w-[12%]" />
-                                  <col className="w-[20%]" />
-                                  <col className="w-[12%]" />
-                                  <col className="w-[12%]" />
+                                  <col className="w-[11%]" />
+                                  <col className="w-[11%]" />
+                                  <col className="w-[14%]" />
                                   <col className="w-[10%]" />
-                                  <col className="w-[10%]" />
+                                  <col className="w-[9%]" />
                                 </colgroup>
                                 <thead>
                                   <tr className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
@@ -864,7 +876,8 @@ const BayarSpkPembayaran = () => {
                                     <th className="px-4 py-2 text-left">Rekening Tujuan</th>
                                     <th className="px-4 py-2 text-left">Tanggal Diajukan</th>
                                     <th className="px-4 py-2 text-left">Status</th>
-                                    <th className="px-4 py-2 text-left">Bukti</th>
+                                    <th className="px-4 py-2 text-left">Dok. Pengajuan</th>
+                                    <th className="px-4 py-2 text-left">Bukti Bayar</th>
                                     <th className="px-4 py-2 text-left">Aksi</th>
                                   </tr>
                                 </thead>
@@ -924,16 +937,16 @@ const BayarSpkPembayaran = () => {
       />
 
       <Modal
-        isOpen={!!previewUrl}
-        onClose={() => setPreviewUrl(null)}
-        title="Bukti Pembayaran SPK"
+        isOpen={!!filePreview}
+        onClose={() => setFilePreview(null)}
+        title={filePreview?.title ?? 'Preview Dokumen'}
         size="lg"
       >
-        {previewUrl && (
+        {filePreview && (
           <div className="flex justify-center">
-            {isBuktiPdfUrl(previewUrl) ? (
+            {isBuktiPdfUrl(filePreview.url) ? (
               <a
-                href={previewUrl}
+                href={filePreview.url}
                 target="_blank"
                 rel="noreferrer"
                 className="flex flex-col items-center gap-2 text-red-600 font-bold"
@@ -942,7 +955,7 @@ const BayarSpkPembayaran = () => {
                 Buka PDF
               </a>
             ) : (
-              <img src={previewUrl} alt="Bukti" className="max-h-[70vh] rounded-lg" />
+              <img src={filePreview.url} alt={filePreview.title} className="max-h-[70vh] rounded-lg" />
             )}
           </div>
         )}

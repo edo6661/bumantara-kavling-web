@@ -40,6 +40,10 @@ export interface SpkPembayaranData {
   status: SpkPembayaranStatus;
   buktiPembayaran: string | null;
   buktiPembayaranList?: string[] | null;
+  dokumenInvoice: string | null;
+  dokumenMaterial: string | null;
+  dokumenBeritaAcara: string | null;
+  dokumenProgressSpk: string | null;
   tanggalPembayaran: string | null;
   bsiCmsDilaporkan: boolean;
   bsiCmsDilaporkanAt: string | null;
@@ -107,24 +111,31 @@ export interface SpkPembayaranKasbonBarisBody {
   fotoBon?: string | null;
 }
 
+export interface SpkPembayaranDokumenBody {
+  dokumenInvoice?: string;
+  dokumenMaterial?: string;
+  dokumenBeritaAcara?: string;
+  dokumenProgressSpk?: string;
+}
+
 export type CreateSpkPembayaranBody =
-  | { jenis: SpkTerminPembayaranJenis; mandorRekeningId?: number }
-  | { jenis: 'KASBON'; kasbonBaris: SpkPembayaranKasbonBarisBody[]; mandorRekeningId?: number }
-  | {
+  | ({ jenis: SpkTerminPembayaranJenis; mandorRekeningId?: number } & SpkPembayaranDokumenBody)
+  | ({ jenis: 'KASBON'; kasbonBaris: SpkPembayaranKasbonBarisBody[]; mandorRekeningId?: number } & SpkPembayaranDokumenBody)
+  | ({
       jenis: 'KASBON';
       keterangan: string;
       nominal: number;
       tanggalPo: string;
       mandorRekeningId?: number;
-    }
-  | {
+    } & SpkPembayaranDokumenBody)
+  | ({
       jenis: 'UPAH';
       tanggalDari: string;
       tanggalSampai: string;
       baris: SpkPembayaranUpahBarisBody[];
       upahNominal: number;
       mandorRekeningId?: number;
-    };
+    } & SpkPembayaranDokumenBody);
 
 export type UpdateSpkKasbonBody =
   | { kasbonBaris: SpkPembayaranKasbonBarisBody[] }
@@ -157,7 +168,10 @@ export const spkPembayaranService = {
     return response.data.data as SpkPembayaranData;
   },
 
-  submitKasbonDraft: async (spkId: number, body?: { mandorRekeningId?: number }) => {
+  submitKasbonDraft: async (
+    spkId: number,
+    body?: { mandorRekeningId?: number; dokumenInvoice: string; dokumenMaterial: string },
+  ) => {
     const response = await api.post(`/spk-pembayaran/spk/${spkId}/kasbon-draft/submit`, body ?? {});
     return response.data.data as SpkPembayaranData;
   },
@@ -184,6 +198,15 @@ export const spkPembayaranService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return (response.data.data as { fotoBon: string }).fotoBon;
+  },
+
+  uploadDokumenPengajuan: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('dokumen_pengajuan', file);
+    const response = await api.post('/spk-pembayaran/upload-dokumen-pengajuan', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return (response.data.data as { dokumenUrl: string }).dokumenUrl;
   },
 
   createRequest: async (spkId: number, body: CreateSpkPembayaranBody) => {
