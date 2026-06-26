@@ -10,7 +10,7 @@ import {
   isUploadableFile,
   PASTE_UPLOAD_ROW_CLASS,
 } from '../../utils/clipboardFilePaste';
-import { formatDate, formatRupiah } from '../../utils/formatters';
+import { formatDate, formatTanpaDesimal } from '../../utils/formatters';
 import {
   Clock,
   CheckCircle2,
@@ -503,7 +503,7 @@ const BayarSpkPembayaran = () => {
           </div>
         </td>
         <td className={`px-4 py-2.5 text-sm font-bold ${colors.text} whitespace-nowrap`}>
-          {formatRupiah(row.nominal)}
+          {formatTanpaDesimal(row.nominal)}
         </td>
         <td className={`${tdRekeningClass} py-2.5`}>{renderTransferRekeningCell(row)}</td>
         <td className="px-4 py-2.5 text-xs text-slate-500">{formatDate(row.createdAt)}</td>
@@ -727,7 +727,7 @@ const BayarSpkPembayaran = () => {
         {pasteSelection && (
           <div className="px-5 pb-4">
             <PasteUploadBanner
-              label={`${formatShortNoSpk(pasteSelection.row.spk?.noSpk ?? `#${pasteSelection.row.spkId}`)} · ${getItemLabel(pasteSelection.row)} · ${formatRupiah(pasteSelection.row.nominal)}${pasteSelection.mode === 'add-bukti' ? ' (tambah bukti)' : ''}`}
+              label={`${formatShortNoSpk(pasteSelection.row.spk?.noSpk ?? `#${pasteSelection.row.spkId}`)} · ${getItemLabel(pasteSelection.row)} · ${formatTanpaDesimal(pasteSelection.row.nominal)}${pasteSelection.mode === 'add-bukti' ? ' (tambah bukti)' : ''}`}
               onClear={() => setPasteSelection(null)}
             />
           </div>
@@ -818,7 +818,7 @@ const BayarSpkPembayaran = () => {
                           )}
                         </td>
                         <td className={`${tdParentClass} font-bold text-slate-900 whitespace-nowrap`}>
-                          {formatRupiah(group.nilaiKontrak)}
+                          {formatTanpaDesimal(group.nilaiKontrak)}
                         </td>
                         <td className={`${tdParentClass} text-center`}>
                           {group.menungguCount > 0 ? (
