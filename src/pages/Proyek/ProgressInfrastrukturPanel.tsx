@@ -128,7 +128,7 @@ const ProgressInfrastrukturPanel = () => {
           <span className="text-xs text-slate-500 block mt-0.5">{row.judulPekerjaan}</span>
           {row.zonaNama && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md mt-1">
-              Zona {row.zonaNama}
+              {row.zonaNama}
             </span>
           )}
         </div>
