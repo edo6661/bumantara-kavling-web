@@ -151,7 +151,7 @@ export function distributeCoretaxGross(
     }
     const perZero = Math.floor(remainder / zeroIndexes.length);
     let leftover = remainder - perZero * zeroIndexes.length;
-    return explicit.map((n, index) => {
+    return explicit.map((n) => {
       if (n > 0) return n;
       const extra = leftover > 0 ? 1 : 0;
       if (extra) leftover -= 1;
