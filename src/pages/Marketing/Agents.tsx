@@ -509,13 +509,19 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
     }));
   };
 
+  const canChangeAgentType = agentType === 'PRIBADI' && isEditing;
+  const effectiveAgentType: AgentTypeFilter = canChangeAgentType
+    ? (formData.type as AgentTypeFilter)
+    : agentType;
+  const isFormPerusahaan = effectiveAgentType === 'PERUSAHAAN';
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
     if (formData.nik.trim().length !== 16 && formData.nik.trim().length !== 15) newErrors.nik = 'NIK tidak valid (minimal 15-16 digit)';
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
-    if (agentType === 'PERUSAHAAN' && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
+    if (isFormPerusahaan && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -535,7 +541,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
       }
     });
 
-    const isPerusahaan = agentType === 'PERUSAHAAN';
+    const isPerusahaan = isFormPerusahaan;
 
     const payload: CreateAgentDTO = {
       nik: formData.nik,
@@ -543,7 +549,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
       noHp: formData.noHp,
       email: formData.email || undefined,
       alamat: formData.alamat || undefined,
-      type: agentType,
+      type: effectiveAgentType,
       perusahaanAgentId: isPerusahaan ? Number(formData.perusahaanAgentId) : undefined,
       namaBank: isPerusahaan ? null : (formData.namaBank || null),
       noRekening: isPerusahaan ? null : (formData.noRekening || null),
@@ -982,7 +988,20 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
             <h4 className="text-sm font-semibold text-gray-800 mb-4 border-b pb-2">Informasi Utama Agent</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {agentType === 'PERUSAHAAN' && (
+              {canChangeAgentType && (
+                <Select
+                  label="Tipe Agent"
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  options={[
+                    { value: 'PRIBADI', label: 'Agent Pribadi' },
+                    { value: 'PERUSAHAAN', label: 'Agent Perusahaan' },
+                  ]}
+                />
+              )}
+
+              {isFormPerusahaan && (
                 <Select
                   label="Pilih Perusahaan"
                   name="perusahaanAgentId"
@@ -1001,7 +1020,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
               <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />
               <div className="md:col-span-2">
-                {agentType === 'PERUSAHAAN' ? (
+                {isFormPerusahaan ? (
                   <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-3">
                     <p className="text-xs font-bold text-blue-800 uppercase tracking-wide">
                       Fee & Rekening — otomatis dari perusahaan
