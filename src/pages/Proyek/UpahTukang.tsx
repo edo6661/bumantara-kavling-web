@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  FileCode2,
   Filter,
   HardHat,
   Users,
@@ -13,6 +14,7 @@ import { formatDate, formatRupiah, formatTanpaDesimal } from '../../utils/format
 import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import { formatShortNoSpk } from '../../utils/spk';
+import { exportCoretaxPph21ForPembayaran } from '../../utils/coretaxPph21';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 
 interface SpkUpahGroup {
@@ -212,6 +214,19 @@ const UpahTukang = () => {
       prev.set('page', String(newPage));
       return prev;
     });
+  };
+
+  const handleConvertToXml = (row: SpkPembayaranData) => {
+    try {
+      exportCoretaxPph21ForPembayaran(row, {
+        taxPeriodMonth: bulan,
+        taxPeriodYear: tahun,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Gagal membuat file XML Coretax.';
+      alert(message);
+    }
   };
 
   if (isLoading) return <PageLoader />;
@@ -469,15 +484,28 @@ const UpahTukang = () => {
                                         <tr className="bg-white">
                                           <td colSpan={5} className="px-4 py-3 border-b border-slate-100">
                                             <div className="ml-12 rounded-xl border border-teal-200 overflow-hidden">
-                                              <div className="px-3 py-2 bg-teal-50 border-b border-teal-100 flex items-center gap-2">
+                                              <div className="px-3 py-2 bg-teal-50 border-b border-teal-100 flex flex-wrap items-center gap-2">
                                                 <Users size={14} className="text-teal-700" />
                                                 <p className="text-[10px] font-bold text-teal-900 uppercase tracking-wide">
                                                   Detail Tukang
                                                 </p>
-                                                <p className="text-[10px] text-teal-700/80 ml-auto">
+                                                <p className="text-[10px] text-teal-700/80 sm:ml-auto">
                                                   Diajukan {formatDate(row.createdAt)} oleh{' '}
                                                   {row.diajukanOleh.username}
                                                 </p>
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleConvertToXml(row);
+                                                  }}
+                                                  disabled={tukangList.length === 0}
+                                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-teal-300 bg-white text-[10px] font-bold text-teal-800 hover:bg-teal-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                  title="Export XML PPh 21 Coretax untuk pengajuan ini"
+                                                >
+                                                  <FileCode2 size={12} />
+                                                  Convert to XML
+                                                </button>
                                               </div>
                                               {tukangList.length === 0 ? (
                                                 <p className="px-3 py-4 text-xs text-slate-400 italic">
@@ -490,6 +518,7 @@ const UpahTukang = () => {
                                                       <th className="px-3 py-2 text-left">No</th>
                                                       <th className="px-3 py-2 text-left">Nama</th>
                                                       <th className="px-3 py-2 text-left">NIK</th>
+                                                      <th className="px-3 py-2 text-right">Upah</th>
                                                     </tr>
                                                   </thead>
                                                   <tbody>
@@ -506,6 +535,11 @@ const UpahTukang = () => {
                                                         </td>
                                                         <td className="px-3 py-2 font-mono text-slate-600">
                                                           {tukang.nik}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right tabular-nums text-slate-700">
+                                                          {tukang.nominal > 0
+                                                            ? formatRupiah(tukang.nominal)
+                                                            : '—'}
                                                         </td>
                                                       </tr>
                                                     ))}
