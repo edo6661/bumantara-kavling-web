@@ -101,6 +101,7 @@ const Progress = () => {
     setSearchParams((prev) => {
       if (tab === 'infra') prev.set('tab', 'infra');
       else prev.delete('tab');
+      prev.delete('orderBy');
       prev.set('page', '1');
       return prev;
     });

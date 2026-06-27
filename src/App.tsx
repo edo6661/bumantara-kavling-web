@@ -160,7 +160,7 @@ const App = () => {
                 <Route path="proyek/spk" element={<PermissionGuard resource="SPK"><SPK /></PermissionGuard>} />
                 <Route path="proyek/approve-kasbon" element={<PermissionGuard resource="SPK"><ApproveSpkKasbon /></PermissionGuard>} />
                 <Route path="proyek/tukang" element={<PermissionGuard resource="SPK"><Tukang /></PermissionGuard>} />
-                <Route path="proyek/pembayaran/upah-tukang" element={<PermissionGuard resource="SPK"><UpahTukang /></PermissionGuard>} />
+                <Route path="proyek/pembayaran/upah-tukang" element={<PermissionGuard roles={['FINANCE', 'ADMIN', 'SUPERADMIN']}><UpahTukang /></PermissionGuard>} />
                 <Route path="proyek/progress" element={<PermissionGuard resource="PROGRESS_PROYEK"><Progress /></PermissionGuard>} />
                 <Route path="laporan/eksekutif" element={<PermissionGuard resource="LAPORAN"><LaporanEksekutif /></PermissionGuard>} />
                 <Route path="laporan/penjualan" element={<PermissionGuard resource="LAPORAN"><LaporanPenjualan /></PermissionGuard>} />

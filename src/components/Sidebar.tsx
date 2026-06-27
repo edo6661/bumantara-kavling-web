@@ -22,9 +22,24 @@ import { canReadResource } from '../utils/permissions';
 import { useSidebarBadges } from '../hooks/queries/useSidebarBadges';
 import SidebarBadge from './ui/SidebarBadge';
 
+const FINANCE_STAFF_ROLES = ['FINANCE', 'ADMIN', 'SUPERADMIN'] as const;
+
 type SubmenuItem =
-  | { title: string; path: string; resource?: string; resources?: string[]; pengawasOnly?: boolean }
-  | { title: string; resource?: string; resources?: string[]; children: { title: string; path: string }[] };
+  | {
+      title: string;
+      path: string;
+      resource?: string;
+      resources?: string[];
+      pengawasOnly?: boolean;
+      rolesOnly?: readonly string[];
+    }
+  | {
+      title: string;
+      resource?: string;
+      resources?: string[];
+      rolesOnly?: readonly string[];
+      children: { title: string; path: string }[];
+    };
 
 type MenuItem = {
   title: string;
@@ -112,7 +127,7 @@ const menuItems: MenuItem[] = [
       { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
       {
         title: 'Pembayaran',
-        resource: 'SPK',
+        rolesOnly: FINANCE_STAFF_ROLES,
         children: [
           { title: 'Upah Tukang', path: '/proyek/pembayaran/upah-tukang' },
         ],
@@ -165,6 +180,9 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const { getBadgeForPath, getSectionBadge } = useSidebarBadges();
 
   const canAccessSubmenu = (sub: SubmenuItem) => {
+    if ('rolesOnly' in sub && sub.rolesOnly) {
+      return !!user?.role && sub.rolesOnly.includes(user.role);
+    }
     if ('pengawasOnly' in sub && sub.pengawasOnly) {
       return user?.role === 'PENGAWAS' || user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
     }

@@ -250,20 +250,33 @@ const SpkInfrastrukturPanel = () => {
     [pekerjaanList],
   );
 
-  const usedZonaIds = useMemo(() => {
-    const ids = new Set<number>();
+  const usedZonaByMandor = useMemo(() => {
+    const map = new Map<number, Set<number>>();
     displaySpkData.forEach((s) => {
-      if (s.zonaId && s.id !== editingId) ids.add(s.zonaId);
+      if (s.zonaId && s.id !== editingId) {
+        const mandorIds = map.get(s.zonaId) ?? new Set<number>();
+        mandorIds.add(s.mandorId);
+        map.set(s.zonaId, mandorIds);
+      }
     });
-    return ids;
+    return map;
   }, [displaySpkData, editingId]);
+
+  const isZonaTakenByMandor = (zonaId: number, mandorId: number | '') => {
+    if (mandorId === '') return false;
+    return usedZonaByMandor.get(zonaId)?.has(Number(mandorId)) ?? false;
+  };
 
   const zonaOptions = useMemo(
     () =>
       zonaList
-        .filter((z) => !usedZonaIds.has(z.id) || z.id === formData.zonaId)
+        .filter((z) => {
+          if (z.id === formData.zonaId) return true;
+          if (formData.mandorId === '') return true;
+          return !isZonaTakenByMandor(z.id, formData.mandorId);
+        })
         .map((z) => ({ value: String(z.id), label: z.nama })),
-    [zonaList, usedZonaIds, formData.zonaId],
+    [zonaList, formData.zonaId, formData.mandorId, usedZonaByMandor],
   );
 
   useEffect(() => {
@@ -386,8 +399,12 @@ const SpkInfrastrukturPanel = () => {
     }
     if (!formData.mandorId) newErrors.mandorId = 'Mandor wajib dipilih';
     if (!formData.zonaId) newErrors.zonaId = 'Zona wajib dipilih';
-    else if (usedZonaIds.has(Number(formData.zonaId))) {
-      newErrors.zonaId = 'Zona ini sudah dipakai SPK infrastruktur lain';
+    else if (
+      formData.mandorId &&
+      isZonaTakenByMandor(Number(formData.zonaId), formData.mandorId)
+    ) {
+      newErrors.zonaId =
+        'Zona ini sudah dipakai SPK infrastruktur untuk mandor yang sama';
     }
     if (formData.pekerjaanInfraIds.length === 0) {
       newErrors.pekerjaanInfraIds = 'Pilih minimal satu pekerjaan';
@@ -1197,12 +1214,28 @@ const SpkInfrastrukturPanel = () => {
               label="Mandor"
               name="mandorId"
               value={String(formData.mandorId)}
-              onChange={(e) =>
-                setFormData((p) => ({
-                  ...p,
-                  mandorId: e.target.value === '' ? '' : Number(e.target.value),
-                }))
-              }
+              onChange={(e) => {
+                const nextMandorId: InfraFormState['mandorId'] =
+                  e.target.value === '' ? '' : Number(e.target.value);
+                setFormData((p) => {
+                  const shouldClearZona =
+                    p.zonaId !== '' &&
+                    nextMandorId !== '' &&
+                    isZonaTakenByMandor(Number(p.zonaId), nextMandorId);
+                  return {
+                    ...p,
+                    mandorId: nextMandorId,
+                    zonaId: shouldClearZona ? '' : p.zonaId,
+                  };
+                });
+                if (errors.mandorId || errors.zonaId) {
+                  setErrors((prev) => ({
+                    ...prev,
+                    mandorId: undefined,
+                    zonaId: undefined,
+                  }));
+                }
+              }}
               error={errors.mandorId}
               options={[
                 { value: '', label: 'Pilih mandor' },

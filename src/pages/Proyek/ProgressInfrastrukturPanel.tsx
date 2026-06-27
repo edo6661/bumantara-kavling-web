@@ -14,7 +14,7 @@ import InfraTotalProgressOverrideControls from '../../components/proyek/InfraTot
 import { handleApiError } from '../../utils/errorHandler';
 import {
   HardHat, UploadCloud, Loader2, Trash2, Edit2,
-  CheckCircle2, Circle,
+  CheckCircle2, Circle, ArrowUpDown, ChevronDown,
 } from 'lucide-react';
 import type { ProgressInfraListItem, TahapanProyekData } from '../../services/progressProyek.service';
 import { formatDate } from '../../utils/formatters';
@@ -43,6 +43,7 @@ const ProgressInfrastrukturPanel = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
+  const orderBy = searchParams.get('orderBy') || '';
   const limitParam = Number(searchParams.get('limit'));
   const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
     ? limitParam
@@ -56,6 +57,7 @@ const ProgressInfrastrukturPanel = () => {
     page,
     limit,
     ...(search ? { search } : {}),
+    ...(orderBy ? { orderBy } : {}),
   });
 
   const meta = listResponse?.meta;
@@ -86,6 +88,35 @@ const ProgressInfrastrukturPanel = () => {
       return prev;
     });
   };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams((prev) => {
+      if (e.target.value) prev.set('orderBy', e.target.value);
+      else prev.delete('orderBy');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const filterSelectClass =
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
+
+  const tableToolbar = canEditTotalProgress ? (
+    <div className="relative group w-full sm:w-56">
+      <select
+        className={`${filterSelectClass} pl-9`}
+        value={orderBy}
+        onChange={handleSortChange}
+        aria-label="Urutkan data"
+      >
+        <option value="">Mandor & No. SPK (Default)</option>
+        <option value="progress:desc">Progress Tertinggi</option>
+        <option value="progress:asc">Progress Terendah</option>
+      </select>
+      <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
+      <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+    </div>
+  ) : undefined;
 
   const columns = [
     {
@@ -214,6 +245,7 @@ const ProgressInfrastrukturPanel = () => {
         searchTerm={search}
         onSearchChange={handleSearchChange}
         searchPlaceholder="Cari no. SPK, judul, zona, atau mandor..."
+        toolbarPrefix={tableToolbar}
         page={page}
         totalPages={meta?.totalPages || 1}
         onPageChange={handlePageChange}
