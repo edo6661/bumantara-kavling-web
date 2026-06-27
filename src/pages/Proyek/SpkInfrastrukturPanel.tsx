@@ -39,7 +39,11 @@ import {
   useGetSpkPaginated,
   useUpdateSpk,
 } from '../../hooks/queries/useSpk';
-import type { GetSpkParams, SpkData } from '../../services/spk.service';
+import type { GetSpkParams, SpkData, SpkTerminSchemeKey } from '../../services/spk.service';
+import {
+  SPK_INFRA_TERMIN_SCHEME_OPTIONS,
+  getSpkTerminSchemeLabel,
+} from '../../utils/spkTerminScheme';
 import type { ZonaData } from '../../services/zona.service';
 import type { PekerjaanInfraData } from '../../services/pekerjaanInfra.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
@@ -57,6 +61,7 @@ interface InfraFormState {
   judulPekerjaan: string;
   nilaiKontrak: number | '';
   bankRekeningPtId: number | '';
+  terminScheme: SpkTerminSchemeKey;
   progressOverride: number | '';
   notesPekerjaan: string;
   jatuhTempo: string;
@@ -101,6 +106,7 @@ const initialFormState = (): InfraFormState => ({
   judulPekerjaan: '',
   nilaiKontrak: '',
   bankRekeningPtId: '',
+  terminScheme: 'INFRA_20_6',
   progressOverride: '',
   notesPekerjaan: '',
   jatuhTempo: '',
@@ -319,6 +325,7 @@ const SpkInfrastrukturPanel = () => {
       judulPekerjaan: item.judulPekerjaan,
       nilaiKontrak: item.nilaiKontrak,
       bankRekeningPtId: item.bankRekeningPtId ?? '',
+      terminScheme: item.terminScheme ?? 'INFRA_20_6',
       progressOverride: item.progressOverride ?? '',
       notesPekerjaan: item.notesPekerjaan || '',
       jatuhTempo: item.jatuhTempo ? item.jatuhTempo.split('T')[0]! : '',
@@ -408,6 +415,7 @@ const SpkInfrastrukturPanel = () => {
       mandorId: Number(formData.mandorId),
       zonaId: Number(formData.zonaId),
       pekerjaanInfraIds: formData.pekerjaanInfraIds,
+      terminScheme: formData.terminScheme,
       fileSpk: formData.fileSpk,
     };
 
@@ -1157,6 +1165,34 @@ const SpkInfrastrukturPanel = () => {
                 })),
               ]}
             />
+            <Select
+              label="Skema Termin Pembayaran"
+              name="terminScheme"
+              value={formData.terminScheme}
+              disabled={!!editingId}
+              onChange={(e) =>
+                setFormData((p) => ({
+                  ...p,
+                  terminScheme: e.target.value as SpkTerminSchemeKey,
+                }))
+              }
+              options={SPK_INFRA_TERMIN_SCHEME_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+            />
+            {editingId && (
+              <p className="md:col-span-2 text-xs text-slate-500 leading-relaxed">
+                Skema termin tidak dapat diubah setelah SPK dibuat. Skema saat ini:{' '}
+                <strong>{getSpkTerminSchemeLabel(formData.terminScheme)}</strong>
+              </p>
+            )}
+            {!editingId && (
+              <p className="md:col-span-2 text-xs text-slate-500 leading-relaxed">
+                Pilih skema termin sesuai kontrak SPK. Skema lama (20%×4 + 15% + retensi) tetap
+                default untuk SPK infrastruktur yang sudah ada.
+              </p>
+            )}
             <Select
               label="Mandor"
               name="mandorId"

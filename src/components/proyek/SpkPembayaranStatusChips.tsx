@@ -1,6 +1,6 @@
 import { ExternalLink, FileText } from 'lucide-react';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
-import type { SpkJenis } from '../../services/spk.service';
+import type { SpkTerminSchemeKey } from '../../services/spk.service';
 import {
   buildSpkPembayaranJenisLabel,
   getSpkTerminJenisOrder,
@@ -9,16 +9,16 @@ import {
 interface SpkPembayaranStatusChipsProps {
   items: SpkPembayaranData[];
   showBuktiLinks?: boolean;
-  spkJenis?: SpkJenis;
+  terminScheme?: SpkTerminSchemeKey;
 }
 
 const SpkPembayaranStatusChips = ({
   items,
   showBuktiLinks = false,
-  spkJenis = 'RUMAH',
+  terminScheme = 'RUMAH_DEFAULT',
 }: SpkPembayaranStatusChipsProps) => {
-  const jenisOrder = getSpkTerminJenisOrder(spkJenis);
-  const jenisLabels = buildSpkPembayaranJenisLabel(spkJenis);
+  const jenisOrder = getSpkTerminJenisOrder(terminScheme);
+  const jenisLabels = buildSpkPembayaranJenisLabel(terminScheme);
   const shortLabel = Object.fromEntries(
     jenisOrder.map((jenis) => [
       jenis,

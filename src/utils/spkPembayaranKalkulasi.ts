@@ -1,4 +1,4 @@
-import type { SpkJenis } from '../services/spk.service';
+import type { SpkTerminSchemeKey } from './spkTerminScheme';
 import type { SpkNominalInput, SpkPembayaranCalcRow, SpkPembayaranJenis } from './spkPembayaran';
 import {
   getSpkTerminScheme,
@@ -17,11 +17,11 @@ export function buildSpkPembayaranKalkulasi(
   jenis: SpkPembayaranJenis,
   spk: SpkNominalInput,
   pembayaranList: SpkPembayaranCalcRow[] = [],
-  spkJenis: SpkJenis = 'RUMAH',
+  terminScheme: SpkTerminSchemeKey = 'RUMAH_DEFAULT',
 ): SpkPembayaranKalkulasiBaris[] {
   const kontrak = spk.nilaiKontrak;
   const step = getTerminStep(
-    getSpkTerminScheme(spkJenis),
+    getSpkTerminScheme(terminScheme),
     jenis as SpkTerminPembayaranJenis,
   );
   const baris: SpkPembayaranKalkulasiBaris[] = [
@@ -43,16 +43,16 @@ export function buildSpkPembayaranKalkulasi(
       pembayaranList,
       step.jenis,
       'KASBON',
-      spkJenis,
+      terminScheme,
     );
     const totalUpah = sumPengurangJenisForTermin(
       kontrak,
       pembayaranList,
       step.jenis,
       'UPAH',
-      spkJenis,
+      terminScheme,
     );
-    const kasbon = sumKasbonForTermin(kontrak, pembayaranList, step.jenis, spkJenis);
+    const kasbon = sumKasbonForTermin(kontrak, pembayaranList, step.jenis, terminScheme);
     if (totalKasbon > 0) {
       baris.push({ label: 'Total kasbon', nilai: totalKasbon, tipe: 'negatif' });
     }

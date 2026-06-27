@@ -3,6 +3,8 @@ import type { SpkPembayaranData } from "./spkPembayaran.service";
 
 export type SpkJenis = "RUMAH" | "INFRASTRUKTUR";
 
+export type SpkTerminSchemeKey = "RUMAH_DEFAULT" | "INFRA_20_6" | "INFRA_30_4";
+
 export interface SpkKavlingItem {
   id: number;
   kavlingId: number;
@@ -35,6 +37,7 @@ export interface SpkData {
   id: number;
   noSpk: string;
   jenis: SpkJenis;
+  terminScheme: SpkTerminSchemeKey;
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number;
@@ -73,6 +76,7 @@ export interface CreateSpkDTO {
   mandorId: number;
   kavlingIds?: number[];
   pekerjaanInfraIds?: number[];
+  terminScheme?: SpkTerminSchemeKey;
   fileSpk?: File | null;
   progressOverride?: number | null;
 }
@@ -115,6 +119,7 @@ const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
   const formData = new FormData();
   if (data.noSpk !== undefined) formData.append("noSpk", data.noSpk);
   if (data.jenis !== undefined) formData.append("jenis", data.jenis);
+  if (data.terminScheme !== undefined) formData.append("terminScheme", data.terminScheme);
   if (data.tanggalSpk !== undefined) formData.append("tanggalSpk", data.tanggalSpk);
   if (data.judulPekerjaan !== undefined) {
     formData.append("judulPekerjaan", data.judulPekerjaan);

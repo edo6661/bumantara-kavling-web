@@ -1,5 +1,7 @@
 import type { SpkJenis } from '../services/spk.service';
 
+export type SpkTerminSchemeKey = 'RUMAH_DEFAULT' | 'INFRA_20_6' | 'INFRA_30_4';
+
 export type SpkTerminPembayaranJenis =
   | 'TERMIN_55'
   | 'TERMIN_100'
@@ -8,6 +10,10 @@ export type SpkTerminPembayaranJenis =
   | 'TERMIN_INFRA_20_3'
   | 'TERMIN_INFRA_20_4'
   | 'TERMIN_INFRA_15'
+  | 'TERMIN_INFRA_30_1'
+  | 'TERMIN_INFRA_30_2'
+  | 'TERMIN_INFRA_30_3'
+  | 'TERMIN_INFRA_10'
   | 'RETENSI';
 
 export type SpkKasbonTargetTermin = Exclude<SpkTerminPembayaranJenis, 'RETENSI'>;
@@ -48,7 +54,7 @@ export const SPK_TERMIN_SCHEME_RUMAH: SpkTerminStepConfig[] = [
   },
 ];
 
-export const SPK_TERMIN_SCHEME_INFRA: SpkTerminStepConfig[] = [
+export const SPK_TERMIN_SCHEME_INFRA_20_6: SpkTerminStepConfig[] = [
   {
     jenis: 'TERMIN_INFRA_20_1',
     minProgress: 20,
@@ -99,14 +105,78 @@ export const SPK_TERMIN_SCHEME_INFRA: SpkTerminStepConfig[] = [
   },
 ];
 
-export function getSpkTerminScheme(spkJenis: SpkJenis = 'RUMAH'): SpkTerminStepConfig[] {
-  return spkJenis === 'INFRASTRUKTUR'
-    ? SPK_TERMIN_SCHEME_INFRA
-    : SPK_TERMIN_SCHEME_RUMAH;
+export const SPK_TERMIN_SCHEME_INFRA_30_4: SpkTerminStepConfig[] = [
+  {
+    jenis: 'TERMIN_INFRA_30_1',
+    minProgress: 30,
+    kontrakFraction: 0.3,
+    label: 'Termin 30% (progress ≥ 30%)',
+    shortLabel: '30%·1',
+    kasbonTargetLabel: 'Termin 30% (1)',
+  },
+  {
+    jenis: 'TERMIN_INFRA_30_2',
+    minProgress: 60,
+    kontrakFraction: 0.3,
+    label: 'Termin 30% (progress ≥ 60%)',
+    shortLabel: '30%·2',
+    kasbonTargetLabel: 'Termin 30% (2)',
+  },
+  {
+    jenis: 'TERMIN_INFRA_30_3',
+    minProgress: 90,
+    kontrakFraction: 0.3,
+    label: 'Termin 30% (progress ≥ 90%)',
+    shortLabel: '30%·3',
+    kasbonTargetLabel: 'Termin 30% (3)',
+  },
+  {
+    jenis: 'TERMIN_INFRA_10',
+    minProgress: 100,
+    kontrakFraction: 0.1,
+    label: 'Termin 10% (progress 100%)',
+    shortLabel: '10%',
+    kasbonTargetLabel: 'Termin 10%',
+  },
+];
+
+/** @deprecated Use SPK_TERMIN_SCHEME_INFRA_20_6 */
+export const SPK_TERMIN_SCHEME_INFRA = SPK_TERMIN_SCHEME_INFRA_20_6;
+
+const SCHEME_MAP: Record<SpkTerminSchemeKey, SpkTerminStepConfig[]> = {
+  RUMAH_DEFAULT: SPK_TERMIN_SCHEME_RUMAH,
+  INFRA_20_6: SPK_TERMIN_SCHEME_INFRA_20_6,
+  INFRA_30_4: SPK_TERMIN_SCHEME_INFRA_30_4,
+};
+
+export interface SpkTerminSchemeInput {
+  jenis: SpkJenis;
+  terminScheme?: SpkTerminSchemeKey | null;
 }
 
-export function getSpkTerminJenisOrder(spkJenis: SpkJenis = 'RUMAH'): SpkTerminPembayaranJenis[] {
-  return getSpkTerminScheme(spkJenis).map((step) => step.jenis);
+export function defaultTerminSchemeForJenis(jenis: SpkJenis): SpkTerminSchemeKey {
+  return jenis === 'INFRASTRUKTUR' ? 'INFRA_20_6' : 'RUMAH_DEFAULT';
+}
+
+export function resolveSpkTerminScheme(spk: SpkTerminSchemeInput): SpkTerminSchemeKey {
+  if (spk.terminScheme) return spk.terminScheme;
+  return defaultTerminSchemeForJenis(spk.jenis);
+}
+
+export function getSpkTerminScheme(
+  schemeOrSpk: SpkTerminSchemeKey | SpkTerminSchemeInput = 'RUMAH_DEFAULT',
+): SpkTerminStepConfig[] {
+  const key =
+    typeof schemeOrSpk === 'string'
+      ? schemeOrSpk
+      : resolveSpkTerminScheme(schemeOrSpk);
+  return SCHEME_MAP[key];
+}
+
+export function getSpkTerminJenisOrder(
+  schemeOrSpk: SpkTerminSchemeKey | SpkTerminSchemeInput = 'RUMAH_DEFAULT',
+): SpkTerminPembayaranJenis[] {
+  return getSpkTerminScheme(schemeOrSpk).map((step) => step.jenis);
 }
 
 export function getKasbonTargetSteps(
@@ -135,14 +205,14 @@ export function getPrerequisiteTerminJenis(
 }
 
 export function buildSpkPembayaranJenisLabel(
-  spkJenis: SpkJenis = 'RUMAH',
+  schemeOrSpk: SpkTerminSchemeKey | SpkTerminSchemeInput = 'RUMAH_DEFAULT',
 ): Record<SpkTerminPembayaranJenis | 'KASBON' | 'UPAH', string> {
   const labels = {
     KASBON: 'Kasbon',
     UPAH: 'Upah tukang',
   } as Record<SpkTerminPembayaranJenis | 'KASBON' | 'UPAH', string>;
 
-  for (const step of getSpkTerminScheme(spkJenis)) {
+  for (const step of getSpkTerminScheme(schemeOrSpk)) {
     labels[step.jenis] = step.label;
   }
 
@@ -150,10 +220,10 @@ export function buildSpkPembayaranJenisLabel(
 }
 
 export function buildSpkKasbonTargetLabel(
-  spkJenis: SpkJenis = 'RUMAH',
+  schemeOrSpk: SpkTerminSchemeKey | SpkTerminSchemeInput = 'RUMAH_DEFAULT',
 ): Record<SpkKasbonTargetTermin, string> {
   const labels = {} as Record<SpkKasbonTargetTermin, string>;
-  for (const step of getKasbonTargetSteps(getSpkTerminScheme(spkJenis))) {
+  for (const step of getKasbonTargetSteps(getSpkTerminScheme(schemeOrSpk))) {
     labels[step.jenis] = step.kasbonTargetLabel;
   }
   return labels;
@@ -163,25 +233,36 @@ export function buildAllSpkPembayaranJenisLabel(): Record<
   SpkTerminPembayaranJenis | 'KASBON' | 'UPAH',
   string
 > {
-  return {
-    ...buildSpkPembayaranJenisLabel('RUMAH'),
-    ...buildSpkPembayaranJenisLabel('INFRASTRUKTUR'),
-  };
+  const labels = {
+    KASBON: 'Kasbon',
+    UPAH: 'Upah tukang',
+  } as Record<SpkTerminPembayaranJenis | 'KASBON' | 'UPAH', string>;
+
+  for (const scheme of Object.values(SCHEME_MAP)) {
+    for (const step of scheme) {
+      labels[step.jenis] = step.label;
+    }
+  }
+
+  return labels;
 }
 
 export function buildAllSpkKasbonTargetLabel(): Record<SpkKasbonTargetTermin, string> {
-  return {
-    ...buildSpkKasbonTargetLabel('RUMAH'),
-    ...buildSpkKasbonTargetLabel('INFRASTRUKTUR'),
-  };
+  const labels = {} as Record<SpkKasbonTargetTermin, string>;
+  for (const key of Object.keys(SCHEME_MAP) as SpkTerminSchemeKey[]) {
+    Object.assign(labels, buildSpkKasbonTargetLabel(key));
+  }
+  return labels;
 }
 
 export function buildTerminUiColors(
-  spkJenis: SpkJenis = 'RUMAH',
+  schemeOrSpk: SpkTerminSchemeKey | SpkTerminSchemeInput = 'RUMAH_DEFAULT',
 ): Record<
   SpkTerminPembayaranJenis,
   { badge: string; row: string; text: string }
 > {
+  const schemeKey =
+    typeof schemeOrSpk === 'string' ? schemeOrSpk : resolveSpkTerminScheme(schemeOrSpk);
   const infraPalette = [
     { badge: 'bg-sky-100 text-sky-800 border-sky-200', row: 'bg-sky-50/60', text: 'text-sky-700' },
     { badge: 'bg-cyan-100 text-cyan-800 border-cyan-200', row: 'bg-cyan-50/60', text: 'text-cyan-700' },
@@ -195,7 +276,7 @@ export function buildTerminUiColors(
     { badge: string; row: string; text: string }
   >;
 
-  getSpkTerminScheme(spkJenis).forEach((step, index) => {
+  getSpkTerminScheme(schemeOrSpk).forEach((step, index) => {
     if (step.jenis === 'RETENSI') {
       colors.RETENSI = {
         badge: 'bg-amber-100 text-amber-900 border-amber-200',
@@ -205,7 +286,7 @@ export function buildTerminUiColors(
       return;
     }
 
-    if (spkJenis === 'RUMAH') {
+    if (schemeKey === 'RUMAH_DEFAULT') {
       if (step.jenis === 'TERMIN_55') {
         colors.TERMIN_55 = {
           badge: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -227,4 +308,27 @@ export function buildTerminUiColors(
   });
 
   return colors;
+}
+
+export const SPK_INFRA_TERMIN_SCHEME_OPTIONS: Array<{
+  value: Extract<SpkTerminSchemeKey, 'INFRA_20_6' | 'INFRA_30_4'>;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: 'INFRA_20_6',
+    label: '20% × 4 + 15% + Retensi 5%',
+    description: 'Skema standar infrastruktur (6 termin)',
+  },
+  {
+    value: 'INFRA_30_4',
+    label: '30% × 3 + 10%',
+    description: 'Skema alternatif infrastruktur (4 termin, tanpa retensi)',
+  },
+];
+
+export function getSpkTerminSchemeLabel(scheme: SpkTerminSchemeKey): string {
+  if (scheme === 'RUMAH_DEFAULT') return '55% / 100% / Retensi';
+  const option = SPK_INFRA_TERMIN_SCHEME_OPTIONS.find((item) => item.value === scheme);
+  return option?.label ?? scheme;
 }

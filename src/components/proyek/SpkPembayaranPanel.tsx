@@ -32,7 +32,7 @@ import { useAuth } from '../../context/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
 import { useGetProfile } from '../../hooks/queries/useProfile';
 import { useGetMandorRekening } from '../../hooks/queries/useProgressProyek';
-import type { SpkData, SpkJenis } from '../../services/spk.service';
+import type { SpkData } from '../../services/spk.service';
 import {
   buildSpkKasbonTargetLabel,
   buildSpkPembayaranJenisLabel,
@@ -49,10 +49,12 @@ import {
   getTerminPaymentStatus,
   validatePengurangTerminNominal,
   canSpillPengurangToNextTermin,
+  resolveSpkTerminScheme,
   type SpkKasbonTargetTermin,
   type SpkPembayaranJenis,
   type SpkPengurangTerminRow,
   type SpkTerminPembayaranJenis,
+  type SpkTerminSchemeKey,
 } from '../../utils/spkPembayaran';
 import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi';
 import {
@@ -437,7 +439,7 @@ const KalkulasiSingkat = ({
     jenis,
     { nilaiKontrak: spk.nilaiKontrak },
     toCalcRows(pembayaranList),
-    spk.jenis,
+    resolveSpkTerminScheme(spk),
   );
 
   return (
@@ -1192,25 +1194,25 @@ const PengurangMengurangiCell = ({
   pengurangRows,
   terminStatus,
   fallbackTermin,
-  spkJenis,
+  terminScheme,
 }: {
   rowId: number;
   nilaiKontrak: number;
   pengurangRows: SpkPengurangTerminRow[];
   terminStatus: ReturnType<typeof getTerminPaymentStatus>;
   fallbackTermin?: SpkKasbonTargetTermin | null;
-  spkJenis: SpkJenis;
+  terminScheme: SpkTerminSchemeKey;
 }) => {
-  const kasbonTargetLabels = buildSpkKasbonTargetLabel(spkJenis);
+  const kasbonTargetLabels = buildSpkKasbonTargetLabel(terminScheme);
   const split = getPengurangRowWaterfallSplit(
     nilaiKontrak,
     pengurangRows,
     rowId,
     terminStatus,
-    spkJenis,
+    terminScheme,
   );
 
-  const label = formatPengurangMengurangiLabel(split, formatRupiah, spkJenis);
+  const label = formatPengurangMengurangiLabel(split, formatRupiah, terminScheme);
   if (label === '—') {
     return (
       <span>
@@ -1243,7 +1245,7 @@ const PengurangPlafonBanner = ({
   additionalNominal,
   excludeId,
   terminStatus,
-  spkJenis,
+  terminScheme,
   spkProgress,
 }: {
   nilaiKontrak: number;
@@ -1252,11 +1254,11 @@ const PengurangPlafonBanner = ({
   additionalNominal: number;
   excludeId?: number;
   terminStatus?: ReturnType<typeof getTerminPaymentStatus>;
-  spkJenis: SpkJenis;
+  terminScheme: SpkTerminSchemeKey;
   spkProgress?: number;
 }) => {
-  const kasbonTargetLabels = buildSpkKasbonTargetLabel(spkJenis);
-  const targets = getKasbonTargetSteps(getSpkTerminScheme(spkJenis));
+  const kasbonTargetLabels = buildSpkKasbonTargetLabel(terminScheme);
+  const targets = getKasbonTargetSteps(getSpkTerminScheme(terminScheme));
   const nextTarget = targets.find((step) => step.jenis === termin);
   const nextTargetIndex = targets.findIndex((step) => step.jenis === termin);
   const spillLabel =
@@ -1272,7 +1274,7 @@ const PengurangPlafonBanner = ({
     excludeId,
     additionalNominal,
     terminStatus,
-    spkJenis,
+    terminScheme,
   });
 
   const strictValidation =
@@ -1284,7 +1286,7 @@ const PengurangPlafonBanner = ({
           additionalNominal,
           excludeId,
           terminStatus,
-          spkJenis,
+          terminScheme,
           spkProgress,
         )
       : { allowed: true as const };
@@ -1301,7 +1303,7 @@ const PengurangPlafonBanner = ({
       {spkProgress != null &&
         additionalNominal > 0 &&
         nextStep &&
-        !canSpillPengurangToNextTermin(spkProgress, termin, spkJenis) && (
+        !canSpillPengurangToNextTermin(spkProgress, termin, terminScheme) && (
           <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
             Progress proyek saat ini <strong>{spkProgress}%</strong>. Material/upah dibatasi
             sisa plafon <strong>{kasbonTargetLabels[termin]}</strong> ({formatRupiah(cap.sisa)})
@@ -1547,9 +1549,9 @@ const SpkPembayaranPanel = ({
     [pembayaranList],
   );
   const calcRows = toCalcRows(submittedPembayaranList);
-  const spkJenis = spk.jenis;
+  const terminScheme = resolveSpkTerminScheme(spk);
   const terminJenisOrder = useMemo(() => {
-    const base = getSpkTerminJenisOrder(spkJenis);
+    const base = getSpkTerminJenisOrder(terminScheme);
     const legacyTermin = submittedPembayaranList
       .map((p) => p.jenis)
       .filter(
@@ -1559,12 +1561,12 @@ const SpkPembayaranPanel = ({
           !base.includes(jenis as SpkTerminPembayaranJenis),
       );
     return [...base, ...legacyTermin];
-  }, [spkJenis, submittedPembayaranList]);
-  const jenisLabels = useMemo(() => buildSpkPembayaranJenisLabel(spkJenis), [spkJenis]);
-  const kasbonTargetLabels = useMemo(() => buildSpkKasbonTargetLabel(spkJenis), [spkJenis]);
+  }, [terminScheme, submittedPembayaranList]);
+  const jenisLabels = useMemo(() => buildSpkPembayaranJenisLabel(terminScheme), [terminScheme]);
+  const kasbonTargetLabels = useMemo(() => buildSpkKasbonTargetLabel(terminScheme), [terminScheme]);
   const terminStatus = useMemo(
-    () => getTerminPaymentStatus(calcRows, spkJenis),
-    [calcRows, spkJenis],
+    () => getTerminPaymentStatus(calcRows, terminScheme),
+    [calcRows, terminScheme],
   );
 
   const pengurangRows: SpkPengurangTerminRow[] = useMemo(
@@ -1592,7 +1594,7 @@ const SpkPembayaranPanel = ({
 
   const kasbonItems = submittedPembayaranList.filter((p) => p.jenis === 'KASBON');
   const upahItems = submittedPembayaranList.filter((p) => p.jenis === 'UPAH');
-  const pengurangCheck = canRequestKasbon(statusRows, spk.nilaiKontrak, spkJenis);
+  const pengurangCheck = canRequestKasbon(statusRows, spk.nilaiKontrak, terminScheme);
 
   const materialTotalPreview = useMemo(
     () => allMaterialTotal(materialSuppliers),
@@ -1628,7 +1630,7 @@ const SpkPembayaranPanel = ({
       activeCreateTotal,
       undefined,
       terminStatus,
-      spkJenis,
+      terminScheme,
       spk.progress,
     );
   }, [
@@ -1637,7 +1639,7 @@ const SpkPembayaranPanel = ({
     spk.nilaiKontrak,
     pengurangRows,
     terminStatus,
-    spkJenis,
+    terminScheme,
     spk.progress,
   ]);
 
@@ -1654,7 +1656,7 @@ const SpkPembayaranPanel = ({
       total,
       editingKasbon.id,
       terminStatus,
-      spkJenis,
+      terminScheme,
       spk.progress,
     ).allowed;
   }, [
@@ -1677,13 +1679,13 @@ const SpkPembayaranPanel = ({
       upahTotalPreview,
       editingUpah.id,
       terminStatus,
-      spkJenis,
+      terminScheme,
       spk.progress,
     ).allowed;
   }, [editingUpah, upahTotalPreview, pengurangRows, spk.nilaiKontrak, terminStatus, spk.progress]);
 
   const handleAjukanTermin = (jenis: SpkTerminPembayaranJenis) => {
-    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, spkJenis);
+    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, terminScheme);
     if (!check.allowed) {
       alert(check.reason);
       return;
@@ -1705,7 +1707,7 @@ const SpkPembayaranPanel = ({
   const handleConfirmAjukanTermin = async () => {
     if (!terminAjukanModal) return;
     const jenis = terminAjukanModal;
-    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, spkJenis);
+    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, terminScheme);
     if (!check.allowed) {
       alert(check.reason);
       return;
@@ -1893,7 +1895,7 @@ const SpkPembayaranPanel = ({
         grandTotal,
         undefined,
         terminStatus,
-        spkJenis,
+        terminScheme,
         spk.progress,
       );
       if (!plafon.allowed) {
@@ -2035,7 +2037,7 @@ const SpkPembayaranPanel = ({
         grandTotal,
         undefined,
         terminStatus,
-        spkJenis,
+        terminScheme,
         spk.progress,
       );
       if (!plafon.allowed) {
@@ -2395,7 +2397,7 @@ const SpkPembayaranPanel = ({
           termin={pengurangCheck.targetTermin}
           additionalNominal={activeCreateTotal}
           terminStatus={terminStatus}
-          spkJenis={spkJenis}
+          terminScheme={terminScheme}
           spkProgress={spk.progress}
         />
       )}
@@ -2601,7 +2603,7 @@ const SpkPembayaranPanel = ({
         total,
         editingUpah.id,
         terminStatus,
-        spkJenis,
+        terminScheme,
         spk.progress,
       );
       if (!plafon.allowed) {
@@ -2653,7 +2655,7 @@ const SpkPembayaranPanel = ({
           total,
           editingKasbon.id,
           terminStatus,
-          spkJenis,
+          terminScheme,
           spk.progress,
         );
         if (!plafon.allowed) {
@@ -2711,7 +2713,7 @@ const SpkPembayaranPanel = ({
         nominal,
         editingKasbon.id,
         terminStatus,
-        spkJenis,
+        terminScheme,
         spk.progress,
       );
       if (!plafon.allowed) {
@@ -2769,7 +2771,7 @@ const SpkPembayaranPanel = ({
         </span>
       );
     }
-    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, spkJenis);
+    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, terminScheme);
     if (!canAjukan) {
       return <span className="text-slate-400 text-[10px]">Belum diajukan</span>;
     }
@@ -2789,7 +2791,7 @@ const SpkPembayaranPanel = ({
     nominal: number,
   ) => {
     if (existing || !canAjukan || nominal <= 0) return null;
-    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, spkJenis);
+    const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, terminScheme);
     if (!check.allowed) {
       return check.reason ? (
         <span className="text-[9px] text-amber-700 max-w-[140px] leading-tight">{check.reason}</span>
@@ -2809,7 +2811,7 @@ const SpkPembayaranPanel = ({
 
   const renderJenisBadge = (jenis: SpkPembayaranJenis, extra?: string) => (
     <span
-      className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${getJenisUiColor(jenis, spkJenis).badge}`}
+      className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${getJenisUiColor(jenis, terminScheme).badge}`}
     >
       {jenis === 'KASBON'
         ? 'Kasbon'
@@ -2892,8 +2894,8 @@ const SpkPembayaranPanel = ({
               <tbody>
                 {terminJenisOrder.map((jenis) => {
                   const existing = pembayaranList.find((p) => p.jenis === jenis);
-                  const nominal = calcSpkPembayaranNominal(jenis, spkInput, calcRows, spkJenis);
-                  const colors = getJenisUiColor(jenis, spkJenis);
+                  const nominal = calcSpkPembayaranNominal(jenis, spkInput, calcRows, terminScheme);
+                  const colors = getJenisUiColor(jenis, terminScheme);
                   return (
                     <tr key={jenis} className={`hover:bg-slate-50/80 ${colors.row}`}>
                       <td className={tdClass}>
@@ -3001,7 +3003,7 @@ const SpkPembayaranPanel = ({
                           pengurangRows={pengurangRows}
                           terminStatus={terminStatus}
                           fallbackTermin={row.mengurangiTermin}
-                          spkJenis={spkJenis}
+                          terminScheme={terminScheme}
                         />
                       </td>
                       <td className={`${tdClass} font-bold ${JENIS_UI_COLOR.KASBON.text}`}>
@@ -3138,7 +3140,7 @@ const SpkPembayaranPanel = ({
                           pengurangRows={pengurangRows}
                           terminStatus={terminStatus}
                           fallbackTermin={row.mengurangiTermin}
-                          spkJenis={spkJenis}
+                          terminScheme={terminScheme}
                         />
                       </td>
                       <td className={`${tdClass} font-bold ${JENIS_UI_COLOR.UPAH.text}`}>
@@ -3218,7 +3220,7 @@ const SpkPembayaranPanel = ({
       )}
 
       {!historiOnly && pengurangCheck.targetTermin && canAjukan && (() => {
-        const targets = getKasbonTargetSteps(getSpkTerminScheme(spkJenis));
+        const targets = getKasbonTargetSteps(getSpkTerminScheme(terminScheme));
         const targetIndex = targets.findIndex((step) => step.jenis === pengurangCheck.targetTermin);
         const spillLabel =
           targetIndex >= 0 && targetIndex < targets.length - 1
@@ -3296,7 +3298,7 @@ const SpkPembayaranPanel = ({
                 }
                 excludeId={editingKasbon.id}
                 terminStatus={terminStatus}
-                spkJenis={spkJenis}
+                terminScheme={terminScheme}
               />
             </>
           )}
@@ -3383,7 +3385,7 @@ const SpkPembayaranPanel = ({
                 additionalNominal={upahTotalPreview}
                 excludeId={editingUpah.id}
                 terminStatus={terminStatus}
-                spkJenis={spkJenis}
+                terminScheme={terminScheme}
               />
             </>
           )}
@@ -3443,7 +3445,7 @@ const SpkPembayaranPanel = ({
                     terminAjukanModal,
                     spkInput,
                     statusRows,
-                    spkJenis,
+                    terminScheme,
                   ).nominal,
                 )}
               </strong>
