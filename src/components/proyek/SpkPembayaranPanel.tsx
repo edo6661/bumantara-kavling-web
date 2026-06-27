@@ -57,6 +57,7 @@ import {
   type SpkTerminSchemeKey,
 } from '../../utils/spkPembayaran';
 import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi';
+import { isValidNik, normalizeNikInput } from '../../utils/nik';
 import {
   formatMandorRekeningLabel,
   pickDefaultMandorRekeningId,
@@ -116,19 +117,27 @@ const newUpahBaris = (): UpahBarisForm => ({
   nama: '',
 });
 
-const parseUpahBarisBody = (rows: UpahBarisForm[]): SpkPembayaranUpahBarisBody[] | null => {
+type ParseUpahBarisResult =
+  | { ok: true; data: SpkPembayaranUpahBarisBody[] }
+  | { ok: false; message: string };
+
+const parseUpahBarisBody = (rows: UpahBarisForm[]): ParseUpahBarisResult => {
   const parsed: SpkPembayaranUpahBarisBody[] = [];
   for (const row of rows) {
-    const nik = row.nik.trim();
+    const nik = normalizeNikInput(row.nik);
     const nama = row.nama.trim();
-    if (!nik || !nama) return null;
+    if (!nama) return { ok: false, message: 'Nama tukang wajib diisi.' };
+    if (!nik) return { ok: false, message: 'NIK tukang wajib diisi.' };
     parsed.push({
       tukangId: row.tukangId === '' ? null : row.tukangId,
       nik,
       nama,
     });
   }
-  return parsed.length ? parsed : null;
+  if (!parsed.length) {
+    return { ok: false, message: 'Minimal satu baris tukang wajib diisi.' };
+  }
+  return { ok: true, data: parsed };
 };
 
 const upahBarisFromPembayaran = (row: SpkPembayaranData): UpahBarisForm[] =>
@@ -1126,16 +1135,25 @@ const UpahTukangEditor = ({
               <td className={tdClass}>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  maxLength={20}
                   value={row.nik}
                   onChange={(e) =>
                     setUpahBaris((prev) =>
                       prev.map((r) =>
-                        r.key === row.key ? { ...r, nik: e.target.value, tukangId: '' } : r,
+                        r.key === row.key
+                          ? { ...r, nik: normalizeNikInput(e.target.value), tukangId: '' }
+                          : r,
                       ),
                     )
                   }
                   className="w-full min-w-[100px] px-2 py-1.5 border border-slate-200 rounded text-xs text-black"
                   placeholder="NIK"
+                  title={
+                    row.tukangId === '' && row.nik && !isValidNik(row.nik)
+                      ? 'Untuk export Coretax, NIK harus 16 digit'
+                      : undefined
+                  }
                 />
               </td>
               <td className={tdClass}>
@@ -1972,7 +1990,8 @@ const SpkPembayaranPanel = ({
     const materialBarisPreview = materialSectionUsed
       ? flattenMaterialSuppliers(materialSuppliers)
       : null;
-    const upahBarisBody = upahSectionUsed ? parseUpahBarisBody(upahBaris) : null;
+    const upahBarisParsed = upahSectionUsed ? parseUpahBarisBody(upahBaris) : null;
+    const upahBarisBody = upahBarisParsed?.ok ? upahBarisParsed.data : null;
     const upahTotal = upahTotalPreview;
 
     if (!pengurangCheck.allowed) {
@@ -2000,7 +2019,11 @@ const SpkPembayaranPanel = ({
         return;
       }
       if (!upahBarisBody) {
-        alert('Setiap tukang wajib memiliki NIK dan nama.');
+        alert(
+          upahBarisParsed && !upahBarisParsed.ok
+            ? upahBarisParsed.message
+            : 'Setiap tukang wajib memiliki NIK (16 digit) dan nama.',
+        );
         return;
       }
       if (!upahTotal || upahTotal <= 0) {
@@ -2577,17 +2600,18 @@ const SpkPembayaranPanel = ({
 
   const handleSimpanEditUpah = async () => {
     if (!editingUpah) return;
-    const baris = parseUpahBarisBody(upahBaris);
+    const barisParsed = parseUpahBarisBody(upahBaris);
+    if (!barisParsed.ok) {
+      alert(barisParsed.message);
+      return;
+    }
+    const baris = barisParsed.data;
     if (!upahTanggalDari || !upahTanggalSampai) {
       alert('Periode tanggal wajib diisi.');
       return;
     }
     if (upahTanggalDari > upahTanggalSampai) {
       alert('Tanggal dari tidak boleh setelah tanggal sampai.');
-      return;
-    }
-    if (!baris) {
-      alert('Setiap baris tukang wajib memiliki NIK dan nama.');
       return;
     }
     const total = upahTotalNominal === '' ? 0 : Number(upahTotalNominal);

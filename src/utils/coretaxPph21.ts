@@ -1,10 +1,19 @@
 import type { SpkPembayaranData, SpkPembayaranUpahBarisData } from '../services/spkPembayaran.service';
+import {
+  NIK_LENGTH,
+  isValidNik,
+  normalizeNikDigits,
+} from './nik';
 
 export const CORETAX_MAX_GROSS_PER_TUKANG = 5_000_000;
 export const CORETAX_TAX_OBJECT_CODE = '21-100-35';
 export const CORETAX_PTKP_OPTIONS = ['TK/0', 'K/0', 'K/1', 'K/2', 'K/3'] as const;
+export const CORETAX_NIK_LENGTH = NIK_LENGTH;
+export const CORETAX_NITKU_LENGTH = 22;
+export const CORETAX_NITKU_SUFFIX = '000000';
 
 const DOC_COUNTER_KEY = 'coretax-pph21-doc-counter';
+const NITKU_STORAGE_KEY = 'coretax-pph21-nitku';
 
 export interface CoretaxKsoConfig {
   tin: string;
@@ -36,6 +45,14 @@ export interface BuildCoretaxPph21Options {
   taxPeriodMonth: number;
   taxPeriodYear: number;
   documentStartNumber?: number;
+  nitkuPemotong: string;
+}
+
+export interface InvalidCoretaxNikEntry {
+  id: number;
+  nama: string;
+  nik: string;
+  digitCount: number;
 }
 
 export function resolveCoretaxKsoConfig(atasNama: string | null | undefined): CoretaxKsoConfig | null {
@@ -78,7 +95,63 @@ export function toCoretaxRomanMonth(month: number): string {
 }
 
 export function normalizeNik(nik: string): string {
-  return nik.replace(/\D/g, '');
+  return normalizeNikDigits(nik);
+}
+
+export function isValidCoretaxNik(nik: string): boolean {
+  return isValidNik(nik);
+}
+
+export function isValidNitku(nitku: string): boolean {
+  const digits = nitku.replace(/\D/g, '');
+  return digits.length === CORETAX_NITKU_LENGTH;
+}
+
+export function buildDefaultNitkuPemotong(tin: string): string {
+  const digits = tin.replace(/\D/g, '');
+  return `${digits}${CORETAX_NITKU_SUFFIX}`;
+}
+
+export function buildRecipientNitku(nik: string): string {
+  const digits = normalizeNik(nik);
+  if (!isValidCoretaxNik(digits)) {
+    throw new Error(`NIK harus ${CORETAX_NIK_LENGTH} digit angka.`);
+  }
+  return `${digits}${CORETAX_NITKU_SUFFIX}`;
+}
+
+export function getStoredNitkuPemotong(companyCode: string): string | null {
+  try {
+    const raw = localStorage.getItem(`${NITKU_STORAGE_KEY}-${companyCode}`);
+    return raw && isValidNitku(raw) ? raw.replace(/\D/g, '') : null;
+  } catch {
+    return null;
+  }
+}
+
+export function storeNitkuPemotong(companyCode: string, nitku: string): void {
+  try {
+    localStorage.setItem(`${NITKU_STORAGE_KEY}-${companyCode}`, nitku.replace(/\D/g, ''));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function getInvalidCoretaxNikEntries(
+  pembayaran: SpkPembayaranData,
+): InvalidCoretaxNikEntry[] {
+  return (pembayaran.upahBaris ?? [])
+    .map((row) => {
+      const digits = normalizeNik(row.nik);
+      if (isValidCoretaxNik(digits)) return null;
+      return {
+        id: row.id,
+        nama: row.nama,
+        nik: row.nik.trim() || '(kosong)',
+        digitCount: digits.length,
+      };
+    })
+    .filter((row): row is InvalidCoretaxNikEntry => row !== null);
 }
 
 export function getCoretaxPtkpStatus(nik: string): string {
@@ -196,13 +269,24 @@ export function buildCoretaxPph21Rows(
     options.taxPeriodMonth,
     options.taxPeriodYear,
   );
-  const idPlaceOfBusinessActivity = `${kso.tin}000000`;
+  const nitkuPemotong = options.nitkuPemotong.replace(/\D/g, '');
+  if (!isValidNitku(nitkuPemotong)) {
+    throw new Error(
+      `NITKU pemotong harus ${CORETAX_NITKU_LENGTH} digit. Cek di Coretax → Portal Saya → Profil → Tempat Kegiatan Usaha.`,
+    );
+  }
+  const idPlaceOfBusinessActivity = nitkuPemotong;
   const romanMonth = toCoretaxRomanMonth(options.taxPeriodMonth);
 
   const rows: CoretaxPph21Row[] = baris.map((tukang, index) => {
     const nik = normalizeNik(tukang.nik);
     if (!nik) {
       throw new Error(`NIK tukang baris ${index + 1} (${tukang.nama || 'tanpa nama'}) wajib diisi.`);
+    }
+    if (!isValidCoretaxNik(nik)) {
+      throw new Error(
+        `NIK tukang ${tukang.nama} tidak valid (${nik.length} digit). Harus ${CORETAX_NIK_LENGTH} digit.`,
+      );
     }
 
     const gross = grossList[index] ?? 0;
@@ -221,7 +305,7 @@ export function buildCoretaxPph21Rows(
       taxPeriodMonth: options.taxPeriodMonth,
       taxPeriodYear: options.taxPeriodYear,
       counterpartTin: nik,
-      idPlaceOfBusinessActivityOfIncomeRecipient: `${nik}000000`,
+      idPlaceOfBusinessActivityOfIncomeRecipient: buildRecipientNitku(nik),
       statusTaxExemption: getCoretaxPtkpStatus(nik),
       taxCertificate: 'N/A',
       taxObjectCode: CORETAX_TAX_OBJECT_CODE,
@@ -252,6 +336,15 @@ export function validateCoretaxPph21Rows(rows: CoretaxPph21Row[]): string[] {
   for (const row of rows) {
     const prefix = `Baris ${row.lineNo} (${row.tukangNama})`;
     if (!row.counterpartTin) errors.push(`${prefix}: NIK kosong.`);
+    if (!isValidCoretaxNik(row.counterpartTin)) {
+      errors.push(`${prefix}: NIK harus ${CORETAX_NIK_LENGTH} digit.`);
+    }
+    if (!isValidNitku(row.idPlaceOfBusinessActivity)) {
+      errors.push(`${prefix}: NITKU pemotong harus ${CORETAX_NITKU_LENGTH} digit.`);
+    }
+    if (!isValidNitku(row.idPlaceOfBusinessActivityOfIncomeRecipient)) {
+      errors.push(`${prefix}: NITKU penerima harus ${CORETAX_NITKU_LENGTH} digit.`);
+    }
     if (row.gross <= 0) errors.push(`${prefix}: penghasilan harus > 0.`);
     if (row.gross > CORETAX_MAX_GROSS_PER_TUKANG) {
       errors.push(`${prefix}: penghasilan melebihi batas 5 juta.`);
@@ -324,27 +417,3 @@ export function buildCoretaxPph21Filename(
   return `PPH21-${kso.companyCode}-${taxPeriodYear}${mm}-${spkNo}-${pembayaran.id}.xml`;
 }
 
-export function exportCoretaxPph21ForPembayaran(
-  pembayaran: SpkPembayaranData,
-  options: BuildCoretaxPph21Options,
-): void {
-  const { rows, kso } = buildCoretaxPph21Rows(pembayaran, options);
-  const validationErrors = validateCoretaxPph21Rows(rows);
-  if (validationErrors.length > 0) {
-    throw new Error(validationErrors.join('\n'));
-  }
-
-  const xml = generateCoretaxPph21Xml(rows, kso.tin);
-  const filename = buildCoretaxPph21Filename(
-    pembayaran,
-    kso,
-    options.taxPeriodMonth,
-    options.taxPeriodYear,
-  );
-  downloadCoretaxPph21Xml(xml, filename);
-
-  const lastDocNumber = Number(rows[rows.length - 1]?.documentNumber.split('/')[0]);
-  if (Number.isFinite(lastDocNumber)) {
-    commitCoretaxDocumentNumbers(kso.companyCode, options.taxPeriodYear, lastDocNumber);
-  }
-}

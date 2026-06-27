@@ -9,6 +9,7 @@ import { usePermission } from '../../hooks/usePermission';
 import { useGetTukangList, useUpsertTukang } from '../../hooks/queries/useTukang';
 import type { TukangData } from '../../services/tukang.service';
 import { handleApiError } from '../../utils/errorHandler';
+import { getNikValidationError, sanitizeNikInput } from '../../utils/nik';
 
 interface TukangFormState {
   nik: string;
@@ -70,13 +71,18 @@ const Tukang = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const nextValue = name === 'nik' ? sanitizeNikInput(value) : value;
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
   const validate = () => {
     const next: Partial<Record<string, string>> = {};
-    if (!form.nik.trim()) next.nik = 'NIK wajib diisi';
+    // Edit hanya mengubah nama; NIK dikunci & backend tidak mengubah NIK.
+    if (!editingNik) {
+      const nikError = getNikValidationError(form.nik);
+      if (nikError) next.nik = nikError;
+    }
     if (!form.nama.trim()) next.nama = 'Nama wajib diisi';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -87,7 +93,7 @@ const Tukang = () => {
     if (!validate()) return;
     try {
       await upsertMutation.mutateAsync({
-        nik: form.nik.trim(),
+        nik: sanitizeNikInput(form.nik),
         nama: form.nama.trim(),
       });
       closeModal();
@@ -139,6 +145,9 @@ const Tukang = () => {
             onChange={handleChange}
             error={errors.nik}
             disabled={!!editingNik}
+            placeholder="16 digit"
+            inputMode="numeric"
+            maxLength={16}
           />
           <Input
             label="Nama"

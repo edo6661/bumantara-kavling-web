@@ -14,7 +14,8 @@ import { formatDate, formatRupiah, formatTanpaDesimal } from '../../utils/format
 import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
 import { useGetBankRekening } from '../../hooks/queries/useBankRekening';
 import { formatShortNoSpk } from '../../utils/spk';
-import { exportCoretaxPph21ForPembayaran } from '../../utils/coretaxPph21';
+import { isValidNik } from '../../utils/nik';
+import CoretaxPph21ExportModal from '../../components/proyek/CoretaxPph21ExportModal';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
 
 interface SpkUpahGroup {
@@ -76,6 +77,8 @@ const UpahTukang = () => {
   const [expandedMandorIds, setExpandedMandorIds] = useState<Set<number>>(new Set());
   const [expandedSpkKeys, setExpandedSpkKeys] = useState<Set<string>>(new Set());
   const [expandedUpahIds, setExpandedUpahIds] = useState<Set<number>>(new Set());
+  const [coretaxExportPembayaran, setCoretaxExportPembayaran] =
+    useState<SpkPembayaranData | null>(null);
 
   const now = new Date();
   const page = Number(searchParams.get('page')) || 1;
@@ -217,16 +220,7 @@ const UpahTukang = () => {
   };
 
   const handleConvertToXml = (row: SpkPembayaranData) => {
-    try {
-      exportCoretaxPph21ForPembayaran(row, {
-        taxPeriodMonth: bulan,
-        taxPeriodYear: tahun,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Gagal membuat file XML Coretax.';
-      alert(message);
-    }
+    setCoretaxExportPembayaran(row);
   };
 
   if (isLoading) return <PageLoader />;
@@ -522,7 +516,9 @@ const UpahTukang = () => {
                                                     </tr>
                                                   </thead>
                                                   <tbody>
-                                                    {tukangList.map((tukang, tIdx) => (
+                                                    {tukangList.map((tukang, tIdx) => {
+                                                      const nikInvalid = !isValidNik(tukang.nik);
+                                                      return (
                                                       <tr
                                                         key={tukang.id}
                                                         className="border-t border-teal-50 hover:bg-teal-50/20"
@@ -533,7 +529,18 @@ const UpahTukang = () => {
                                                         <td className="px-3 py-2 font-medium text-slate-800">
                                                           {tukang.nama}
                                                         </td>
-                                                        <td className="px-3 py-2 font-mono text-slate-600">
+                                                        <td
+                                                          className={`px-3 py-2 font-mono ${
+                                                            nikInvalid
+                                                              ? 'text-red-600 font-bold'
+                                                              : 'text-slate-600'
+                                                          }`}
+                                                          title={
+                                                            nikInvalid
+                                                              ? 'NIK harus 16 digit agar valid di Coretax'
+                                                              : undefined
+                                                          }
+                                                        >
                                                           {tukang.nik}
                                                         </td>
                                                         <td className="px-3 py-2 text-right tabular-nums text-slate-700">
@@ -542,7 +549,8 @@ const UpahTukang = () => {
                                                             : '—'}
                                                         </td>
                                                       </tr>
-                                                    ))}
+                                                    );
+                                                    })}
                                                   </tbody>
                                                 </table>
                                               )}
@@ -590,6 +598,14 @@ const UpahTukang = () => {
           </div>
         )}
       </div>
+
+      <CoretaxPph21ExportModal
+        isOpen={coretaxExportPembayaran !== null}
+        pembayaran={coretaxExportPembayaran}
+        taxPeriodMonth={bulan}
+        taxPeriodYear={tahun}
+        onClose={() => setCoretaxExportPembayaran(null)}
+      />
     </div>
   );
 };
