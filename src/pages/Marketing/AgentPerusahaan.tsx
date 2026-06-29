@@ -30,7 +30,7 @@ const AgentPerusahaan = () => {
         }`}
       >
         <Building2 size={16} />
-        Kelola Agent Perusahaan
+        Kelola Perusahaan
       </button>
       <button
         type="button"

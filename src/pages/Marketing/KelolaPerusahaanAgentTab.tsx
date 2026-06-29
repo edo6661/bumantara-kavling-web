@@ -244,7 +244,7 @@ const KelolaPerusahaanAgentTab = () => {
   return (
     <>
       <DataTable
-        title="Kelola Agent Perusahaan"
+        title="Kelola Perusahaan"
         columns={columns}
         data={perusahaanData}
         onAdd={() => openModal()}
