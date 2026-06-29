@@ -165,11 +165,7 @@ export default function DashboardMonthlyReportCard({
                     <td className="py-2 pr-2 text-[12px] font-semibold text-slate-700">
                       <span className="inline-flex items-center gap-1.5">
                         {row.monthLabel}
-                        {clickable && (
-                          <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wide">
-                            Detail
-                          </span>
-                        )}
+                       
                       </span>
                     </td>
                     <td className="py-2 pl-2 text-right text-[11px] sm:text-[12px] font-bold text-slate-900 whitespace-nowrap">
