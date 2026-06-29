@@ -104,7 +104,6 @@ const menuItems: MenuItem[] = [
         ],
       },
       { title: 'Riwayat Pencairan', path: '/marketing/fee-agent', resource: 'FEE_AGENT' },
-      { title: 'Perusahaan Agent', path: '/marketing/perusahaan', resource: 'AGENT' },
     ],
   },
   {

@@ -22,7 +22,6 @@ const AgentPribadi = lazy(() => import('./pages/Marketing/AgentPribadi'));
 const AgentPerusahaan = lazy(() => import('./pages/Marketing/AgentPerusahaan'));
 const AgentRegisterSuccess = lazy(() => import('./pages/Public/AgentRegisterSuccess'));
 const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
-const PerusahaanAgent = lazy(() => import('./pages/Marketing/PerusahaanAgent'));
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
 const ApproveSpkKasbon = lazy(() => import('./pages/Proyek/ApproveSpkKasbon'));
 const Tukang = lazy(() => import('./pages/Proyek/Tukang'));
@@ -156,7 +155,7 @@ const App = () => {
                 <Route path="marketing/agents/pribadi" element={<PermissionGuard resource="AGENT"><AgentPribadi /></PermissionGuard>} />
                 <Route path="marketing/agents/perusahaan" element={<PermissionGuard resource="AGENT"><AgentPerusahaan /></PermissionGuard>} />
                 <Route path="marketing/fee-agent" element={<PermissionGuard resource="FEE_AGENT"><FeeAgent /></PermissionGuard>} />
-                <Route path="marketing/perusahaan" element={<PermissionGuard resource="AGENT"><PerusahaanAgent /></PermissionGuard>} />
+                <Route path="marketing/perusahaan" element={<Navigate to="/marketing/agents/perusahaan?tab=perusahaan" replace />} />
                 <Route path="proyek/spk" element={<PermissionGuard resource="SPK"><SPK /></PermissionGuard>} />
                 <Route path="proyek/approve-kasbon" element={<PermissionGuard resource="SPK"><ApproveSpkKasbon /></PermissionGuard>} />
                 <Route path="proyek/tukang" element={<PermissionGuard resource="SPK"><Tukang /></PermissionGuard>} />

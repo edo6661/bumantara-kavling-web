@@ -16,7 +16,7 @@ import {
 import type { PerusahaanAgentData } from "../../services/perusahaanAgent.service";
 import { handleApiError } from "../../utils/errorHandler";
 
-const PerusahaanAgent = () => {
+const KelolaPerusahaanAgentTab = () => {
   const { data: perusahaanData = [], isLoading } = useGetPerusahaanAgents();
   const createMutation = useCreatePerusahaanAgent();
   const updateMutation = useUpdatePerusahaanAgent();
@@ -43,7 +43,6 @@ const PerusahaanAgent = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const columns = [
     { header: "Nama", accessor: "nama", render: (val: string) => <span className="font-bold text-slate-900">{val}</span> },
-    // 👇 KOLOM BARU DITAMBAHKAN 👇
     { header: "NPWP", accessor: "npwp", render: (val: string) => <span className="font-mono text-xs">{val || '-'}</span> },
     {
       header: "Fee (%)",
@@ -93,7 +92,6 @@ const PerusahaanAgent = () => {
         ) : <span className="text-xs text-slate-400 italic">-</span>
       )
     },
-    // 👆 SAMPAI SINI 👆
     {
       header: "Akte",
       accessor: "akte",
@@ -103,7 +101,7 @@ const PerusahaanAgent = () => {
             onClick={(e) => { e.stopPropagation(); setPreviewImage(val); }}
             className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 hover:bg-blue-100 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
-            <Eye size={12} /> 
+            <Eye size={12} />
           </button>
         ) : (
           <span className="text-xs text-slate-400 italic">-</span>
@@ -169,6 +167,7 @@ const PerusahaanAgent = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors({});
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nama.trim()) {
@@ -243,9 +242,9 @@ const PerusahaanAgent = () => {
   if (isLoading) return <PageLoader />;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <>
       <DataTable
-        title="Daftar Perusahaan Agent"
+        title="Kelola Agent Perusahaan"
         columns={columns}
         data={perusahaanData}
         onAdd={() => openModal()}
@@ -353,7 +352,6 @@ const PerusahaanAgent = () => {
         </form>
       </Modal>
 
-      {/* MODAL LIGHTBOX PREVIEW DOKUMEN */}
       <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} title="Pratinjau Akte Perusahaan">
         <div className="flex flex-col items-center">
           {previewImage && (
@@ -371,8 +369,8 @@ const PerusahaanAgent = () => {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 };
 
-export default PerusahaanAgent;
+export default KelolaPerusahaanAgentTab;
