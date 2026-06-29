@@ -71,10 +71,11 @@ export default function KpiCard({
         : 'text-slate-500 bg-slate-100';
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       className={`
-        group relative bg-white rounded-2xl border border-slate-100
+        group relative w-full text-left bg-white rounded-2xl border border-slate-100
         hover:border-slate-200 hover:shadow-lg hover:shadow-slate-200/60
         hover:-translate-y-0.5 transition-all duration-200 cursor-pointer
         overflow-hidden flex flex-col shadow-sm shadow-slate-100/80
@@ -133,6 +134,6 @@ export default function KpiCard({
       </div>
 
 
-    </div>
+    </button>
   );
 }

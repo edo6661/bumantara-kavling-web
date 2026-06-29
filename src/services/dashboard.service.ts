@@ -87,6 +87,18 @@ export function buildPendapatanDrilldownFilter(year: number, month: number) {
   return `PENDAPATAN:${year}:${month}`;
 }
 
+export function buildAkadDrilldownFilter(year: number, month: number) {
+  return `AKAD:${year}:${month}`;
+}
+
+export function buildCashDrilldownFilter(year: number, month: number) {
+  return `CASH:${year}:${month}`;
+}
+
+export function buildPemesananDrilldownFilter(year: number, month: number) {
+  return `PEMESANAN:${year}:${month}`;
+}
+
 export function isPendapatanDrilldownFilter(filter?: string) {
   return filter?.startsWith("PENDAPATAN:") ?? false;
 }

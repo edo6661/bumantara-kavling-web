@@ -14,16 +14,26 @@ import { CHART_AXIS_STYLE, CHART_TOOLTIP_STYLE, DASHBOARD_COLORS } from './dashb
 interface BookingRateChartProps {
   year: number;
   data: BookingRateRow[];
+  onMonthClick?: (month: number, monthLabel: string) => void;
+  onTotalClick?: () => void;
 }
 
-export default function BookingRateChart({ year, data }: BookingRateChartProps) {
+export default function BookingRateChart({ year, data, onMonthClick, onTotalClick }: BookingRateChartProps) {
   const chartData = data.map((row) => ({
     name: row.monthLabel.slice(0, 3),
+    fullName: row.monthLabel,
+    month: row.month,
     pemesanan: row.jumlahPemesanan,
     tingkat: row.tingkatPersen,
   }));
 
   const totalPemesanan = data.reduce((sum, row) => sum + row.jumlahPemesanan, 0);
+  const isInteractive = Boolean(onMonthClick);
+
+  const handleBarActivate = (payload: { month?: number; fullName?: string; pemesanan?: number }) => {
+    if (!onMonthClick || !payload.month || (payload.pemesanan ?? 0) <= 0) return;
+    onMonthClick(payload.month, payload.fullName ?? '');
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
@@ -33,6 +43,7 @@ export default function BookingRateChart({ year, data }: BookingRateChartProps) 
         </h3>
         <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
           Transaksi penjualan baru per bulan (non batal) ÷ total kavling
+          {isInteractive ? ' · Klik batang untuk detail pemesanan' : ''}
         </p>
       </div>
 
@@ -68,6 +79,11 @@ export default function BookingRateChart({ year, data }: BookingRateChartProps) 
               fill={DASHBOARD_COLORS.primary}
               radius={[6, 6, 0, 0]}
               name="pemesanan"
+              cursor={isInteractive ? 'pointer' : undefined}
+              onClick={(data) => {
+                const payload = data?.payload as { month?: number; fullName?: string; pemesanan?: number } | undefined;
+                if (payload) handleBarActivate(payload);
+              }}
             />
             <Bar
               yAxisId="right"
@@ -75,6 +91,11 @@ export default function BookingRateChart({ year, data }: BookingRateChartProps) 
               fill={DASHBOARD_COLORS.chart[4]}
               radius={[6, 6, 0, 0]}
               name="tingkat"
+              cursor={isInteractive ? 'pointer' : undefined}
+              onClick={(data) => {
+                const payload = data?.payload as { month?: number; fullName?: string; pemesanan?: number } | undefined;
+                if (payload) handleBarActivate(payload);
+              }}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -82,7 +103,18 @@ export default function BookingRateChart({ year, data }: BookingRateChartProps) 
 
       <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
         <span className="text-[12px] font-bold text-slate-600">Total pemesanan {year}</span>
-        <span className="text-[14px] font-black text-blue-700">{totalPemesanan} unit</span>
+        <button
+          type="button"
+          onClick={onTotalClick}
+          disabled={!onTotalClick || totalPemesanan <= 0}
+          className={`text-[14px] font-black text-blue-700 ${
+            onTotalClick && totalPemesanan > 0
+              ? 'hover:text-blue-800 hover:underline cursor-pointer'
+              : 'cursor-default'
+          }`}
+        >
+          {totalPemesanan} unit
+        </button>
       </div>
     </div>
   );

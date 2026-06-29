@@ -62,10 +62,11 @@ function TodayUnitsList({
         {items.length > 0 ? (
           <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
             {items.map((item, idx) => (
-              <div
+              <button
                 key={item.id}
+                type="button"
                 onClick={() => onItemClick?.(item)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/40 transition-all cursor-pointer group"
+                className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/40 transition-all cursor-pointer group"
               >
                 <span className="text-[11px] font-black text-slate-300 w-5 text-center shrink-0">
                   {idx + 1}
@@ -83,7 +84,7 @@ function TodayUnitsList({
                   </p>
                   <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{item.waktu}</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         ) : (

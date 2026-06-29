@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -66,6 +67,17 @@ export default function DashboardMonthlyReportCard({
 
   const handleRowActivate = (row: MonthlyMetricRow) => {
     if (row.total > 0) onRowClick?.(row);
+  };
+
+  const handleRowKeyDown = (
+    event: KeyboardEvent<HTMLTableRowElement>,
+    row: MonthlyMetricRow,
+  ) => {
+    if (!onRowClick || row.total <= 0) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleRowActivate(row);
+    }
   };
 
   return (
@@ -167,16 +179,23 @@ export default function DashboardMonthlyReportCard({
                   <tr
                     key={row.year != null ? `${row.year}-${row.month}` : row.month}
                     onClick={() => handleRowActivate(row)}
-                    className={`border-b border-slate-50 transition-colors ${
+                    onKeyDown={(event) => handleRowKeyDown(event, row)}
+                    tabIndex={clickable ? 0 : undefined}
+                    role={clickable ? 'button' : undefined}
+                    className={`group border-b border-slate-50 transition-colors ${
                       clickable
-                        ? 'hover:bg-emerald-50/80 cursor-pointer'
+                        ? 'hover:bg-blue-50/80 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60'
                         : 'hover:bg-slate-50/80'
                     }`}
                   >
                     <td className="py-2 pr-2 text-[12px] font-semibold text-slate-700">
                       <span className="inline-flex items-center gap-1.5">
                         {row.monthLabel}
-                       
+                        {clickable && (
+                          <span className="text-[9px] font-bold text-blue-500 uppercase tracking-wider opacity-0 group-hover:opacity-100">
+                            Detail
+                          </span>
+                        )}
                       </span>
                     </td>
                     <td className="py-2 pl-2 text-right text-[11px] sm:text-[12px] font-bold text-slate-900 whitespace-nowrap">

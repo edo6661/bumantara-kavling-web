@@ -12,8 +12,12 @@ import {
 import { useGetDashboardSummary, useGetDashboardDrilldown } from '../hooks/queries/useDashboard';
 import {
   buildPendapatanDrilldownFilter,
+  buildAkadDrilldownFilter,
+  buildCashDrilldownFilter,
+  buildPemesananDrilldownFilter,
   isPendapatanDrilldownFilter,
   type DashboardDrilldownCategory,
+  type DrilldownItem,
 } from '../services/dashboard.service';
 import { useAuth } from '../context/AuthContext';
 import PageLoader from './PageLoader';
@@ -22,7 +26,9 @@ import DashboardMonthlyReportCard from '../components/dashboard/DashboardMonthly
 import DashboardTodayUnits from '../components/dashboard/DashboardTodayUnits';
 import BookingRateChart from '../components/dashboard/BookingRateChart';
 import DashboardDrilldownModal from '../components/dashboard/DashboardDrilldownModal';
-import DashboardKavlingOverview from '../components/dashboard/DashboardKavlingOverview';
+import DashboardKavlingOverview, {
+  type KavlingOverviewAction,
+} from '../components/dashboard/DashboardKavlingOverview';
 import { DASHBOARD_COLORS } from '../components/dashboard/dashboardTheme';
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -67,9 +73,31 @@ const Dashboard = () => {
 
   const closeDrilldown = () => setDrilldown(null);
 
+  const navigateToPenjualan = (search?: string) => {
+    closeDrilldown();
+    navigate(
+      search
+        ? `/management/penjualan?search=${encodeURIComponent(search)}`
+        : '/management/penjualan',
+    );
+  };
+
+  const navigateToKavling = (status?: string) => {
+    closeDrilldown();
+    navigate(status ? `/management/kavling?status=${status}` : '/management/kavling');
+  };
+
+  const handleKavlingAction = (action: KavlingOverviewAction) => {
+    if (action.type === 'navigate-all') {
+      navigate('/management/kavling');
+      return;
+    }
+    openDrilldown('kavling', action.status, `Kavling ${action.label}`);
+  };
+
   if (isLoading || !dashboardData?.executive) return <PageLoader />;
 
-  const { executive, stats, kavlingByStatus, blokHeatmap } = dashboardData;
+  const { executive, stats, kavlingByStatus } = dashboardData;
   const { kpi, year } = executive;
 
   const getKavlingCount = (status: string) =>
@@ -194,14 +222,7 @@ const Dashboard = () => {
             terProses={kavlingOverview.terProses}
             terjual={kavlingOverview.terjual}
             kavlingByStatus={kavlingByStatus}
-            blokHeatmap={blokHeatmap}
-            onViewAll={() => navigate('/management/kavling')}
-            onStatusClick={(status, label) =>
-              openDrilldown('kavling', status, `Kavling ${label}`)
-            }
-            onBlokClick={(blok) =>
-              openDrilldown('kavling', undefined, `Kavling Blok ${blok}`, blok)
-            }
+            onAction={handleKavlingAction}
           />
         </section>
 
@@ -212,7 +233,7 @@ const Dashboard = () => {
             todayDate={executive.todayDate ?? new Date().toISOString().substring(0, 10)}
             bookingHariIni={executive.bookingHariIni ?? []}
             prosesHariIni={executive.prosesHariIni ?? []}
-            onItemClick={() => navigate('/management/penjualan')}
+            onItemClick={(item) => navigateToPenjualan(item.id)}
             onViewAllBooking={() =>
               openDrilldown('penjualan', 'BOOKED_TODAY', 'Booking Hari Ini')
             }
@@ -249,21 +270,35 @@ const Dashboard = () => {
           <div className="space-y-4">
             <DashboardMonthlyReportCard
               title={`Akad Tahun ${year}`}
-              subtitle="Total harga jual unit yang tanggal akad PPJB-nya jatuh di bulan tersebut"
+              subtitle="Total harga jual unit yang tanggal akad PPJB-nya jatuh di bulan tersebut. Klik bulan untuk detail transaksi."
               year={year}
               rows={executive.akadTahunIni}
               showCount
               totalLabel="Total Akad"
               chartColor={DASHBOARD_COLORS.primary}
+              onRowClick={(row) =>
+                openDrilldown(
+                  'penjualan',
+                  buildAkadDrilldownFilter(year, row.month),
+                  `Akad ${row.monthLabel}`,
+                )
+              }
             />
             <DashboardMonthlyReportCard
               title={`Penjualan Cash Keras & Cash Bertahap Tahun ${year}`}
-              subtitle="Total harga jual penjualan Cash Keras & Bertahap baru, dihitung saat transaksi dibuat"
+              subtitle="Total harga jual penjualan Cash Keras & Bertahap baru, dihitung saat transaksi dibuat. Klik bulan untuk detail."
               year={year}
               rows={executive.penjualanCashTahunIni}
               showCount
               totalLabel="Total Penjualan Cash"
               chartColor={DASHBOARD_COLORS.warning}
+              onRowClick={(row) =>
+                openDrilldown(
+                  'penjualan',
+                  buildCashDrilldownFilter(year, row.month),
+                  `Penjualan Cash ${row.monthLabel}`,
+                )
+              }
             />
           </div>
         </section>
@@ -271,7 +306,18 @@ const Dashboard = () => {
         {/* Booking Rate Chart */}
         <section>
           <SectionLabel>Tingkat Pemesanan</SectionLabel>
-          <BookingRateChart year={year} data={executive.tingkatPemesanan} />
+          <BookingRateChart
+            year={year}
+            data={executive.tingkatPemesanan}
+            onMonthClick={(month, monthLabel) =>
+              openDrilldown(
+                'penjualan',
+                buildPemesananDrilldownFilter(year, month),
+                `Pemesanan ${monthLabel}`,
+              )
+            }
+            onTotalClick={() => navigateToPenjualan()}
+          />
         </section>
       </div>
 
@@ -282,14 +328,45 @@ const Dashboard = () => {
         items={drilldownItems}
         isLoading={drilldownLoading}
         mode={isPendapatanDrilldownFilter(drilldown?.filter) ? 'pendapatan' : 'default'}
-        onItemClick={() => {
-          if (drilldown?.category === 'kavling') {
-            navigate('/management/kavling');
-          } else {
-            navigate('/management/penjualan');
-          }
-          closeDrilldown();
-        }}
+        entityLabel={
+          isPendapatanDrilldownFilter(drilldown?.filter)
+            ? 'pembayaran'
+            : drilldown?.category === 'kavling'
+              ? 'unit'
+              : 'item'
+        }
+        emptyMessage={
+          isPendapatanDrilldownFilter(drilldown?.filter)
+            ? 'Tidak ada pembayaran untuk periode ini'
+            : drilldown?.category === 'kavling'
+              ? 'Tidak ada kavling untuk filter ini'
+              : 'Tidak ada item untuk filter ini'
+        }
+        onViewAll={
+          drilldown?.category === 'kavling'
+            ? () => navigateToKavling(drilldown.filter)
+            : drilldown?.category === 'penjualan'
+              ? () => navigateToPenjualan()
+              : undefined
+        }
+        viewAllLabel={
+          drilldown?.category === 'kavling'
+            ? 'Lihat semua di Kavling'
+            : drilldown?.category === 'penjualan'
+              ? 'Lihat semua di Penjualan'
+              : 'Lihat semua'
+        }
+        onItemClick={
+          isPendapatanDrilldownFilter(drilldown?.filter)
+            ? undefined
+            : (item: DrilldownItem) => {
+                if (drilldown?.category === 'kavling') {
+                  navigateToKavling(drilldown.filter);
+                } else {
+                  navigateToPenjualan(item.id);
+                }
+              }
+        }
       />
     </div>
   );

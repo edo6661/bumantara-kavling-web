@@ -13,7 +13,11 @@ interface DashboardDrilldownModalProps {
   items: DrilldownItem[];
   isLoading: boolean;
   mode?: DashboardDrilldownMode;
+  entityLabel?: string;
+  emptyMessage?: string;
   onItemClick?: (item: DrilldownItem) => void;
+  onViewAll?: () => void;
+  viewAllLabel?: string;
 }
 
 export default function DashboardDrilldownModal({
@@ -23,7 +27,11 @@ export default function DashboardDrilldownModal({
   items,
   isLoading,
   mode = 'default',
+  entityLabel = 'item',
+  emptyMessage = 'Tidak ada item untuk filter ini',
   onItemClick,
+  onViewAll,
+  viewAllLabel = 'Lihat semua',
 }: DashboardDrilldownModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const isPendapatan = mode === 'pendapatan';
@@ -42,11 +50,12 @@ export default function DashboardDrilldownModal({
           <div>
             <div className="flex items-center justify-between mb-4">
               <span className="text-[11px] text-slate-400 font-semibold">
-                {items.length} pembayaran ditemukan
+                {items.length} {entityLabel} ditemukan
+                {items.length >= 50 ? ' · menampilkan 50 teratas' : ''}
               </span>
-              {!isPendapatan && (
+              {!isPendapatan && onItemClick && (
                 <span className="text-[10px] text-blue-600 font-bold px-2.5 py-1 bg-blue-50 rounded-full">
-                  Klik untuk navigasi
+                  Klik baris untuk buka halaman
                 </span>
               )}
             </div>
@@ -55,11 +64,22 @@ export default function DashboardDrilldownModal({
               {items.map((item, idx) => (
                 <div
                   key={item.id}
+                  role={!isPendapatan && onItemClick ? 'button' : undefined}
+                  tabIndex={!isPendapatan && onItemClick ? 0 : undefined}
                   onClick={() => !isPendapatan && onItemClick?.(item)}
+                  onKeyDown={(event) => {
+                    if (isPendapatan || !onItemClick) return;
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onItemClick(item);
+                    }
+                  }}
                   className={`px-4 py-3 bg-white rounded-xl border border-slate-100 transition-all ${
                     isPendapatan
                       ? 'hover:border-emerald-200 hover:bg-emerald-50/20'
-                      : 'hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-sm cursor-pointer group'
+                      : onItemClick
+                        ? 'hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-sm cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60'
+                        : ''
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -138,6 +158,18 @@ export default function DashboardDrilldownModal({
                 </div>
               ))}
             </div>
+
+            {onViewAll && (
+              <div className="mt-5 pt-4 border-t border-slate-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={onViewAll}
+                  className="px-4 py-2 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors"
+                >
+                  {viewAllLabel} →
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-14 flex flex-col items-center justify-center text-center">
@@ -145,9 +177,16 @@ export default function DashboardDrilldownModal({
               <span className="text-2xl">🔍</span>
             </div>
             <p className="text-slate-700 text-[14px] font-bold">Tidak ada data</p>
-            <p className="text-slate-400 text-[12px] mt-1 font-medium">
-              Tidak ada pembayaran untuk periode ini
-            </p>
+            <p className="text-slate-400 text-[12px] mt-1 font-medium">{emptyMessage}</p>
+            {onViewAll && (
+              <button
+                type="button"
+                onClick={onViewAll}
+                className="mt-4 px-4 py-2 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors"
+              >
+                {viewAllLabel} →
+              </button>
+            )}
           </div>
         )}
       </Modal>
