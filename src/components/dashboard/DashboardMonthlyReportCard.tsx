@@ -14,7 +14,9 @@ import { CHART_AXIS_STYLE, CHART_TOOLTIP_STYLE } from './dashboardTheme';
 interface DashboardMonthlyReportCardProps {
   title: string;
   subtitle?: string;
-  year: number;
+  year?: number;
+  totalPeriodLabel?: string;
+  periodColumnLabel?: string;
   rows: MonthlyMetricRow[];
   showCount?: boolean;
   totalLabel?: string;
@@ -36,6 +38,8 @@ export default function DashboardMonthlyReportCard({
   title,
   subtitle,
   year,
+  totalPeriodLabel,
+  periodColumnLabel = 'Bulan',
   rows,
   showCount = false,
   totalLabel = 'Total',
@@ -43,15 +47,22 @@ export default function DashboardMonthlyReportCard({
   onRowClick,
 }: DashboardMonthlyReportCardProps) {
   const totals = sumRows(rows);
+  const footerPeriod = totalPeriodLabel ?? (year != null ? String(year) : '');
 
-  const chartData = rows.map((row) => ({
-    name: row.monthLabel.slice(0, 3),
-    fullName: row.monthLabel,
-    total: row.total,
-    count: row.count,
-    month: row.month,
-    monthLabel: row.monthLabel,
-  }));
+  const chartData = rows.map((row) => {
+    const shortYear =
+      row.year != null ? String(row.year).slice(-2) : undefined;
+    const shortMonth = row.monthLabel.slice(0, 3);
+    return {
+      name: shortYear ? `${shortMonth} '${shortYear}` : shortMonth,
+      fullName: row.monthLabel,
+      total: row.total,
+      count: row.count,
+      month: row.month,
+      monthLabel: row.monthLabel,
+      year: row.year,
+    };
+  });
 
   const handleRowActivate = (row: MonthlyMetricRow) => {
     if (row.total > 0) onRowClick?.(row);
@@ -137,7 +148,7 @@ export default function DashboardMonthlyReportCard({
               <thead className="sticky top-0 bg-white z-10">
                 <tr className="border-b border-slate-100">
                   <th className="text-left py-2 pr-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">
-                    Bulan
+                    {periodColumnLabel}
                   </th>
                   <th className="text-right py-2 pl-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">
                     Total
@@ -154,7 +165,7 @@ export default function DashboardMonthlyReportCard({
                   const clickable = Boolean(onRowClick && row.total > 0);
                   return (
                   <tr
-                    key={row.month}
+                    key={row.year != null ? `${row.year}-${row.month}` : row.month}
                     onClick={() => handleRowActivate(row)}
                     className={`border-b border-slate-50 transition-colors ${
                       clickable
@@ -186,7 +197,7 @@ export default function DashboardMonthlyReportCard({
           <div className="mt-3 pt-3 border-t-2 border-slate-200 shrink-0">
             <div className="flex items-start justify-between gap-2">
               <span className="text-[11px] sm:text-[12px] font-black text-slate-900 leading-snug">
-                {totalLabel} {year}
+                {totalLabel}{footerPeriod ? ` ${footerPeriod}` : ''}
               </span>
               <div className="text-right">
                 <p className="text-[12px] sm:text-[13px] font-black text-blue-700 whitespace-nowrap">

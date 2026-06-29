@@ -22,6 +22,7 @@ import DashboardMonthlyReportCard from '../components/dashboard/DashboardMonthly
 import DashboardTodayUnits from '../components/dashboard/DashboardTodayUnits';
 import BookingRateChart from '../components/dashboard/BookingRateChart';
 import DashboardDrilldownModal from '../components/dashboard/DashboardDrilldownModal';
+import DashboardKavlingOverview from '../components/dashboard/DashboardKavlingOverview';
 import { DASHBOARD_COLORS } from '../components/dashboard/dashboardTheme';
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -36,6 +37,7 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 type DrilldownState = {
   category: DashboardDrilldownCategory;
   filter?: string;
+  blok?: string;
   title: string;
 };
 
@@ -50,7 +52,7 @@ const Dashboard = () => {
     useGetDashboardDrilldown(
       drilldown?.category ?? null,
       drilldown?.filter,
-      undefined,
+      drilldown?.blok,
       drilldown !== null,
     );
 
@@ -58,16 +60,27 @@ const Dashboard = () => {
     category: DashboardDrilldownCategory,
     filter: string | undefined,
     title: string,
+    blok?: string,
   ) => {
-    setDrilldown({ category, filter, title });
+    setDrilldown({ category, filter, title, blok });
   };
 
   const closeDrilldown = () => setDrilldown(null);
 
   if (isLoading || !dashboardData?.executive) return <PageLoader />;
 
-  const { executive } = dashboardData;
+  const { executive, stats, kavlingByStatus, blokHeatmap } = dashboardData;
   const { kpi, year } = executive;
+
+  const getKavlingCount = (status: string) =>
+    kavlingByStatus.find((item) => item.status === status)?.count ?? 0;
+
+  const kavlingOverview = {
+    total: stats.totalKavling,
+    tersedia: getKavlingCount('AVAILABLE'),
+    terProses: getKavlingCount('BOOKING'),
+    terjual: getKavlingCount('TERJUAL'),
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -172,6 +185,26 @@ const Dashboard = () => {
           </div>
         </section>
 
+        {/* Kavling */}
+        <section>
+          <SectionLabel>Kavling</SectionLabel>
+          <DashboardKavlingOverview
+            total={kavlingOverview.total}
+            tersedia={kavlingOverview.tersedia}
+            terProses={kavlingOverview.terProses}
+            terjual={kavlingOverview.terjual}
+            kavlingByStatus={kavlingByStatus}
+            blokHeatmap={blokHeatmap}
+            onViewAll={() => navigate('/management/kavling')}
+            onStatusClick={(status, label) =>
+              openDrilldown('kavling', status, `Kavling ${label}`)
+            }
+            onBlokClick={(blok) =>
+              openDrilldown('kavling', undefined, `Kavling Blok ${blok}`, blok)
+            }
+          />
+        </section>
+
         {/* Unit Hari Ini */}
         <section>
           <SectionLabel>Per Hari Ini</SectionLabel>
@@ -189,25 +222,31 @@ const Dashboard = () => {
           />
         </section>
 
+        {/* Pendapatan All Time */}
+        <section>
+          <SectionLabel>Pendapatan</SectionLabel>
+          <DashboardMonthlyReportCard
+            title="Pendapatan All Time"
+            subtitle="Seluruh tagihan customer status Lunas berdasarkan tanggal pembayaran (jatuh tempo). Klik periode untuk detail customer & bukti."
+            totalPeriodLabel="All Time"
+            periodColumnLabel="Periode"
+            rows={executive.pendapatanAllTime ?? []}
+            totalLabel="Total Pendapatan"
+            chartColor={DASHBOARD_COLORS.success}
+            onRowClick={(row) =>
+              openDrilldown(
+                'tagihan',
+                buildPendapatanDrilldownFilter(row.year ?? year, row.month),
+                `Pendapatan ${row.monthLabel}`,
+              )
+            }
+          />
+        </section>
+
         {/* Laporan Tahunan */}
         <section>
           <SectionLabel>Laporan Tahun {year}</SectionLabel>
           <div className="space-y-4">
-            <DashboardMonthlyReportCard
-              title={`Pendapatan Tahun ${year}`}
-              subtitle="Nominal tagihan customer status Lunas (booking fee, DP, cicilan, dll.) per bulan berdasarkan tanggal pembayaran (jatuh tempo). Klik baris/bulan untuk detail."
-              year={year}
-              rows={executive.pendapatanTahunIni}
-              totalLabel="Total Pendapatan"
-              chartColor={DASHBOARD_COLORS.success}
-              onRowClick={(row) =>
-                openDrilldown(
-                  'tagihan',
-                  buildPendapatanDrilldownFilter(year, row.month),
-                  `Pendapatan ${row.monthLabel} ${year}`,
-                )
-              }
-            />
             <DashboardMonthlyReportCard
               title={`Akad Tahun ${year}`}
               subtitle="Total harga jual unit yang tanggal akad PPJB-nya jatuh di bulan tersebut"

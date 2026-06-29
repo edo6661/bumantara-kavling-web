@@ -96,6 +96,7 @@ export interface MonthlyMetricRow {
   monthLabel: string;
   total: number;
   count: number;
+  year?: number;
 }
 
 export interface ExecutiveKpi {
@@ -130,6 +131,7 @@ export interface ExecutiveDashboard {
   bookingHariIni: TodayUnitItem[];
   prosesHariIni: TodayUnitItem[];
   pendapatanTahunIni: MonthlyMetricRow[];
+  pendapatanAllTime: MonthlyMetricRow[];
   akadTahunIni: MonthlyMetricRow[];
   penjualanCashTahunIni: MonthlyMetricRow[];
   tingkatPemesanan: BookingRateRow[];
