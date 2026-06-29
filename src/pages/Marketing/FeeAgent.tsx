@@ -235,15 +235,6 @@ const FeeAgent = () => {
             valueClassName: 'text-emerald-700',
             borderHoverClassName: 'hover:border-emerald-300',
           },
-          {
-            value: pencairanSummary.uniqueAgents,
-            label: 'Agent Terlibat',
-            icon: Banknote,
-            iconBgClassName: 'bg-blue-50',
-            iconClassName: 'text-blue-600',
-            valueClassName: 'text-blue-700',
-            borderHoverClassName: 'hover:border-blue-300',
-          },
         ]}
         footer={`Menunggu: ${pencairanSummary.totalNominalMenungguFormatted} · Terbayar: ${pencairanSummary.totalNominalTerbayarFormatted}`}
       />

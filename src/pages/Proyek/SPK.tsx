@@ -6,16 +6,11 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronRight,
-  ChevronUp,
   ArrowUpDown,
   Plus,
   Search,
-  PieChart,
-  HardHat,
   Building2,
   Layers,
-  CheckCircle2,
-  AlertCircle,
   Eye,
   Edit2,
   Trash2,
@@ -385,17 +380,7 @@ const SPK = () => {
     { enabled: activeTab === 'rumah' },
   );
 
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [kavlingPickerSearch, setKavlingPickerSearch] = useState('');
-
-  const spkSummary = meta?.summary ?? {
-    totalSpk: 0,
-    totalKavling: 0,
-    totalNilaiKontrak: 0,
-    totalSudahDibayar: 0,
-    totalSisaNilai: 0,
-    progressSelesai: 0,
-  };
 
   const handlePageChange = (newPage: number) => {
     setSearchParams((prev) => {
@@ -1158,90 +1143,6 @@ const SPK = () => {
   return (
     <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
       {!isSuperAdmin && spkTabBar}
-
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
-      <div
-        className="px-5 py-4 border-b border-slate-100 flex justify-between items-center cursor-pointer bg-white hover:bg-slate-50/60 transition-colors"
-        onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-      >
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-50 text-blue-600 rounded-xl ring-1 ring-blue-100">
-            <PieChart size={18} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-900 tracking-tight text-sm">
-              {isMandorRole ? 'Ringkasan SPK Saya' : 'Ringkasan SPK'}
-            </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Klik untuk {isSummaryExpanded ? 'menyembunyikan' : 'menampilkan'}</p>
-          </div>
-        </div>
-        <div className={`p-1.5 rounded-lg border transition-all ${isSummaryExpanded ? 'bg-blue-50 border-blue-100 text-blue-500' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-          {isSummaryExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </div>
-      </div>
-
-        {isSummaryExpanded && (
-          <div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gradient-to-br from-slate-50 to-white">
-            <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-slate-100 rounded-full -translate-y-8 translate-x-8 group-hover:bg-slate-200 transition-colors" />
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                  <HardHat size={16} className="text-slate-600" />
-                </div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total SPK</p>
-              </div>
-              <p className="text-3xl font-black text-slate-900 tabular-nums">{spkSummary.totalSpk}</p>
-              <p className="text-[11px] text-slate-400 mt-1.5 font-medium">
-                {spkSummary.progressSelesai} selesai (100%)
-              </p>
-            </div>
-
-
-            <div className="bg-white border border-blue-100 p-4 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-full -translate-y-8 translate-x-8 group-hover:bg-blue-100 transition-colors" />
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <Building2 size={16} className="text-blue-600" />
-                </div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Kavling</p>
-              </div>
-              <p className="text-3xl font-black text-blue-700 tabular-nums">{spkSummary.totalKavling}</p>
-              <p className="text-[11px] text-slate-400 mt-1.5 font-medium truncate" title={formatRupiah(spkSummary.totalNilaiKontrak)}>
-                Kontrak {formatRupiah(spkSummary.totalNilaiKontrak)}
-              </p>
-            </div>
-
-
-            <div className="bg-white border border-emerald-100 p-4 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-full -translate-y-8 translate-x-8 group-hover:bg-emerald-100 transition-colors" />
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                  <CheckCircle2 size={16} className="text-emerald-600" />
-                </div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sudah Dibayar</p>
-              </div>
-              <p className="text-xl font-black text-emerald-700 tabular-nums leading-tight">
-                {formatRupiah(spkSummary.totalSudahDibayar)}
-              </p>
-            </div>
-
-
-            <div className="bg-white border border-red-100 p-4 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-red-50 rounded-full -translate-y-8 translate-x-8 group-hover:bg-red-100 transition-colors" />
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-                  <AlertCircle size={16} className="text-red-600" />
-                </div>
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sisa Nilai</p>
-              </div>
-              <p className="text-xl font-black text-red-700 tabular-nums leading-tight">
-                {formatRupiah(spkSummary.totalSisaNilai)}
-              </p>
-            </div>
-
-          </div>
-        )}
-      </div>
 
       {isAdminRole ? (
         <DataTable

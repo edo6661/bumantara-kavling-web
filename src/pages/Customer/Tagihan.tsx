@@ -110,11 +110,11 @@ const Tagihan = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') || 'ALL';
 
   const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({
     limit: TAGIHAN_FETCH_LIMIT,
     page: 1,
-    search,
   });
   const tagihans = tagihansResponse?.items || [];
 
@@ -167,6 +167,18 @@ const Tagihan = () => {
     });
   };
 
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value === 'ALL') prev.delete('status');
+      else prev.set('status', e.target.value);
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
+  const filterSelectClass =
+    'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
+
   const formatDateForInput = (dateString?: string | null) => {
     if (!dateString) return '';
     return dateString.split('T')[0];
@@ -215,15 +227,63 @@ const Tagihan = () => {
     return Object.values(groups).filter(g => g.cicilan.length > 0);
   }, [tagihans, penjualanList, penjualanFullList]);
 
+  const filteredGroupedData = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return groupedData.filter((row) => {
+      if (statusFilter !== 'ALL') {
+        const isLunas = row.unpaidCount === 0 && row.pendingCount === 0;
+        const hasUnpaid = row.unpaidCount > 0;
+        const hasPending = row.pendingCount > 0;
+
+        if (statusFilter === 'LUNAS' && !isLunas) return false;
+        if (statusFilter === 'BELUM_BAYAR' && !hasUnpaid) return false;
+        if (statusFilter === 'MENUNGGU_KONFIRMASI' && !hasPending) return false;
+      }
+
+      if (!normalizedSearch) return true;
+
+      const searchHaystack = [
+        row.namaCustomer,
+        row.blok,
+        row.nomorUnit,
+        row.kavling,
+        `${row.blok}-${row.nomorUnit}`,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchHaystack.includes(normalizedSearch);
+    });
+  }, [groupedData, search, statusFilter]);
+
   const totalGroupPages = useMemo(
-    () => Math.max(1, Math.ceil(groupedData.length / ROWS_PER_PAGE)),
-    [groupedData.length],
+    () => Math.max(1, Math.ceil(filteredGroupedData.length / ROWS_PER_PAGE)),
+    [filteredGroupedData.length],
   );
 
   const paginatedGroupedData = useMemo(() => {
     const start = (page - 1) * ROWS_PER_PAGE;
-    return groupedData.slice(start, start + ROWS_PER_PAGE);
-  }, [groupedData, page]);
+    return filteredGroupedData.slice(start, start + ROWS_PER_PAGE);
+  }, [filteredGroupedData, page]);
+
+  const tagihanTableToolbar = (
+    <div className="relative group w-full sm:w-56">
+      <select
+        className={`${filterSelectClass} pl-9`}
+        value={statusFilter}
+        onChange={handleStatusFilterChange}
+        aria-label="Filter status tagihan"
+      >
+        <option value="ALL">Semua Status</option>
+        <option value="BELUM_BAYAR">Belum Bayar</option>
+        <option value="MENUNGGU_KONFIRMASI">Menunggu Konfirmasi</option>
+        <option value="LUNAS">Lunas</option>
+      </select>
+      <Wallet size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
+    </div>
+  );
 
   const columns = [
     { header: 'Nama Customer', accessor: 'namaCustomer' },
@@ -1258,11 +1318,7 @@ const Tagihan = () => {
             borderHoverClassName: 'hover:border-emerald-300',
           },
         ]}
-        footer={
-          tagihanSummary.jatuhTempoLewat > 0
-            ? `${tagihanSummary.jatuhTempoLewat} tagihan melewati jatuh tempo`
-            : undefined
-        }
+        
       />
 
       <DataTable
@@ -1272,8 +1328,10 @@ const Tagihan = () => {
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
         serverSide={true}
+        toolbarPrefix={tagihanTableToolbar}
         searchTerm={search}
         onSearchChange={handleSearchChange}
+        searchPlaceholder="Cari nama customer atau blok kavling..."
         page={page}
         totalPages={totalGroupPages}
         onPageChange={handlePageChange}

@@ -227,15 +227,6 @@ const BayarAgent = () => {
             valueClassName: 'text-emerald-700',
             borderHoverClassName: 'hover:border-emerald-300',
           },
-          {
-            value: new Set((summaryResponse?.items ?? []).map((row) => row.agentId)).size,
-            label: 'Agent Terlibat',
-            icon: Users,
-            iconBgClassName: 'bg-blue-50',
-            iconClassName: 'text-blue-600',
-            valueClassName: 'text-blue-700',
-            borderHoverClassName: 'hover:border-blue-300',
-          },
         ]}
       />
 

@@ -41,17 +41,18 @@ const BayarKodeBillingPph = () => {
   const items = response?.items || [];
   const meta = response?.meta;
 
-  const { data: summaryResponse } = useGetKodeBillingPph({ page: 1, limit: 500, status: 'ALL' });
-  const billingSummary = useMemo(() => {
-    const rows = summaryResponse?.items ?? [];
-    let menunggu = 0;
-    let sudahBayar = 0;
-    for (const row of rows) {
-      if (row.status === 'MENUNGGU_BAYAR') menunggu += 1;
-      else if (row.status === 'SUDAH_BAYAR') sudahBayar += 1;
-    }
-    return { total: rows.length, menunggu, sudahBayar };
-  }, [summaryResponse?.items]);
+  const { data: allCountResponse } = useGetKodeBillingPph({ page: 1, limit: 1 });
+  const { data: menungguCountResponse } = useGetKodeBillingPph({ page: 1, limit: 1, status: 'MENUNGGU_BAYAR' });
+  const { data: sudahCountResponse } = useGetKodeBillingPph({ page: 1, limit: 1, status: 'SUDAH_BAYAR' });
+  const billingSummary = useMemo(() => ({
+    total: allCountResponse?.meta?.totalItems ?? 0,
+    menunggu: menungguCountResponse?.meta?.totalItems ?? 0,
+    sudahBayar: sudahCountResponse?.meta?.totalItems ?? 0,
+  }), [
+    allCountResponse?.meta?.totalItems,
+    menungguCountResponse?.meta?.totalItems,
+    sudahCountResponse?.meta?.totalItems,
+  ]);
 
   const uploadMutation = useUploadBuktiBayarKodeBillingPph();
 

@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizeProgressProyekLapangan } from '../../utils/pageSummaries';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -20,7 +22,7 @@ import {
   HardHat, UploadCloud, Loader2, Trash2, Edit2,
   Layers, Columns3, BrickWall, Home, LayoutGrid,
   PanelTop, Droplets, Zap, Paintbrush, CheckCircle2, Circle,
-  ArrowUpDown, ChevronDown, Building2,
+  ArrowUpDown, ChevronDown, Building2, AlertCircle,
 } from 'lucide-react';
 import ProgressInfrastrukturPanel from './ProgressInfrastrukturPanel';
 import type { ProgressProyekData, TahapanProyekData } from '../../services/progressProyek.service';
@@ -178,6 +180,16 @@ const ProgressRumahContent = ({
     ...(search ? { search } : {}),
     ...(orderBy ? { orderBy } : {}),
   });
+
+  const { data: summaryProyekResponse } = useGetProgressProyekList({ page: 1, limit: 500 });
+  const progressSummary = useMemo(
+    () =>
+      summarizeProgressProyekLapangan(
+        summaryProyekResponse?.items ?? [],
+        summaryProyekResponse?.meta?.totalItems,
+      ),
+    [summaryProyekResponse?.items, summaryProyekResponse?.meta?.totalItems],
+  );
 
   const meta = proyekResponse?.meta;
 
@@ -399,6 +411,51 @@ const ProgressRumahContent = ({
           </p>
         </div>
       )}
+
+      <PageSummaryCard
+        title="Ringkasan Progress Lapangan"
+        subtitle="Status pembangunan unit kavling per proyek"
+        headerIcon={HardHat}
+        items={[
+          {
+            value: progressSummary.total,
+            label: 'Total Unit',
+            icon: Building2,
+          },
+          {
+            value: progressSummary.selesai,
+            label: 'Selesai (100%)',
+            icon: CheckCircle2,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+          {
+            value: progressSummary.berjalan,
+            label: 'Sedang Dibangun',
+            icon: HardHat,
+            iconBgClassName: 'bg-blue-50',
+            iconClassName: 'text-blue-600',
+            valueClassName: 'text-blue-700',
+            borderHoverClassName: 'hover:border-blue-300',
+          },
+          {
+            value: progressSummary.tanpaMandor,
+            label: 'Belum Ada Mandor',
+            icon: AlertCircle,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+        ]}
+        footer={
+          progressSummary.belumMulai > 0
+            ? `${progressSummary.belumMulai} unit belum mulai dibangun`
+            : undefined
+        }
+      />
 
       <DataTable
         title={isMandorRole ? 'Proyek Saya' : 'Laporan Progress Lapangan'}

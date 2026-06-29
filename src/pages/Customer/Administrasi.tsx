@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useRef, useMemo } from 'react';
 import PageSummaryCard from '../../components/shared/PageSummaryCard';
-import { summarizeCustomerAdministrasi } from '../../utils/pageSummaries';
-import { Users, FileWarning, UserCheck } from 'lucide-react';
+import { summarizeCustomerAdministrasi, isCustomerDataIncomplete, isCustomerMissingDocuments, hasPlaceholderNik, CUSTOMER_PLACEHOLDER_NIK_PREFIXES } from '../../utils/pageSummaries';
+import { Users, FileWarning } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -58,6 +58,7 @@ const Administrasi = () => {
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
   const orderBy = searchParams.get('orderBy') || '';
+  const kelengkapanFilter = searchParams.get('kelengkapan') || '';
   const limitParam = Number(searchParams.get('limit'));
   const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
     ? limitParam
@@ -69,9 +70,54 @@ const Administrasi = () => {
     search,
     ...(orderBy ? { orderBy } : {}),
   });
-  const customers = customersResponse?.items ?? [];
+  const serverCustomers = customersResponse?.items ?? [];
   const meta = customersResponse?.meta;
   const { data: allCustomers = [] } = useGetCustomers();
+
+  const filteredAllCustomers = useMemo(() => {
+    if (!kelengkapanFilter) return [];
+
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return allCustomers.filter((customer) => {
+      if (kelengkapanFilter === 'INCOMPLETE' && !isCustomerDataIncomplete(customer)) return false;
+      if (
+        kelengkapanFilter === 'PLACEHOLDER_NIK' &&
+        !hasPlaceholderNik(customer.nikKtp, CUSTOMER_PLACEHOLDER_NIK_PREFIXES)
+      ) {
+        return false;
+      }
+      if (kelengkapanFilter === 'MISSING_DOCS' && !isCustomerMissingDocuments(customer)) return false;
+
+      if (!normalizedSearch) return true;
+
+      const haystack = [customer.nama, customer.nikKtp, customer.noHp]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(normalizedSearch);
+    });
+  }, [allCustomers, kelengkapanFilter, search]);
+
+  const customers = useMemo(() => {
+    if (!kelengkapanFilter) return serverCustomers;
+    const start = (page - 1) * limit;
+    return filteredAllCustomers.slice(start, start + limit);
+  }, [kelengkapanFilter, serverCustomers, filteredAllCustomers, page, limit]);
+
+  const displayMeta = useMemo(() => {
+    if (!kelengkapanFilter) return meta;
+    const totalItems = filteredAllCustomers.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    return {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
+  }, [kelengkapanFilter, meta, filteredAllCustomers.length, page, limit]);
 
   const administrasiSummary = useMemo(
     () => summarizeCustomerAdministrasi(allCustomers, meta?.totalItems),
@@ -141,24 +187,51 @@ const Administrasi = () => {
     });
   };
 
+  const handleKelengkapanFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('kelengkapan', e.target.value);
+      else prev.delete('kelengkapan');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
   const filterSelectClass =
     'w-full px-3 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none transition-all shadow-sm cursor-pointer';
 
   const tableToolbar = (
-    <div className="relative group w-full sm:w-52">
-      <select
-        className={`${filterSelectClass} pl-9`}
-        value={orderBy}
-        onChange={handleSortChange}
-        aria-label="Urutkan data"
-      >
-        <option value="">Customer Terbaru</option>
-        <option value="nama:asc">Nama Customer (A-Z)</option>
-        <option value="blokNomorUnit:asc">Blok & No Unit (A-Z)</option>
-      </select>
-      <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
-      <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
-    </div>
+    <>
+      <div className="relative group w-full sm:w-56">
+        <select
+          className={`${filterSelectClass} pl-9`}
+          value={kelengkapanFilter}
+          onChange={handleKelengkapanFilterChange}
+          aria-label="Filter kelengkapan data"
+        >
+          <option value="">Semua Customer</option>
+          <option value="INCOMPLETE">Data Belum Lengkap</option>
+          <option value="PLACEHOLDER_NIK">NIK Dummy / Import</option>
+          <option value="MISSING_DOCS">Dokumen Belum Lengkap</option>
+        </select>
+        <AlertCircle size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
+        <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      </div>
+      <div className="relative group w-full sm:w-52">
+        <select
+          className={`${filterSelectClass} pl-9`}
+          value={orderBy}
+          onChange={handleSortChange}
+          aria-label="Urutkan data"
+          disabled={!!kelengkapanFilter}
+        >
+          <option value="">Customer Terbaru</option>
+          <option value="nama:asc">Nama Customer (A-Z)</option>
+          <option value="blokNomorUnit:asc">Blok & No Unit (A-Z)</option>
+        </select>
+        <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
+        <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      </div>
+    </>
   );
 
   const currentCustomer = customers.find(c => c.id === selectedCustomer?.id) || selectedCustomer;
@@ -632,21 +705,8 @@ const Administrasi = () => {
             valueClassName: 'text-red-600',
             borderHoverClassName: 'hover:border-red-300',
           },
-          {
-            value: administrasiSummary.hasAccount,
-            label: 'Sudah Punya Akun',
-            icon: UserCheck,
-            iconBgClassName: 'bg-emerald-50',
-            iconClassName: 'text-emerald-600',
-            valueClassName: 'text-emerald-700',
-            borderHoverClassName: 'hover:border-emerald-300',
-          },
         ]}
-        footer={
-          administrasiSummary.missingDocuments > 0
-            ? `${administrasiSummary.missingDocuments} customer masih kurang dokumen KTP/KK/NPWP`
-            : undefined
-        }
+       
       />
 
       <DataTable
@@ -660,7 +720,7 @@ const Administrasi = () => {
         searchTerm={search}
         onSearchChange={handleSearchChange}
         page={page}
-        totalPages={meta?.totalPages || 1}
+        totalPages={displayMeta?.totalPages || 1}
         onPageChange={handlePageChange}
         pageSize={limit}
         pageSizeOptions={[...PAGE_SIZE_OPTIONS]}

@@ -6,8 +6,6 @@ import Modal from "../../components/shared/Modal";
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
-import PageSummaryCard from '../../components/shared/PageSummaryCard';
-import { summarizeProgressPenjualan } from '../../utils/pageSummaries';
 import { formatRupiah } from "../../utils/formatters";
 import { useGetPenjualan } from "../../hooks/queries/usePenjualan";
 import { useGetCustomers, useUpdateCustomer, useUploadCustomerDoc } from "../../hooks/queries/useCustomer";
@@ -39,9 +37,6 @@ import {
   ArrowUpDown,
   ChevronDown,
   Filter,
-  ClipboardList,
-  FileText,
-  CheckCircle2,
 } from 'lucide-react';
 import Input from '../../components/shared/Input';
 import { handleApiError } from '../../utils/errorHandler';
@@ -99,20 +94,6 @@ const ProgressPenjualan = () => {
   const { data: notarisList = [] } = useGetNotaris();
   const penjualanData = useMemo(() => penjualanResponse?.items || [], [penjualanResponse?.items]);
   const meta = penjualanResponse?.meta;
-
-  const { data: summaryPenjualanResponse } = useGetPenjualan({
-    page: 1,
-    limit: 500,
-    excludeStatus: 'BATAL',
-  });
-  const progressSummary = useMemo(
-    () =>
-      summarizeProgressPenjualan(
-        summaryPenjualanResponse?.items ?? [],
-        summaryPenjualanResponse?.meta?.totalItems,
-      ),
-    [summaryPenjualanResponse?.items, summaryPenjualanResponse?.meta?.totalItems],
-  );
 
   const { data: customers = [], isLoading: loadingCustomers } = useGetCustomers();
 
@@ -1672,51 +1653,6 @@ const ProgressPenjualan = () => {
             </div>
           </div>
         </div>
-
-        <PageSummaryCard
-          title="Ringkasan Progress Penjualan"
-          subtitle="Kelengkapan berkas PPJB, AJB, sertifikat, dan SP3K"
-          headerIcon={ClipboardList}
-          items={[
-            {
-              value: progressSummary.total,
-              label: 'Total Transaksi',
-              icon: ClipboardList,
-            },
-            {
-              value: progressSummary.ppjbIncomplete,
-              label: 'PPJB Belum Lengkap',
-              icon: FileText,
-              iconBgClassName: 'bg-amber-50',
-              iconClassName: 'text-amber-600',
-              valueClassName: 'text-amber-700',
-              borderHoverClassName: 'hover:border-amber-300',
-            },
-            {
-              value: progressSummary.ajbIncomplete,
-              label: 'AJB Belum Lengkap',
-              icon: ScrollText,
-              iconBgClassName: 'bg-blue-50',
-              iconClassName: 'text-blue-600',
-              valueClassName: 'text-blue-700',
-              borderHoverClassName: 'hover:border-blue-300',
-            },
-            {
-              value: progressSummary.fullyComplete,
-              label: 'Berkas Lengkap',
-              icon: CheckCircle2,
-              iconBgClassName: 'bg-emerald-50',
-              iconClassName: 'text-emerald-600',
-              valueClassName: 'text-emerald-700',
-              borderHoverClassName: 'hover:border-emerald-300',
-            },
-          ]}
-          footer={
-            progressSummary.sertifikatIncomplete > 0 || progressSummary.sp3kIncomplete > 0
-              ? `${progressSummary.sertifikatIncomplete} belum lengkap sertifikat tanah · ${progressSummary.sp3kIncomplete} belum upload SP3K`
-              : undefined
-          }
-        />
 
         <DataTable
           title="Progress"

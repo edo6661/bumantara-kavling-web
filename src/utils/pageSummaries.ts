@@ -24,6 +24,13 @@ export function hasPlaceholderNik(
   return prefixes.some((prefix) => normalized.startsWith(prefix.toUpperCase()));
 }
 
+export function isCustomerMissingDocuments(customer: CustomerData): boolean {
+  if (!customer.fileKtp?.trim()) return true;
+  if (!customer.fileKk?.trim()) return true;
+  if (!customer.fileNpwp?.trim()) return true;
+  return false;
+}
+
 export function isCustomerDataIncomplete(customer: CustomerData): boolean {
   if (hasPlaceholderNik(customer.nikKtp, CUSTOMER_PLACEHOLDER_NIK_PREFIXES)) return true;
   if ((customer.nikKtp ?? '').trim().length !== 16) return true;
@@ -272,5 +279,35 @@ export function summarizePaymentQueue<T extends { status?: string | null }>(
     total: items.length,
     menunggu,
     sudahBayar,
+  };
+}
+
+export interface ProgressProyekLapanganRowLike {
+  progressProyek?: { persentase?: number | null; mandorId?: number | null } | null;
+}
+
+export function summarizeProgressProyekLapangan(
+  rows: ProgressProyekLapanganRowLike[],
+  totalItems?: number,
+) {
+  let selesai = 0;
+  let berjalan = 0;
+  let belumMulai = 0;
+  let tanpaMandor = 0;
+
+  for (const row of rows) {
+    const pct = Number(row.progressProyek?.persentase ?? 0);
+    if (!row.progressProyek?.mandorId) tanpaMandor += 1;
+    if (pct >= 100) selesai += 1;
+    else if (pct > 0) berjalan += 1;
+    else belumMulai += 1;
+  }
+
+  return {
+    total: totalItems ?? rows.length,
+    selesai,
+    berjalan,
+    belumMulai,
+    tanpaMandor,
   };
 }

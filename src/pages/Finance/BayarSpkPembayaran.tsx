@@ -656,15 +656,6 @@ const BayarSpkPembayaran = () => {
             valueClassName: 'text-emerald-700',
             borderHoverClassName: 'hover:border-emerald-300',
           },
-          {
-            value: spkGroups.length,
-            label: 'SPK Terlibat',
-            icon: HardHat,
-            iconBgClassName: 'bg-blue-50',
-            iconClassName: 'text-blue-600',
-            valueClassName: 'text-blue-700',
-            borderHoverClassName: 'hover:border-blue-300',
-          },
         ]}
       />
 

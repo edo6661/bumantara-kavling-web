@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PageSummaryCard from '../../components/shared/PageSummaryCard';
-import { summarizeAgents } from '../../utils/pageSummaries';
+import { summarizeAgents, isAgentDataIncomplete, hasPlaceholderNik, AGENT_PLACEHOLDER_NIK_PREFIXES } from '../../utils/pageSummaries';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -145,6 +145,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
   const search = searchParams.get('search') || '';
   const orderBy = searchParams.get('orderBy') || '';
   const statusFilter = searchParams.get('status') || '';
+  const kelengkapanFilter = searchParams.get('kelengkapan') || '';
   const typeFilter = agentType;
   const limitParam = Number(searchParams.get('limit'));
   const limit = (PAGE_SIZE_OPTIONS as readonly number[]).includes(limitParam)
@@ -167,6 +168,51 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
     limit: 500,
     ...(typeFilter ? { type: typeFilter } : {}),
   });
+
+  const filteredSummaryAgents = useMemo(() => {
+    if (!kelengkapanFilter || agentType !== 'PRIBADI') return [];
+
+    const normalizedSearch = search.trim().toLowerCase();
+    const source = summaryAgentsResponse?.items ?? [];
+
+    return source.filter((agent) => {
+      if (kelengkapanFilter === 'INCOMPLETE' && !isAgentDataIncomplete(agent)) return false;
+      if (
+        kelengkapanFilter === 'PLACEHOLDER_NIK' &&
+        !hasPlaceholderNik(agent.nik, AGENT_PLACEHOLDER_NIK_PREFIXES)
+      ) {
+        return false;
+      }
+
+      if (!normalizedSearch) return true;
+
+      const haystack = [agent.nama, agent.nik, agent.noHp, agent.email]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(normalizedSearch);
+    });
+  }, [kelengkapanFilter, agentType, summaryAgentsResponse?.items, search]);
+
+  const displayAgentData = useMemo(() => {
+    if (!kelengkapanFilter || agentType !== 'PRIBADI') return agentData;
+    const start = (page - 1) * limit;
+    return filteredSummaryAgents.slice(start, start + limit);
+  }, [kelengkapanFilter, agentType, agentData, filteredSummaryAgents, page, limit]);
+
+  const displayMeta = useMemo(() => {
+    if (!kelengkapanFilter || agentType !== 'PRIBADI') return meta;
+    const totalItems = filteredSummaryAgents.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    return {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    };
+  }, [kelengkapanFilter, agentType, meta, filteredSummaryAgents.length, page, limit]);
   const agentSummary = useMemo(
     () =>
       summarizeAgents(
@@ -264,6 +310,15 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
     });
   };
 
+  const handleKelengkapanFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSearchParams(prev => {
+      if (e.target.value) prev.set('kelengkapan', e.target.value);
+      else prev.delete('kelengkapan');
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
 
   const pageTitle = agentType === 'PRIBADI' ? 'Agent Pribadi' : 'Agent Perusahaan';
 
@@ -301,12 +356,29 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
           {backfillFeeAgentsMutation.isPending ? 'Backfill...' : 'Backfill Fee Agent'}
         </button>
       )}
+      {agentType === 'PRIBADI' && (
+        <div className="relative group w-full sm:w-56">
+          <select
+            className={`${filterSelectClass} pl-9`}
+            value={kelengkapanFilter}
+            onChange={handleKelengkapanFilterChange}
+            aria-label="Filter kelengkapan data agent"
+          >
+            <option value="">Semua Agent</option>
+            <option value="INCOMPLETE">Data Belum Lengkap</option>
+            <option value="PLACEHOLDER_NIK">NIK MKT / Import</option>
+          </select>
+          <AlertCircle size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500" />
+          <ChevronDown size={15} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+        </div>
+      )}
       <div className="relative group w-full sm:w-52">
         <select
           className={`${filterSelectClass} pl-9`}
           value={orderBy}
           onChange={handleSortChange}
           aria-label="Urutkan data"
+          disabled={agentType === 'PRIBADI' && !!kelengkapanFilter}
         >
           <option value="">Agent Terbaru</option>
           <option value="nama:asc">Nama Agent (A-Z)</option>
@@ -1014,15 +1086,17 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
             valueClassName: 'text-red-600',
             borderHoverClassName: 'hover:border-red-300',
           },
-          {
-            value: agentSummary.activeCount,
-            label: 'Status Aktif',
-            icon: UserCheck,
-            iconBgClassName: 'bg-emerald-50',
-            iconClassName: 'text-emerald-600',
-            valueClassName: 'text-emerald-700',
-            borderHoverClassName: 'hover:border-emerald-300',
-          },
+          ...(agentType !== 'PRIBADI'
+            ? [{
+                value: agentSummary.activeCount,
+                label: 'Status Aktif',
+                icon: UserCheck,
+                iconBgClassName: 'bg-emerald-50',
+                iconClassName: 'text-emerald-600',
+                valueClassName: 'text-emerald-700',
+                borderHoverClassName: 'hover:border-emerald-300',
+              }]
+            : []),
         ]}
         footer={
           agentSummary.missingBank > 0
@@ -1034,7 +1108,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
       <DataTable
         title={pageTitle}
         columns={columns}
-        data={agentData}
+        data={displayAgentData}
         onAdd={() => openModal()}
         expandedRowRender={expandedRowRender}
         serverSide={true}
@@ -1042,7 +1116,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
         searchTerm={search}
         onSearchChange={handleSearchChange}
         page={page}
-        totalPages={meta?.totalPages || 1}
+        totalPages={displayMeta?.totalPages || 1}
         onPageChange={handlePageChange}
         pageSize={limit}
         pageSizeOptions={[...PAGE_SIZE_OPTIONS]}

@@ -1,13 +1,11 @@
-import React, { useState, useMemo } from "react";
-import PageSummaryCard from "../../components/shared/PageSummaryCard";
-import { summarizePerusahaanAgents } from "../../utils/pageSummaries";
+import React, { useState } from "react";
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
 import CurrencyInput from "../../components/shared/CurrencyInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Trash2, UploadCloud, Eye, Building2, AlertCircle, FileText, Landmark } from "lucide-react";
+import { Edit2, Trash2, UploadCloud, Eye } from "lucide-react";
 import {
   useGetPerusahaanAgents,
   useCreatePerusahaanAgent,
@@ -20,10 +18,6 @@ import { handleApiError } from "../../utils/errorHandler";
 
 const KelolaPerusahaanAgentTab = () => {
   const { data: perusahaanData = [], isLoading } = useGetPerusahaanAgents();
-  const perusahaanSummary = useMemo(
-    () => summarizePerusahaanAgents(perusahaanData),
-    [perusahaanData],
-  );
   const createMutation = useCreatePerusahaanAgent();
   const updateMutation = useUpdatePerusahaanAgent();
   const deleteMutation = useDeletePerusahaanAgent();
@@ -249,51 +243,6 @@ const KelolaPerusahaanAgentTab = () => {
 
   return (
     <div className="space-y-6">
-      <PageSummaryCard
-        title="Ringkasan Perusahaan Agent"
-        subtitle="Kelengkapan data master perusahaan"
-        headerIcon={Building2}
-        items={[
-          {
-            value: perusahaanSummary.total,
-            label: 'Total Perusahaan',
-            icon: Building2,
-          },
-          {
-            value: perusahaanSummary.missingNpwp,
-            label: 'Belum Ada NPWP',
-            icon: FileText,
-            iconBgClassName: 'bg-amber-50',
-            iconClassName: 'text-amber-600',
-            valueClassName: 'text-amber-700',
-            borderHoverClassName: 'hover:border-amber-300',
-          },
-          {
-            value: perusahaanSummary.missingRekening,
-            label: 'Rekening Belum Lengkap',
-            icon: Landmark,
-            iconBgClassName: 'bg-red-50',
-            iconClassName: 'text-red-600',
-            valueClassName: 'text-red-600',
-            borderHoverClassName: 'hover:border-red-300',
-          },
-          {
-            value: perusahaanSummary.missingAkte,
-            label: 'Belum Upload Akte',
-            icon: AlertCircle,
-            iconBgClassName: 'bg-blue-50',
-            iconClassName: 'text-blue-600',
-            valueClassName: 'text-blue-700',
-            borderHoverClassName: 'hover:border-blue-300',
-          },
-        ]}
-        footer={
-          perusahaanSummary.missingFee > 0
-            ? `${perusahaanSummary.missingFee} perusahaan belum diatur fee marketing/closing`
-            : undefined
-        }
-      />
-
       <DataTable
         title="Kelola Perusahaan"
         columns={columns}

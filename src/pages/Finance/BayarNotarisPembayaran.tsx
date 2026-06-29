@@ -419,15 +419,6 @@ const BayarNotarisPembayaran = () => {
             valueClassName: 'text-emerald-700',
             borderHoverClassName: 'hover:border-emerald-300',
           },
-          {
-            value: new Set((summaryResponse?.items ?? []).map((row) => row.penjualanId)).size,
-            label: 'Penjualan Terlibat',
-            icon: FileText,
-            iconBgClassName: 'bg-blue-50',
-            iconClassName: 'text-blue-600',
-            valueClassName: 'text-blue-700',
-            borderHoverClassName: 'hover:border-blue-300',
-          },
         ]}
       />
 

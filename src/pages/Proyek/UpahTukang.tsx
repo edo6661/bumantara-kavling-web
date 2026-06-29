@@ -253,15 +253,6 @@ const UpahTukang = () => {
             icon: Users,
           },
           {
-            value: upahSummary.totalSpk,
-            label: 'SPK Terlibat',
-            icon: HardHat,
-            iconBgClassName: 'bg-blue-50',
-            iconClassName: 'text-blue-600',
-            valueClassName: 'text-blue-700',
-            borderHoverClassName: 'hover:border-blue-300',
-          },
-          {
             value: upahSummary.totalPengajuan,
             label: 'Pengajuan Dibayar',
             icon: CheckCircle2,

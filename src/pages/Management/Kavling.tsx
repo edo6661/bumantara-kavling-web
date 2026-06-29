@@ -114,7 +114,7 @@ const renderKavlingStatusBadge = (status: string) => {
 
 const Kavling = () => {
   const { selectedPerumahan } = useAuth();
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
 
   const [searchParams, setSearchParams] = useSearchParams();
