@@ -13,8 +13,6 @@ import { useGetDashboardSummary, useGetDashboardDrilldown } from '../hooks/queri
 import {
   buildPendapatanDrilldownFilter,
   buildAkadDrilldownFilter,
-  buildCashDrilldownFilter,
-  buildPemesananDrilldownFilter,
   isPendapatanDrilldownFilter,
   type DashboardDrilldownCategory,
   type DrilldownItem,
@@ -24,7 +22,6 @@ import PageLoader from './PageLoader';
 import KpiCard from '../components/dashboard/KpiCard';
 import DashboardMonthlyReportCard from '../components/dashboard/DashboardMonthlyReportCard';
 import DashboardTodayUnits from '../components/dashboard/DashboardTodayUnits';
-import BookingRateChart from '../components/dashboard/BookingRateChart';
 import DashboardDrilldownModal from '../components/dashboard/DashboardDrilldownModal';
 import DashboardKavlingOverview, {
   type KavlingOverviewAction,
@@ -163,7 +160,6 @@ const Dashboard = () => {
             <KpiCard
               title="Unit Tersedia"
               value={`${kpi.unitTersedia} Unit`}
-              subtitle="Kavling siap dijual"
               icon={Home}
               onClick={() => openDrilldown('kavling', 'AVAILABLE', 'Kavling Tersedia')}
             />
@@ -179,7 +175,6 @@ const Dashboard = () => {
             <KpiCard
               title="Unit Ter-Booking Hari Ini"
               value={`${kpi.unitBookingHariIni} Unit`}
-              subtitle="Penjualan baru hari ini"
               icon={ShoppingCart}
               onClick={() =>
                 openDrilldown('penjualan', 'BOOKED_TODAY', 'Booking Hari Ini')
@@ -197,14 +192,12 @@ const Dashboard = () => {
             <KpiCard
               title="Total Unit KPR"
               value={`${kpi.totalUnitKpr} Unit`}
-              subtitle="All time — non batal"
               icon={Landmark}
               onClick={() => openDrilldown('penjualan', 'KPR', 'Penjualan KPR')}
             />
             <KpiCard
               title="Total Unit Cash Bertahap"
               value={`${kpi.totalUnitCashBertahap} Unit`}
-              subtitle="All time — non batal"
               icon={Building2}
               onClick={() =>
                 openDrilldown('penjualan', 'CASH_BERTAHAP', 'Penjualan Cash Bertahap')
@@ -284,40 +277,7 @@ const Dashboard = () => {
                 )
               }
             />
-            <DashboardMonthlyReportCard
-              title={`Penjualan Cash Keras & Cash Bertahap Tahun ${year}`}
-              subtitle="Total harga jual penjualan Cash Keras & Bertahap baru, dihitung saat transaksi dibuat. Klik bulan untuk detail."
-              year={year}
-              rows={executive.penjualanCashTahunIni}
-              showCount
-              totalLabel="Total Penjualan Cash"
-              chartColor={DASHBOARD_COLORS.warning}
-              onRowClick={(row) =>
-                openDrilldown(
-                  'penjualan',
-                  buildCashDrilldownFilter(year, row.month),
-                  `Penjualan Cash ${row.monthLabel}`,
-                )
-              }
-            />
           </div>
-        </section>
-
-        {/* Booking Rate Chart */}
-        <section>
-          <SectionLabel>Tingkat Pemesanan</SectionLabel>
-          <BookingRateChart
-            year={year}
-            data={executive.tingkatPemesanan}
-            onMonthClick={(month, monthLabel) =>
-              openDrilldown(
-                'penjualan',
-                buildPemesananDrilldownFilter(year, month),
-                `Pemesanan ${monthLabel}`,
-              )
-            }
-            onTotalClick={() => navigateToPenjualan()}
-          />
         </section>
       </div>
 

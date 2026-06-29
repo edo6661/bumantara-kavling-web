@@ -38,10 +38,10 @@ function StatTile({
 }: {
   label: string;
   value: number;
-  subtitle: string;
+  subtitle?: string;
   icon: typeof Home;
   accent: 'slate' | 'blue' | 'emerald' | 'dark';
-  actionHint: string;
+  actionHint?: string;
   onClick: () => void;
 }) {
   const accents = {
@@ -97,10 +97,14 @@ function StatTile({
       <div>
         <p className={`text-3xl font-black tabular-nums tracking-tight ${accents.value}`}>{value}</p>
         <p className={`text-[11px] font-bold uppercase tracking-widest mt-1 ${accents.label}`}>{label}</p>
-        <p className="text-[10px] text-slate-400 mt-0.5 font-medium">{subtitle}</p>
-        <p className={`text-[9px] font-bold uppercase tracking-wider mt-2 ${accents.hint}`}>
-          {actionHint}
-        </p>
+        {subtitle && (
+          <p className="text-[10px] text-slate-400 mt-0.5 font-medium">{subtitle}</p>
+        )}
+        {actionHint && (
+          <p className={`text-[9px] font-bold uppercase tracking-wider mt-2 ${accents.hint}`}>
+            {actionHint}
+          </p>
+        )}
       </div>
     </button>
   );
@@ -179,13 +183,11 @@ export default function DashboardKavlingOverview({
             subtitle="Seluruh unit terdaftar"
             icon={MapPin}
             accent="slate"
-            actionHint="Buka halaman kavling"
             onClick={() => onAction({ type: 'navigate-all' })}
           />
           <StatTile
             label="Ter Proses"
             value={terProses}
-            subtitle="Status booking — dalam pipeline penjualan"
             icon={Layers}
             accent="blue"
             actionHint="Lihat daftar unit"
