@@ -93,9 +93,7 @@ function TodayUnitsList({
               <Icon size={20} strokeWidth={2} />
             </div>
             <p className="text-slate-500 text-[13px] font-semibold">{emptyMessage}</p>
-            <p className="text-slate-400 text-[11px] mt-1 font-medium">
-              Data diperbarui setiap hari
-            </p>
+            
           </div>
         )}
       </div>
