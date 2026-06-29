@@ -1,5 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
 import DataTable from "../../components/shared/DataTable";
 import PageLoader from "../PageLoader";
 import Modal from "../../components/shared/Modal";
@@ -7,7 +8,7 @@ import PasteUploadBanner from '../../components/shared/PasteUploadBanner';
 import { formatDate } from "../../utils/formatters";
 import {
   FileText, ZoomIn, Clock, CheckCircle2, Filter, ChevronDown, ChevronUp,
-  ArrowUpDown, UploadCloud, Loader2
+  ArrowUpDown, UploadCloud, Loader2, Wallet
 } from 'lucide-react';
 import {
   useGetKodeBillingPph,
@@ -39,6 +40,19 @@ const BayarKodeBillingPph = () => {
 
   const items = response?.items || [];
   const meta = response?.meta;
+
+  const { data: summaryResponse } = useGetKodeBillingPph({ page: 1, limit: 500, status: 'ALL' });
+  const billingSummary = useMemo(() => {
+    const rows = summaryResponse?.items ?? [];
+    let menunggu = 0;
+    let sudahBayar = 0;
+    for (const row of rows) {
+      if (row.status === 'MENUNGGU_BAYAR') menunggu += 1;
+      else if (row.status === 'SUDAH_BAYAR') sudahBayar += 1;
+    }
+    return { total: rows.length, menunggu, sudahBayar };
+  }, [summaryResponse?.items]);
+
   const uploadMutation = useUploadBuktiBayarKodeBillingPph();
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -268,6 +282,40 @@ const BayarKodeBillingPph = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <PageSummaryCard
+        title="Ringkasan Kode Billing PPh"
+        subtitle="Status pembayaran PPh progres penjualan"
+        headerIcon={FileText}
+        items={[
+          { value: billingSummary.total, label: 'Total Billing', icon: Wallet },
+          {
+            value: billingSummary.menunggu,
+            label: 'Menunggu Bayar',
+            icon: Clock,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: billingSummary.sudahBayar,
+            label: 'Sudah Dibayar',
+            icon: CheckCircle2,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+          {
+            value: Math.max(0, billingSummary.total - billingSummary.menunggu - billingSummary.sudahBayar),
+            label: 'Status Lain',
+            icon: FileText,
+            iconBgClassName: 'bg-slate-100',
+            iconClassName: 'text-slate-600',
+          },
+        ]}
+      />
+
       <input
         ref={fileInputRef}
         type="file"

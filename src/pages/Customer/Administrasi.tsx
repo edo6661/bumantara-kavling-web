@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizeCustomerAdministrasi } from '../../utils/pageSummaries';
+import { Users, FileWarning, UserCheck } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -23,6 +26,7 @@ import {
 } from "lucide-react";
 import {
   useGetCustomersPaginated,
+  useGetCustomers,
   useCreateCustomer,
   useUpdateCustomer,
   useDeleteCustomer,
@@ -67,6 +71,12 @@ const Administrasi = () => {
   });
   const customers = customersResponse?.items ?? [];
   const meta = customersResponse?.meta;
+  const { data: allCustomers = [] } = useGetCustomers();
+
+  const administrasiSummary = useMemo(
+    () => summarizeCustomerAdministrasi(allCustomers, meta?.totalItems),
+    [allCustomers, meta?.totalItems],
+  );
 
   const { data: penjualanResponse, isLoading: isLoadingPenjualan } = useGetPenjualan({ limit: 500 });
   const penjualanData = penjualanResponse?.items || [];
@@ -594,6 +604,51 @@ const Administrasi = () => {
 
   return (
     <div className="space-y-6">
+      <PageSummaryCard
+        title="Ringkasan Administrasi"
+        subtitle="Kelengkapan data dan dokumen customer"
+        headerIcon={Users}
+        items={[
+          {
+            value: administrasiSummary.total,
+            label: 'Total Customer',
+            icon: Users,
+          },
+          {
+            value: administrasiSummary.incompleteData,
+            label: 'Data Belum Lengkap',
+            icon: AlertCircle,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: administrasiSummary.placeholderNik,
+            label: 'NIK Dummy / Import',
+            icon: FileWarning,
+            iconBgClassName: 'bg-red-50',
+            iconClassName: 'text-red-600',
+            valueClassName: 'text-red-600',
+            borderHoverClassName: 'hover:border-red-300',
+          },
+          {
+            value: administrasiSummary.hasAccount,
+            label: 'Sudah Punya Akun',
+            icon: UserCheck,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+        ]}
+        footer={
+          administrasiSummary.missingDocuments > 0
+            ? `${administrasiSummary.missingDocuments} customer masih kurang dokumen KTP/KK/NPWP`
+            : undefined
+        }
+      />
+
       <DataTable
         title="Administrasi Customer"
         columns={columns}

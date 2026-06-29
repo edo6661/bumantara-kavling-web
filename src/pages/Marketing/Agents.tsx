@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizeAgents } from '../../utils/pageSummaries';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -8,7 +10,7 @@ import Select from "../../components/shared/Select";
 import FileInput from "../../components/shared/FileInput";
 import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
-import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Banknote, Clock, History, RefreshCw } from "lucide-react";
+import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Banknote, Clock, History, RefreshCw, Users, AlertCircle, UserCheck } from "lucide-react";
 import {
   useGetAgentsPaginated,
   useCreateAgent,
@@ -159,6 +161,25 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
   });
   const agentData = agentsResponse?.items ?? [];
   const meta = agentsResponse?.meta;
+
+  const { data: summaryAgentsResponse } = useGetAgentsPaginated({
+    page: 1,
+    limit: 500,
+    ...(typeFilter ? { type: typeFilter } : {}),
+  });
+  const agentSummary = useMemo(
+    () =>
+      summarizeAgents(
+        summaryAgentsResponse?.items ?? [],
+        summaryAgentsResponse?.meta?.totalItems ?? meta?.totalItems,
+      ),
+    [
+      summaryAgentsResponse?.items,
+      summaryAgentsResponse?.meta?.totalItems,
+      meta?.totalItems,
+    ],
+  );
+
   const { data: penjualanResponse } = useGetPenjualan({ limit: 500 });
   const { data: feeData = [] } = useGetFeeAgents();
   const { data: pencairanData = [] } = useGetAllAgentPencairan();
@@ -965,6 +986,51 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <PageSummaryCard
+        title={agentType === 'PRIBADI' ? 'Ringkasan Agent Pribadi' : 'Ringkasan Agent Perusahaan'}
+        subtitle="Kelengkapan data, NIK, dan rekening agent"
+        headerIcon={Users}
+        items={[
+          {
+            value: agentSummary.total,
+            label: 'Total Agent',
+            icon: Users,
+          },
+          {
+            value: agentSummary.incompleteData,
+            label: 'Data Belum Lengkap',
+            icon: AlertCircle,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: agentSummary.placeholderNik,
+            label: 'NIK MKT / Import',
+            icon: FileText,
+            iconBgClassName: 'bg-red-50',
+            iconClassName: 'text-red-600',
+            valueClassName: 'text-red-600',
+            borderHoverClassName: 'hover:border-red-300',
+          },
+          {
+            value: agentSummary.activeCount,
+            label: 'Status Aktif',
+            icon: UserCheck,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+        ]}
+        footer={
+          agentSummary.missingBank > 0
+            ? `${agentSummary.missingBank} agent belum lengkap data rekening bank`
+            : undefined
+        }
+      />
+
       <DataTable
         title={pageTitle}
         columns={columns}

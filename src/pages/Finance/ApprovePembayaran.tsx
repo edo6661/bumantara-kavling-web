@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizeTagihans } from '../../utils/pageSummaries';
 import DataTable from "../../components/shared/DataTable";
 import PageLoader from "../PageLoader";
 import Modal from "../../components/shared/Modal";
 import { formatRupiah, formatDate } from "../../utils/formatters";
 import {
   Check, X, Clock, CheckCircle2, AlertCircle,
-  Filter, ChevronDown, ChevronUp, Calendar, ArrowUpDown
+  Filter, ChevronDown, ChevronUp, Calendar, ArrowUpDown, Wallet
 } from 'lucide-react';
 import { useGetTagihans, useApproveTagihan } from "../../hooks/queries/useTagihan";
 import { handleApiError } from '../../utils/errorHandler';
@@ -44,6 +46,12 @@ const ApprovePembayaran = () => {
 
   const tagihans = tagihanResponse?.items || [];
   const meta = tagihanResponse?.meta;
+
+  const { data: summaryTagihanResponse } = useGetTagihans({ page: 1, limit: 500 });
+  const paymentSummary = useMemo(
+    () => summarizeTagihans(summaryTagihanResponse?.items ?? []),
+    [summaryTagihanResponse?.items],
+  );
 
   const approveMutation = useApproveTagihan();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -197,6 +205,40 @@ const ApprovePembayaran = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <PageSummaryCard
+        title="Ringkasan Approve Pembayaran"
+        subtitle="Status konfirmasi bukti pembayaran customer"
+        items={[
+          { value: paymentSummary.total, label: 'Total Tagihan', icon: Wallet },
+          {
+            value: paymentSummary.menungguKonfirmasi,
+            label: 'Menunggu Konfirmasi',
+            icon: Clock,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: paymentSummary.lunas,
+            label: 'Sudah Lunas',
+            icon: CheckCircle2,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+          {
+            value: paymentSummary.belumBayar,
+            label: 'Belum Bayar',
+            icon: AlertCircle,
+            iconBgClassName: 'bg-red-50',
+            iconClassName: 'text-red-600',
+            valueClassName: 'text-red-600',
+            borderHoverClassName: 'hover:border-red-300',
+          },
+        ]}
+      />
 
       {/* KOTAK FILTER & SORTING */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">

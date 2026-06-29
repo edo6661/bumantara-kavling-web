@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useRef } from 'react';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizeTagihans } from '../../utils/pageSummaries';
+import { Wallet, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import Input from "../../components/shared/Input";
@@ -1212,10 +1215,56 @@ const Tagihan = () => {
     });
   }
 
+  const tagihanSummary = useMemo(() => summarizeTagihans(tagihans), [tagihans]);
+
   if (isLoadingTagihan || isLoadingCustomer || isLoadingPenjualan) return <PageLoader />;
 
   return (
-    <div>
+    <div className="space-y-6">
+      <PageSummaryCard
+        title="Ringkasan Tagihan"
+        subtitle="Status pembayaran tagihan customer"
+        items={[
+          {
+            value: tagihanSummary.total,
+            label: 'Total Tagihan',
+            icon: Wallet,
+          },
+          {
+            value: tagihanSummary.belumBayar,
+            label: 'Belum Bayar',
+            icon: AlertCircle,
+            iconBgClassName: 'bg-red-50',
+            iconClassName: 'text-red-600',
+            valueClassName: 'text-red-600',
+            borderHoverClassName: 'hover:border-red-300',
+          },
+          {
+            value: tagihanSummary.menungguKonfirmasi,
+            label: 'Menunggu Konfirmasi',
+            icon: Clock,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: tagihanSummary.lunas,
+            label: 'Lunas',
+            icon: CheckCircle2,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+        ]}
+        footer={
+          tagihanSummary.jatuhTempoLewat > 0
+            ? `${tagihanSummary.jatuhTempoLewat} tagihan melewati jatuh tempo`
+            : undefined
+        }
+      />
+
       <DataTable
         title="Data Tagihan Customer"
         columns={columns}

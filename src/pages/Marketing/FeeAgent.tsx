@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizePencairanAll } from '../../utils/pageSummaries';
 import DataTable from '../../components/shared/DataTable';
 import Modal from '../../components/shared/Modal';
 import PageLoader from '../PageLoader';
 import AgentPencairanHistoryTable from '../../components/marketing/AgentPencairanHistoryTable';
 import { formatRupiah } from '../../utils/formatters';
-import { Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, ChevronDown, ChevronUp, Users, Clock, CheckCircle2, Banknote } from 'lucide-react';
 import { useGetAllAgentPencairan } from '../../hooks/queries/useAgentPencairan';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
 import { summarizePencairanHistory } from '../../utils/agentPencairan';
@@ -32,6 +34,12 @@ const FeeAgent = () => {
   const { data: pencairanData = [], isLoading } = useGetAllAgentPencairan({
     status: statusFilter === 'ALL' ? 'ALL' : (statusFilter as 'MENUNGGU_PEMBAYARAN' | 'SUDAH_DIBAYAR'),
   });
+
+  const { data: allPencairanData = [] } = useGetAllAgentPencairan({ status: 'ALL' });
+  const pencairanSummary = useMemo(
+    () => summarizePencairanAll(allPencairanData),
+    [allPencairanData],
+  );
 
   const filteredData = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -199,6 +207,47 @@ const FeeAgent = () => {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
+      <PageSummaryCard
+        title="Ringkasan Pencairan Agent"
+        subtitle="Status pengajuan dan pembayaran fee agent"
+        headerIcon={Banknote}
+        items={[
+          {
+            value: pencairanSummary.jumlahPengajuan,
+            label: 'Total Pengajuan',
+            icon: Users,
+          },
+          {
+            value: pencairanSummary.jumlahMenunggu,
+            label: 'Menunggu Bayar',
+            icon: Clock,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: pencairanSummary.jumlahTerbayar,
+            label: 'Sudah Dibayar',
+            icon: CheckCircle2,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+          {
+            value: pencairanSummary.uniqueAgents,
+            label: 'Agent Terlibat',
+            icon: Banknote,
+            iconBgClassName: 'bg-blue-50',
+            iconClassName: 'text-blue-600',
+            valueClassName: 'text-blue-700',
+            borderHoverClassName: 'hover:border-blue-300',
+          },
+        ]}
+        footer={`Menunggu: ${pencairanSummary.totalNominalMenungguFormatted} · Terbayar: ${pencairanSummary.totalNominalTerbayarFormatted}`}
+      />
+
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <button
           type="button"

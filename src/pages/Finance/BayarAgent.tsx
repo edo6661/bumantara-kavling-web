@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizePaymentQueue } from '../../utils/pageSummaries';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
 import PasteUploadBanner from '../../components/shared/PasteUploadBanner';
@@ -16,6 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   UploadCloud,
+  Users,
+  Wallet,
 } from 'lucide-react';
 import {
   useBayarAgentPencairan,
@@ -68,6 +72,22 @@ const BayarAgent = () => {
 
   const items = response?.items ?? [];
   const meta = response?.meta;
+
+  const { data: summaryResponse } = useGetAgentPencairanList({
+    page: 1,
+    limit: 500,
+    status: 'ALL',
+  });
+  const agentPaymentSummary = useMemo(
+    () =>
+      summarizePaymentQueue(
+        summaryResponse?.items ?? [],
+        'MENUNGGU_PEMBAYARAN',
+        'SUDAH_DIBAYAR',
+      ),
+    [summaryResponse?.items],
+  );
+
   const bayarMutation = useBayarAgentPencairan();
 
   const processUpload = useCallback(
@@ -183,6 +203,42 @@ const BayarAgent = () => {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
+      <PageSummaryCard
+        title="Ringkasan Bayar Agent"
+        subtitle="Antrian pembayaran fee marketing dan closing agent"
+        headerIcon={Users}
+        items={[
+          { value: agentPaymentSummary.total, label: 'Total Pengajuan', icon: Wallet },
+          {
+            value: agentPaymentSummary.menunggu,
+            label: 'Menunggu Bayar',
+            icon: Clock,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: agentPaymentSummary.sudahBayar,
+            label: 'Sudah Dibayar',
+            icon: CheckCircle2,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+          {
+            value: new Set((summaryResponse?.items ?? []).map((row) => row.agentId)).size,
+            label: 'Agent Terlibat',
+            icon: Users,
+            iconBgClassName: 'bg-blue-50',
+            iconClassName: 'text-blue-600',
+            valueClassName: 'text-blue-700',
+            borderHoverClassName: 'hover:border-blue-300',
+          },
+        ]}
+      />
+
       <input
         ref={fileInputRef}
         type="file"

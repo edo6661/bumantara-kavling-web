@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
 import PageLoader from '../PageLoader';
 import {
   ChevronDown,
@@ -9,6 +10,8 @@ import {
   Filter,
   HardHat,
   Users,
+  Wallet,
+  CheckCircle2,
 } from 'lucide-react';
 import { formatDate, formatRupiah, formatTanpaDesimal } from '../../utils/formatters';
 import { useGetSpkPembayaranList } from '../../hooks/queries/useSpkPembayaran';
@@ -174,6 +177,16 @@ const UpahTukang = () => {
     [items],
   );
 
+  const upahSummary = useMemo(
+    () => ({
+      totalMandor: mandorGroups.length,
+      totalSpk: mandorGroups.reduce((sum, group) => sum + group.jumlahSpk, 0),
+      totalPengajuan: items.length,
+      totalNominal: summaryTotal,
+    }),
+    [mandorGroups, items.length, summaryTotal],
+  );
+
   const toggleMandor = (mandorId: number) => {
     setExpandedMandorIds((prev) => {
       const next = new Set(prev);
@@ -229,6 +242,46 @@ const UpahTukang = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <PageSummaryCard
+        title="Ringkasan Upah Tukang"
+        subtitle={`Periode ${bulanLabel} ${tahun} — upah yang sudah dibayar`}
+        headerIcon={HardHat}
+        items={[
+          {
+            value: upahSummary.totalMandor,
+            label: 'Mandor',
+            icon: Users,
+          },
+          {
+            value: upahSummary.totalSpk,
+            label: 'SPK Terlibat',
+            icon: HardHat,
+            iconBgClassName: 'bg-blue-50',
+            iconClassName: 'text-blue-600',
+            valueClassName: 'text-blue-700',
+            borderHoverClassName: 'hover:border-blue-300',
+          },
+          {
+            value: upahSummary.totalPengajuan,
+            label: 'Pengajuan Dibayar',
+            icon: CheckCircle2,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+          {
+            value: formatRupiah(upahSummary.totalNominal),
+            label: 'Total Upah',
+            icon: Wallet,
+            iconBgClassName: 'bg-teal-50',
+            iconClassName: 'text-teal-700',
+            valueClassName: 'text-teal-800 text-2xl',
+            borderHoverClassName: 'hover:border-teal-300',
+          },
+        ]}
+      />
+
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-slate-100">
           <div className="flex items-start gap-3">

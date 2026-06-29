@@ -1,5 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizePaymentQueue } from '../../utils/pageSummaries';
 import PageLoader from '../PageLoader';
 import Modal from '../../components/shared/Modal';
 import PasteUploadBanner from '../../components/shared/PasteUploadBanner';
@@ -24,6 +26,8 @@ import {
   Landmark,
   Undo2,
   X,
+  HardHat,
+  Wallet,
 } from 'lucide-react';
 import BsiBatchPaymentPreviewModal from '../../components/finance/BsiBatchPaymentPreviewModal';
 import {
@@ -202,6 +206,19 @@ const BayarSpkPembayaran = () => {
     [response?.items],
   );
   const meta = response?.meta;
+
+  const { data: summaryResponse } = useGetSpkPembayaranList({
+    page: 1,
+    limit: 500,
+    status: 'ALL',
+  });
+  const spkPaymentSummary = useMemo(() => {
+    const rows = (summaryResponse?.items ?? []).filter(
+      (row) => row.status !== 'DRAFT' && row.status !== 'MENUNGGU_PERSETUJUAN',
+    );
+    return summarizePaymentQueue(rows, 'MENUNGGU_PEMBAYARAN', 'SUDAH_DIBAYAR');
+  }, [summaryResponse?.items]);
+
   const bayarMutation = useBayarSpkPembayaran();
   const addBuktiMutation = useAddBuktiSpkPembayaran();
   const removeBuktiMutation = useRemoveBuktiSpkPembayaran();
@@ -615,6 +632,42 @@ const BayarSpkPembayaran = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <PageSummaryCard
+        title="Ringkasan Bayar SPK"
+        subtitle="Antrian pembayaran kasbon, termin, dan upah SPK"
+        headerIcon={HardHat}
+        items={[
+          { value: spkPaymentSummary.total, label: 'Total Pengajuan', icon: Wallet },
+          {
+            value: spkPaymentSummary.menunggu,
+            label: 'Menunggu Bayar',
+            icon: Clock,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: spkPaymentSummary.sudahBayar,
+            label: 'Sudah Dibayar',
+            icon: CheckCircle2,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+          {
+            value: spkGroups.length,
+            label: 'SPK Terlibat',
+            icon: HardHat,
+            iconBgClassName: 'bg-blue-50',
+            iconClassName: 'text-blue-600',
+            valueClassName: 'text-blue-700',
+            borderHoverClassName: 'hover:border-blue-300',
+          },
+        ]}
+      />
+
       <input
         ref={fileInputRef}
         type="file"

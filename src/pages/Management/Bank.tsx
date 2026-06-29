@@ -160,7 +160,7 @@ const Bank = () => {
   return (
     <div className="space-y-6">
       <DataTable
-        title={`Data Bank - ${selectedPerumahan?.nama || ''}`}
+        title={`Data Bank`}
         columns={columns}
         data={filteredData}
         onAdd={() => openModal()}

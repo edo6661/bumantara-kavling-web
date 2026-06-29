@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { HardHat, ChevronDown, ChevronUp, Filter, CheckCircle2, AlertCircle, BarChart3 } from 'lucide-react';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
 import PageLoader from '../PageLoader';
 import Select from '../../components/shared/Select';
 import ReportPageLayout, { ReportSectionLabel } from '../../components/laporan/ReportPageLayout';
@@ -190,47 +191,62 @@ const LaporanProgressProyek = () => {
       </section>
 
       {summary && (
-        <section>
-          <ReportSectionLabel>Ringkasan Proyek</ReportSectionLabel>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <ReportMetricCard
-              label="Total Unit"
-              value={summary.totalUnit}
-              hint="Unit dengan data progress"
-              valueClassName="text-slate-900 text-xl"
-            />
-            <ReportMetricCard
-              label="Rata-rata"
-              value={`${summary.rataRataProgress}%`}
-              hint="Rata-rata % progress semua unit"
-              valueClassName="text-blue-600 text-xl"
-            />
-            <ReportMetricCard
-              label="Selesai"
-              value={summary.unitSelesai}
-              hint="Progress 100%"
-              valueClassName="text-emerald-600 text-xl"
-            />
-            <ReportMetricCard
-              label="Proses"
-              value={summary.unitProses}
-              hint="Progress 1–99%"
-              valueClassName="text-blue-600 text-xl"
-            />
-            <ReportMetricCard
-              label="Belum Mulai"
-              value={summary.unitBelumMulai}
-              hint="Progress 0%"
-              valueClassName="text-slate-500 text-xl"
-            />
-            <ReportMetricCard
-              label="Terlambat"
-              value={summary.unitTerlambat}
-              hint="Progress di bawah target"
-              valueClassName="text-amber-600 text-xl"
-            />
-          </div>
-        </section>
+        <PageSummaryCard
+          title="Ringkasan Proyek"
+          subtitle="Monitoring penyelesaian pembangunan per unit"
+          headerIcon={HardHat}
+          columnsClassName="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+          items={[
+            {
+              value: summary.totalUnit,
+              label: 'Total Unit',
+              icon: BarChart3,
+            },
+            {
+              value: `${summary.rataRataProgress}%`,
+              label: 'Rata-rata',
+              icon: HardHat,
+              iconBgClassName: 'bg-blue-50',
+              iconClassName: 'text-blue-600',
+              valueClassName: 'text-blue-600',
+              borderHoverClassName: 'hover:border-blue-300',
+            },
+            {
+              value: summary.unitSelesai,
+              label: 'Selesai',
+              icon: CheckCircle2,
+              iconBgClassName: 'bg-emerald-50',
+              iconClassName: 'text-emerald-600',
+              valueClassName: 'text-emerald-600',
+              borderHoverClassName: 'hover:border-emerald-300',
+            },
+            {
+              value: summary.unitProses,
+              label: 'Proses',
+              icon: HardHat,
+              iconBgClassName: 'bg-blue-50',
+              iconClassName: 'text-blue-600',
+              valueClassName: 'text-blue-600',
+            },
+            {
+              value: summary.unitBelumMulai,
+              label: 'Belum Mulai',
+              icon: BarChart3,
+              iconBgClassName: 'bg-slate-100',
+              iconClassName: 'text-slate-500',
+              valueClassName: 'text-slate-500',
+            },
+            {
+              value: summary.unitTerlambat,
+              label: 'Terlambat',
+              icon: AlertCircle,
+              iconBgClassName: 'bg-amber-50',
+              iconClassName: 'text-amber-600',
+              valueClassName: 'text-amber-600',
+              borderHoverClassName: 'hover:border-amber-300',
+            },
+          ]}
+        />
       )}
 
       {progressBreakdown.length > 0 && (

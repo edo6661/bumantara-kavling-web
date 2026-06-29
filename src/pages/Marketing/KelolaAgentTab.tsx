@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Users, AlertCircle, UserCheck, FileText } from 'lucide-react';
+import PageSummaryCard from '../../components/shared/PageSummaryCard';
+import { summarizeAgents } from '../../utils/pageSummaries';
 import DataTable from '../../components/shared/DataTable';
 import PageLoader from '../PageLoader';
 import { formatRupiah } from '../../utils/formatters';
@@ -23,6 +25,8 @@ const KelolaAgentTab = () => {
   const crud = useAgentCrud({ defaultAgentType: 'PERUSAHAAN', lockAgentType: true });
 
   const agents = agentsResponse?.items ?? [];
+
+  const agentSummary = useMemo(() => summarizeAgents(agents), [agents]);
 
   const agentsByPerusahaan = useMemo(() => {
     const map = new Map<number, AgentData[]>();
@@ -216,7 +220,47 @@ const KelolaAgentTab = () => {
   if (loadingPerusahaan || loadingAgents) return <PageLoader />;
 
   return (
-    <>
+    <div className="space-y-6">
+      <PageSummaryCard
+        title="Ringkasan Agent Perusahaan"
+        subtitle="Kelengkapan data agent di bawah perusahaan"
+        headerIcon={Users}
+        items={[
+          {
+            value: agentSummary.total,
+            label: 'Total Agent',
+            icon: Users,
+          },
+          {
+            value: agentSummary.incompleteData,
+            label: 'Data Belum Lengkap',
+            icon: AlertCircle,
+            iconBgClassName: 'bg-amber-50',
+            iconClassName: 'text-amber-600',
+            valueClassName: 'text-amber-700',
+            borderHoverClassName: 'hover:border-amber-300',
+          },
+          {
+            value: agentSummary.placeholderNik,
+            label: 'NIK MKT / Import',
+            icon: FileText,
+            iconBgClassName: 'bg-red-50',
+            iconClassName: 'text-red-600',
+            valueClassName: 'text-red-600',
+            borderHoverClassName: 'hover:border-red-300',
+          },
+          {
+            value: perusahaanList.length,
+            label: 'Perusahaan Terdaftar',
+            icon: UserCheck,
+            iconBgClassName: 'bg-emerald-50',
+            iconClassName: 'text-emerald-600',
+            valueClassName: 'text-emerald-700',
+            borderHoverClassName: 'hover:border-emerald-300',
+          },
+        ]}
+      />
+
       <DataTable
         title="Kelola Agent"
         columns={columns}
@@ -232,7 +276,7 @@ const KelolaAgentTab = () => {
         }}
       />
       <AgentCrudModals crud={crud} />
-    </>
+    </div>
   );
 };
 
