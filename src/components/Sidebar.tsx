@@ -25,6 +25,14 @@ import SidebarBadge from './ui/SidebarBadge';
 const FINANCE_STAFF_ROLES = ['FINANCE', 'ADMIN', 'SUPERADMIN'] as const;
 const ADMIN_STAFF_ROLES = ['ADMIN', 'SUPERADMIN'] as const;
 
+type SubmenuChild = {
+  title: string;
+  path: string;
+  resource?: string;
+  pengawasOnly?: boolean;
+  rolesOnly?: readonly string[];
+};
+
 type SubmenuItem =
   | {
       title: string;
@@ -39,7 +47,7 @@ type SubmenuItem =
       resource?: string;
       resources?: string[];
       rolesOnly?: readonly string[];
-      children: { title: string; path: string }[];
+      children: SubmenuChild[];
     };
 
 type MenuItem = {
@@ -124,9 +132,15 @@ const menuItems: MenuItem[] = [
     icon: <FolderKanban size={18} strokeWidth={1.75} />,
     submenus: [
       { title: 'SPK', path: '/proyek/spk', resource: 'SPK' },
-      { title: 'Approve SPK', path: '/proyek/approve-spk', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
-      { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
-      { title: 'Approve Pembayaran SPK (Admin)', path: '/proyek/approve-kasbon-admin', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
+      {
+        title: 'Approve',
+        resource: 'SPK',
+        children: [
+          { title: 'Approve SPK', path: '/proyek/approve-spk', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
+          { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
+          { title: 'Approve Pembayaran SPK (Admin)', path: '/proyek/approve-kasbon-admin', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
+        ],
+      },
       {
         title: 'Pembayaran',
         rolesOnly: FINANCE_STAFF_ROLES,
@@ -181,6 +195,17 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { getBadgeForPath, getSectionBadge } = useSidebarBadges();
 
+  const canAccessSubmenuChild = (child: SubmenuChild) => {
+    if (child.rolesOnly) {
+      return !!user?.role && child.rolesOnly.includes(user.role);
+    }
+    if (child.pengawasOnly) {
+      return user?.role === 'PENGAWAS' || user?.role === 'SUPERADMIN';
+    }
+    if (!child.resource) return true;
+    return canReadResource(user, child.resource);
+  };
+
   const canAccessSubmenu = (sub: SubmenuItem) => {
     if ('rolesOnly' in sub && sub.rolesOnly) {
       return !!user?.role && sub.rolesOnly.includes(user.role);
@@ -209,7 +234,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       .filter(canAccessSubmenu)
       .map((sub) => {
         if ('children' in sub && sub.children) {
-          return { ...sub, children: sub.children };
+          return { ...sub, children: sub.children.filter(canAccessSubmenuChild) };
         }
         if (
           user?.role === 'SUPERADMIN' &&
@@ -431,6 +456,10 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                               const subKey = `${item.title}::${sub.title}`;
                               const isNestedOpen = openSubMenus[subKey];
                               const isNestedActive = isSubmenuPathActive(sub);
+                              const nestedBadgeCount = sub.children.reduce(
+                                (sum, child) => sum + getBadgeForPath(child.path),
+                                0,
+                              );
 
                               return (
                                 <div key={sub.title}>
@@ -449,13 +478,16 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                                       <span className="w-1 h-1 rounded-full bg-current opacity-60 shrink-0" />
                                       <span className="truncate">{sub.title}</span>
                                     </span>
-                                    <ChevronDown
-                                      size={12}
-                                      className={`shrink-0 transition-transform duration-200 ${isNestedOpen ? 'rotate-180' : ''}`}
-                                    />
+                                    <span className="flex items-center gap-1.5 shrink-0">
+                                      <SidebarBadge count={nestedBadgeCount} />
+                                      <ChevronDown
+                                        size={12}
+                                        className={`transition-transform duration-200 ${isNestedOpen ? 'rotate-180' : ''}`}
+                                      />
+                                    </span>
                                   </button>
 
-                                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isNestedOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isNestedOpen ? 'max-h-52 opacity-100' : 'max-h-0 opacity-0'}`}>
                                     <div className="ml-3 mt-0.5 pl-3 border-l border-white/10 space-y-0.5">
                                       {sub.children.map((child) => {
                                         const badgeCount = getBadgeForPath(child.path);
