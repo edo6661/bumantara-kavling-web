@@ -76,6 +76,19 @@ export interface DrilldownItem {
   sublabel?: string;
   value?: string;
   status?: string;
+  pembayaran?: string;
+  tanggalBayar?: string;
+  buktiUrls?: string[];
+}
+
+export type DashboardDrilldownMode = "default" | "pendapatan";
+
+export function buildPendapatanDrilldownFilter(year: number, month: number) {
+  return `PENDAPATAN:${year}:${month}`;
+}
+
+export function isPendapatanDrilldownFilter(filter?: string) {
+  return filter?.startsWith("PENDAPATAN:") ?? false;
 }
 
 export interface MonthlyMetricRow {

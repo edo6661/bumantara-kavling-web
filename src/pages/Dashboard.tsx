@@ -10,7 +10,11 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 import { useGetDashboardSummary, useGetDashboardDrilldown } from '../hooks/queries/useDashboard';
-import type { DashboardDrilldownCategory } from '../services/dashboard.service';
+import {
+  buildPendapatanDrilldownFilter,
+  isPendapatanDrilldownFilter,
+  type DashboardDrilldownCategory,
+} from '../services/dashboard.service';
 import { useAuth } from '../context/AuthContext';
 import PageLoader from './PageLoader';
 import KpiCard from '../components/dashboard/KpiCard';
@@ -191,11 +195,18 @@ const Dashboard = () => {
           <div className="space-y-4">
             <DashboardMonthlyReportCard
               title={`Pendapatan Tahun ${year}`}
-              subtitle="Nominal tagihan customer status Lunas (booking fee, DP, cicilan, dll.) per bulan berdasarkan tanggal pembayaran (jatuh tempo)"
+              subtitle="Nominal tagihan customer status Lunas (booking fee, DP, cicilan, dll.) per bulan berdasarkan tanggal pembayaran (jatuh tempo). Klik baris/bulan untuk detail."
               year={year}
               rows={executive.pendapatanTahunIni}
               totalLabel="Total Pendapatan"
               chartColor={DASHBOARD_COLORS.success}
+              onRowClick={(row) =>
+                openDrilldown(
+                  'tagihan',
+                  buildPendapatanDrilldownFilter(year, row.month),
+                  `Pendapatan ${row.monthLabel} ${year}`,
+                )
+              }
             />
             <DashboardMonthlyReportCard
               title={`Akad Tahun ${year}`}
@@ -231,6 +242,7 @@ const Dashboard = () => {
         title={drilldown?.title ?? 'Detail'}
         items={drilldownItems}
         isLoading={drilldownLoading}
+        mode={isPendapatanDrilldownFilter(drilldown?.filter) ? 'pendapatan' : 'default'}
         onItemClick={() => {
           if (drilldown?.category === 'kavling') {
             navigate('/management/kavling');

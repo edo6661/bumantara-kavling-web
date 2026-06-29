@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3 } from 'lucide-react';
 import { useGetDashboardSummary, useGetDashboardDrilldown } from '../../hooks/queries/useDashboard';
-import type { DashboardDrilldownCategory } from '../../services/dashboard.service';
+import {
+  buildPendapatanDrilldownFilter,
+  isPendapatanDrilldownFilter,
+  type DashboardDrilldownCategory,
+} from '../../services/dashboard.service';
 import PageLoader from '../PageLoader';
 import KpiCard from '../../components/dashboard/KpiCard';
 import DashboardMonthlyReportCard from '../../components/dashboard/DashboardMonthlyReportCard';
@@ -110,11 +114,18 @@ const LaporanEksekutif = () => {
         <div className="space-y-4">
           <DashboardMonthlyReportCard
             title={`Pendapatan Tahun ${year}`}
-            subtitle="Nominal tagihan customer status Lunas (booking fee, DP, cicilan, dll.) per bulan berdasarkan tanggal pembayaran (jatuh tempo)"
+            subtitle="Nominal tagihan customer status Lunas (booking fee, DP, cicilan, dll.) per bulan berdasarkan tanggal pembayaran (jatuh tempo). Klik baris/bulan untuk detail."
             year={year}
             rows={executive.pendapatanTahunIni}
             totalLabel="Total Pendapatan"
             chartColor={DASHBOARD_COLORS.success}
+            onRowClick={(row) =>
+              openDrilldown(
+                'tagihan',
+                buildPendapatanDrilldownFilter(year, row.month),
+                `Pendapatan ${row.monthLabel} ${year}`,
+              )
+            }
           />
           <DashboardMonthlyReportCard
             title={`Akad Tahun ${year}`}
@@ -148,6 +159,7 @@ const LaporanEksekutif = () => {
         title={drilldown?.title ?? 'Detail'}
         items={drilldownItems}
         isLoading={drilldownLoading}
+        mode={isPendapatanDrilldownFilter(drilldown?.filter) ? 'pendapatan' : 'default'}
         onItemClick={() => {
           if (drilldown?.category === 'kavling') {
             navigate('/management/kavling');

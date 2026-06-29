@@ -19,6 +19,7 @@ interface DashboardMonthlyReportCardProps {
   showCount?: boolean;
   totalLabel?: string;
   chartColor?: string;
+  onRowClick?: (row: MonthlyMetricRow) => void;
 }
 
 function sumRows(rows: MonthlyMetricRow[]) {
@@ -39,6 +40,7 @@ export default function DashboardMonthlyReportCard({
   showCount = false,
   totalLabel = 'Total',
   chartColor = '#2563eb',
+  onRowClick,
 }: DashboardMonthlyReportCardProps) {
   const totals = sumRows(rows);
 
@@ -47,7 +49,13 @@ export default function DashboardMonthlyReportCard({
     fullName: row.monthLabel,
     total: row.total,
     count: row.count,
+    month: row.month,
+    monthLabel: row.monthLabel,
   }));
+
+  const handleRowActivate = (row: MonthlyMetricRow) => {
+    if (row.total > 0) onRowClick?.(row);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm shadow-slate-100/80 overflow-hidden">
@@ -95,7 +103,17 @@ export default function DashboardMonthlyReportCard({
                     return [formatRupiah(num), 'Total'];
                   }}
                 />
-                <Bar dataKey="total" fill={chartColor} radius={[6, 6, 0, 0]} maxBarSize={36} />
+                <Bar
+                  dataKey="total"
+                  fill={chartColor}
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={36}
+                  cursor={onRowClick ? 'pointer' : undefined}
+                  onClick={(data) => {
+                    const payload = data?.payload as MonthlyMetricRow | undefined;
+                    if (payload) handleRowActivate(payload);
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -132,13 +150,27 @@ export default function DashboardMonthlyReportCard({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
+                {rows.map((row) => {
+                  const clickable = Boolean(onRowClick && row.total > 0);
+                  return (
                   <tr
                     key={row.month}
-                    className="border-b border-slate-50 hover:bg-slate-50/80 transition-colors"
+                    onClick={() => handleRowActivate(row)}
+                    className={`border-b border-slate-50 transition-colors ${
+                      clickable
+                        ? 'hover:bg-emerald-50/80 cursor-pointer'
+                        : 'hover:bg-slate-50/80'
+                    }`}
                   >
                     <td className="py-2 pr-2 text-[12px] font-semibold text-slate-700">
-                      {row.monthLabel}
+                      <span className="inline-flex items-center gap-1.5">
+                        {row.monthLabel}
+                        {clickable && (
+                          <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wide">
+                            Detail
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td className="py-2 pl-2 text-right text-[11px] sm:text-[12px] font-bold text-slate-900 whitespace-nowrap">
                       {formatRupiah(row.total)}
@@ -149,7 +181,8 @@ export default function DashboardMonthlyReportCard({
                       </td>
                     )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
