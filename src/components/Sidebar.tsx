@@ -180,10 +180,11 @@ const isSpkRumahPath = (pathname: string, search: string) =>
 const isSpkInfraPath = (pathname: string, search: string) =>
   pathname === '/proyek/spk' && search.includes('tab=infra');
 
-const isSpkChildPathActive = (path: string, pathname: string, search: string) => {
-  if (path.includes('tab=infra')) return isSpkInfraPath(pathname, search);
-  if (path === '/proyek/spk') return isSpkRumahPath(pathname, search);
-  return pathname.startsWith(path);
+const isMenuPathActive = (path: string, pathname: string, search: string) => {
+  const [pathWithoutSearch, pathSearch = ''] = path.split('?');
+  if (pathSearch.includes('tab=infra')) return isSpkInfraPath(pathname, search);
+  if (pathWithoutSearch === '/proyek/spk') return isSpkRumahPath(pathname, search);
+  return pathname === pathWithoutSearch || pathname.startsWith(`${pathWithoutSearch}/`);
 };
 
 const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
@@ -267,11 +268,11 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       if (sub.path === '/proyek/spk') {
         return location.pathname === '/proyek/spk';
       }
-      return location.pathname.startsWith(sub.path);
+      return location.pathname === sub.path || location.pathname.startsWith(`${sub.path}/`);
     }
     if ('children' in sub && sub.children) {
       return sub.children.some((child) =>
-        isSpkChildPathActive(child.path, location.pathname, locationSearch),
+        isMenuPathActive(child.path, location.pathname, locationSearch),
       );
     }
     return false;
@@ -294,7 +295,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
         if (
           'children' in sub &&
           sub.children?.some((child) =>
-            isSpkChildPathActive(child.path, location.pathname, locationSearch),
+            isMenuPathActive(child.path, location.pathname, locationSearch),
           )
         ) {
           initialOpenSubMenus[`${item.title}::${sub.title}`] = true;
@@ -491,7 +492,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                                     <div className="ml-3 mt-0.5 pl-3 border-l border-white/10 space-y-0.5">
                                       {sub.children.map((child) => {
                                         const badgeCount = getBadgeForPath(child.path);
-                                        const childLinkActive = isSpkChildPathActive(
+                                        const childLinkActive = isMenuPathActive(
                                           child.path,
                                           location.pathname,
                                           locationSearch,
@@ -527,6 +528,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
                               <NavLink
                                 key={sub.path}
                                 to={sub.path}
+                                end
                                 className={({ isActive: linkActive }) => `
                                   flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-200
                                   ${linkActive
