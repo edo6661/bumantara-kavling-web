@@ -9,7 +9,7 @@ import { usePermission } from '../../hooks/usePermission';
 import { useGetTukangList, useUpsertTukang } from '../../hooks/queries/useTukang';
 import type { TukangData } from '../../services/tukang.service';
 import { handleApiError } from '../../utils/errorHandler';
-import { getNikValidationError, sanitizeNikInput } from '../../utils/nik';
+import { getNikValidationError, isNikDuplicate, sanitizeNikInput } from '../../utils/nik';
 
 interface TukangFormState {
   nik: string;
@@ -82,6 +82,9 @@ const Tukang = () => {
     if (!editingNik) {
       const nikError = getNikValidationError(form.nik);
       if (nikError) next.nik = nikError;
+      else if (isNikDuplicate(form.nik, list, { field: 'nik' })) {
+        next.nik = 'NIK sudah terdaftar';
+      }
     }
     if (!form.nama.trim()) next.nama = 'Nama wajib diisi';
     setErrors(next);

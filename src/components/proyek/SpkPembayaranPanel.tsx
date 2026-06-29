@@ -57,7 +57,7 @@ import {
   type SpkTerminSchemeKey,
 } from '../../utils/spkPembayaran';
 import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi';
-import { isValidNik, normalizeNikInput } from '../../utils/nik';
+import { isValidNik, normalizeNikInput, hasDuplicateNikInList } from '../../utils/nik';
 import {
   formatMandorRekeningLabel,
   pickDefaultMandorRekeningId,
@@ -123,17 +123,29 @@ type ParseUpahBarisResult =
 
 const parseUpahBarisBody = (rows: UpahBarisForm[]): ParseUpahBarisResult => {
   const parsed: SpkPembayaranUpahBarisBody[] = [];
+  const nikList: string[] = [];
+
   for (const row of rows) {
     const nik = normalizeNikInput(row.nik);
     const nama = row.nama.trim();
     if (!nama) return { ok: false, message: 'Nama tukang wajib diisi.' };
     if (!nik) return { ok: false, message: 'NIK tukang wajib diisi.' };
+    // Tukang dari master data boleh memakai NIK lama (≠16 digit); input manual wajib 16 digit.
+    if (row.tukangId === '' && !isValidNik(nik)) {
+      return { ok: false, message: 'NIK tukang harus tepat 16 digit angka.' };
+    }
+    nikList.push(nik);
     parsed.push({
       tukangId: row.tukangId === '' ? null : row.tukangId,
       nik,
       nama,
     });
   }
+
+  if (hasDuplicateNikInList(nikList)) {
+    return { ok: false, message: 'NIK tukang tidak boleh duplikat dalam satu pengajuan.' };
+  }
+
   if (!parsed.length) {
     return { ok: false, message: 'Minimal satu baris tukang wajib diisi.' };
   }

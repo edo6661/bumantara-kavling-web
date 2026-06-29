@@ -12,6 +12,7 @@ import PageLoader from "../PageLoader";
 import { formatRupiah } from "../../utils/formatters";
 import { Edit2, Eye, Key, Trash2, UploadCloud, CheckCircle, FileText, ArrowUpDown, ChevronDown, Banknote, Clock, History, RefreshCw, Users, AlertCircle, UserCheck } from "lucide-react";
 import {
+  useGetAgents,
   useGetAgentsPaginated,
   useCreateAgent,
   useUpdateAgent,
@@ -46,6 +47,12 @@ import { buildPencairanAjukanPreview } from "../../utils/agentPencairanPreview";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
 import type { AgentData, CreateAgentDTO, PenjualanAgentData, PicAgentData } from '../../types/models/agent';
 import { handleApiError } from '../../utils/errorHandler';
+import {
+  getNikValidationError,
+  isNikDuplicate,
+  isNikValueUnchanged,
+  sanitizeNikInput,
+} from '../../utils/nik';
 import CurrencyInput from '../../components/shared/CurrencyInput';
 import {
   applyPerusahaanCommercialToAgent,
@@ -152,6 +159,8 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
     ? limitParam
     : DEFAULT_PAGE_SIZE;
 
+  const { data: allAgents = [] } = useGetAgents();
+
   const { data: agentsResponse, isLoading } = useGetAgentsPaginated({
     page,
     limit,
@@ -254,6 +263,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
   const [formData, setFormData] = useState<AgentFormState>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [editingOriginalNik, setEditingOriginalNik] = useState('');
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentData | null>(null);
@@ -506,9 +516,11 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
         isInHouse: item.isInHouse ?? false,
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }]
       });
+      setEditingOriginalNik(item.nik);
       setIsEditing(true);
     } else {
       setFormData({ ...initialFormState, type: agentType });
+      setEditingOriginalNik('');
       setIsEditing(false);
     }
     setErrors({});
@@ -522,8 +534,9 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    const nextValue = name === 'nik' ? sanitizeNikInput(value) : value;
     setFormData((prev) => {
-      const next = { ...prev, [name]: value };
+      const next = { ...prev, [name]: nextValue };
       if (name === 'perusahaanAgentId' && isAgentPerusahaan(prev.type)) {
         const perusahaan = getPerusahaanById(perusahaanList, value);
         return {
@@ -610,8 +623,20 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
-    if (formData.nik.trim().length !== 16 && formData.nik.trim().length !== 15) newErrors.nik = 'NIK tidak valid (minimal 15-16 digit)';
+    const nikError = getNikValidationError(formData.nik, 'NIK', {
+      unchangedFrom: isEditing ? editingOriginalNik : undefined,
+    });
+    if (nikError) newErrors.nik = nikError;
+    else if (
+      isNikDuplicate(formData.nik, allAgents, {
+        excludeId: isEditing && formData.id ? Number(formData.id) : undefined,
+        field: 'nik',
+        ignorePlaceholderPrefixes: AGENT_PLACEHOLDER_NIK_PREFIXES,
+        unchangedFrom: isEditing ? editingOriginalNik : undefined,
+      })
+    ) {
+      newErrors.nik = 'NIK sudah terdaftar pada agent lain';
+    }
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
     if (isFormPerusahaan && !formData.perusahaanAgentId) newErrors.perusahaanAgentId = 'Wajib memilih perusahaan';
@@ -636,8 +661,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
 
     const isPerusahaan = isFormPerusahaan;
 
-    const payload: CreateAgentDTO = {
-      nik: formData.nik,
+    const basePayload = {
       nama: formData.nama,
       noHp: formData.noHp,
       email: formData.email || undefined,
@@ -650,29 +674,40 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
       pics: validPics.length > 0 ? validPics : undefined,
     };
 
+    const commercialPayload: Partial<CreateAgentDTO> = {};
     if (!isPerusahaan) {
-      payload.isInHouse = formData.isInHouse;
+      commercialPayload.isInHouse = formData.isInHouse;
       if (formData.isInHouse) {
-        payload.feeMarketingPct = IN_HOUSE_FEE_MARKETING_PCT;
-        payload.feeClosingNominal = 0;
+        commercialPayload.feeMarketingPct = IN_HOUSE_FEE_MARKETING_PCT;
+        commercialPayload.feeClosingNominal = 0;
       } else {
         if (formData.feeMarketingPct !== '') {
-          payload.feeMarketingPct = Number(formData.feeMarketingPct);
+          commercialPayload.feeMarketingPct = Number(formData.feeMarketingPct);
         }
         if (formData.feeClosingNominal !== '') {
-          payload.feeClosingNominal = Number(formData.feeClosingNominal);
+          commercialPayload.feeClosingNominal = Number(formData.feeClosingNominal);
         }
       }
       if (formData.potonganPph !== '') {
-        payload.potonganPph = Number(formData.potonganPph);
+        commercialPayload.potonganPph = Number(formData.potonganPph);
       }
     }
 
+    const nikUnchanged = isEditing && isNikValueUnchanged(formData.nik, editingOriginalNik);
+
     try {
       if (isEditing && formData.id) {
-        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+        const updateData: Partial<CreateAgentDTO> = { ...basePayload, ...commercialPayload };
+        if (!nikUnchanged) {
+          updateData.nik = sanitizeNikInput(formData.nik);
+        }
+        await updateMutation.mutateAsync({ id: formData.id as number, data: updateData });
       } else {
-        await createMutation.mutateAsync(payload);
+        await createMutation.mutateAsync({
+          ...basePayload,
+          ...commercialPayload,
+          nik: sanitizeNikInput(formData.nik),
+        });
       }
       closeModal();
     } catch (error: any) {
@@ -1155,7 +1190,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                 />
               )}
 
-              <Input label="NIK KTP" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan NIK 16 Digit" />
+              <Input label="NIK KTP" name="nik" value={formData.nik} onChange={handleChange} error={errors.nik} placeholder="Masukkan NIK 16 Digit" maxLength={16} inputMode="numeric" />
               <Input label="Nama Lengkap / Perusahaan" name="nama" value={formData.nama} onChange={handleChange} error={errors.nama} placeholder="Sesuai KTP" />
               <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
               <Input label="Email (Untuk Login)" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} placeholder="email@example.com" />

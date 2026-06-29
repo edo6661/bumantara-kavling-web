@@ -35,6 +35,12 @@ import {
 import type { CustomerData, CreateCustomerDTO, CustomerDocType } from "../../services/customer.service";
 import { handleApiError } from '../../utils/errorHandler';
 import { usePermission } from '../../hooks/usePermission';
+import {
+  getOptionalNikValidationError,
+  isNikDuplicate,
+  isNikValueUnchanged,
+  sanitizeNikInput,
+} from '../../utils/nik';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
@@ -139,6 +145,7 @@ const Administrasi = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null);
+  const [editingDisplayedNik, setEditingDisplayedNik] = useState('');
   const [formData, setFormData] = useState<CreateCustomerDTO>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof CreateCustomerDTO, string>>>({});
   const [newDocName, setNewDocName] = useState("");
@@ -494,9 +501,11 @@ const Administrasi = () => {
 
   const openEditModal = (item?: CustomerData) => {
     if (item) {
+      const displayedNik = hasPlaceholderNik(item.nikKtp, CUSTOMER_PLACEHOLDER_NIK_PREFIXES) ? '' : item.nikKtp;
       setSelectedCustomer(item);
+      setEditingDisplayedNik(displayedNik);
       setFormData({
-        nikKtp: item.nikKtp,
+        nikKtp: displayedNik,
         nama: item.nama,
         noHp: item.noHp,
         email: item.email || '',
@@ -509,6 +518,7 @@ const Administrasi = () => {
       });
     } else {
       setSelectedCustomer(null);
+      setEditingDisplayedNik('');
       setFormData(initialFormState);
     }
     setErrors({});
@@ -523,7 +533,8 @@ const Administrasi = () => {
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const nextValue = name === 'nikKtp' ? sanitizeNikInput(value) : value;
+    setFormData(prev => ({ ...prev, [name]: nextValue }));
     if (errors[name as keyof CreateCustomerDTO]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -532,7 +543,23 @@ const Administrasi = () => {
   const validateForm = () => {
     const newErrors: Partial<Record<keyof CreateCustomerDTO, string>> = {};
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
-    if (formData.nikKtp.length !== 16) newErrors.nikKtp = 'NIK harus 16 digit';
+
+    const nikError = getOptionalNikValidationError(formData.nikKtp, 'NIK', {
+      unchangedFrom: selectedCustomer ? editingDisplayedNik : undefined,
+    });
+    if (nikError) newErrors.nikKtp = nikError;
+    else if (
+      sanitizeNikInput(formData.nikKtp) &&
+      isNikDuplicate(formData.nikKtp, allCustomers, {
+        excludeId: selectedCustomer?.id,
+        field: 'nikKtp',
+        ignorePlaceholderPrefixes: CUSTOMER_PLACEHOLDER_NIK_PREFIXES,
+        unchangedFrom: selectedCustomer ? editingDisplayedNik : undefined,
+      })
+    ) {
+      newErrors.nikKtp = 'NIK sudah terdaftar pada customer lain';
+    }
+
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
     if (!formData.alamatKtp.trim()) newErrors.alamatKtp = 'Alamat KTP wajib diisi';
 
@@ -546,10 +573,23 @@ const Administrasi = () => {
     if (!validateForm()) return;
 
     try {
+      const nikDigits = sanitizeNikInput(formData.nikKtp);
+      const nikChanged = selectedCustomer
+        ? !isNikValueUnchanged(formData.nikKtp, editingDisplayedNik)
+        : true;
+
       if (selectedCustomer) {
-        await updateMutation.mutateAsync({ id: selectedCustomer.id, data: formData });
+        const { nikKtp: _omitNik, ...rest } = formData;
+        const updateData: Partial<CreateCustomerDTO> = { ...rest };
+        if (nikChanged && nikDigits) {
+          updateData.nikKtp = nikDigits;
+        }
+        await updateMutation.mutateAsync({ id: selectedCustomer.id, data: updateData });
       } else {
-        await createMutation.mutateAsync(formData);
+        await createMutation.mutateAsync({
+          ...formData,
+          nikKtp: nikDigits,
+        });
       }
       setIsEditModalOpen(false);
     } catch (err: any) {
@@ -735,7 +775,7 @@ const Administrasi = () => {
         <form onSubmit={handleEditSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input label="Nama Sesuai KTP" name="nama" value={formData.nama} onChange={handleEditChange} error={errors.nama} placeholder="Masukkan nama lengkap" />
-            <Input label="NIK (16 Digit)" name="nikKtp" value={formData.nikKtp} onChange={handleEditChange} error={errors.nikKtp} maxLength={16} placeholder="Masukkan 16 digit NIK" />
+            <Input label="NIK (16 Digit, Opsional)" name="nikKtp" value={formData.nikKtp} onChange={handleEditChange} error={errors.nikKtp} maxLength={16} placeholder="Kosongkan jika belum tersedia" inputMode="numeric" />
             <Input label="No. WhatsApp / HP" name="noHp" value={formData.noHp} onChange={handleEditChange} error={errors.noHp} placeholder="08xxxxxxxxxx" />
             <Input label="Email" name="email" type="email" value={formData.email} onChange={handleEditChange} error={errors.email} placeholder="email@example.com" />
             <Input label="Pekerjaan" name="pekerjaan" value={formData.pekerjaan} onChange={handleEditChange} error={errors.pekerjaan} placeholder="PNS / Swasta / Wiraswasta" />

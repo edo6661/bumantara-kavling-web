@@ -15,6 +15,7 @@ import { formatRupiah } from '../../utils/formatters';
 import { Settings, UploadCloud, Users, ShoppingCart, AlertCircle, FileText, Building2, Pencil } from 'lucide-react';
 import { handleApiError } from '../../utils/errorHandler';
 import { isAgentPerusahaan } from '../../utils/agentCommercialProfile';
+import { getNikValidationError, sanitizeNikInput } from '../../utils/nik';
 import type { AgentData } from '../../types/models/agent';
 
 const AgentProfile = () => {
@@ -103,6 +104,18 @@ const AgentProfile = () => {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const nextErrors: Record<string, string> = {};
+    if (profileForm.nik.trim() !== agentData.nik) {
+      const nikError = getNikValidationError(profileForm.nik, 'NIK', {
+        unchangedFrom: agentData.nik,
+      });
+      if (nikError) nextErrors.nik = nikError;
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setProfileErrors(nextErrors);
+      return;
+    }
+
     const payload: {
       nik?: string;
       nama?: string;
@@ -113,7 +126,7 @@ const AgentProfile = () => {
       atasNamaRekening?: string;
     } = {};
 
-    if (profileForm.nik.trim() !== agentData.nik) payload.nik = profileForm.nik.trim();
+    if (profileForm.nik.trim() !== agentData.nik) payload.nik = sanitizeNikInput(profileForm.nik);
     if (profileForm.nama.trim() !== agentData.nama) payload.nama = profileForm.nama.trim();
     if (profileForm.noHp.trim() !== agentData.noHp) payload.noHp = profileForm.noHp.trim();
     if (profileForm.alamat.trim() !== (agentData.alamat || '')) {
@@ -504,11 +517,12 @@ const AgentProfile = () => {
             maxLength={16}
             error={profileErrors.nik}
             onChange={(e) => {
-              setProfileForm({ ...profileForm, nik: e.target.value });
+              setProfileForm({ ...profileForm, nik: sanitizeNikInput(e.target.value) });
               if (profileErrors.nik) setProfileErrors((prev) => ({ ...prev, nik: undefined }));
             }}
             placeholder="16 Digit NIK"
             required
+            inputMode="numeric"
           />
 
           <Input

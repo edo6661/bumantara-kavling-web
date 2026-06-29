@@ -6,15 +6,23 @@ import {
   useDeleteAgent,
   useUploadAgentDoc,
   useGenerateAgentAccount,
+  useGetAgents,
 } from './queries/useAgent';
 import { useGetPerusahaanAgents } from './queries/usePerusahaanAgent';
 import type { AgentData, CreateAgentDTO, PicAgentData } from '../types/models/agent';
 import { handleApiError } from '../utils/errorHandler';
 import {
+  getNikValidationError,
+  isNikDuplicate,
+  isNikValueUnchanged,
+  sanitizeNikInput,
+} from '../utils/nik';
+import {
   applyPerusahaanCommercialToAgent,
   getPerusahaanById,
   isAgentPerusahaan,
 } from '../utils/agentCommercialProfile';
+import { AGENT_PLACEHOLDER_NIK_PREFIXES } from '../utils/pageSummaries';
 import type { AgentFormState, UseAgentCrudOptions } from '../components/marketing/agentCrudTypes';
 
 type AgentCommercialFormFields = Pick<
@@ -85,6 +93,7 @@ export interface OpenAgentModalOptions {
 
 export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAgentCrudOptions) {
   const { data: perusahaanList = [] } = useGetPerusahaanAgents();
+  const { data: allAgents = [] } = useGetAgents();
   const createMutation = useCreateAgent();
   const updateMutation = useUpdateAgent();
   const deleteMutation = useDeleteAgent();
@@ -95,6 +104,7 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
   const [formData, setFormData] = useState<AgentFormState>(() => createInitialFormState(defaultAgentType));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [editingOriginalNik, setEditingOriginalNik] = useState('');
 
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedAgentDetail, setSelectedAgentDetail] = useState<AgentData | null>(null);
@@ -149,6 +159,7 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
         isPkp: commercial.isPkp ?? false,
         pics: item.pics && item.pics.length > 0 ? item.pics : [{ nama: '', noHp: '', alamat: '' }],
       });
+      setEditingOriginalNik(item.nik);
       setIsEditing(true);
     } else {
       const perusahaanId = options?.perusahaanAgentId;
@@ -161,6 +172,7 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
           ? commercialFieldsFromPerusahaan(perusahaan)
           : {}),
       });
+      setEditingOriginalNik('');
       setIsEditing(false);
     }
     setErrors({});
@@ -174,8 +186,9 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    const nextValue = name === 'nik' ? sanitizeNikInput(value) : value;
     setFormData((prev) => {
-      const next = { ...prev, [name]: value };
+      const next = { ...prev, [name]: nextValue };
       if (name === 'perusahaanAgentId' && isAgentPerusahaan(prev.type)) {
         const perusahaan = getPerusahaanById(perusahaanList, value);
         return {
@@ -264,9 +277,19 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.nik.trim()) newErrors.nik = 'NIK wajib diisi';
-    if (formData.nik.trim().length !== 16 && formData.nik.trim().length !== 15) {
-      newErrors.nik = 'NIK tidak valid (minimal 15-16 digit)';
+    const nikError = getNikValidationError(formData.nik, 'NIK', {
+      unchangedFrom: isEditing ? editingOriginalNik : undefined,
+    });
+    if (nikError) newErrors.nik = nikError;
+    else if (
+      isNikDuplicate(formData.nik, allAgents, {
+        excludeId: isEditing && formData.id ? Number(formData.id) : undefined,
+        field: 'nik',
+        ignorePlaceholderPrefixes: AGENT_PLACEHOLDER_NIK_PREFIXES,
+        unchangedFrom: isEditing ? editingOriginalNik : undefined,
+      })
+    ) {
+      newErrors.nik = 'NIK sudah terdaftar pada agent lain';
     }
     if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi';
     if (!formData.noHp.trim()) newErrors.noHp = 'No HP wajib diisi';
@@ -301,8 +324,7 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
     const isPerusahaan = isAgentPerusahaan(formData.type);
     const perusahaanAgentId = toPayloadPerusahaanAgentId(formData.type, formData.perusahaanAgentId);
 
-    const payload: CreateAgentDTO = {
-      nik: formData.nik,
+    const basePayload = {
       nama: formData.nama,
       noHp: formData.noHp,
       email: formData.email || undefined,
@@ -313,19 +335,31 @@ export function useAgentCrud({ defaultAgentType, lockAgentType = false }: UseAge
       noRekening: isPerusahaan ? null : (formData.noRekening || null),
       atasNamaRekening: isPerusahaan ? null : (formData.atasNamaRekening || null),
       pics: validPics.length > 0 ? validPics : undefined,
-    };
+    } satisfies Omit<CreateAgentDTO, 'nik'>;
 
-    if (!isPerusahaan) {
-      if (formData.feeMarketingPct !== '') payload.feeMarketingPct = Number(formData.feeMarketingPct);
-      if (formData.feeClosingNominal !== '') payload.feeClosingNominal = Number(formData.feeClosingNominal);
-      if (formData.potonganPph !== '') payload.potonganPph = Number(formData.potonganPph);
-    }
+    const commercialPayload = !isPerusahaan
+      ? {
+          ...(formData.feeMarketingPct !== '' ? { feeMarketingPct: Number(formData.feeMarketingPct) } : {}),
+          ...(formData.feeClosingNominal !== '' ? { feeClosingNominal: Number(formData.feeClosingNominal) } : {}),
+          ...(formData.potonganPph !== '' ? { potonganPph: Number(formData.potonganPph) } : {}),
+        }
+      : {};
+
+    const nikUnchanged = isEditing && isNikValueUnchanged(formData.nik, editingOriginalNik);
 
     try {
       if (isEditing && formData.id) {
-        await updateMutation.mutateAsync({ id: formData.id as number, data: payload });
+        const updateData: Partial<CreateAgentDTO> = { ...basePayload, ...commercialPayload };
+        if (!nikUnchanged) {
+          updateData.nik = sanitizeNikInput(formData.nik);
+        }
+        await updateMutation.mutateAsync({ id: formData.id as number, data: updateData });
       } else {
-        await createMutation.mutateAsync(payload);
+        await createMutation.mutateAsync({
+          ...basePayload,
+          ...commercialPayload,
+          nik: sanitizeNikInput(formData.nik),
+        });
       }
       closeModal();
     } catch (error: any) {

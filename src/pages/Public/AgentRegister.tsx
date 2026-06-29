@@ -8,6 +8,7 @@ import { authService, type RegisterAgentPayload } from '../../services/auth.serv
 import SignatureCanvas from 'react-signature-canvas';
 import api from '../../lib/axios';
 import { handleApiError } from '../../utils/errorHandler';
+import { getNikValidationError, sanitizeNikInput } from '../../utils/nik';
 
 const AgentRegister = () => {
   const [formData, setFormData] = useState<RegisterAgentPayload>({
@@ -69,11 +70,18 @@ const AgentRegister = () => {
       return;
     }
 
+    const nikError = getNikValidationError(formData.nik);
+    if (nikError) {
+      setFieldErrors({ nik: nikError });
+      setError('NIK tidak valid. Mohon periksa kembali.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const ttdBase64 = sigCanvas.current?.getCanvas().toDataURL('image/png');
-      const payload = { ...formData, ttdData: ttdBase64 };
+      const payload = { ...formData, nik: sanitizeNikInput(formData.nik), ttdData: ttdBase64 };
 
       await authService.registerAgent(payload);
 
@@ -106,7 +114,9 @@ const AgentRegister = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const nextValue = name === 'nik' ? sanitizeNikInput(value) : value;
+    setFormData({ ...formData, [name]: nextValue });
 
     // ✅ KODE YANG DITAMBAHKAN: Hapus pesan error saat user mulai mengetik ulang
     if (fieldErrors[e.target.name]) {
@@ -170,6 +180,7 @@ const AgentRegister = () => {
               placeholder="16 Digit NIK"
               required
               maxLength={16}
+              inputMode="numeric"
             />
 
             <div className="flex flex-col">

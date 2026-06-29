@@ -29,6 +29,7 @@ import { usePermission } from "../../hooks/usePermission";
 import { useGetMyAgentProfile } from "../../hooks/queries/useAgentPortal";
 import SignatureCanvas from 'react-signature-canvas';
 import { handleApiError } from '../../utils/errorHandler';
+import { getOptionalNikValidationError, isNikValueUnchanged, sanitizeNikInput } from '../../utils/nik';
 import type { AgentData } from '../../types/models/agent';
 import {
   goToTransaksiTab,
@@ -253,6 +254,7 @@ const Penjualan = () => {
   const [formData, setFormData] = useState<PenjualanData>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof PenjualanData, string>>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [editingOriginalNoIdentitas, setEditingOriginalNoIdentitas] = useState('');
   const [originalKavling, setOriginalKavling] = useState({ blok: '', unit: '' });
 
   const [printData, setPrintData] = useState<any>(null);
@@ -795,6 +797,7 @@ const Penjualan = () => {
         plafonAcc: Number(item.plafonAcc) || 0,
       });
       setOriginalKavling({ blok: item.blok, unit: item.nomorUnit });
+      setEditingOriginalNoIdentitas(item.noIdentitas ?? '');
       setIsEditing(true);
 
 
@@ -838,6 +841,7 @@ const Penjualan = () => {
         agent: isAgentUser ? (myAgentProfile?.nama ?? '') : '',
       });
       setOriginalKavling({ blok: '', unit: '' });
+      setEditingOriginalNoIdentitas('');
       setIsEditing(false);
       setIsBiayaKprNol(false);
     }
@@ -963,6 +967,7 @@ const Penjualan = () => {
     setIsModalOpen(false);
     setFormData(initialFormState);
     setIsEditing(false);
+    setEditingOriginalNoIdentitas('');
     setIsNewAgent(false);
     setIsBiayaKprNol(false);
     setErrors({});
@@ -1172,8 +1177,10 @@ const Penjualan = () => {
     const newErrors: Partial<Record<keyof PenjualanData, string>> = {};
 
     if (!formData.nama?.trim()) newErrors.nama = 'Nama wajib diisi';
-    const nik = formData.noIdentitas?.trim();
-    if (nik && nik.length < 16) newErrors.noIdentitas = 'NIK minimal 16 digit';
+    const nikError = getOptionalNikValidationError(formData.noIdentitas ?? '', 'NIK', {
+      unchangedFrom: isEditing ? editingOriginalNoIdentitas : undefined,
+    });
+    if (nikError) newErrors.noIdentitas = nikError;
     if (!formData.perumahan?.trim()) newErrors.perumahan = 'Perumahan wajib diisi';
     if (!formData.blok?.trim()) newErrors.blok = 'Blok wajib diisi';
     if (!formData.nomorUnit?.trim()) newErrors.nomorUnit = 'Nomor Unit wajib diisi';
@@ -1265,9 +1272,14 @@ const Penjualan = () => {
 
     try {
       if (isEditing && formData.id) {
+        const noIdentitasTrimmed = formData.noIdentitas?.trim() ?? '';
+        const noIdentitasChanged = !isNikValueUnchanged(
+          noIdentitasTrimmed,
+          editingOriginalNoIdentitas,
+        );
+
         const updatePayload: any = {
           nama: formData.nama,
-          noIdentitas: formData.noIdentitas?.trim() ?? '',
           noTelepon: formData.noTelepon,
           alamat: formData.alamat,
           perusahaan: formData.perusahaan || undefined,
@@ -1305,12 +1317,17 @@ const Penjualan = () => {
           ].filter((b) => b.nama.trim() !== '' && b.nominal > 0),
         };
 
+        if (noIdentitasChanged) {
+          const sanitizedNik = sanitizeNikInput(noIdentitasTrimmed);
+          updatePayload.noIdentitas = sanitizedNik || noIdentitasTrimmed;
+        }
+
         await updateMutation.mutateAsync({ id: formData.id, data: updatePayload });
         closeModal();
         setKeteranganRevisi('');
       } else {
         const payload: any = {
-          noIdentitas: formData.noIdentitas?.trim() || undefined,
+          noIdentitas: sanitizeNikInput(formData.noIdentitas?.trim() ?? '') || undefined,
           nama: formData.nama,
           noTelepon: formData.noTelepon,
           alamat: formData.alamat,
