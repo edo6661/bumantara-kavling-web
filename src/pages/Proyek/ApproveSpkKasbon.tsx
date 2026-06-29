@@ -57,7 +57,7 @@ const STEP_CONFIG: Record<
   },
   admin: {
     status: 'MENUNGGU_APPROVAL_ADMIN',
-    title: 'Approve Pembayaran SPK (Admin)',
+    title: 'Approve Pembayaran SPK (PM)',
     subtitle:
       'Review pengajuan yang sudah disetujui pengawas. Setelah disetujui admin, pengajuan akan muncul di Finance → Bayar SPK.',
     emptyMessage: 'Tidak ada pengajuan pembayaran SPK yang menunggu persetujuan admin.',

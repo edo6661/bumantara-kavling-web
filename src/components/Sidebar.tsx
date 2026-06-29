@@ -138,7 +138,7 @@ const menuItems: MenuItem[] = [
         children: [
           { title: 'Approve SPK', path: '/proyek/approve-spk', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
           { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
-          { title: 'Approve Pembayaran SPK (Admin)', path: '/proyek/approve-kasbon-admin', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
+          { title: 'Approve Pembayaran SPK (PM)', path: '/proyek/approve-kasbon-admin', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
         ],
       },
       {
