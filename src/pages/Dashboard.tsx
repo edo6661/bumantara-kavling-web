@@ -191,7 +191,7 @@ const Dashboard = () => {
           <div className="space-y-4">
             <DashboardMonthlyReportCard
               title={`Pendapatan Tahun ${year}`}
-              subtitle="Nominal tagihan customer status Lunas (booking fee, DP, cicilan, dll.) per bulan dikonfirmasi"
+              subtitle="Nominal tagihan customer status Lunas (booking fee, DP, cicilan, dll.) per bulan berdasarkan tanggal pembayaran (jatuh tempo)"
               year={year}
               rows={executive.pendapatanTahunIni}
               totalLabel="Total Pendapatan"
