@@ -8,6 +8,8 @@ import { AGENT_PENCAIRAN_KEYS } from '../hooks/queries/useAgentPencairan';
 
 const SPK_NOTIFICATION_TYPES = new Set<NotificationType>([
   'SPK_PENGAJUAN_BARU',
+  'SPK_MENUNGGU_APPROVAL',
+  'SPK_APPROVAL_SELESAI',
   'SPK_DISETUJUI',
   'SPK_DIBAYAR',
 ]);
@@ -40,7 +42,7 @@ export async function invalidateQueriesForNotification(
     tasks.push(queryClient.invalidateQueries({ queryKey: AGENT_PENCAIRAN_KEYS.all }));
   }
 
-  if (notif.linkPath === '/proyek/approve-kasbon' || notif.linkPath === '/finance/bayar-spk') {
+  if (notif.linkPath === '/proyek/approve-spk' || notif.linkPath === '/proyek/approve-kasbon' || notif.linkPath === '/finance/bayar-spk') {
     tasks.push(queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all }));
   }
 

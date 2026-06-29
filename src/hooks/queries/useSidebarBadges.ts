@@ -3,12 +3,14 @@ import { useQueries, type QueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { canReadResource } from '../../utils/permissions';
 import { spkPembayaranService } from '../../services/spkPembayaran.service';
+import { spkService } from '../../services/spk.service';
 import { tagihanService } from '../../services/tagihan.service';
 import { kodeBillingPphService } from '../../services/kodeBillingPph.service';
 import { agentPencairanService } from '../../services/agentPencairan.service';
 
 export const SIDEBAR_BADGE_KEYS = {
   all: ['sidebar-badges'] as const,
+  spkApproval: () => [...SIDEBAR_BADGE_KEYS.all, 'spk-approval'] as const,
   spkApprove: () => [...SIDEBAR_BADGE_KEYS.all, 'spk-approve'] as const,
   spkBayar: () => [...SIDEBAR_BADGE_KEYS.all, 'spk-bayar'] as const,
   tagihanApprove: () => [...SIDEBAR_BADGE_KEYS.all, 'tagihan-approve'] as const,
@@ -20,6 +22,7 @@ export const invalidateSidebarBadges = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({ queryKey: SIDEBAR_BADGE_KEYS.all });
 
 type BadgeCounts = {
+  spkApproval: number;
   spkApprove: number;
   spkBayar: number;
   tagihanApprove: number;
@@ -29,6 +32,7 @@ type BadgeCounts = {
 
 /** Path → jumlah item yang menunggu tindakan user */
 const PATH_BADGE_MAP: Record<string, keyof BadgeCounts> = {
+  '/proyek/approve-spk': 'spkApproval',
   '/proyek/approve-kasbon': 'spkApprove',
   '/finance/bayar-spk': 'spkBayar',
   '/finance/approve-pembayaran': 'tagihanApprove',
@@ -43,13 +47,17 @@ const SECTION_PATHS: Record<string, string[]> = {
     '/finance/bayar-spk',
     '/finance/bayar-agent',
   ],
-  Proyek: ['/proyek/approve-kasbon'],
+  Proyek: ['/proyek/approve-spk', '/proyek/approve-kasbon'],
 };
 
 const STAFF_ROLES = new Set(['ADMIN', 'SUPERADMIN', 'FINANCE', 'PENGAWAS', 'MANDOR']);
 
 export const useSidebarBadges = () => {
   const { user, isAuthenticated } = useAuth();
+
+  const canSpkApproval =
+    user?.role === 'ADMIN' ||
+    user?.role === 'SUPERADMIN';
 
   const canSpkApprove =
     user?.role === 'PENGAWAS' ||
@@ -83,6 +91,20 @@ export const useSidebarBadges = () => {
 
   const results = useQueries({
     queries: [
+      {
+        queryKey: SIDEBAR_BADGE_KEYS.spkApproval(),
+        queryFn: async () => {
+          const res = await spkService.getPaginated({
+            page: 1,
+            limit: 1,
+            statusApproval: 'PENDING',
+          });
+          return res.meta.totalItems;
+        },
+        enabled: enabled && canSpkApproval,
+        staleTime: 30_000,
+        refetchOnWindowFocus: true,
+      },
       {
         queryKey: SIDEBAR_BADGE_KEYS.spkApprove(),
         queryFn: async () => {
@@ -158,11 +180,12 @@ export const useSidebarBadges = () => {
 
   const counts = useMemo(
     () => ({
-      spkApprove: results[0].data ?? 0,
-      spkBayar: results[1].data ?? 0,
-      tagihanApprove: results[2].data ?? 0,
-      kodeBillingPph: results[3].data ?? 0,
-      agentPencairanBayar: results[4].data ?? 0,
+      spkApproval: results[0].data ?? 0,
+      spkApprove: results[1].data ?? 0,
+      spkBayar: results[2].data ?? 0,
+      tagihanApprove: results[3].data ?? 0,
+      kodeBillingPph: results[4].data ?? 0,
+      agentPencairanBayar: results[5].data ?? 0,
     }),
     [
       results[0].data,
@@ -170,6 +193,7 @@ export const useSidebarBadges = () => {
       results[2].data,
       results[3].data,
       results[4].data,
+      results[5].data,
     ],
   );
 

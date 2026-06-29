@@ -3,6 +3,8 @@ import type { SpkPembayaranData } from "./spkPembayaran.service";
 
 export type SpkJenis = "RUMAH" | "INFRASTRUKTUR";
 
+export type SpkApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export type SpkTerminSchemeKey = "RUMAH_DEFAULT" | "INFRA_20_6" | "INFRA_30_4";
 
 export interface SpkKavlingItem {
@@ -54,6 +56,14 @@ export interface SpkData {
   fileSpk: string | null;
   mandorId: number;
   mandor: { id: number; username: string };
+  /** Di prod lama / sebelum migration, field ini bisa belum ada — anggap APPROVED */
+  statusApproval?: SpkApprovalStatus;
+  diajukanOlehId: number | null;
+  disetujuiOlehId: number | null;
+  tanggalDisetujui: string | null;
+  catatanPenolakan: string | null;
+  diajukanOleh: { id: number; username: string } | null;
+  disetujuiOleh: { id: number; username: string } | null;
   kavlingItems: SpkKavlingItem[];
   pekerjaanInfraItems: SpkPekerjaanInfraItem[];
   pembayaranList?: SpkPembayaranData[];
@@ -112,6 +122,7 @@ export interface GetSpkParams {
   limit?: number;
   search?: string;
   jenis?: SpkJenis;
+  statusApproval?: SpkApprovalStatus;
   orderBy?: "mandor:asc" | "mandor:desc" | "id:desc";
 }
 
@@ -213,5 +224,17 @@ export const spkService = {
   delete: async (id: number) => {
     const response = await api.delete(`/spk/${id}`);
     return response.data;
+  },
+
+  approve: async (id: number): Promise<SpkData> => {
+    const response = await api.post(`/spk/${id}/approve`);
+    return response.data.data;
+  },
+
+  reject: async (id: number, catatanPenolakan?: string): Promise<SpkData> => {
+    const response = await api.post(`/spk/${id}/reject`, {
+      catatanPenolakan: catatanPenolakan || undefined,
+    });
+    return response.data.data;
   },
 };

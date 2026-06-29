@@ -23,6 +23,7 @@ import { useSidebarBadges } from '../hooks/queries/useSidebarBadges';
 import SidebarBadge from './ui/SidebarBadge';
 
 const FINANCE_STAFF_ROLES = ['FINANCE', 'ADMIN', 'SUPERADMIN'] as const;
+const ADMIN_STAFF_ROLES = ['ADMIN', 'SUPERADMIN'] as const;
 
 type SubmenuItem =
   | {
@@ -123,6 +124,7 @@ const menuItems: MenuItem[] = [
     icon: <FolderKanban size={18} strokeWidth={1.75} />,
     submenus: [
       { title: 'SPK', path: '/proyek/spk', resource: 'SPK' },
+      { title: 'Approve SPK', path: '/proyek/approve-spk', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
       { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
       {
         title: 'Pembayaran',

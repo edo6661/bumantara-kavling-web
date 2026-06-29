@@ -24,6 +24,7 @@ const AgentRegisterSuccess = lazy(() => import('./pages/Public/AgentRegisterSucc
 const FeeAgent = lazy(() => import('./pages/Marketing/FeeAgent'));
 const SPK = lazy(() => import('./pages/Proyek/SPK'));
 const ApproveSpkKasbon = lazy(() => import('./pages/Proyek/ApproveSpkKasbon'));
+const ApproveSpk = lazy(() => import('./pages/Proyek/ApproveSpk'));
 const Tukang = lazy(() => import('./pages/Proyek/Tukang'));
 const VerifyDocument = lazy(() => import('./pages/Public/VerifyDocument'));
 const GantiKavling = lazy(() => import('./pages/Management/GantiKavling'));
@@ -157,6 +158,7 @@ const App = () => {
                 <Route path="marketing/fee-agent" element={<PermissionGuard resource="FEE_AGENT"><FeeAgent /></PermissionGuard>} />
                 <Route path="marketing/perusahaan" element={<Navigate to="/marketing/agents/perusahaan?tab=perusahaan" replace />} />
                 <Route path="proyek/spk" element={<PermissionGuard resource="SPK"><SPK /></PermissionGuard>} />
+                <Route path="proyek/approve-spk" element={<PermissionGuard resource="SPK" roles={['ADMIN', 'SUPERADMIN']}><ApproveSpk /></PermissionGuard>} />
                 <Route path="proyek/approve-kasbon" element={<PermissionGuard resource="SPK"><ApproveSpkKasbon /></PermissionGuard>} />
                 <Route path="proyek/tukang" element={<PermissionGuard resource="SPK"><Tukang /></PermissionGuard>} />
                 <Route path="proyek/pembayaran/upah-tukang" element={<PermissionGuard roles={['FINANCE', 'ADMIN', 'SUPERADMIN']}><UpahTukang /></PermissionGuard>} />

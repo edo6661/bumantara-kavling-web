@@ -26,6 +26,18 @@ const TYPE_CONFIG: Record<
     text: 'text-orange-600',
     label: 'SPK',
   },
+  SPK_MENUNGGU_APPROVAL: {
+    icon: FileText,
+    bg: 'bg-amber-100',
+    text: 'text-amber-700',
+    label: 'SPK',
+  },
+  SPK_APPROVAL_SELESAI: {
+    icon: ClipboardCheck,
+    bg: 'bg-sky-100',
+    text: 'text-sky-700',
+    label: 'SPK',
+  },
   SPK_DISETUJUI: {
     icon: ClipboardCheck,
     bg: 'bg-blue-100',

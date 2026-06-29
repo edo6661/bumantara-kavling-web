@@ -9,6 +9,7 @@ import {
 import { PENJUALAN_KEYS } from "./usePenjualan";
 import { PROGRESS_PROYEK_KEYS } from "./useProgressProyek";
 import { KAVLING_KEYS } from "./useKavling";
+import { invalidateSidebarBadges } from "./useSidebarBadges";
 
 export const SPK_KEYS = {
   all: ["spk"] as const,
@@ -57,6 +58,7 @@ export const useCreateSpk = () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      invalidateSidebarBadges(queryClient);
     },
   });
 };
@@ -87,6 +89,34 @@ export const useDeleteSpk = () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+    },
+  });
+};
+
+export const useApproveSpk = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => spkService.approve(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: [...SPK_KEYS.all, "list"] });
+      invalidateSidebarBadges(queryClient);
+    },
+  });
+};
+
+export const useRejectSpk = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, catatanPenolakan }: { id: number; catatanPenolakan?: string }) =>
+      spkService.reject(id, catatanPenolakan),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SPK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: [...SPK_KEYS.all, "list"] });
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      invalidateSidebarBadges(queryClient);
     },
   });
 };

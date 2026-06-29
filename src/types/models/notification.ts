@@ -1,5 +1,7 @@
 export type NotificationType =
   | 'SPK_PENGAJUAN_BARU'
+  | 'SPK_MENUNGGU_APPROVAL'
+  | 'SPK_APPROVAL_SELESAI'
   | 'SPK_DISETUJUI'
   | 'SPK_DIBAYAR'
   | 'UPLOAD_BUKTI'

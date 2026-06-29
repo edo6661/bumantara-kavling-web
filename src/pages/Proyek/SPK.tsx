@@ -36,7 +36,7 @@ import {
   useGetSpkPaginated,
   useUpdateSpk,
 } from "../../hooks/queries/useSpk";
-import type { GetSpkParams, SpkData } from '../../services/spk.service';
+import type { GetSpkParams, SpkApprovalStatus, SpkData } from '../../services/spk.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
 import SpkInfrastrukturPanel from './SpkInfrastrukturPanel';
 import CollapsibleDetailSection from '../../components/shared/CollapsibleDetailSection';
@@ -318,6 +318,28 @@ const detailTdClass = 'px-2.5 py-1.5 border border-slate-200 text-xs text-slate-
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 10;
 
+const SPK_APPROVAL_LABEL: Record<
+  SpkApprovalStatus,
+  { text: string; className: string }
+> = {
+  PENDING: { text: 'Menunggu Approve', className: 'bg-amber-100 text-amber-800' },
+  APPROVED: { text: 'Disetujui', className: 'bg-emerald-100 text-emerald-800' },
+  REJECTED: { text: 'Ditolak', className: 'bg-red-100 text-red-800' },
+};
+
+/** SPK prod sebelum migration dianggap sudah disetujui */
+const resolveSpkApprovalStatus = (status?: SpkData['statusApproval']): SpkApprovalStatus =>
+  status ?? 'APPROVED';
+
+const SpkApprovalBadge = ({ status }: { status: SpkData['statusApproval'] }) => {
+  const cfg = SPK_APPROVAL_LABEL[resolveSpkApprovalStatus(status)];
+  return (
+    <span className={`inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded-md whitespace-nowrap ${cfg.className}`}>
+      {cfg.text}
+    </span>
+  );
+};
+
 const SPK = () => {
   const { user, selectedPerumahan } = useAuth();
   const { canRead: canReadSpk } = usePermission('SPK');
@@ -325,6 +347,7 @@ const SPK = () => {
   const canEditSpkProgress = canManageSpk;
 
   const canAjukanPembayaranFor = (spk: SpkData) => {
+    if (resolveSpkApprovalStatus(spk.statusApproval) !== 'APPROVED') return false;
     if (!user) return false;
     if (user.role === 'MANDOR') return spk.mandorId === user.id;
     if (user.role === 'CUSTOMER') return false;
@@ -565,6 +588,12 @@ const SPK = () => {
           {formatShortNoSpk(val)}
         </span>
       ),
+    },
+    {
+      header: 'Status',
+      accessor: 'statusApproval',
+      minWidth: 'min-w-[6.5rem]',
+      render: (status: SpkData['statusApproval']) => <SpkApprovalBadge status={status} />,
     },
     {
       header: 'Mandor',
@@ -1067,6 +1096,7 @@ const SPK = () => {
         await updateMutation.mutateAsync({ id: editingId, data: payload });
       } else {
         await createMutation.mutateAsync(payload);
+        alert('SPK berhasil diajukan dan menunggu persetujuan pengawas.');
       }
       closeModal();
     } catch (err: unknown) {
