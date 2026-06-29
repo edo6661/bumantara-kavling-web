@@ -14,10 +14,14 @@ export function getSpkPembayaranDokumenItems(
 ): SpkPembayaranDokumenItem[] {
   const items: SpkPembayaranDokumenItem[] = [];
   if (row.dokumenInvoice) {
-    items.push({ key: 'invoice', label: 'Invoice', url: row.dokumenInvoice });
+    items.push({
+      key: 'invoice',
+      label: row.dokumenMaterial ? 'Inv. Material' : 'Invoice',
+      url: row.dokumenInvoice,
+    });
   }
   if (row.dokumenMaterial) {
-    items.push({ key: 'material', label: 'Material', url: row.dokumenMaterial });
+    items.push({ key: 'material', label: 'Dok. Material', url: row.dokumenMaterial });
   }
   if (row.dokumenBeritaAcara) {
     items.push({ key: 'ba', label: 'BA', url: row.dokumenBeritaAcara });

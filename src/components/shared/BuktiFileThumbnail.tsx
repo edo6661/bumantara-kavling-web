@@ -1,8 +1,14 @@
 import { FileText, ZoomIn } from 'lucide-react';
 
 export const isBuktiPdfUrl = (url: string) => {
-  const path = url.split('?')[0].toLowerCase();
-  return path.endsWith('.pdf') || url.toLowerCase().includes('application/pdf');
+  const lower = url.toLowerCase();
+  const path = lower.split('?')[0];
+  return (
+    path.endsWith('.pdf') ||
+    lower.includes('application/pdf') ||
+    lower.includes('/raw/upload/') ||
+    lower.includes('format=pdf')
+  );
 };
 
 interface BuktiFileThumbnailProps {
