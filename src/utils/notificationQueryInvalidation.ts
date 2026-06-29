@@ -42,7 +42,7 @@ export async function invalidateQueriesForNotification(
     tasks.push(queryClient.invalidateQueries({ queryKey: AGENT_PENCAIRAN_KEYS.all }));
   }
 
-  if (notif.linkPath === '/proyek/approve-spk' || notif.linkPath === '/proyek/approve-kasbon' || notif.linkPath === '/finance/bayar-spk') {
+  if (notif.linkPath === '/proyek/approve-spk' || notif.linkPath === '/proyek/approve-kasbon' || notif.linkPath === '/proyek/approve-kasbon-admin' || notif.linkPath === '/finance/bayar-spk') {
     tasks.push(queryClient.invalidateQueries({ queryKey: SPK_PEMBAYARAN_KEYS.all }));
   }
 

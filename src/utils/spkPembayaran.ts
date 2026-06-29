@@ -20,6 +20,7 @@ export type SpkPembayaranJenis = SpkTerminPembayaranJenis | 'KASBON' | 'UPAH';
 export type SpkPembayaranStatus =
   | 'MENUNGGU_PEMBAYARAN'
   | 'MENUNGGU_PERSETUJUAN'
+  | 'MENUNGGU_APPROVAL_ADMIN'
   | 'SUDAH_DIBAYAR'
   | 'DRAFT';
 
@@ -60,6 +61,7 @@ export function getJenisUiColor(
 
 export const SPK_PEMBAYARAN_STATUS_LABEL: Record<SpkPembayaranStatus, string> = {
   MENUNGGU_PERSETUJUAN: 'Menunggu Pengawas',
+  MENUNGGU_APPROVAL_ADMIN: 'Menunggu Admin',
   MENUNGGU_PEMBAYARAN: 'Menunggu Finance',
   SUDAH_DIBAYAR: 'Sudah Dibayar',
   DRAFT: 'Draft',

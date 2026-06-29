@@ -365,7 +365,7 @@ const ApproveSpk = () => {
               onChange={(e) => setCatatanPenolakan(e.target.value)}
               rows={4}
               placeholder="Alasan penolakan..."
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none"
+              className="text-black w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none"
             />
             <button
               type="button"

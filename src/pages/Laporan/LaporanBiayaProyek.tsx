@@ -29,7 +29,8 @@ const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Semua Status (non draft)' },
   { value: 'SUDAH_DIBAYAR', label: 'Sudah Dibayar' },
   { value: 'MENUNGGU_PEMBAYARAN', label: 'Menunggu Pembayaran' },
-  { value: 'MENUNGGU_PERSETUJUAN', label: 'Menunggu Persetujuan' },
+  { value: 'MENUNGGU_PERSETUJUAN', label: 'Menunggu Persetujuan Pengawas' },
+  { value: 'MENUNGGU_APPROVAL_ADMIN', label: 'Menunggu Persetujuan Admin' },
 ];
 
 const LaporanBiayaProyek = () => {

@@ -3,6 +3,7 @@ import api from "../lib/axios";
 export type SpkPembayaranStatusFilter =
   | "DRAFT"
   | "MENUNGGU_PERSETUJUAN"
+  | "MENUNGGU_APPROVAL_ADMIN"
   | "MENUNGGU_PEMBAYARAN"
   | "SUDAH_DIBAYAR"
   | "ALL";

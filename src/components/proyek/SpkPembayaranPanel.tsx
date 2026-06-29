@@ -2511,6 +2511,7 @@ const SpkPembayaranPanel = ({
     if (row.status === 'DRAFT') return 'Draft';
     if (row.status === 'SUDAH_DIBAYAR') return 'Terbayar';
     if (row.status === 'MENUNGGU_PERSETUJUAN') return 'Menunggu Pengawas';
+    if (row.status === 'MENUNGGU_APPROVAL_ADMIN') return 'Menunggu Admin';
     return 'Menunggu Finance';
   };
 

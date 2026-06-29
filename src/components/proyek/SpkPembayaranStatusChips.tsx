@@ -31,10 +31,16 @@ const SpkPembayaranStatusChips = ({
   const kasbonItems = items.filter((p) => p.jenis === 'KASBON');
   const upahItems = items.filter((p) => p.jenis === 'UPAH');
   const kasbonMenunggu = kasbonItems.filter(
-    (p) => p.status === 'MENUNGGU_PEMBAYARAN' || p.status === 'MENUNGGU_PERSETUJUAN',
+    (p) =>
+      p.status === 'MENUNGGU_PEMBAYARAN' ||
+      p.status === 'MENUNGGU_PERSETUJUAN' ||
+      p.status === 'MENUNGGU_APPROVAL_ADMIN',
   ).length;
   const upahMenunggu = upahItems.filter(
-    (p) => p.status === 'MENUNGGU_PEMBAYARAN' || p.status === 'MENUNGGU_PERSETUJUAN',
+    (p) =>
+      p.status === 'MENUNGGU_PEMBAYARAN' ||
+      p.status === 'MENUNGGU_PERSETUJUAN' ||
+      p.status === 'MENUNGGU_APPROVAL_ADMIN',
   ).length;
 
   return (

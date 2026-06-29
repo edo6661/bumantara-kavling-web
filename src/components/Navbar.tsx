@@ -37,6 +37,7 @@ const routeLabels: Record<string, string> = {
   '/finance/bayar-kpr': 'Bayar Bank KPR',
   '/proyek/spk': 'SPK Proyek',
   '/proyek/approve-kasbon': 'Approve Pembayaran SPK',
+  '/proyek/approve-kasbon-admin': 'Approve Pembayaran SPK (Admin)',
   '/proyek/tukang': 'Data Tukang',
   '/proyek/progress': 'Progress Proyek',
 };

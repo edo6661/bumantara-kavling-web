@@ -12,6 +12,7 @@ export const SIDEBAR_BADGE_KEYS = {
   all: ['sidebar-badges'] as const,
   spkApproval: () => [...SIDEBAR_BADGE_KEYS.all, 'spk-approval'] as const,
   spkApprove: () => [...SIDEBAR_BADGE_KEYS.all, 'spk-approve'] as const,
+  spkApproveAdmin: () => [...SIDEBAR_BADGE_KEYS.all, 'spk-approve-admin'] as const,
   spkBayar: () => [...SIDEBAR_BADGE_KEYS.all, 'spk-bayar'] as const,
   tagihanApprove: () => [...SIDEBAR_BADGE_KEYS.all, 'tagihan-approve'] as const,
   kodeBillingPph: () => [...SIDEBAR_BADGE_KEYS.all, 'kode-billing-pph'] as const,
@@ -24,6 +25,7 @@ export const invalidateSidebarBadges = (queryClient: QueryClient) =>
 type BadgeCounts = {
   spkApproval: number;
   spkApprove: number;
+  spkApproveAdmin: number;
   spkBayar: number;
   tagihanApprove: number;
   kodeBillingPph: number;
@@ -34,6 +36,7 @@ type BadgeCounts = {
 const PATH_BADGE_MAP: Record<string, keyof BadgeCounts> = {
   '/proyek/approve-spk': 'spkApproval',
   '/proyek/approve-kasbon': 'spkApprove',
+  '/proyek/approve-kasbon-admin': 'spkApproveAdmin',
   '/finance/bayar-spk': 'spkBayar',
   '/finance/approve-pembayaran': 'tagihanApprove',
   '/finance/bayar-kode-billing-pph': 'kodeBillingPph',
@@ -47,7 +50,7 @@ const SECTION_PATHS: Record<string, string[]> = {
     '/finance/bayar-spk',
     '/finance/bayar-agent',
   ],
-  Proyek: ['/proyek/approve-spk', '/proyek/approve-kasbon'],
+  Proyek: ['/proyek/approve-spk', '/proyek/approve-kasbon', '/proyek/approve-kasbon-admin'],
 };
 
 const STAFF_ROLES = new Set(['ADMIN', 'SUPERADMIN', 'FINANCE', 'PENGAWAS', 'MANDOR']);
@@ -61,6 +64,9 @@ export const useSidebarBadges = () => {
 
   const canSpkApprove =
     user?.role === 'PENGAWAS' ||
+    user?.role === 'SUPERADMIN';
+
+  const canSpkApproveAdmin =
     user?.role === 'ADMIN' ||
     user?.role === 'SUPERADMIN';
 
@@ -116,6 +122,20 @@ export const useSidebarBadges = () => {
           return res.meta.totalItems;
         },
         enabled: enabled && canSpkApprove,
+        staleTime: 30_000,
+        refetchOnWindowFocus: true,
+      },
+      {
+        queryKey: SIDEBAR_BADGE_KEYS.spkApproveAdmin(),
+        queryFn: async () => {
+          const res = await spkPembayaranService.getPaginated({
+            page: 1,
+            limit: 1,
+            status: 'MENUNGGU_APPROVAL_ADMIN',
+          });
+          return res.meta.totalItems;
+        },
+        enabled: enabled && canSpkApproveAdmin,
         staleTime: 30_000,
         refetchOnWindowFocus: true,
       },
@@ -182,10 +202,11 @@ export const useSidebarBadges = () => {
     () => ({
       spkApproval: results[0].data ?? 0,
       spkApprove: results[1].data ?? 0,
-      spkBayar: results[2].data ?? 0,
-      tagihanApprove: results[3].data ?? 0,
-      kodeBillingPph: results[4].data ?? 0,
-      agentPencairanBayar: results[5].data ?? 0,
+      spkApproveAdmin: results[2].data ?? 0,
+      spkBayar: results[3].data ?? 0,
+      tagihanApprove: results[4].data ?? 0,
+      kodeBillingPph: results[5].data ?? 0,
+      agentPencairanBayar: results[6].data ?? 0,
     }),
     [
       results[0].data,
@@ -194,6 +215,7 @@ export const useSidebarBadges = () => {
       results[3].data,
       results[4].data,
       results[5].data,
+      results[6].data,
     ],
   );
 

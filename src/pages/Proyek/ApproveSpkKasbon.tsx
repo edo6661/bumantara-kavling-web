@@ -22,11 +22,51 @@ import {
   JENIS_UI_COLOR,
   SPK_KASBON_TARGET_LABEL,
   SPK_PEMBAYARAN_JENIS_LABEL,
+  type SpkPembayaranStatus,
 } from '../../utils/spkPembayaran';
 import KasbonGroupedTable from '../../components/proyek/KasbonGroupedTable';
 import SpkPembayaranDokumenCell from '../../components/proyek/SpkPembayaranDokumenCell';
 import SpkPembayaranDokumenPanel from '../../components/proyek/SpkPembayaranDokumenPanel';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
+
+type ApprovalStep = 'pengawas' | 'admin';
+
+const STEP_CONFIG: Record<
+  ApprovalStep,
+  {
+    status: SpkPembayaranStatus;
+    title: string;
+    subtitle: string;
+    emptyMessage: string;
+    statusBadge: string;
+    confirmForward: string;
+    successMessage: string;
+    approveButton: string;
+  }
+> = {
+  pengawas: {
+    status: 'MENUNGGU_PERSETUJUAN',
+    title: 'Approve Pembayaran SPK',
+    subtitle:
+      'Review pengajuan termin, kasbon, dan upah dari mandor. Setelah disetujui pengawas, pengajuan diteruskan ke admin.',
+    emptyMessage: 'Tidak ada pengajuan pembayaran SPK yang menunggu persetujuan pengawas.',
+    statusBadge: 'Menunggu Pengawas',
+    confirmForward: 'Pengajuan akan diteruskan ke admin untuk persetujuan.',
+    successMessage: 'Pengajuan berhasil disetujui dan diteruskan ke admin.',
+    approveButton: 'Approve & Ajukan ke Admin',
+  },
+  admin: {
+    status: 'MENUNGGU_APPROVAL_ADMIN',
+    title: 'Approve Pembayaran SPK (Admin)',
+    subtitle:
+      'Review pengajuan yang sudah disetujui pengawas. Setelah disetujui admin, pengajuan akan muncul di Finance → Bayar SPK.',
+    emptyMessage: 'Tidak ada pengajuan pembayaran SPK yang menunggu persetujuan admin.',
+    statusBadge: 'Menunggu Admin',
+    confirmForward: 'Pengajuan akan diteruskan ke finance untuk pembayaran.',
+    successMessage: 'Pengajuan berhasil disetujui dan diteruskan ke finance.',
+    approveButton: 'Approve & Ajukan ke Finance',
+  },
+};
 
 interface SpkGroup {
   spkId: number;
@@ -64,7 +104,8 @@ const getItemLabel = (row: SpkPembayaranData) => {
   return SPK_PEMBAYARAN_JENIS_LABEL[row.jenis];
 };
 
-const ApproveSpkKasbon = () => {
+export const ApproveSpkPembayaranReview = ({ step }: { step: ApprovalStep }) => {
+  const config = STEP_CONFIG[step];
   const [searchParams, setSearchParams] = useSearchParams();
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [expandedSpkIds, setExpandedSpkIds] = useState<Set<number>>(new Set());
@@ -79,14 +120,14 @@ const ApproveSpkKasbon = () => {
     page,
     limit,
     search: search || undefined,
-    status: 'MENUNGGU_PERSETUJUAN',
+    status: config.status,
   });
 
   const approveMutation = useApproveSpkPembayaran();
 
   const items = useMemo(
-    () => (response?.items ?? []).filter((row) => row.status === 'MENUNGGU_PERSETUJUAN'),
-    [response?.items],
+    () => (response?.items ?? []).filter((row) => row.status === config.status),
+    [response?.items, config.status],
   );
   const meta = response?.meta;
 
@@ -130,12 +171,12 @@ const ApproveSpkKasbon = () => {
 
   const handleApprove = async (row: SpkPembayaranData) => {
     const confirmed = window.confirm(
-      `Setujui ${getItemLabel(row)} sebesar ${formatRupiah(row.nominal)}?\n\nPengajuan akan diteruskan ke finance untuk pembayaran.`,
+      `Setujui ${getItemLabel(row)} sebesar ${formatRupiah(row.nominal)}?\n\n${config.confirmForward}`,
     );
     if (!confirmed) return;
     try {
       await approveMutation.mutateAsync({ id: row.id });
-      alert('Pengajuan berhasil disetujui dan diteruskan ke finance.');
+      alert(config.successMessage);
       if (detailRow?.id === row.id) setDetailRow(null);
     } catch (error) {
       alert(handleApiError(error).message);
@@ -193,11 +234,8 @@ const ApproveSpkKasbon = () => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-lg font-black text-slate-900">Approve Pembayaran SPK</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Review pengajuan termin, kasbon, dan upah dari mandor. Setelah disetujui, pengajuan
-            akan muncul di halaman Finance → Bayar SPK.
-          </p>
+          <h2 className="text-lg font-black text-slate-900">{config.title}</h2>
+          <p className="text-xs text-slate-500 mt-0.5">{config.subtitle}</p>
         </div>
 
         <div className="border-b border-slate-100">
@@ -230,9 +268,7 @@ const ApproveSpkKasbon = () => {
         </div>
 
         {spkGroups.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-slate-400">
-            Tidak ada pengajuan pembayaran SPK yang menunggu persetujuan.
-          </p>
+          <p className="px-5 py-10 text-center text-sm text-slate-400">{config.emptyMessage}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] border-collapse">
@@ -342,7 +378,7 @@ const ApproveSpkKasbon = () => {
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase">Status</p>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-100 text-amber-800 rounded">
-                  <Clock size={10} /> Menunggu Pengawas
+                  <Clock size={10} /> {config.statusBadge}
                 </span>
               </div>
             </div>
@@ -402,7 +438,7 @@ const ApproveSpkKasbon = () => {
               className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold uppercase bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50"
             >
               <CheckCircle2 size={18} />
-              Approve & Ajukan ke Finance
+              {config.approveButton}
             </button>
           </div>
         )}
@@ -435,5 +471,7 @@ const ApproveSpkKasbon = () => {
     </div>
   );
 };
+
+const ApproveSpkKasbon = () => <ApproveSpkPembayaranReview step="pengawas" />;
 
 export default ApproveSpkKasbon;

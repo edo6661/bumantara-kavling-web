@@ -201,7 +201,10 @@ const BayarSpkPembayaran = () => {
   const items = useMemo(
     () =>
       (response?.items ?? []).filter(
-        (row) => row.status !== 'DRAFT' && row.status !== 'MENUNGGU_PERSETUJUAN',
+        (row) =>
+          row.status !== 'DRAFT' &&
+          row.status !== 'MENUNGGU_PERSETUJUAN' &&
+          row.status !== 'MENUNGGU_APPROVAL_ADMIN',
       ),
     [response?.items],
   );
@@ -214,7 +217,10 @@ const BayarSpkPembayaran = () => {
   });
   const spkPaymentSummary = useMemo(() => {
     const rows = (summaryResponse?.items ?? []).filter(
-      (row) => row.status !== 'DRAFT' && row.status !== 'MENUNGGU_PERSETUJUAN',
+      (row) =>
+        row.status !== 'DRAFT' &&
+        row.status !== 'MENUNGGU_PERSETUJUAN' &&
+        row.status !== 'MENUNGGU_APPROVAL_ADMIN',
     );
     return summarizePaymentQueue(rows, 'MENUNGGU_PEMBAYARAN', 'SUDAH_DIBAYAR');
   }, [summaryResponse?.items]);

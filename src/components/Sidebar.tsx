@@ -126,6 +126,7 @@ const menuItems: MenuItem[] = [
       { title: 'SPK', path: '/proyek/spk', resource: 'SPK' },
       { title: 'Approve SPK', path: '/proyek/approve-spk', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
       { title: 'Approve Pembayaran SPK', path: '/proyek/approve-kasbon', resource: 'SPK', pengawasOnly: true },
+      { title: 'Approve Pembayaran SPK (Admin)', path: '/proyek/approve-kasbon-admin', resource: 'SPK', rolesOnly: ADMIN_STAFF_ROLES },
       {
         title: 'Pembayaran',
         rolesOnly: FINANCE_STAFF_ROLES,
@@ -185,7 +186,7 @@ const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
       return !!user?.role && sub.rolesOnly.includes(user.role);
     }
     if ('pengawasOnly' in sub && sub.pengawasOnly) {
-      return user?.role === 'PENGAWAS' || user?.role === 'SUPERADMIN' || user?.role === 'ADMIN';
+      return user?.role === 'PENGAWAS' || user?.role === 'SUPERADMIN';
     }
     if ('resources' in sub && sub.resources) {
       return sub.resources.some((resource) => canReadResource(user, resource));
