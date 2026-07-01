@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Modal from '../shared/Modal';
 import PageLoader from '../../pages/PageLoader';
 import type {
@@ -7,7 +7,7 @@ import type {
   PenjualanBulanCaraPembayaran,
 } from '../../services/dashboard.service';
 import { PENJUALAN_BULAN_CARA_OPTIONS } from '../../services/dashboard.service';
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import BuktiFileThumbnail from '../shared/BuktiFileThumbnail';
 
@@ -55,28 +55,57 @@ export default function DashboardDrilldownModal({
     (penjualanBulanCara !== undefined ||
       items.some((item) => item.tanggalBooking !== undefined));
 
-  const penjualanBulanFilter = penjualanBulanCara && onPenjualanBulanCaraChange && (
-    <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
-      <label
-        htmlFor="penjualan-bulan-cara-filter"
-        className="text-[11px] font-bold text-slate-500 uppercase tracking-wide shrink-0"
-      >
-        Skema pembayaran
-      </label>
-      <select
-        id="penjualan-bulan-cara-filter"
-        value={penjualanBulanCara}
-        onChange={(event) =>
-          onPenjualanBulanCaraChange(event.target.value as PenjualanBulanCaraPembayaran)
-        }
-        className="w-full sm:w-auto min-w-[180px] px-3 py-2 text-[12px] font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 cursor-pointer"
-      >
-        {PENJUALAN_BULAN_CARA_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+  const pembayaranHeaderCell =
+    penjualanBulanCara && onPenjualanBulanCaraChange ? (
+      <th className="px-2 py-2 whitespace-nowrap">
+        <div className="relative inline-flex items-center max-w-full">
+          <select
+            value={penjualanBulanCara}
+            onChange={(event) =>
+              onPenjualanBulanCaraChange(event.target.value as PenjualanBulanCaraPembayaran)
+            }
+            onClick={(event) => event.stopPropagation()}
+            aria-label="Filter skema pembayaran"
+            className="appearance-none w-full min-w-[108px] max-w-[140px] pl-2 pr-6 py-1 text-[10px] font-bold text-slate-600 uppercase tracking-wide bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-blue-300 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+          >
+            {PENJUALAN_BULAN_CARA_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={12}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            aria-hidden
+          />
+        </div>
+      </th>
+    ) : (
+      <th className="px-3 py-2">Pembayaran</th>
+    );
+
+  const penjualanTableHead = (
+    <thead>
+      <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+        <th className="px-3 py-2 w-8">#</th>
+        <th className="px-3 py-2">Customer</th>
+        <th className="px-3 py-2">Kavling</th>
+        <th className="px-3 py-2 whitespace-nowrap">Booking Fee</th>
+        {pembayaranHeaderCell}
+        <th className="px-3 py-2">Agent</th>
+        <th className="px-3 py-2 text-right">Harga</th>
+        {onItemClick && <th className="px-2 py-2 w-8" aria-hidden />}
+      </tr>
+    </thead>
+  );
+
+  const penjualanTableShell = (body: ReactNode) => (
+    <div className="overflow-x-auto border border-slate-100 rounded-xl">
+      <table className="w-full text-left text-[12px]">
+        {penjualanTableHead}
+        {body}
+      </table>
     </div>
   );
 
@@ -103,7 +132,9 @@ export default function DashboardDrilldownModal({
       <Modal isOpen={isOpen} onClose={handleClose} title={title} size="lg">
         {isLoading ? (
           <div>
-            {penjualanBulanFilter}
+            {isPenjualanTable && penjualanBulanCara ? (
+              <div className="mb-4">{penjualanTableShell(null)}</div>
+            ) : null}
             <PageLoader />
           </div>
         ) : items.length > 0 ? (
@@ -120,70 +151,56 @@ export default function DashboardDrilldownModal({
               )}
             </div>
 
-            {penjualanBulanFilter}
-
-            <div className={isPenjualanTable ? 'overflow-x-auto border border-slate-100 rounded-xl' : 'space-y-2'}>
-              {isPenjualanTable ? (
-                <table className="w-full text-left text-[12px]">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                      <th className="px-3 py-2 w-8">#</th>
-                      <th className="px-3 py-2">Customer</th>
-                      <th className="px-3 py-2">Kavling</th>
-                      <th className="px-3 py-2 whitespace-nowrap">Booking Fee</th>
-                      <th className="px-3 py-2">Pembayaran</th>
-                      <th className="px-3 py-2">Agent</th>
-                      <th className="px-3 py-2 text-right">Harga</th>
-                      {onItemClick && <th className="px-2 py-2 w-8" aria-hidden />}
+            {isPenjualanTable ? (
+              penjualanTableShell(
+                <tbody>
+                  {items.map((item, idx) => (
+                    <tr
+                      key={item.id}
+                      role={onItemClick ? 'button' : undefined}
+                      tabIndex={onItemClick ? 0 : undefined}
+                      onClick={() => handleRowClick(item)}
+                      onKeyDown={(event) => handleRowKeyDown(event, item)}
+                      className={`border-b border-slate-50 last:border-0 transition-colors ${
+                        onItemClick
+                          ? 'hover:bg-blue-50/50 cursor-pointer group focus:outline-none focus-visible:bg-blue-50/60'
+                          : ''
+                      }`}
+                    >
+                      <td className="px-3 py-2 text-slate-300 font-black tabular-nums">{idx + 1}</td>
+                      <td className="px-3 py-2 font-semibold text-slate-900 max-w-[140px] truncate">
+                        {item.label}
+                      </td>
+                      <td className="px-3 py-2 text-slate-500 max-w-[120px] truncate">
+                        {item.sublabel?.replace(/^Blok /, '') ?? '—'}
+                      </td>
+                      <td className="px-3 py-2 text-slate-600 whitespace-nowrap tabular-nums">
+                        {formatBookingFeeDate(item)}
+                      </td>
+                      <td className="px-3 py-2 text-slate-700 font-medium whitespace-nowrap">
+                        {item.caraPembayaranLabel ?? '—'}
+                      </td>
+                      <td className="px-3 py-2 text-blue-600 font-medium max-w-[100px] truncate">
+                        {item.agentNama || '—'}
+                      </td>
+                      <td className="px-3 py-2 text-right font-bold text-slate-900 whitespace-nowrap tabular-nums">
+                        {item.value ?? '—'}
+                      </td>
+                      {onItemClick && (
+                        <td className="px-2 py-2">
+                          <ChevronRight
+                            size={14}
+                            className="text-slate-300 group-hover:text-blue-500 transition-colors"
+                          />
+                        </td>
+                      )}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, idx) => (
-                      <tr
-                        key={item.id}
-                        role={onItemClick ? 'button' : undefined}
-                        tabIndex={onItemClick ? 0 : undefined}
-                        onClick={() => handleRowClick(item)}
-                        onKeyDown={(event) => handleRowKeyDown(event, item)}
-                        className={`border-b border-slate-50 last:border-0 transition-colors ${
-                          onItemClick
-                            ? 'hover:bg-blue-50/50 cursor-pointer group focus:outline-none focus-visible:bg-blue-50/60'
-                            : ''
-                        }`}
-                      >
-                        <td className="px-3 py-2 text-slate-300 font-black tabular-nums">{idx + 1}</td>
-                        <td className="px-3 py-2 font-semibold text-slate-900 max-w-[140px] truncate">
-                          {item.label}
-                        </td>
-                        <td className="px-3 py-2 text-slate-500 max-w-[120px] truncate">
-                          {item.sublabel?.replace(/^Blok /, '') ?? '—'}
-                        </td>
-                        <td className="px-3 py-2 text-slate-600 whitespace-nowrap tabular-nums">
-                          {formatBookingFeeDate(item)}
-                        </td>
-                        <td className="px-3 py-2 text-slate-700 font-medium whitespace-nowrap">
-                          {item.caraPembayaranLabel ?? '—'}
-                        </td>
-                        <td className="px-3 py-2 text-blue-600 font-medium max-w-[100px] truncate">
-                          {item.agentNama || '—'}
-                        </td>
-                        <td className="px-3 py-2 text-right font-bold text-slate-900 whitespace-nowrap tabular-nums">
-                          {item.value ?? '—'}
-                        </td>
-                        {onItemClick && (
-                          <td className="px-2 py-2">
-                            <ChevronRight
-                              size={14}
-                              className="text-slate-300 group-hover:text-blue-500 transition-colors"
-                            />
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-              items.map((item, idx) => (
+                  ))}
+                </tbody>,
+              )
+            ) : (
+            <div className="space-y-2">
+              {items.map((item, idx) => (
                 <div
                   key={item.id}
                   role={!isPendapatan && onItemClick ? 'button' : undefined}
@@ -278,9 +295,9 @@ export default function DashboardDrilldownModal({
                     </div>
                   </div>
                 </div>
-              ))
-              )}
+              ))}
             </div>
+            )}
 
             {onViewAll && (
               <div className="mt-5 pt-4 border-t border-slate-100 flex justify-end">
@@ -301,7 +318,9 @@ export default function DashboardDrilldownModal({
                 0 {entityLabel} ditemukan
               </span>
             </div>
-            {penjualanBulanFilter}
+            {isPenjualanTable && penjualanBulanCara ? (
+              <div className="mb-4">{penjualanTableShell(null)}</div>
+            ) : null}
             <div className="py-14 flex flex-col items-center justify-center text-center">
             <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mb-3">
               <span className="text-2xl">🔍</span>
