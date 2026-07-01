@@ -9,19 +9,25 @@ import {
   Layers,
   ShoppingCart,
 } from 'lucide-react';
-import { useGetDashboardSummary, useGetDashboardDrilldown } from '../hooks/queries/useDashboard';
+import { useGetDashboardSummary, useGetDashboardDrilldown, useGetPenjualanPeriodeSummary } from '../hooks/queries/useDashboard';
 import {
   buildPendapatanDrilldownFilter,
   buildAkadDrilldownFilter,
-  buildPenjualanBulanDrilldownFilter,
+  buildPenjualanPeriodeDrilldownFilter,
   isPendapatanDrilldownFilter,
-  isPenjualanBulanDrilldownFilter,
+  isPenjualanPeriodDrilldownFilter,
   parsePenjualanBulanDrilldownFilter,
+  parsePenjualanPeriodeDrilldownFilter,
   type DashboardDrilldownCategory,
   type DrilldownItem,
   type PenjualanBulanCaraPembayaran,
 } from '../services/dashboard.service';
 import { buildManajemenTransaksiSearchPath, MANAJEMEN_TRANSAKSI_PATH } from '../utils/customerNavigation';
+import {
+  formatPenjualanPeriodeTitle,
+  getCurrentMonthDateRange,
+  monthRangeFromYearMonth,
+} from '../utils/penjualanPeriode';
 import { useAuth } from '../context/AuthContext';
 import PageLoader from './PageLoader';
 import KpiCard from '../components/dashboard/KpiCard';
@@ -34,11 +40,24 @@ import DashboardKavlingOverview, {
 import DashboardMonthlySalesSection from '../components/dashboard/DashboardMonthlySalesSection';
 import { DASHBOARD_COLORS } from '../components/dashboard/dashboardTheme';
 
-const EMPTY_PENJUALAN_BY_CARA = {
-  kpr: [],
-  cashBertahap: [],
-  cashKeras: [],
-};
+function parsePenjualanSalesDrilldownFilter(filter?: string): {
+  dateFrom: string;
+  dateTo: string;
+  caraPembayaran: PenjualanBulanCaraPembayaran;
+} | null {
+  const periode = parsePenjualanPeriodeDrilldownFilter(filter);
+  if (periode) return periode;
+
+  const bulan = parsePenjualanBulanDrilldownFilter(filter);
+  if (!bulan) return null;
+
+  const range = monthRangeFromYearMonth(bulan.year, bulan.month);
+  return {
+    dateFrom: range.from,
+    dateTo: range.to,
+    caraPembayaran: bulan.caraPembayaran,
+  };
+}
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center gap-3 mb-4">
@@ -61,9 +80,14 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [drilldown, setDrilldown] = useState<DrilldownState | null>(null);
-  const [selectedSalesMonth, setSelectedSalesMonth] = useState(() => new Date().getMonth() + 1);
+  const initialSalesRange = getCurrentMonthDateRange();
+  const [salesDateFrom, setSalesDateFrom] = useState(initialSalesRange.from);
+  const [salesDateTo, setSalesDateTo] = useState(initialSalesRange.to);
 
   const { data: dashboardData, isLoading } = useGetDashboardSummary();
+
+  const { data: penjualanPeriodeSummary, isLoading: penjualanPeriodeLoading } =
+    useGetPenjualanPeriodeSummary(salesDateFrom, salesDateTo, !isLoading);
 
   const { data: drilldownItems = [], isLoading: drilldownLoading } =
     useGetDashboardDrilldown(
@@ -123,27 +147,43 @@ const Dashboard = () => {
   ) => {
     openDrilldown(
       'penjualan',
-      buildPenjualanBulanDrilldownFilter(year, selectedSalesMonth, cara),
+      buildPenjualanPeriodeDrilldownFilter(salesDateFrom, salesDateTo, cara),
       title,
       { navigateByCustomer: true },
     );
   };
 
-  const penjualanBulanDrilldown = parsePenjualanBulanDrilldownFilter(drilldown?.filter);
+  const penjualanSalesDrilldown = parsePenjualanSalesDrilldownFilter(drilldown?.filter);
 
-  const handlePenjualanBulanCaraChange = (cara: PenjualanBulanCaraPembayaran) => {
-    if (!penjualanBulanDrilldown || !drilldown) return;
+  const handlePenjualanPeriodeCaraChange = (cara: PenjualanBulanCaraPembayaran) => {
+    if (!penjualanSalesDrilldown || !drilldown) return;
     setDrilldown({
       ...drilldown,
-      filter: buildPenjualanBulanDrilldownFilter(
-        penjualanBulanDrilldown.year,
-        penjualanBulanDrilldown.month,
+      filter: buildPenjualanPeriodeDrilldownFilter(
+        penjualanSalesDrilldown.dateFrom,
+        penjualanSalesDrilldown.dateTo,
         cara,
+      ),
+      title: formatPenjualanPeriodeTitle(
+        penjualanSalesDrilldown.dateFrom,
+        penjualanSalesDrilldown.dateTo,
       ),
     });
   };
 
-  const penjualanByCara = executive.penjualanByCaraTahunIni ?? EMPTY_PENJUALAN_BY_CARA;
+  const handleSalesDateFromChange = (value: string) => {
+    setSalesDateFrom(value);
+    if (value && salesDateTo && value > salesDateTo) {
+      setSalesDateTo(value);
+    }
+  };
+
+  const handleSalesDateToChange = (value: string) => {
+    setSalesDateTo(value);
+    if (value && salesDateFrom && value < salesDateFrom) {
+      setSalesDateFrom(value);
+    }
+  };
 
   const getKavlingCount = (status: string) =>
     kavlingByStatus.find((item) => item.status === status)?.count ?? 0;
@@ -258,10 +298,12 @@ const Dashboard = () => {
         <section>
           <SectionLabel>Penjualan Bulanan</SectionLabel>
           <DashboardMonthlySalesSection
-            year={year}
-            selectedMonth={selectedSalesMonth}
-            onMonthChange={setSelectedSalesMonth}
-            penjualanByCara={penjualanByCara}
+            dateFrom={salesDateFrom}
+            dateTo={salesDateTo}
+            onDateFromChange={handleSalesDateFromChange}
+            onDateToChange={handleSalesDateToChange}
+            summary={penjualanPeriodeSummary}
+            isLoadingCounts={penjualanPeriodeLoading}
             onCaraClick={handleMonthlySalesCaraClick}
           />
         </section>
@@ -360,8 +402,8 @@ const Dashboard = () => {
         emptyMessage={
           isPendapatanDrilldownFilter(drilldown?.filter)
             ? 'Tidak ada pembayaran untuk periode ini'
-            : isPenjualanBulanDrilldownFilter(drilldown?.filter)
-              ? 'Tidak ada penjualan untuk bulan dan cara pembayaran ini'
+            : isPenjualanPeriodDrilldownFilter(drilldown?.filter)
+              ? 'Tidak ada penjualan untuk periode dan cara pembayaran ini'
             : drilldown?.category === 'kavling'
               ? 'Tidak ada kavling untuk filter ini'
               : 'Tidak ada item untuk filter ini'
@@ -403,9 +445,9 @@ const Dashboard = () => {
                 }
               }
         }
-        penjualanBulanCara={penjualanBulanDrilldown?.caraPembayaran}
+        penjualanBulanCara={penjualanSalesDrilldown?.caraPembayaran}
         onPenjualanBulanCaraChange={
-          penjualanBulanDrilldown ? handlePenjualanBulanCaraChange : undefined
+          penjualanSalesDrilldown ? handlePenjualanPeriodeCaraChange : undefined
         }
       />
     </div>

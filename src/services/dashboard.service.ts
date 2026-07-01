@@ -118,12 +118,30 @@ export function buildPenjualanBulanDrilldownFilter(
   return `PENJUALAN_BULAN:${year}:${month}:${caraPembayaran}`;
 }
 
+export function buildPenjualanPeriodeDrilldownFilter(
+  dateFrom: string,
+  dateTo: string,
+  caraPembayaran: PenjualanBulanCaraPembayaran,
+) {
+  return `PENJUALAN_PERIODE:${dateFrom}:${dateTo}:${caraPembayaran}`;
+}
+
 export function isPendapatanDrilldownFilter(filter?: string) {
   return filter?.startsWith("PENDAPATAN:") ?? false;
 }
 
 export function isPenjualanBulanDrilldownFilter(filter?: string) {
   return filter?.startsWith("PENJUALAN_BULAN:") ?? false;
+}
+
+export function isPenjualanPeriodeDrilldownFilter(filter?: string) {
+  return filter?.startsWith("PENJUALAN_PERIODE:") ?? false;
+}
+
+export function isPenjualanPeriodDrilldownFilter(filter?: string) {
+  return (
+    isPenjualanBulanDrilldownFilter(filter) || isPenjualanPeriodeDrilldownFilter(filter)
+  );
 }
 
 export function parsePenjualanBulanDrilldownFilter(filter?: string): {
@@ -142,6 +160,29 @@ export function parsePenjualanBulanDrilldownFilter(filter?: string): {
     return null;
   }
   return { year, month, caraPembayaran };
+}
+
+export function parsePenjualanPeriodeDrilldownFilter(filter?: string): {
+  dateFrom: string;
+  dateTo: string;
+  caraPembayaran: PenjualanBulanCaraPembayaran;
+} | null {
+  const match = filter?.match(
+    /^PENJUALAN_PERIODE:(\d{4}-\d{2}-\d{2}):(\d{4}-\d{2}-\d{2}):(KPR|CASH_BERTAHAP|CASH_KERAS|SEMUA)$/,
+  );
+  if (!match) return null;
+  return {
+    dateFrom: match[1]!,
+    dateTo: match[2]!,
+    caraPembayaran: match[3] as PenjualanBulanCaraPembayaran,
+  };
+}
+
+export interface PenjualanPeriodeSummary {
+  kpr: number;
+  cashBertahap: number;
+  cashKeras: number;
+  semua: number;
 }
 
 export const PENJUALAN_BULAN_CARA_OPTIONS: {
@@ -280,6 +321,16 @@ export const dashboardService = {
   ): Promise<DrilldownItem[]> => {
     const response = await api.get("/dashboard/drilldown", {
       params: { category, filter, blok },
+    });
+    return response.data.data;
+  },
+
+  getPenjualanPeriodeSummary: async (
+    dateFrom: string,
+    dateTo: string,
+  ): Promise<PenjualanPeriodeSummary> => {
+    const response = await api.get("/dashboard/penjualan-periode", {
+      params: { from: dateFrom, to: dateTo },
     });
     return response.data.data;
   },
