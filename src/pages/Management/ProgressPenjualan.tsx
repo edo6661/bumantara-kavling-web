@@ -1371,8 +1371,15 @@ const ProgressPenjualan = () => {
   };
   const renderNilaiAjbBox = (urutan = 1) => {
     const nilaiAjbInput = nilaiAjbInputs[urutan] ?? 0;
+    const allSlots = Array.from({ length: jumlahSertifikatTanah }, (_, idx) => ({
+      urutan: idx + 1,
+      nilaiAjb: nilaiAjbInputs[idx + 1] ?? 0,
+    }));
     const { biayaPph: calculatedPph, biayaBphtb: calculatedBphtb } =
-      calcPajakFromNilaiAjb(nilaiAjbInput);
+      calcPajakFromNilaiAjb(nilaiAjbInput, {
+        urutan,
+        allSlots: isMultiSertifikat ? allSlots : undefined,
+      });
 
     return (
       <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col justify-between">

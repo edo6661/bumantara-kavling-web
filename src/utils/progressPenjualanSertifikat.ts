@@ -30,11 +30,46 @@ export interface ProgressPenjualanLike {
   };
 }
 
-export function calcPajakFromNilaiAjb(nilaiAjb: number) {
-  return {
-    biayaPph: nilaiAjb * 0.025,
-    biayaBphtb: Math.max(0, nilaiAjb - 80_000_000) * 0.05,
-  };
+const BPHTB_EXEMPTION = 80_000_000;
+const BPHTB_RATE = 0.05;
+const PPH_RATE = 0.025;
+
+export interface NilaiAjbSlot {
+  urutan: number;
+  nilaiAjb: number;
+}
+
+function getExemptUrutan(slots: NilaiAjbSlot[]): number | null {
+  const withValue = slots.filter((slot) => slot.nilaiAjb > 0);
+  if (withValue.length <= 1) return null;
+  const minNilai = Math.min(...withValue.map((slot) => slot.nilaiAjb));
+  const minSlots = withValue.filter((slot) => slot.nilaiAjb === minNilai);
+  return Math.min(...minSlots.map((slot) => slot.urutan));
+}
+
+export function calcBphtbFromNilaiAjb(
+  nilaiAjb: number,
+  urutan: number,
+  allSlots: NilaiAjbSlot[],
+): number {
+  if (nilaiAjb <= 0) return 0;
+  const exemptUrutan = getExemptUrutan(allSlots);
+  if (exemptUrutan === urutan) {
+    return nilaiAjb * BPHTB_RATE;
+  }
+  return Math.max(0, nilaiAjb - BPHTB_EXEMPTION) * BPHTB_RATE;
+}
+
+export function calcPajakFromNilaiAjb(
+  nilaiAjb: number,
+  options?: { urutan?: number; allSlots?: NilaiAjbSlot[] },
+) {
+  const biayaPph = nilaiAjb * PPH_RATE;
+  const biayaBphtb =
+    options?.allSlots && options.urutan != null
+      ? calcBphtbFromNilaiAjb(nilaiAjb, options.urutan, options.allSlots)
+      : Math.max(0, nilaiAjb - BPHTB_EXEMPTION) * BPHTB_RATE;
+  return { biayaPph, biayaBphtb };
 }
 
 export function getProgressSlot(
