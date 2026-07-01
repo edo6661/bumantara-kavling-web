@@ -3500,19 +3500,19 @@ const SpkPembayaranPanel = ({
               </strong>
             </p>
             <FileInput
-              label="Invoice (PDF atau gambar)"
+              label="Invoice"
               accept={PENGAJUAN_DOKUMEN_ACCEPT}
               onChange={(e) => setTerminInvoiceFile(e.target.files?.[0] ?? null)}
             />
             {terminAjukanModal !== 'RETENSI' && (
               <>
                 <FileInput
-                  label="Berita Acara / BA (PDF atau gambar)"
+                  label="Berita Acara / BA"
                   accept={PENGAJUAN_DOKUMEN_ACCEPT}
                   onChange={(e) => setTerminBaFile(e.target.files?.[0] ?? null)}
                 />
                 <FileInput
-                  label={`Progress SPK — ${jenisLabels[terminAjukanModal]} (PDF atau gambar)`}
+                  label={`Progress SPK — ${jenisLabels[terminAjukanModal]}`}
                   accept={PENGAJUAN_DOKUMEN_ACCEPT}
                   onChange={(e) => setTerminProgressFile(e.target.files?.[0] ?? null)}
                 />
