@@ -4,6 +4,11 @@ export type TransaksiTab = 'penjualan' | 'tagihan' | 'laporan';
 
 export const MANAJEMEN_TRANSAKSI_PATH = '/management/manajemen-transaksi';
 
+export function buildManajemenTransaksiSearchPath(customerNama: string): string {
+  const params = new URLSearchParams({ search: customerNama, page: '1' });
+  return `${MANAJEMEN_TRANSAKSI_PATH}?${params.toString()}`;
+}
+
 export function isManajemenTransaksiPage(pathname: string): boolean {
   return pathname === MANAJEMEN_TRANSAKSI_PATH || pathname.startsWith(`${MANAJEMEN_TRANSAKSI_PATH}/`);
 }

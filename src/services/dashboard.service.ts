@@ -99,8 +99,22 @@ export function buildPemesananDrilldownFilter(year: number, month: number) {
   return `PEMESANAN:${year}:${month}`;
 }
 
+export type PenjualanBulanCaraPembayaran = "KPR" | "CASH_BERTAHAP" | "CASH_KERAS";
+
+export function buildPenjualanBulanDrilldownFilter(
+  year: number,
+  month: number,
+  caraPembayaran: PenjualanBulanCaraPembayaran,
+) {
+  return `PENJUALAN_BULAN:${year}:${month}:${caraPembayaran}`;
+}
+
 export function isPendapatanDrilldownFilter(filter?: string) {
   return filter?.startsWith("PENDAPATAN:") ?? false;
+}
+
+export function isPenjualanBulanDrilldownFilter(filter?: string) {
+  return filter?.startsWith("PENJUALAN_BULAN:") ?? false;
 }
 
 export interface MonthlyMetricRow {
@@ -127,6 +141,12 @@ export interface BookingRateRow {
   tingkatPersen: number;
 }
 
+export interface PenjualanByCaraTahunIni {
+  kpr: MonthlyMetricRow[];
+  cashBertahap: MonthlyMetricRow[];
+  cashKeras: MonthlyMetricRow[];
+}
+
 export interface TodayUnitItem {
   id: string;
   customer: string;
@@ -146,6 +166,7 @@ export interface ExecutiveDashboard {
   pendapatanAllTime: MonthlyMetricRow[];
   akadTahunIni: MonthlyMetricRow[];
   penjualanCashTahunIni: MonthlyMetricRow[];
+  penjualanByCaraTahunIni: PenjualanByCaraTahunIni;
   tingkatPemesanan: BookingRateRow[];
 }
 

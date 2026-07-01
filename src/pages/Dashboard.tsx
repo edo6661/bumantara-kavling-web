@@ -13,10 +13,14 @@ import { useGetDashboardSummary, useGetDashboardDrilldown } from '../hooks/queri
 import {
   buildPendapatanDrilldownFilter,
   buildAkadDrilldownFilter,
+  buildPenjualanBulanDrilldownFilter,
   isPendapatanDrilldownFilter,
+  isPenjualanBulanDrilldownFilter,
   type DashboardDrilldownCategory,
   type DrilldownItem,
+  type PenjualanBulanCaraPembayaran,
 } from '../services/dashboard.service';
+import { buildManajemenTransaksiSearchPath, MANAJEMEN_TRANSAKSI_PATH } from '../utils/customerNavigation';
 import { useAuth } from '../context/AuthContext';
 import PageLoader from './PageLoader';
 import KpiCard from '../components/dashboard/KpiCard';
@@ -26,7 +30,14 @@ import DashboardDrilldownModal from '../components/dashboard/DashboardDrilldownM
 import DashboardKavlingOverview, {
   type KavlingOverviewAction,
 } from '../components/dashboard/DashboardKavlingOverview';
+import DashboardMonthlySalesSection from '../components/dashboard/DashboardMonthlySalesSection';
 import { DASHBOARD_COLORS } from '../components/dashboard/dashboardTheme';
+
+const EMPTY_PENJUALAN_BY_CARA = {
+  kpr: [],
+  cashBertahap: [],
+  cashKeras: [],
+};
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center gap-3 mb-4">
@@ -42,12 +53,14 @@ type DrilldownState = {
   filter?: string;
   blok?: string;
   title: string;
+  navigateByCustomer?: boolean;
 };
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [drilldown, setDrilldown] = useState<DrilldownState | null>(null);
+  const [selectedSalesMonth, setSelectedSalesMonth] = useState(() => new Date().getMonth() + 1);
 
   const { data: dashboardData, isLoading } = useGetDashboardSummary();
 
@@ -63,9 +76,15 @@ const Dashboard = () => {
     category: DashboardDrilldownCategory,
     filter: string | undefined,
     title: string,
-    blok?: string,
+    options?: { blok?: string; navigateByCustomer?: boolean },
   ) => {
-    setDrilldown({ category, filter, title, blok });
+    setDrilldown({
+      category,
+      filter,
+      title,
+      blok: options?.blok,
+      navigateByCustomer: options?.navigateByCustomer,
+    });
   };
 
   const closeDrilldown = () => setDrilldown(null);
@@ -96,6 +115,20 @@ const Dashboard = () => {
 
   const { executive, stats, kavlingByStatus } = dashboardData;
   const { kpi, year } = executive;
+
+  const handleMonthlySalesCaraClick = (
+    cara: PenjualanBulanCaraPembayaran,
+    title: string,
+  ) => {
+    openDrilldown(
+      'penjualan',
+      buildPenjualanBulanDrilldownFilter(year, selectedSalesMonth, cara),
+      title,
+      { navigateByCustomer: true },
+    );
+  };
+
+  const penjualanByCara = executive.penjualanByCaraTahunIni ?? EMPTY_PENJUALAN_BY_CARA;
 
   const getKavlingCount = (status: string) =>
     kavlingByStatus.find((item) => item.status === status)?.count ?? 0;
@@ -206,6 +239,18 @@ const Dashboard = () => {
           </div>
         </section>
 
+        {/* Penjualan Bulanan */}
+        <section>
+          <SectionLabel>Penjualan Bulanan</SectionLabel>
+          <DashboardMonthlySalesSection
+            year={year}
+            selectedMonth={selectedSalesMonth}
+            onMonthChange={setSelectedSalesMonth}
+            penjualanByCara={penjualanByCara}
+            onCaraClick={handleMonthlySalesCaraClick}
+          />
+        </section>
+
         {/* Kavling */}
         <section>
           <SectionLabel>Kavling</SectionLabel>
@@ -291,13 +336,17 @@ const Dashboard = () => {
         entityLabel={
           isPendapatanDrilldownFilter(drilldown?.filter)
             ? 'pembayaran'
-            : drilldown?.category === 'kavling'
-              ? 'unit'
-              : 'item'
+            : drilldown?.navigateByCustomer
+              ? 'customer'
+              : drilldown?.category === 'kavling'
+                ? 'unit'
+                : 'item'
         }
         emptyMessage={
           isPendapatanDrilldownFilter(drilldown?.filter)
             ? 'Tidak ada pembayaran untuk periode ini'
+            : isPenjualanBulanDrilldownFilter(drilldown?.filter)
+              ? 'Tidak ada penjualan untuk bulan dan cara pembayaran ini'
             : drilldown?.category === 'kavling'
               ? 'Tidak ada kavling untuk filter ini'
               : 'Tidak ada item untuk filter ini'
@@ -305,21 +354,33 @@ const Dashboard = () => {
         onViewAll={
           drilldown?.category === 'kavling'
             ? () => navigateToKavling(drilldown.filter)
-            : drilldown?.category === 'penjualan'
+            : drilldown?.category === 'penjualan' && !drilldown.navigateByCustomer
               ? () => navigateToPenjualan()
-              : undefined
+              : drilldown?.navigateByCustomer
+                ? () => {
+                    closeDrilldown();
+                    navigate(MANAJEMEN_TRANSAKSI_PATH);
+                  }
+                : undefined
         }
         viewAllLabel={
           drilldown?.category === 'kavling'
             ? 'Lihat semua di Kavling'
-            : drilldown?.category === 'penjualan'
-              ? 'Lihat semua di Penjualan'
-              : 'Lihat semua'
+            : drilldown?.navigateByCustomer
+              ? 'Lihat semua di Manajemen Transaksi'
+              : drilldown?.category === 'penjualan'
+                ? 'Lihat semua di Penjualan'
+                : 'Lihat semua'
         }
         onItemClick={
           isPendapatanDrilldownFilter(drilldown?.filter)
             ? undefined
             : (item: DrilldownItem) => {
+                if (drilldown?.navigateByCustomer) {
+                  closeDrilldown();
+                  navigate(buildManajemenTransaksiSearchPath(item.label));
+                  return;
+                }
                 if (drilldown?.category === 'kavling') {
                   navigateToKavling(drilldown.filter);
                 } else {
