@@ -10,13 +10,108 @@ import { useGetTukangList, useUpsertTukang } from '../../hooks/queries/useTukang
 import type { TukangData } from '../../services/tukang.service';
 import { handleApiError } from '../../utils/errorHandler';
 import { getNikValidationError, isNikDuplicate, sanitizeNikInput } from '../../utils/nik';
+import {
+  TUKANG_MAX_JUMLAH_ANAK,
+  formatTukangStatusPernikahan,
+  initialTukangMaritalForm,
+  tukangMaritalFromData,
+  tukangMaritalToPayload,
+  validateTukangMaritalForm,
+  type TukangMaritalFormValue,
+} from '../../utils/tukang';
 
 interface TukangFormState {
   nik: string;
   nama: string;
+  marital: TukangMaritalFormValue;
 }
 
-const initialForm = (): TukangFormState => ({ nik: '', nama: '' });
+const initialForm = (): TukangFormState => ({
+  nik: '',
+  nama: '',
+  marital: initialTukangMaritalForm(),
+});
+
+const TukangMaritalFields = ({
+  marital,
+  onChange,
+  errors,
+  idPrefix,
+}: {
+  marital: TukangMaritalFormValue;
+  onChange: (next: TukangMaritalFormValue) => void;
+  errors: Partial<Record<'sudahMenikah' | 'jumlahAnak', string>>;
+  idPrefix: string;
+}) => (
+  <div className="space-y-3">
+    <div>
+      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+        Status pernikahan
+      </label>
+      <select
+        id={`${idPrefix}-sudah-menikah`}
+        name="sudahMenikah"
+        value={marital.sudahMenikah === '' ? '' : marital.sudahMenikah ? '1' : '0'}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (value === '') {
+            onChange({ sudahMenikah: '', jumlahAnak: '' });
+            return;
+          }
+          const sudahMenikah = value === '1';
+          onChange({
+            sudahMenikah,
+            jumlahAnak: sudahMenikah ? marital.jumlahAnak : 0,
+          });
+        }}
+        className={`w-full px-3 py-2 border rounded-lg text-sm text-black ${
+          errors.sudahMenikah ? 'border-red-400' : 'border-slate-200'
+        }`}
+      >
+        <option value="">Pilih status</option>
+        <option value="0">Belum menikah</option>
+        <option value="1">Sudah menikah</option>
+      </select>
+      {errors.sudahMenikah && (
+        <p className="mt-1 text-xs text-red-600">{errors.sudahMenikah}</p>
+      )}
+    </div>
+    {marital.sudahMenikah === true && (
+      <div>
+        <label
+          htmlFor={`${idPrefix}-jumlah-anak`}
+          className="block text-sm font-medium text-slate-700 mb-1.5"
+        >
+          Jumlah anak
+        </label>
+        <select
+          id={`${idPrefix}-jumlah-anak`}
+          name="jumlahAnak"
+          value={marital.jumlahAnak === '' ? '' : String(marital.jumlahAnak)}
+          onChange={(e) =>
+            onChange({
+              ...marital,
+              jumlahAnak: e.target.value === '' ? '' : Number(e.target.value),
+            })
+          }
+          className={`w-full px-3 py-2 border rounded-lg text-sm text-black ${
+            errors.jumlahAnak ? 'border-red-400' : 'border-slate-200'
+          }`}
+        >
+          <option value="">Pilih jumlah anak</option>
+          {Array.from({ length: TUKANG_MAX_JUMLAH_ANAK + 1 }, (_, i) => (
+            <option key={i} value={i}>
+              {i} anak
+            </option>
+          ))}
+        </select>
+        {errors.jumlahAnak && (
+          <p className="mt-1 text-xs text-red-600">{errors.jumlahAnak}</p>
+        )}
+      </div>
+    )}
+  </div>
+);
 
 const Tukang = () => {
   const { user } = useAuth();
@@ -36,6 +131,15 @@ const Tukang = () => {
   const columns = [
     { header: 'NIK', accessor: 'nik' as const },
     { header: 'Nama', accessor: 'nama' as const },
+    {
+      header: 'Status pernikahan',
+      accessor: 'sudahMenikah' as const,
+      render: (_: boolean | null, row: TukangData) => (
+        <span className="text-slate-600">
+          {formatTukangStatusPernikahan(row.sudahMenikah, row.jumlahAnak)}
+        </span>
+      ),
+    },
     ...(!isMandor
       ? [
           {
@@ -58,7 +162,11 @@ const Tukang = () => {
 
   const openEdit = (row: TukangData) => {
     setEditingNik(row.nik);
-    setForm({ nik: row.nik, nama: row.nama });
+    setForm({
+      nik: row.nik,
+      nama: row.nama,
+      marital: tukangMaritalFromData(row.sudahMenikah, row.jumlahAnak),
+    });
     setErrors({});
     setIsModalOpen(true);
   };
@@ -76,6 +184,15 @@ const Tukang = () => {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
+  const handleMaritalChange = (marital: TukangMaritalFormValue) => {
+    setForm((prev) => ({ ...prev, marital }));
+    setErrors((prev) => ({
+      ...prev,
+      sudahMenikah: undefined,
+      jumlahAnak: undefined,
+    }));
+  };
+
   const validate = () => {
     const next: Partial<Record<string, string>> = {};
     // Edit hanya mengubah nama; NIK dikunci & backend tidak mengubah NIK.
@@ -87,6 +204,8 @@ const Tukang = () => {
       }
     }
     if (!form.nama.trim()) next.nama = 'Nama wajib diisi';
+    const maritalErrors = validateTukangMaritalForm(form.marital);
+    Object.assign(next, maritalErrors);
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -95,9 +214,11 @@ const Tukang = () => {
     e.preventDefault();
     if (!validate()) return;
     try {
+      const maritalPayload = tukangMaritalToPayload(form.marital);
       await upsertMutation.mutateAsync({
         nik: sanitizeNikInput(form.nik),
         nama: form.nama.trim(),
+        ...maritalPayload,
       });
       closeModal();
     } catch (err: unknown) {
@@ -158,6 +279,15 @@ const Tukang = () => {
             value={form.nama}
             onChange={handleChange}
             error={errors.nama}
+          />
+          <TukangMaritalFields
+            idPrefix="tukang-form"
+            marital={form.marital}
+            onChange={handleMaritalChange}
+            errors={{
+              sudahMenikah: errors.sudahMenikah,
+              jumlahAnak: errors.jumlahAnak,
+            }}
           />
           <div className="flex justify-end gap-2 pt-2">
             <button

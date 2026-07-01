@@ -4,10 +4,19 @@ export interface TukangData {
   id: number;
   nik: string;
   nama: string;
+  sudahMenikah: boolean | null;
+  jumlahAnak: number | null;
   mandorId: number | null;
   mandorUsername?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpsertTukangBody {
+  nik: string;
+  nama: string;
+  sudahMenikah: boolean;
+  jumlahAnak: number;
 }
 
 export const tukangService = {
@@ -18,7 +27,7 @@ export const tukangService = {
     return response.data.data;
   },
 
-  upsert: async (body: { nik: string; nama: string }): Promise<TukangData> => {
+  upsert: async (body: UpsertTukangBody): Promise<TukangData> => {
     const response = await api.post('/tukang', body);
     return response.data.data;
   },

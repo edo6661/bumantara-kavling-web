@@ -23,6 +23,8 @@ export interface SpkPembayaranUpahBarisData {
   nik: string;
   nama: string;
   nominal: number;
+  sudahMenikah?: boolean | null;
+  jumlahAnak?: number | null;
 }
 
 export interface SpkPembayaranData {
@@ -101,6 +103,8 @@ export interface SpkPembayaranUpahBarisBody {
   tukangId?: number | null;
   nik: string;
   nama: string;
+  sudahMenikah: boolean;
+  jumlahAnak: number;
 }
 
 export interface SpkPembayaranKasbonBarisBody {

@@ -59,6 +59,16 @@ import {
 import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi';
 import { isValidNik, normalizeNikInput, hasDuplicateNikInList } from '../../utils/nik';
 import {
+  TUKANG_MAX_JUMLAH_ANAK,
+  formatTukangStatusPernikahan,
+  initialTukangMaritalForm,
+  tukangMaritalFromData,
+  tukangMaritalToPayload,
+  validateTukangMaritalForm,
+  type TukangMaritalFormValue,
+} from '../../utils/tukang';
+import type { TukangData } from '../../services/tukang.service';
+import {
   formatMandorRekeningLabel,
   pickDefaultMandorRekeningId,
   type MandorRekeningData,
@@ -120,6 +130,7 @@ interface UpahBarisForm {
   tukangId: number | '';
   nik: string;
   nama: string;
+  marital: TukangMaritalFormValue;
 }
 
 const newUpahBaris = (): UpahBarisForm => ({
@@ -127,6 +138,7 @@ const newUpahBaris = (): UpahBarisForm => ({
   tukangId: '',
   nik: '',
   nama: '',
+  marital: initialTukangMaritalForm(),
 });
 
 type ParseUpahBarisResult =
@@ -146,11 +158,23 @@ const parseUpahBarisBody = (rows: UpahBarisForm[]): ParseUpahBarisResult => {
     if (row.tukangId === '' && !isValidNik(nik)) {
       return { ok: false, message: 'NIK tukang harus tepat 16 digit angka.' };
     }
+    const maritalErrors = validateTukangMaritalForm(row.marital);
+    if (maritalErrors.sudahMenikah) {
+      return { ok: false, message: `Status pernikahan tukang ${nama || nik} wajib dipilih.` };
+    }
+    if (maritalErrors.jumlahAnak) {
+      return {
+        ok: false,
+        message: `Jumlah anak tukang ${nama || nik} wajib diisi (0–${TUKANG_MAX_JUMLAH_ANAK}).`,
+      };
+    }
     nikList.push(nik);
+    const maritalPayload = tukangMaritalToPayload(row.marital);
     parsed.push({
       tukangId: row.tukangId === '' ? null : row.tukangId,
       nik,
       nama,
+      ...maritalPayload,
     });
   }
 
@@ -170,6 +194,7 @@ const upahBarisFromPembayaran = (row: SpkPembayaranData): UpahBarisForm[] =>
     tukangId: b.tukangId ?? '',
     nik: b.nik,
     nama: b.nama,
+    marital: tukangMaritalFromData(b.sudahMenikah, b.jumlahAnak),
   }));
 
 interface MaterialItemForm {
@@ -1102,7 +1127,7 @@ const UpahTukangEditor = ({
   setUpahBaris: React.Dispatch<React.SetStateAction<UpahBarisForm[]>>;
   upahTotalNominal: number | '';
   setUpahTotalNominal: (v: number | '') => void;
-  tukangList: { id: number; nik: string; nama: string }[];
+  tukangList: TukangData[];
   onSelectTukang: (key: string, tukangId: number | '') => void;
   idPrefix: string;
 }) => (
@@ -1128,12 +1153,14 @@ const UpahTukangEditor = ({
       </div>
     </div>
     <div className="overflow-x-auto rounded-lg border border-slate-200">
-      <table className="w-full text-xs border-collapse min-w-[480px]">
+      <table className="w-full text-xs border-collapse min-w-[760px]">
         <thead>
           <tr>
             <th className={thClass}>Pilih tukang</th>
             <th className={thClass}>NIK</th>
             <th className={thClass}>Nama</th>
+            <th className={thClass}>Status</th>
+            <th className={thClass}>Anak</th>
             <th className={`${thClass} w-10`} />
           </tr>
         </thead>
@@ -1152,6 +1179,9 @@ const UpahTukangEditor = ({
                   {tukangList.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.nik} — {t.nama}
+                      {t.sudahMenikah === null
+                        ? ''
+                        : ` (${formatTukangStatusPernikahan(t.sudahMenikah, t.jumlahAnak)})`}
                     </option>
                   ))}
                 </select>
@@ -1166,7 +1196,12 @@ const UpahTukangEditor = ({
                     setUpahBaris((prev) =>
                       prev.map((r) =>
                         r.key === row.key
-                          ? { ...r, nik: normalizeNikInput(e.target.value), tukangId: '' }
+                          ? {
+                              ...r,
+                              nik: normalizeNikInput(e.target.value),
+                              tukangId: '',
+                              marital: initialTukangMaritalForm(),
+                            }
                           : r,
                       ),
                     )
@@ -1194,6 +1229,76 @@ const UpahTukangEditor = ({
                   className="w-full min-w-[120px] px-2 py-1.5 border border-slate-200 rounded text-xs text-black"
                   placeholder="Nama"
                 />
+              </td>
+              <td className={tdClass}>
+                <select
+                  value={
+                    row.marital.sudahMenikah === ''
+                      ? ''
+                      : row.marital.sudahMenikah
+                        ? '1'
+                        : '0'
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setUpahBaris((prev) =>
+                      prev.map((r) => {
+                        if (r.key !== row.key) return r;
+                        if (value === '') {
+                          return { ...r, marital: initialTukangMaritalForm() };
+                        }
+                        const sudahMenikah = value === '1';
+                        return {
+                          ...r,
+                          marital: {
+                            sudahMenikah,
+                            jumlahAnak: sudahMenikah ? r.marital.jumlahAnak : 0,
+                          },
+                        };
+                      }),
+                    );
+                  }}
+                  className="w-full min-w-[110px] px-2 py-1.5 border border-slate-200 rounded text-xs text-black"
+                >
+                  <option value="">Pilih</option>
+                  <option value="0">Belum menikah</option>
+                  <option value="1">Sudah menikah</option>
+                </select>
+              </td>
+              <td className={tdClass}>
+                {row.marital.sudahMenikah === true ? (
+                  <select
+                    value={
+                      row.marital.jumlahAnak === '' ? '' : String(row.marital.jumlahAnak)
+                    }
+                    onChange={(e) =>
+                      setUpahBaris((prev) =>
+                        prev.map((r) =>
+                          r.key === row.key
+                            ? {
+                                ...r,
+                                marital: {
+                                  ...r.marital,
+                                  jumlahAnak:
+                                    e.target.value === '' ? '' : Number(e.target.value),
+                                },
+                              }
+                            : r,
+                        ),
+                      )
+                    }
+                    className="w-full min-w-[72px] px-2 py-1.5 border border-slate-200 rounded text-xs text-black"
+                  >
+                    <option value="">—</option>
+                    {Array.from({ length: TUKANG_MAX_JUMLAH_ANAK + 1 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {i}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-slate-400 px-1">—</span>
+                )}
               </td>
               <td className={tdClass}>
                 <button
@@ -2046,7 +2151,7 @@ const SpkPembayaranPanel = ({
         alert(
           upahBarisParsed && !upahBarisParsed.ok
             ? upahBarisParsed.message
-            : 'Setiap tukang wajib memiliki NIK (16 digit) dan nama.',
+            : 'Setiap tukang wajib memiliki NIK, nama, dan status pernikahan.',
         );
         return;
       }
@@ -2233,6 +2338,9 @@ const SpkPembayaranPanel = ({
               tukangId,
               nik: selected?.nik ?? row.nik,
               nama: selected?.nama ?? row.nama,
+              marital: selected
+                ? tukangMaritalFromData(selected.sudahMenikah, selected.jumlahAnak)
+                : initialTukangMaritalForm(),
             }
           : row,
       ),
@@ -3173,6 +3281,12 @@ const SpkPembayaranPanel = ({
                             <li key={b.id} className="text-[10px] leading-tight">
                               <span className="font-semibold text-slate-800">{b.nama}</span>
                               <span className="text-slate-500"> · {b.nik}</span>
+                              {(b.sudahMenikah !== null && b.sudahMenikah !== undefined) && (
+                                <span className="text-slate-400">
+                                  {' '}
+                                  · {formatTukangStatusPernikahan(b.sudahMenikah, b.jumlahAnak)}
+                                </span>
+                              )}
                             </li>
                           ))}
                         </ul>

@@ -4,6 +4,7 @@ import {
   isValidNik,
   normalizeNikDigits,
 } from './nik';
+import { formatTukangPtkpStatus } from './tukang';
 
 export const CORETAX_MAX_GROSS_PER_TUKANG = 5_000_000;
 export const CORETAX_TAX_OBJECT_CODE = '21-100-35';
@@ -154,7 +155,14 @@ export function getInvalidCoretaxNikEntries(
     .filter((row): row is InvalidCoretaxNikEntry => row !== null);
 }
 
-export function getCoretaxPtkpStatus(nik: string): string {
+export function getCoretaxPtkpStatus(
+  nik: string,
+  sudahMenikah?: boolean | null,
+  jumlahAnak?: number | null,
+): string {
+  const fromMarital = formatTukangPtkpStatus(sudahMenikah, jumlahAnak);
+  if (fromMarital) return fromMarital;
+
   const digits = normalizeNik(nik);
   let hash = 0;
   for (const c of digits) hash = (hash * 31 + c.charCodeAt(0)) | 0;
@@ -306,7 +314,11 @@ export function buildCoretaxPph21Rows(
       taxPeriodYear: options.taxPeriodYear,
       counterpartTin: nik,
       idPlaceOfBusinessActivityOfIncomeRecipient: buildRecipientNitku(nik),
-      statusTaxExemption: getCoretaxPtkpStatus(nik),
+      statusTaxExemption: getCoretaxPtkpStatus(
+        nik,
+        tukang.sudahMenikah,
+        tukang.jumlahAnak,
+      ),
       taxCertificate: 'N/A',
       taxObjectCode: CORETAX_TAX_OBJECT_CODE,
       gross,
