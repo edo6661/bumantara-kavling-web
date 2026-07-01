@@ -41,6 +41,27 @@ export default function DashboardDrilldownModal({
     onClose();
   };
 
+  const isPenjualanTable =
+    !isPendapatan && items.some((item) => item.tanggalBooking !== undefined);
+
+  const formatBookingFeeDate = (item: DrilldownItem) => {
+    if (item.tanggalBayarBookingFee) return formatDate(item.tanggalBayarBookingFee);
+    if (item.bookingFeeLunas === false) return 'Belum lunas';
+    return '—';
+  };
+
+  const handleRowClick = (item: DrilldownItem) => {
+    if (!isPendapatan && onItemClick) onItemClick(item);
+  };
+
+  const handleRowKeyDown = (event: React.KeyboardEvent, item: DrilldownItem) => {
+    if (isPendapatan || !onItemClick) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onItemClick(item);
+    }
+  };
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={handleClose} title={title} size="lg">
@@ -60,8 +81,64 @@ export default function DashboardDrilldownModal({
               )}
             </div>
 
-            <div className="space-y-2">
-              {items.map((item, idx) => (
+            <div className={isPenjualanTable ? 'overflow-x-auto border border-slate-100 rounded-xl' : 'space-y-2'}>
+              {isPenjualanTable ? (
+                <table className="w-full text-left text-[12px]">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                      <th className="px-3 py-2 w-8">#</th>
+                      <th className="px-3 py-2">Customer</th>
+                      <th className="px-3 py-2">Kavling</th>
+                      <th className="px-3 py-2 whitespace-nowrap">Tanggal (booking fee)</th>
+                      <th className="px-3 py-2">Agent</th>
+                      <th className="px-3 py-2 text-right">Harga</th>
+                      {onItemClick && <th className="px-2 py-2 w-8" aria-hidden />}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr
+                        key={item.id}
+                        role={onItemClick ? 'button' : undefined}
+                        tabIndex={onItemClick ? 0 : undefined}
+                        onClick={() => handleRowClick(item)}
+                        onKeyDown={(event) => handleRowKeyDown(event, item)}
+                        className={`border-b border-slate-50 last:border-0 transition-colors ${
+                          onItemClick
+                            ? 'hover:bg-blue-50/50 cursor-pointer group focus:outline-none focus-visible:bg-blue-50/60'
+                            : ''
+                        }`}
+                      >
+                        <td className="px-3 py-2 text-slate-300 font-black tabular-nums">{idx + 1}</td>
+                        <td className="px-3 py-2 font-semibold text-slate-900 max-w-[140px] truncate">
+                          {item.label}
+                        </td>
+                        <td className="px-3 py-2 text-slate-500 max-w-[120px] truncate">
+                          {item.sublabel?.replace(/^Blok /, '') ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-slate-600 whitespace-nowrap tabular-nums">
+                          {formatBookingFeeDate(item)}
+                        </td>
+                        <td className="px-3 py-2 text-blue-600 font-medium max-w-[100px] truncate">
+                          {item.agentNama || '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right font-bold text-slate-900 whitespace-nowrap tabular-nums">
+                          {item.value ?? '—'}
+                        </td>
+                        {onItemClick && (
+                          <td className="px-2 py-2">
+                            <ChevronRight
+                              size={14}
+                              className="text-slate-300 group-hover:text-blue-500 transition-colors"
+                            />
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+              items.map((item, idx) => (
                 <div
                   key={item.id}
                   role={!isPendapatan && onItemClick ? 'button' : undefined}
@@ -98,24 +175,6 @@ export default function DashboardDrilldownModal({
                               {item.sublabel}
                             </p>
                           )}
-                          {!isPendapatan && item.tanggalBooking && (
-                              <div className="mt-1.5 space-y-0.5">
-                                <p className="text-[10px] text-slate-500 font-medium">
-                                  Booking: {formatDate(item.tanggalBooking)}
-                                </p>
-                                <p className="text-[10px] text-slate-500 font-medium">
-                                  Bayar booking fee:{' '}
-                                  {item.tanggalBayarBookingFee
-                                    ? formatDate(item.tanggalBayarBookingFee)
-                                    : item.bookingFeeLunas === false
-                                      ? 'Belum lunas'
-                                      : '—'}
-                                </p>
-                                <p className="text-[10px] text-blue-600 font-semibold">
-                                  Agent: {item.agentNama || '—'}
-                                </p>
-                              </div>
-                            )}
                           {isPendapatan && item.pembayaran && (
                             <p className="text-[11px] text-emerald-700 font-semibold mt-1">
                               {item.pembayaran}
@@ -174,7 +233,8 @@ export default function DashboardDrilldownModal({
                     </div>
                   </div>
                 </div>
-              ))}
+              ))
+              )}
             </div>
 
             {onViewAll && (
