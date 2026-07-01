@@ -1,4 +1,4 @@
-import { Banknote, Building2, CalendarDays, Landmark } from 'lucide-react';
+import { Banknote, Building2, CalendarDays, Landmark, LayoutGrid } from 'lucide-react';
 import type {
   PenjualanByCaraTahunIni,
   PenjualanBulanCaraPembayaran,
@@ -94,7 +94,14 @@ export default function DashboardMonthlySalesSection({
           <span className="text-slate-800">{totalCount} unit</span> terjual
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <KpiCard
+            title="Semua"
+            value={`${totalCount} Unit`}
+            subtitle={`Seluruh penjualan — ${monthLabel}`}
+            icon={LayoutGrid}
+            onClick={() => onCaraClick('SEMUA', `Penjualan ${monthLabel} ${year}`)}
+          />
           <KpiCard
             title="KPR"
             value={`${kprCount} Unit`}

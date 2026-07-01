@@ -89,7 +89,8 @@ export default function DashboardDrilldownModal({
                       <th className="px-3 py-2 w-8">#</th>
                       <th className="px-3 py-2">Customer</th>
                       <th className="px-3 py-2">Kavling</th>
-                      <th className="px-3 py-2 whitespace-nowrap">Tanggal (booking fee)</th>
+                      <th className="px-3 py-2 whitespace-nowrap">Booking Fee</th>
+                      <th className="px-3 py-2">Pembayaran</th>
                       <th className="px-3 py-2">Agent</th>
                       <th className="px-3 py-2 text-right">Harga</th>
                       {onItemClick && <th className="px-2 py-2 w-8" aria-hidden />}
@@ -118,6 +119,9 @@ export default function DashboardDrilldownModal({
                         </td>
                         <td className="px-3 py-2 text-slate-600 whitespace-nowrap tabular-nums">
                           {formatBookingFeeDate(item)}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700 font-medium whitespace-nowrap">
+                          {item.caraPembayaranLabel ?? '—'}
                         </td>
                         <td className="px-3 py-2 text-blue-600 font-medium max-w-[100px] truncate">
                           {item.agentNama || '—'}

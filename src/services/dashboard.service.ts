@@ -83,6 +83,7 @@ export interface DrilldownItem {
   tanggalBayarBookingFee?: string;
   bookingFeeLunas?: boolean;
   agentNama?: string;
+  caraPembayaranLabel?: string;
 }
 
 export type DashboardDrilldownMode = "default" | "pendapatan";
@@ -103,7 +104,11 @@ export function buildPemesananDrilldownFilter(year: number, month: number) {
   return `PEMESANAN:${year}:${month}`;
 }
 
-export type PenjualanBulanCaraPembayaran = "KPR" | "CASH_BERTAHAP" | "CASH_KERAS";
+export type PenjualanBulanCaraPembayaran =
+  | "KPR"
+  | "CASH_BERTAHAP"
+  | "CASH_KERAS"
+  | "SEMUA";
 
 export function buildPenjualanBulanDrilldownFilter(
   year: number,
