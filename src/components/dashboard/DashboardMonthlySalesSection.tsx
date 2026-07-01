@@ -107,7 +107,7 @@ export default function DashboardMonthlySalesSection({
             value={`${kprCount} Unit`}
             subtitle={`Penjualan KPR — ${monthLabel}`}
             icon={Landmark}
-            onClick={() => onCaraClick('KPR', `Penjualan KPR ${monthLabel} ${year}`)}
+            onClick={() => onCaraClick('KPR', `Penjualan ${monthLabel} ${year}`)}
           />
           <KpiCard
             title="Cash Bertahap"
@@ -115,7 +115,7 @@ export default function DashboardMonthlySalesSection({
             subtitle={`Penjualan cash bertahap — ${monthLabel}`}
             icon={Building2}
             onClick={() =>
-              onCaraClick('CASH_BERTAHAP', `Penjualan Cash Bertahap ${monthLabel} ${year}`)
+              onCaraClick('CASH_BERTAHAP', `Penjualan ${monthLabel} ${year}`)
             }
           />
           <KpiCard
@@ -124,7 +124,7 @@ export default function DashboardMonthlySalesSection({
             subtitle={`Penjualan cash keras — ${monthLabel}`}
             icon={Banknote}
             onClick={() =>
-              onCaraClick('CASH_KERAS', `Penjualan Cash Keras ${monthLabel} ${year}`)
+              onCaraClick('CASH_KERAS', `Penjualan ${monthLabel} ${year}`)
             }
           />
         </div>

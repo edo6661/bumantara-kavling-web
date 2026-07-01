@@ -16,6 +16,7 @@ import {
   buildPenjualanBulanDrilldownFilter,
   isPendapatanDrilldownFilter,
   isPenjualanBulanDrilldownFilter,
+  parsePenjualanBulanDrilldownFilter,
   type DashboardDrilldownCategory,
   type DrilldownItem,
   type PenjualanBulanCaraPembayaran,
@@ -126,6 +127,20 @@ const Dashboard = () => {
       title,
       { navigateByCustomer: true },
     );
+  };
+
+  const penjualanBulanDrilldown = parsePenjualanBulanDrilldownFilter(drilldown?.filter);
+
+  const handlePenjualanBulanCaraChange = (cara: PenjualanBulanCaraPembayaran) => {
+    if (!penjualanBulanDrilldown || !drilldown) return;
+    setDrilldown({
+      ...drilldown,
+      filter: buildPenjualanBulanDrilldownFilter(
+        penjualanBulanDrilldown.year,
+        penjualanBulanDrilldown.month,
+        cara,
+      ),
+    });
   };
 
   const penjualanByCara = executive.penjualanByCaraTahunIni ?? EMPTY_PENJUALAN_BY_CARA;
@@ -387,6 +402,10 @@ const Dashboard = () => {
                   navigateToPenjualan(item.id);
                 }
               }
+        }
+        penjualanBulanCara={penjualanBulanDrilldown?.caraPembayaran}
+        onPenjualanBulanCaraChange={
+          penjualanBulanDrilldown ? handlePenjualanBulanCaraChange : undefined
         }
       />
     </div>

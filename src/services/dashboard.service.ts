@@ -126,6 +126,34 @@ export function isPenjualanBulanDrilldownFilter(filter?: string) {
   return filter?.startsWith("PENJUALAN_BULAN:") ?? false;
 }
 
+export function parsePenjualanBulanDrilldownFilter(filter?: string): {
+  year: number;
+  month: number;
+  caraPembayaran: PenjualanBulanCaraPembayaran;
+} | null {
+  const match = filter?.match(
+    /^PENJUALAN_BULAN:(\d{4}):(\d{1,2}):(KPR|CASH_BERTAHAP|CASH_KERAS|SEMUA)$/,
+  );
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const caraPembayaran = match[3] as PenjualanBulanCaraPembayaran;
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return null;
+  }
+  return { year, month, caraPembayaran };
+}
+
+export const PENJUALAN_BULAN_CARA_OPTIONS: {
+  value: PenjualanBulanCaraPembayaran;
+  label: string;
+}[] = [
+  { value: "SEMUA", label: "Semua" },
+  { value: "KPR", label: "KPR" },
+  { value: "CASH_BERTAHAP", label: "Cash Bertahap" },
+  { value: "CASH_KERAS", label: "Cash Keras" },
+];
+
 export interface MonthlyMetricRow {
   month: number;
   monthLabel: string;

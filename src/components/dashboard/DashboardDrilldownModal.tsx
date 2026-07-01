@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import Modal from '../shared/Modal';
 import PageLoader from '../../pages/PageLoader';
-import type { DashboardDrilldownMode, DrilldownItem } from '../../services/dashboard.service';
+import type {
+  DashboardDrilldownMode,
+  DrilldownItem,
+  PenjualanBulanCaraPembayaran,
+} from '../../services/dashboard.service';
+import { PENJUALAN_BULAN_CARA_OPTIONS } from '../../services/dashboard.service';
 import { ChevronRight } from 'lucide-react';
 import { formatDate } from '../../utils/formatters';
 import BuktiFileThumbnail from '../shared/BuktiFileThumbnail';
@@ -18,6 +23,8 @@ interface DashboardDrilldownModalProps {
   onItemClick?: (item: DrilldownItem) => void;
   onViewAll?: () => void;
   viewAllLabel?: string;
+  penjualanBulanCara?: PenjualanBulanCaraPembayaran;
+  onPenjualanBulanCaraChange?: (cara: PenjualanBulanCaraPembayaran) => void;
 }
 
 export default function DashboardDrilldownModal({
@@ -32,6 +39,8 @@ export default function DashboardDrilldownModal({
   onItemClick,
   onViewAll,
   viewAllLabel = 'Lihat semua',
+  penjualanBulanCara,
+  onPenjualanBulanCaraChange,
 }: DashboardDrilldownModalProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const isPendapatan = mode === 'pendapatan';
@@ -42,7 +51,34 @@ export default function DashboardDrilldownModal({
   };
 
   const isPenjualanTable =
-    !isPendapatan && items.some((item) => item.tanggalBooking !== undefined);
+    !isPendapatan &&
+    (penjualanBulanCara !== undefined ||
+      items.some((item) => item.tanggalBooking !== undefined));
+
+  const penjualanBulanFilter = penjualanBulanCara && onPenjualanBulanCaraChange && (
+    <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
+      <label
+        htmlFor="penjualan-bulan-cara-filter"
+        className="text-[11px] font-bold text-slate-500 uppercase tracking-wide shrink-0"
+      >
+        Skema pembayaran
+      </label>
+      <select
+        id="penjualan-bulan-cara-filter"
+        value={penjualanBulanCara}
+        onChange={(event) =>
+          onPenjualanBulanCaraChange(event.target.value as PenjualanBulanCaraPembayaran)
+        }
+        className="w-full sm:w-auto min-w-[180px] px-3 py-2 text-[12px] font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 cursor-pointer"
+      >
+        {PENJUALAN_BULAN_CARA_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 
   const formatBookingFeeDate = (item: DrilldownItem) => {
     if (item.tanggalBayarBookingFee) return formatDate(item.tanggalBayarBookingFee);
@@ -66,7 +102,10 @@ export default function DashboardDrilldownModal({
     <>
       <Modal isOpen={isOpen} onClose={handleClose} title={title} size="lg">
         {isLoading ? (
-          <PageLoader />
+          <div>
+            {penjualanBulanFilter}
+            <PageLoader />
+          </div>
         ) : items.length > 0 ? (
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -80,6 +119,8 @@ export default function DashboardDrilldownModal({
                 </span>
               )}
             </div>
+
+            {penjualanBulanFilter}
 
             <div className={isPenjualanTable ? 'overflow-x-auto border border-slate-100 rounded-xl' : 'space-y-2'}>
               {isPenjualanTable ? (
@@ -254,7 +295,14 @@ export default function DashboardDrilldownModal({
             )}
           </div>
         ) : (
-          <div className="py-14 flex flex-col items-center justify-center text-center">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[11px] text-slate-400 font-semibold">
+                0 {entityLabel} ditemukan
+              </span>
+            </div>
+            {penjualanBulanFilter}
+            <div className="py-14 flex flex-col items-center justify-center text-center">
             <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mb-3">
               <span className="text-2xl">🔍</span>
             </div>
@@ -269,6 +317,7 @@ export default function DashboardDrilldownModal({
                 {viewAllLabel} →
               </button>
             )}
+          </div>
           </div>
         )}
       </Modal>
