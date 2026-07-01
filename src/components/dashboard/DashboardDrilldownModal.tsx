@@ -98,6 +98,24 @@ export default function DashboardDrilldownModal({
                               {item.sublabel}
                             </p>
                           )}
+                          {!isPendapatan && item.tanggalBooking && (
+                              <div className="mt-1.5 space-y-0.5">
+                                <p className="text-[10px] text-slate-500 font-medium">
+                                  Booking: {formatDate(item.tanggalBooking)}
+                                </p>
+                                <p className="text-[10px] text-slate-500 font-medium">
+                                  Bayar booking fee:{' '}
+                                  {item.tanggalBayarBookingFee
+                                    ? formatDate(item.tanggalBayarBookingFee)
+                                    : item.bookingFeeLunas === false
+                                      ? 'Belum lunas'
+                                      : '—'}
+                                </p>
+                                <p className="text-[10px] text-blue-600 font-semibold">
+                                  Agent: {item.agentNama || '—'}
+                                </p>
+                              </div>
+                            )}
                           {isPendapatan && item.pembayaran && (
                             <p className="text-[11px] text-emerald-700 font-semibold mt-1">
                               {item.pembayaran}

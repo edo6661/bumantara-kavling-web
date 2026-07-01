@@ -79,6 +79,10 @@ export interface DrilldownItem {
   pembayaran?: string;
   tanggalBayar?: string;
   buktiUrls?: string[];
+  tanggalBooking?: string;
+  tanggalBayarBookingFee?: string;
+  bookingFeeLunas?: boolean;
+  agentNama?: string;
 }
 
 export type DashboardDrilldownMode = "default" | "pendapatan";
