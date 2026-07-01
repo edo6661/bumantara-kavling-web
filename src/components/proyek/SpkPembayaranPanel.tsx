@@ -91,9 +91,21 @@ const todayIso = () => new Date().toISOString().split('T')[0]!;
 const isPdfFile = (file: File) =>
   file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
+const isPengajuanDokumenFile = (file: File) =>
+  file.type.startsWith('image/') || isPdfFile(file);
+
+const PENGAJUAN_DOKUMEN_ACCEPT = 'image/*,application/pdf,.pdf';
+
 const uploadPengajuanPdf = async (file: File): Promise<string> => {
   if (!isPdfFile(file)) {
     throw new Error('Dokumen harus berformat PDF.');
+  }
+  return spkPembayaranService.uploadDokumenPengajuan(file);
+};
+
+const uploadPengajuanDokumen = async (file: File): Promise<string> => {
+  if (!isPengajuanDokumenFile(file)) {
+    throw new Error('Dokumen harus berformat PDF atau gambar (JPG, PNG, dll).');
   }
   return spkPembayaranService.uploadDokumenPengajuan(file);
 };
@@ -1743,17 +1755,17 @@ const SpkPembayaranPanel = ({
       return;
     }
     if (!terminInvoiceFile) {
-      alert('Dokumen invoice (PDF) wajib diunggah.');
+      alert('Dokumen invoice wajib diunggah.');
       return;
     }
     const isRetensi = jenis === 'RETENSI';
     if (!isRetensi) {
       if (!terminBaFile) {
-        alert('Dokumen berita acara / BA (PDF) wajib diunggah.');
+        alert('Dokumen berita acara / BA wajib diunggah.');
         return;
       }
       if (!terminProgressFile) {
-        alert('Dokumen progress SPK (PDF) wajib diunggah.');
+        alert('Dokumen progress SPK wajib diunggah.');
         return;
       }
     }
@@ -1766,15 +1778,15 @@ const SpkPembayaranPanel = ({
     }
     const mandorRekeningId = resolveSubmitMandorRekeningId();
     try {
-      const dokumenInvoice = await uploadPengajuanPdf(terminInvoiceFile);
+      const dokumenInvoice = await uploadPengajuanDokumen(terminInvoiceFile);
       const body: CreateSpkPembayaranBody = isRetensi
         ? { jenis, mandorRekeningId, dokumenInvoice }
         : {
             jenis,
             mandorRekeningId,
             dokumenInvoice,
-            dokumenBeritaAcara: await uploadPengajuanPdf(terminBaFile!),
-            dokumenProgressSpk: await uploadPengajuanPdf(terminProgressFile!),
+            dokumenBeritaAcara: await uploadPengajuanDokumen(terminBaFile!),
+            dokumenProgressSpk: await uploadPengajuanDokumen(terminProgressFile!),
           };
       await createMutation.mutateAsync({ spkId: spk.id, body });
       closeTerminAjukanModal();
@@ -3488,20 +3500,20 @@ const SpkPembayaranPanel = ({
               </strong>
             </p>
             <FileInput
-              label="Invoice (PDF)"
-              accept="application/pdf,.pdf"
+              label="Invoice (PDF atau gambar)"
+              accept={PENGAJUAN_DOKUMEN_ACCEPT}
               onChange={(e) => setTerminInvoiceFile(e.target.files?.[0] ?? null)}
             />
             {terminAjukanModal !== 'RETENSI' && (
               <>
                 <FileInput
-                  label="Berita Acara / BA (PDF)"
-                  accept="application/pdf,.pdf"
+                  label="Berita Acara / BA (PDF atau gambar)"
+                  accept={PENGAJUAN_DOKUMEN_ACCEPT}
                   onChange={(e) => setTerminBaFile(e.target.files?.[0] ?? null)}
                 />
                 <FileInput
-                  label={`Progress SPK — ${jenisLabels[terminAjukanModal]} (PDF)`}
-                  accept="application/pdf,.pdf"
+                  label={`Progress SPK — ${jenisLabels[terminAjukanModal]} (PDF atau gambar)`}
+                  accept={PENGAJUAN_DOKUMEN_ACCEPT}
                   onChange={(e) => setTerminProgressFile(e.target.files?.[0] ?? null)}
                 />
               </>
