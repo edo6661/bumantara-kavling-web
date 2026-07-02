@@ -14,6 +14,7 @@ import {
   Eye,
   Edit2,
   Trash2,
+  ArrowRightLeft,
 } from 'lucide-react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -73,6 +74,7 @@ interface KavlingPickerRow {
   luasBangunan: number;
   customerNama: string;
   disabled: boolean;
+  transferable?: boolean;
   handledBy?: KavlingSpkAssignment;
 }
 
@@ -96,14 +98,17 @@ interface GroupedSpkByMandor {
 
 type BlokSelectionState = 'none' | 'partial' | 'all';
 
-const getSelectableUnitIds = (units: KavlingPickerRow[]) =>
-  units.filter((u) => !u.disabled).map((u) => u.kavlingId);
+const getSelectableUnitIds = (units: KavlingPickerRow[], includeTransferable = false) =>
+  units
+    .filter((u) => !u.disabled || (includeTransferable && u.transferable))
+    .map((u) => u.kavlingId);
 
 const getBlokSelectionState = (
   units: KavlingPickerRow[],
   selectedIds: number[],
+  includeTransferable = false,
 ): BlokSelectionState => {
-  const selectable = getSelectableUnitIds(units);
+  const selectable = getSelectableUnitIds(units, includeTransferable);
   if (selectable.length === 0) return 'none';
   const selectedCount = selectable.filter((id) => selectedIds.includes(id)).length;
   if (selectedCount === 0) return 'none';
@@ -495,7 +500,9 @@ const SPK = () => {
 
   const kavlingSpkAssignmentMap = useMemo(() => {
     const map = new Map<number, KavlingSpkAssignment>();
-    spkAllList.forEach((spk) => {
+    spkAllList
+      .filter((spk) => resolveSpkApprovalStatus(spk.statusApproval) !== 'REJECTED')
+      .forEach((spk) => {
       spk.kavlingItems.forEach((item) => {
         map.set(item.kavlingId, {
           spkId: spk.id,
@@ -512,6 +519,7 @@ const SPK = () => {
     const rows: KavlingPickerRow[] = kavlingResponse.items.map((k) => {
       const assignment = kavlingSpkAssignmentMap.get(k.id);
       const isCurrentSpk = editingId !== null && assignment?.spkId === editingId;
+      const isAssignedElsewhere = !!assignment && !isCurrentSpk;
       return {
         kavlingId: k.id,
         blok: k.blok,
@@ -519,7 +527,8 @@ const SPK = () => {
         luasTanah: k.luasTanah,
         luasBangunan: k.luasBangunan,
         customerNama: getCustomerNamaFromKavling(k),
-        disabled: !!assignment && !isCurrentSpk,
+        disabled: isAssignedElsewhere && editingId === null,
+        transferable: isAssignedElsewhere && editingId !== null,
         handledBy: assignment && !isCurrentSpk ? assignment : undefined,
       };
     });
@@ -1018,7 +1027,7 @@ const SPK = () => {
   };
 
   const toggleBlok = (units: KavlingPickerRow[]) => {
-    const selectableIds = getSelectableUnitIds(units);
+    const selectableIds = getSelectableUnitIds(units, editingId !== null);
     if (selectableIds.length === 0) return;
     updateKavlingIds((ids) => {
       const allSelected = selectableIds.every((id) => ids.includes(id));
@@ -1072,9 +1081,32 @@ const SPK = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const buildKavlingTransferSummary = (kavlingIds: number[], targetSpkId: number) => {
+    return kavlingIds
+      .map((id) => {
+        const assignment = kavlingSpkAssignmentMap.get(id);
+        if (!assignment || assignment.spkId === targetSpkId) return null;
+        const row = kavlingPickerRows.find((r) => r.kavlingId === id);
+        const label = row ? `${row.blok}-${row.nomorUnit}` : `ID ${id}`;
+        return `• ${label} dari SPK ${formatShortNoSpk(assignment.noSpk)} (${assignment.mandorUsername})`;
+      })
+      .filter((line): line is string => line !== null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+
+    if (editingId) {
+      const transferLines = buildKavlingTransferSummary(formData.kavlingIds, editingId);
+      if (transferLines.length > 0) {
+        const confirmed = window.confirm(
+          `Kavling berikut akan dipindahkan dari SPK lain ke SPK ini:\n\n${transferLines.join('\n')}\n\nLanjutkan?`,
+        );
+        if (!confirmed) return;
+      }
+    }
+
     const payload = {
       jenis: 'RUMAH' as const,
       noSpk: formData.noSpk.trim(),
@@ -1113,7 +1145,47 @@ const SPK = () => {
     }
   };
 
+  const handleRemoveKavlingFromSpk = async (spk: SpkData, kavling: SpkKavlingItem) => {
+    if (!canManageSpk) return;
+    const remaining = spk.kavlingItems.filter((k) => k.kavlingId !== kavling.kavlingId);
+    if (remaining.length === 0) {
+      alert('SPK harus memiliki minimal satu kavling. Hapus SPK jika tidak diperlukan lagi.');
+      return;
+    }
+    const label = `${kavling.blok}-${kavling.nomorUnit}`;
+    if (
+      !window.confirm(
+        `Lepas kavling ${label} dari SPK ${formatShortNoSpk(spk.noSpk)}?\nMandor pada unit ini akan dilepas dari progress proyek.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await updateMutation.mutateAsync({
+        id: spk.id,
+        data: { kavlingIds: remaining.map((k) => k.kavlingId) },
+      });
+      if (detailItem?.id === spk.id) {
+        setDetailItem((prev) =>
+          prev
+            ? { ...prev, kavlingItems: remaining }
+            : prev,
+        );
+      }
+    } catch (err: unknown) {
+      alert(handleApiError(err).message);
+    }
+  };
+
+  const handleMoveKavlingToCurrentSpk = (kavlingId: number) => {
+    if (!editingId) return;
+    updateKavlingIds((ids) =>
+      ids.includes(kavlingId) ? ids : [...ids, kavlingId],
+    );
+  };
+
   const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isEditingSpk = editingId !== null;
   const hasUploadedFile = !!formData.fileSpk || !!formData.existingFileSpk;
 
   const handleTabChange = (tab: 'rumah' | 'infra') => {
@@ -1430,8 +1502,23 @@ const SPK = () => {
                   </span>
                 }
               >
+                {canManageSpk && (
+                  <div className="flex justify-end mb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDetailOpen(false);
+                        openEditModal(detailItem);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      <ArrowRightLeft size={12} />
+                      Atur / pindah kavling
+                    </button>
+                  </div>
+                )}
                 <div className="overflow-x-auto rounded-lg border border-slate-200 max-h-48 overflow-y-auto">
-                  <table className="w-full text-xs border-collapse min-w-[280px]">
+                  <table className="w-full text-xs border-collapse min-w-[320px]">
                     <thead className="sticky top-0 z-10 bg-slate-50">
                       <tr>
                         <th className={detailThClass}>Blok</th>
@@ -1439,6 +1526,9 @@ const SPK = () => {
                         <th className={detailThClass}>LT</th>
                         <th className={detailThClass}>LB</th>
                         <th className={detailThClass}>Customer</th>
+                        {canManageSpk && (
+                          <th className={`${detailThClass} text-center w-16`}>Aksi</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -1451,6 +1541,19 @@ const SPK = () => {
                             <td className={detailTdClass}>{k.luasTanah ?? 0}</td>
                             <td className={detailTdClass}>{k.luasBangunan ?? 0}</td>
                             <td className={detailTdClass}>{k.customerNama || '—'}</td>
+                            {canManageSpk && (
+                              <td className={`${detailTdClass} text-center`}>
+                                <button
+                                  type="button"
+                                  title={`Lepas ${k.blok}-${k.nomorUnit} dari SPK ini`}
+                                  onClick={() => handleRemoveKavlingFromSpk(detailItem, k)}
+                                  disabled={updateMutation.isPending}
+                                  className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         ))}
                     </tbody>
@@ -1558,6 +1661,11 @@ const SPK = () => {
           <FormSection title="Kavling Proyek">
             <p className="text-xs text-slate-500 mb-3 leading-relaxed">
               Centang blok untuk memilih semua unit, atau buka blok dan pilih unit tertentu saja.
+              {isEditingSpk && (
+                <span className="block mt-1 text-amber-700 font-medium">
+                  Saat edit SPK, unit yang sudah ada di SPK lain dapat dipilih untuk dipindahkan ke SPK ini.
+                </span>
+              )}
             </p>
             <div className="relative mb-3">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -1585,8 +1693,16 @@ const SPK = () => {
                 </p>
               ) : (
                 filteredKavlingBlokGroups.map((group) => {
-                  const blokState = getBlokSelectionState(group.units, formData.kavlingIds);
-                  const selectableIds = getSelectableUnitIds(group.units);
+                  const blokState = getBlokSelectionState(
+                    group.units,
+                    formData.kavlingIds,
+                    isEditingSpk,
+                  );
+                  const selectableIds = getSelectableUnitIds(group.units, isEditingSpk);
+                  const unavailableCount = group.units.filter(
+                    (u) => u.disabled && !u.transferable,
+                  ).length;
+                  const transferableCount = group.units.filter((u) => u.transferable).length;
                   const selectedInBlok = selectableIds.filter((id) =>
                     formData.kavlingIds.includes(id),
                   ).length;
@@ -1618,9 +1734,14 @@ const SPK = () => {
                           <span className="text-sm font-bold text-slate-800">Blok {group.blok}</span>
                           <span className="text-xs text-slate-500 ml-2">
                             {selectedInBlok}/{selectableIds.length} dipilih
-                            {group.units.length > selectableIds.length && (
+                            {unavailableCount > 0 && (
                               <span className="text-amber-600 ml-1">
-                                · {group.units.length - selectableIds.length} tidak tersedia
+                                · {unavailableCount} tidak tersedia
+                              </span>
+                            )}
+                            {transferableCount > 0 && (
+                              <span className="text-blue-600 ml-1">
+                                · {transferableCount} bisa dipindah
                               </span>
                             )}
                           </span>
@@ -1633,7 +1754,9 @@ const SPK = () => {
                             className={`flex items-start gap-3 pl-9 pr-4 py-2 transition-colors ${
                               k.disabled
                                 ? 'bg-slate-50/60 cursor-not-allowed opacity-70'
-                                : 'hover:bg-slate-50 cursor-pointer'
+                                : k.transferable
+                                  ? 'bg-blue-50/40 hover:bg-blue-50/70 cursor-pointer'
+                                  : 'hover:bg-slate-50 cursor-pointer'
                             }`}
                           >
                             <input
@@ -1654,11 +1777,31 @@ const SPK = () => {
                                 <span className="text-xs text-slate-500 truncate max-w-[140px]" title={k.customerNama}>
                                   {k.customerNama}
                                 </span>
+                                {k.transferable && formData.kavlingIds.includes(k.kavlingId) && (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+                                    <ArrowRightLeft size={10} />
+                                    Akan dipindah
+                                  </span>
+                                )}
                               </div>
                               {k.handledBy && (
-                                <p className="text-[11px] text-amber-700 font-medium mt-0.5 leading-snug">
-                                  Ditangani mandor {k.handledBy.mandorUsername} (SPK {k.handledBy.noSpk})
-                                </p>
+                                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                  <p className="text-[11px] text-amber-700 font-medium leading-snug">
+                                    Ditangani mandor {k.handledBy.mandorUsername} (SPK {formatShortNoSpk(k.handledBy.noSpk)})
+                                  </p>
+                                  {k.transferable && !formData.kavlingIds.includes(k.kavlingId) && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        handleMoveKavlingToCurrentSpk(k.kavlingId);
+                                      }}
+                                      className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                                    >
+                                      Pindah ke SPK ini
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </label>

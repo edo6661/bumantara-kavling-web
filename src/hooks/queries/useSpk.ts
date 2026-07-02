@@ -75,6 +75,7 @@ export const useUpdateSpk = () => {
       queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
       queryClient.invalidateQueries({ queryKey: PROGRESS_PROYEK_KEYS.all });
       queryClient.invalidateQueries({ queryKey: KAVLING_KEYS.all });
+      invalidateSidebarBadges(queryClient);
     },
   });
 };
