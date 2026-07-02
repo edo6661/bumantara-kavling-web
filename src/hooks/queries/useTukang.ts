@@ -23,3 +23,14 @@ export const useUpsertTukang = () => {
     },
   });
 };
+
+export const useUploadTukangKtp = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ nik, file }: { nik: string; file: File }) =>
+      tukangService.uploadKtp(nik, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TUKANG_KEYS.all });
+    },
+  });
+};

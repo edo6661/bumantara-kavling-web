@@ -1,15 +1,19 @@
-import { useState } from 'react';
-import { HardHat } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { HardHat, UploadCloud } from 'lucide-react';
 import DataTable from '../../components/shared/DataTable';
 import Modal from '../../components/shared/Modal';
 import Input from '../../components/shared/Input';
 import PageLoader from '../PageLoader';
 import { useAuth } from '../../context/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
-import { useGetTukangList, useUpsertTukang } from '../../hooks/queries/useTukang';
+import {
+  useGetTukangList,
+  useUploadTukangKtp,
+  useUpsertTukang,
+} from '../../hooks/queries/useTukang';
 import type { TukangData } from '../../services/tukang.service';
 import { handleApiError } from '../../utils/errorHandler';
-import { getNikValidationError, getOptionalNikValidationError, isNikDuplicate, sanitizeNikInput } from '../../utils/nik';
+import { getNikValidationError, isNikDuplicate, sanitizeNikInput } from '../../utils/nik';
 import {
   TUKANG_MAX_JUMLAH_ANAK,
   formatTukangStatusPernikahan,
@@ -23,16 +27,17 @@ import {
 interface TukangFormState {
   nik: string;
   nama: string;
-  ktp: string;
   marital: TukangMaritalFormValue;
 }
 
 const initialForm = (): TukangFormState => ({
   nik: '',
   nama: '',
-  ktp: '',
   marital: initialTukangMaritalForm(),
 });
+
+const isPdfUrl = (url: string) =>
+  url.split('?')[0].toLowerCase().endsWith('.pdf') || url.includes('application/pdf');
 
 const TukangMaritalFields = ({
   marital,
@@ -126,9 +131,14 @@ const Tukang = () => {
   const [editingNik, setEditingNik] = useState<string | null>(null);
   const [form, setForm] = useState<TukangFormState>(initialForm);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+  const [existingFileKtp, setExistingFileKtp] = useState<string | null>(null);
+  const [ktpFile, setKtpFile] = useState<File | null>(null);
+  const [ktpPreview, setKtpPreview] = useState<string | null>(null);
+  const ktpInputRef = useRef<HTMLInputElement>(null);
 
   const { data: list = [], isLoading } = useGetTukangList(search || undefined);
   const upsertMutation = useUpsertTukang();
+  const uploadKtpMutation = useUploadTukangKtp();
 
   const columns = [
     { header: 'NIK', accessor: 'nik' as const },
@@ -155,17 +165,37 @@ const Tukang = () => {
       : []),
     {
       header: 'KTP',
-      accessor: 'ktp' as const,
-      render: (val: string | null | undefined) => (
-        <span className="text-slate-600 tabular-nums">{val || '—'}</span>
-      ),
+      accessor: 'fileKtp' as const,
+      render: (val: string | null | undefined) =>
+        val ? (
+          <a
+            href={val}
+            target="_blank"
+            rel="noreferrer"
+            className="text-teal-700 text-sm font-semibold hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Lihat
+          </a>
+        ) : (
+          <span className="text-slate-400">—</span>
+        ),
     },
   ];
+
+  const resetKtpState = () => {
+    if (ktpPreview?.startsWith('blob:')) URL.revokeObjectURL(ktpPreview);
+    setExistingFileKtp(null);
+    setKtpFile(null);
+    setKtpPreview(null);
+    if (ktpInputRef.current) ktpInputRef.current.value = '';
+  };
 
   const openCreate = () => {
     setEditingNik(null);
     setForm(initialForm());
     setErrors({});
+    resetKtpState();
     setIsModalOpen(true);
   };
 
@@ -174,10 +204,12 @@ const Tukang = () => {
     setForm({
       nik: row.nik,
       nama: row.nama,
-      ktp: row.ktp ?? '',
       marital: tukangMaritalFromData(row.sudahMenikah, row.jumlahAnak),
     });
     setErrors({});
+    resetKtpState();
+    setExistingFileKtp(row.fileKtp);
+    setKtpPreview(row.fileKtp);
     setIsModalOpen(true);
   };
 
@@ -185,12 +217,12 @@ const Tukang = () => {
     setIsModalOpen(false);
     setEditingNik(null);
     setForm(initialForm());
+    resetKtpState();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const nextValue =
-      name === 'nik' || name === 'ktp' ? sanitizeNikInput(value) : value;
+    const nextValue = name === 'nik' ? sanitizeNikInput(value) : value;
     setForm((prev) => ({ ...prev, [name]: nextValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
@@ -204,9 +236,22 @@ const Tukang = () => {
     }));
   };
 
+  const handleKtpFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      alert('Hanya format gambar dan PDF yang diperbolehkan.');
+      e.target.value = '';
+      return;
+    }
+    if (ktpPreview?.startsWith('blob:')) URL.revokeObjectURL(ktpPreview);
+    setKtpFile(file);
+    setKtpPreview(URL.createObjectURL(file));
+    if (errors.fileKtp) setErrors((prev) => ({ ...prev, fileKtp: undefined }));
+  };
+
   const validate = () => {
     const next: Partial<Record<string, string>> = {};
-    // Edit hanya mengubah nama; NIK dikunci & backend tidak mengubah NIK.
     if (!editingNik) {
       const nikError = getNikValidationError(form.nik);
       if (nikError) next.nik = nikError;
@@ -215,8 +260,6 @@ const Tukang = () => {
       }
     }
     if (!form.nama.trim()) next.nama = 'Nama wajib diisi';
-    const ktpError = getOptionalNikValidationError(form.ktp, 'KTP');
-    if (ktpError) next.ktp = ktpError;
     const maritalErrors = validateTukangMaritalForm(form.marital);
     Object.assign(next, maritalErrors);
     setErrors(next);
@@ -228,18 +271,23 @@ const Tukang = () => {
     if (!validate()) return;
     try {
       const maritalPayload = tukangMaritalToPayload(form.marital);
-      const ktpDigits = sanitizeNikInput(form.ktp);
+      const nik = sanitizeNikInput(form.nik);
       await upsertMutation.mutateAsync({
-        nik: sanitizeNikInput(form.nik),
+        nik,
         nama: form.nama.trim(),
-        ktp: ktpDigits || null,
         ...maritalPayload,
       });
+      if (ktpFile) {
+        await uploadKtpMutation.mutateAsync({ nik, file: ktpFile });
+      }
       closeModal();
     } catch (err: unknown) {
       alert(handleApiError(err).message);
     }
   };
+
+  const previewUrl = ktpPreview ?? existingFileKtp;
+  const isSaving = upsertMutation.isPending || uploadKtpMutation.isPending;
 
   if (isLoading) return <PageLoader />;
 
@@ -295,16 +343,52 @@ const Tukang = () => {
             onChange={handleChange}
             error={errors.nama}
           />
-          <Input
-            label="KTP (16 digit, opsional)"
-            name="ktp"
-            value={form.ktp}
-            onChange={handleChange}
-            error={errors.ktp}
-            placeholder="Kosongkan jika belum tersedia"
-            inputMode="numeric"
-            maxLength={16}
-          />
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Foto KTP (opsional)
+            </label>
+            <div className="rounded-xl border border-slate-200 overflow-hidden">
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-50 border-b border-slate-200">
+                <span className="text-xs text-slate-500">
+                  Format gambar atau PDF
+                </span>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-teal-50 hover:text-teal-700 hover:border-teal-200 cursor-pointer">
+                  <UploadCloud size={14} />
+                  {previewUrl ? 'Ganti File' : 'Upload File'}
+                  <input
+                    ref={ktpInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={handleKtpFileChange}
+                    disabled={isSaving}
+                  />
+                </label>
+              </div>
+              <div className="h-44 bg-slate-100 flex items-center justify-center">
+                {previewUrl ? (
+                  isPdfUrl(previewUrl) ? (
+                    <iframe
+                      src={previewUrl}
+                      title="Preview KTP"
+                      className="w-full h-full border-none"
+                    />
+                  ) : (
+                    <img
+                      src={previewUrl}
+                      alt="Preview KTP"
+                      className="w-full h-full object-contain"
+                    />
+                  )
+                ) : (
+                  <span className="text-sm text-slate-400">Belum ada foto KTP</span>
+                )}
+              </div>
+            </div>
+            {errors.fileKtp && (
+              <p className="mt-1 text-xs text-red-600">{errors.fileKtp}</p>
+            )}
+          </div>
           <TukangMaritalFields
             idPrefix="tukang-form"
             marital={form.marital}
@@ -324,10 +408,10 @@ const Tukang = () => {
             </button>
             <button
               type="submit"
-              disabled={upsertMutation.isPending}
+              disabled={isSaving}
               className="px-4 py-2 text-sm font-bold text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-50"
             >
-              {upsertMutation.isPending ? 'Menyimpan...' : 'Simpan'}
+              {isSaving ? 'Menyimpan...' : 'Simpan'}
             </button>
           </div>
         </form>

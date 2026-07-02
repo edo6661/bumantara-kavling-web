@@ -4,7 +4,7 @@ export interface TukangData {
   id: number;
   nik: string;
   nama: string;
-  ktp: string | null;
+  fileKtp: string | null;
   sudahMenikah: boolean | null;
   jumlahAnak: number | null;
   mandorId: number | null;
@@ -16,7 +16,6 @@ export interface TukangData {
 export interface UpsertTukangBody {
   nik: string;
   nama: string;
-  ktp?: string | null;
   sudahMenikah: boolean;
   jumlahAnak: number;
 }
@@ -31,6 +30,17 @@ export const tukangService = {
 
   upsert: async (body: UpsertTukangBody): Promise<TukangData> => {
     const response = await api.post('/tukang', body);
+    return response.data.data;
+  },
+
+  uploadKtp: async (nik: string, file: File): Promise<TukangData> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(
+      `/tukang/${encodeURIComponent(nik)}/upload-ktp`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
     return response.data.data;
   },
 };
