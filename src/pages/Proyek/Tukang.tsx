@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { HardHat, UploadCloud } from 'lucide-react';
+import { FileText, HardHat, UploadCloud, ZoomIn } from 'lucide-react';
 import DataTable from '../../components/shared/DataTable';
 import Modal from '../../components/shared/Modal';
 import Input from '../../components/shared/Input';
@@ -134,6 +134,7 @@ const Tukang = () => {
   const [existingFileKtp, setExistingFileKtp] = useState<string | null>(null);
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [ktpPreview, setKtpPreview] = useState<string | null>(null);
+  const [previewKtpUrl, setPreviewKtpUrl] = useState<string | null>(null);
   const ktpInputRef = useRef<HTMLInputElement>(null);
 
   const { data: list = [], isLoading } = useGetTukangList(search || undefined);
@@ -166,20 +167,36 @@ const Tukang = () => {
     {
       header: 'KTP',
       accessor: 'fileKtp' as const,
-      render: (val: string | null | undefined) =>
-        val ? (
-          <a
-            href={val}
-            target="_blank"
-            rel="noreferrer"
-            className="text-teal-700 text-sm font-semibold hover:underline"
-            onClick={(e) => e.stopPropagation()}
+      render: (val: string | null | undefined) => {
+        if (!val) return <span className="text-slate-400">—</span>;
+        const pdf = isPdfUrl(val);
+        return (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewKtpUrl(val);
+            }}
+            className="relative w-14 h-10 rounded border border-slate-200 overflow-hidden cursor-zoom-in group shadow-sm bg-slate-100"
+            title="Lihat KTP"
           >
-            Lihat
-          </a>
-        ) : (
-          <span className="text-slate-400">—</span>
-        ),
+            {pdf ? (
+              <div className="flex flex-col items-center justify-center h-full text-red-500">
+                <FileText size={16} />
+                <span className="text-[8px] font-bold mt-0.5">PDF</span>
+              </div>
+            ) : (
+              <img
+                src={val}
+                alt="KTP"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              />
+            )}
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+              <ZoomIn className="text-white" size={14} />
+            </div>
+          </div>
+        );
+      },
     },
   ];
 
@@ -415,6 +432,49 @@ const Tukang = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={!!previewKtpUrl}
+        onClose={() => setPreviewKtpUrl(null)}
+        title="Pratinjau Foto KTP"
+      >
+        <div className="flex flex-col items-center">
+          {previewKtpUrl && (
+            <div className="relative w-full flex justify-center bg-slate-100 rounded-2xl p-2 border border-slate-200 shadow-inner">
+              {isPdfUrl(previewKtpUrl) ? (
+                <iframe
+                  src={previewKtpUrl}
+                  className="w-full h-[70vh] rounded-lg border-none"
+                  title="PDF KTP"
+                />
+              ) : (
+                <img
+                  src={previewKtpUrl}
+                  alt="Foto KTP"
+                  className="max-w-full max-h-[70vh] rounded-lg shadow-2xl object-contain"
+                />
+              )}
+            </div>
+          )}
+          <div className="mt-6 flex gap-3">
+            <a
+              href={previewKtpUrl || '#'}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm"
+            >
+              Buka Tab Baru
+            </a>
+            <button
+              type="button"
+              onClick={() => setPreviewKtpUrl(null)}
+              className="px-10 py-2.5 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all cursor-pointer shadow-lg shadow-black/20"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
