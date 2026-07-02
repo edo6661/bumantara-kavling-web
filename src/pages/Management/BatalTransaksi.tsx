@@ -422,7 +422,7 @@ const BatalTransaksi = () => {
             <select
               value={editAgent}
               onChange={(e) => setEditAgent(e.target.value)}
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black text-black"
               required
             >
               <option value="">-- Pilih Agent --</option>
