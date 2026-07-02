@@ -4,6 +4,7 @@ export interface TukangData {
   id: number;
   nik: string;
   nama: string;
+  ktp: string | null;
   sudahMenikah: boolean | null;
   jumlahAnak: number | null;
   mandorId: number | null;
@@ -15,6 +16,7 @@ export interface TukangData {
 export interface UpsertTukangBody {
   nik: string;
   nama: string;
+  ktp?: string | null;
   sudahMenikah: boolean;
   jumlahAnak: number;
 }

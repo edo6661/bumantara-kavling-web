@@ -9,7 +9,7 @@ import { usePermission } from '../../hooks/usePermission';
 import { useGetTukangList, useUpsertTukang } from '../../hooks/queries/useTukang';
 import type { TukangData } from '../../services/tukang.service';
 import { handleApiError } from '../../utils/errorHandler';
-import { getNikValidationError, isNikDuplicate, sanitizeNikInput } from '../../utils/nik';
+import { getNikValidationError, getOptionalNikValidationError, isNikDuplicate, sanitizeNikInput } from '../../utils/nik';
 import {
   TUKANG_MAX_JUMLAH_ANAK,
   formatTukangStatusPernikahan,
@@ -23,12 +23,14 @@ import {
 interface TukangFormState {
   nik: string;
   nama: string;
+  ktp: string;
   marital: TukangMaritalFormValue;
 }
 
 const initialForm = (): TukangFormState => ({
   nik: '',
   nama: '',
+  ktp: '',
   marital: initialTukangMaritalForm(),
 });
 
@@ -151,6 +153,13 @@ const Tukang = () => {
           },
         ]
       : []),
+    {
+      header: 'KTP',
+      accessor: 'ktp' as const,
+      render: (val: string | null | undefined) => (
+        <span className="text-slate-600 tabular-nums">{val || '—'}</span>
+      ),
+    },
   ];
 
   const openCreate = () => {
@@ -165,6 +174,7 @@ const Tukang = () => {
     setForm({
       nik: row.nik,
       nama: row.nama,
+      ktp: row.ktp ?? '',
       marital: tukangMaritalFromData(row.sudahMenikah, row.jumlahAnak),
     });
     setErrors({});
@@ -179,7 +189,8 @@ const Tukang = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const nextValue = name === 'nik' ? sanitizeNikInput(value) : value;
+    const nextValue =
+      name === 'nik' || name === 'ktp' ? sanitizeNikInput(value) : value;
     setForm((prev) => ({ ...prev, [name]: nextValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
@@ -204,6 +215,8 @@ const Tukang = () => {
       }
     }
     if (!form.nama.trim()) next.nama = 'Nama wajib diisi';
+    const ktpError = getOptionalNikValidationError(form.ktp, 'KTP');
+    if (ktpError) next.ktp = ktpError;
     const maritalErrors = validateTukangMaritalForm(form.marital);
     Object.assign(next, maritalErrors);
     setErrors(next);
@@ -215,9 +228,11 @@ const Tukang = () => {
     if (!validate()) return;
     try {
       const maritalPayload = tukangMaritalToPayload(form.marital);
+      const ktpDigits = sanitizeNikInput(form.ktp);
       await upsertMutation.mutateAsync({
         nik: sanitizeNikInput(form.nik),
         nama: form.nama.trim(),
+        ktp: ktpDigits || null,
         ...maritalPayload,
       });
       closeModal();
@@ -279,6 +294,16 @@ const Tukang = () => {
             value={form.nama}
             onChange={handleChange}
             error={errors.nama}
+          />
+          <Input
+            label="KTP (16 digit, opsional)"
+            name="ktp"
+            value={form.ktp}
+            onChange={handleChange}
+            error={errors.ktp}
+            placeholder="Kosongkan jika belum tersedia"
+            inputMode="numeric"
+            maxLength={16}
           />
           <TukangMaritalFields
             idPrefix="tukang-form"
