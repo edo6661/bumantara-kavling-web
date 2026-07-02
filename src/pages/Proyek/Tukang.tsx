@@ -269,12 +269,15 @@ const Tukang = () => {
 
   const validate = () => {
     const next: Partial<Record<string, string>> = {};
-    if (!editingNik) {
-      const nikError = getNikValidationError(form.nik);
-      if (nikError) next.nik = nikError;
-      else if (isNikDuplicate(form.nik, list, { field: 'nik' })) {
-        next.nik = 'NIK sudah terdaftar';
-      }
+    const nikError = getNikValidationError(form.nik, 'NIK', { unchangedFrom: editingNik ?? undefined });
+    if (nikError) next.nik = nikError;
+    else if (
+      isNikDuplicate(form.nik, list, {
+        field: 'nik',
+        unchangedFrom: editingNik ?? undefined,
+      })
+    ) {
+      next.nik = 'NIK sudah terdaftar';
     }
     if (!form.nama.trim()) next.nama = 'Nama wajib diisi';
     const maritalErrors = validateTukangMaritalForm(form.marital);
@@ -348,7 +351,7 @@ const Tukang = () => {
             value={form.nik}
             onChange={handleChange}
             error={errors.nik}
-            disabled={!!editingNik}
+            disabled={isSaving}
             placeholder="16 digit"
             inputMode="numeric"
             maxLength={16}
