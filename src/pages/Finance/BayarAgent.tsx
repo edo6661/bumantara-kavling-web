@@ -20,9 +20,11 @@ import {
   UploadCloud,
   Users,
   Wallet,
+  XCircle,
 } from 'lucide-react';
 import {
   useBayarAgentPencairan,
+  useBatalAgentPencairan,
   useGetAgentPencairanList,
 } from '../../hooks/queries/useAgentPencairan';
 import { handleApiError } from '../../utils/errorHandler';
@@ -89,6 +91,7 @@ const BayarAgent = () => {
   );
 
   const bayarMutation = useBayarAgentPencairan();
+  const batalMutation = useBatalAgentPencairan();
 
   const processUpload = useCallback(
     async (row: AgentPencairanData, file: File): Promise<boolean> => {
@@ -193,6 +196,23 @@ const BayarAgent = () => {
     const ok = await processUpload(uploadTarget, file);
     if (ok) clearPasteSelection();
     setUploadTarget(null);
+  };
+
+  const handleBatalPencairan = async (row: AgentPencairanData) => {
+    const agentLabel = row.agent?.nama ?? 'Agent';
+    const customerLabel = row.penjualan?.customer?.nama ?? '-';
+    const confirmed = window.confirm(
+      `Batalkan pengajuan pencairan untuk ${agentLabel} (${customerLabel})?\n\nPengajuan akan dihapus dari antrian finance. Tim marketing dapat mengajukan ulang dari menu Agent.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await batalMutation.mutateAsync(row.id);
+      if (pasteTarget?.id === row.id) clearPasteSelection();
+      alert('Pengajuan pencairan agent berhasil dibatalkan.');
+    } catch (error) {
+      alert(handleApiError(error).message);
+    }
   };
 
   const pasteBannerLabel = pasteTarget
@@ -433,18 +453,32 @@ const BayarAgent = () => {
                       </td>
                       <td className={`${tdClass} text-center`}>
                         {!paid && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openUpload(row);
-                            }}
-                            disabled={bayarMutation.isPending}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
-                          >
-                            <UploadCloud size={12} />
-                            
-                          </button>
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openUpload(row);
+                              }}
+                              disabled={bayarMutation.isPending || batalMutation.isPending}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold uppercase bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                              title="Upload bukti pembayaran"
+                            >
+                              <UploadCloud size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleBatalPencairan(row);
+                              }}
+                              disabled={bayarMutation.isPending || batalMutation.isPending}
+                              className="inline-flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                              title="Batalkan pengajuan pencairan"
+                            >
+                              <XCircle size={12} />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

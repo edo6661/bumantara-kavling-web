@@ -75,6 +75,18 @@ export const useBayarAgentPencairan = () => {
   });
 };
 
+export const useBatalAgentPencairan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => agentPencairanService.batal(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AGENT_PENCAIRAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ['fee-agents'] });
+      invalidateSidebarBadges(queryClient);
+    },
+  });
+};
+
 export const useSetAgentBsiCmsDilaporkan = () => {
   const queryClient = useQueryClient();
   return useMutation({

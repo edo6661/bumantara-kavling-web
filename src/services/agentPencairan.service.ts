@@ -128,6 +128,11 @@ export const agentPencairanService = {
     return response.data.data as AgentPencairanData;
   },
 
+  batal: async (id: number) => {
+    const response = await api.patch(`/agent-pencairan/${id}/batal`);
+    return response.data;
+  },
+
   setBsiCmsDilaporkan: async (ids: number[], dilaporkan: boolean) => {
     const response = await api.patch('/agent-pencairan/bsi-cms-dilaporkan', {
       ids,
