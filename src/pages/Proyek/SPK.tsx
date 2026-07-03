@@ -58,6 +58,8 @@ interface SpkFormState {
   kavlingIds: number[];
   fileSpk: File | null;
   existingFileSpk: string | null;
+  fileRab: File | null;
+  existingFileRab: string | null;
 }
 
 interface KavlingSpkAssignment {
@@ -296,6 +298,8 @@ const initialFormState = (): SpkFormState => ({
   kavlingIds: [],
   fileSpk: null,
   existingFileSpk: null,
+  fileRab: null,
+  existingFileRab: null,
 });
 
 const FormSection = ({
@@ -460,6 +464,7 @@ const SPK = () => {
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [rabPreviewUrl, setRabPreviewUrl] = useState<string | null>(null);
   const [expandedBloks, setExpandedBloks] = useState<Set<string>>(new Set());
   const [spkProgressInput, setSpkProgressInput] = useState<string>('');
 
@@ -584,6 +589,16 @@ const SPK = () => {
     setFilePreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [formData.fileSpk]);
+
+  useEffect(() => {
+    if (!formData.fileRab) {
+      setRabPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(formData.fileRab);
+    setRabPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [formData.fileRab]);
 
   const columns = [
     {
@@ -993,6 +1008,8 @@ const SPK = () => {
       kavlingIds: item.kavlingItems.map((p) => p.kavlingId),
       fileSpk: null,
       existingFileSpk: item.fileSpk,
+      fileRab: null,
+      existingFileRab: item.fileRab ?? null,
     });
     setErrors({});
     setKavlingPickerSearch('');
@@ -1049,6 +1066,10 @@ const SPK = () => {
 
   const clearUploadedFile = () => {
     setFormData((prev) => ({ ...prev, fileSpk: null, existingFileSpk: null }));
+  };
+
+  const clearUploadedRab = () => {
+    setFormData((prev) => ({ ...prev, fileRab: null, existingFileRab: null }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -1122,6 +1143,7 @@ const SPK = () => {
       mandorId: Number(formData.mandorId),
       kavlingIds: formData.kavlingIds,
       fileSpk: formData.fileSpk,
+      fileRab: formData.fileRab,
     };
     try {
       if (editingId) {
@@ -1187,6 +1209,7 @@ const SPK = () => {
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const isEditingSpk = editingId !== null;
   const hasUploadedFile = !!formData.fileSpk || !!formData.existingFileSpk;
+  const hasUploadedRab = !!formData.fileRab || !!formData.existingFileRab;
 
   const handleTabChange = (tab: 'rumah' | 'infra') => {
     setSearchParams((prev) => {
@@ -1483,6 +1506,23 @@ const SPK = () => {
                     >
                       <FileText size={14} />
                       Buka PDF
+                      <ExternalLink size={12} />
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400">Belum ada dokumen</span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Dokumen RAB</p>
+                  {detailItem.fileRab ? (
+                    <a
+                      href={detailItem.fileRab}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+                    >
+                      <FileText size={14} />
+                      Buka RAB
                       <ExternalLink size={12} />
                     </a>
                   ) : (
@@ -1862,6 +1902,61 @@ const SPK = () => {
                 <button
                   type="button"
                   onClick={clearUploadedFile}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                  title="Hapus file"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            )}
+            <FileInput
+              label="Upload RAB (PDF, opsional)"
+              accept=".pdf,application/pdf"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setFormData((prev) => ({
+                  ...prev,
+                  fileRab: file,
+                  existingFileRab: file ? null : prev.existingFileRab,
+                }));
+                e.target.value = '';
+              }}
+            />
+            {hasUploadedRab && (
+              <div className="mt-3 flex items-start gap-3 p-3.5 bg-white border border-emerald-100 rounded-xl shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+                  <FileText size={20} className="text-emerald-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-800 truncate">
+                    {formData.fileRab?.name ?? getFileNameFromUrl(formData.existingFileRab!)}
+                  </p>
+                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">
+                    RAB · PDF
+                    {formData.fileRab && (
+                      <span className="text-slate-400 normal-case tracking-normal font-medium ml-2">
+                        {formatFileSize(formData.fileRab.size)}
+                      </span>
+                    )}
+                  </p>
+                  {formData.existingFileRab && !formData.fileRab && (
+                    <a
+                      href={formData.existingFileRab}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 font-semibold mt-1 hover:underline"
+                    >
+                      <ExternalLink size={11} />
+                      Pratinjau dokumen tersimpan
+                    </a>
+                  )}
+                  {rabPreviewUrl && formData.fileRab && (
+                    <p className="text-xs text-slate-500 mt-0.5">Siap diunggah saat simpan</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={clearUploadedRab}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
                   title="Hapus file"
                 >

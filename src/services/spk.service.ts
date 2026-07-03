@@ -54,6 +54,8 @@ export interface SpkData {
   notesPekerjaan: string | null;
   jatuhTempo: string | null;
   fileSpk: string | null;
+  /** Di prod lama / sebelum migration, field ini bisa belum ada */
+  fileRab?: string | null;
   mandorId: number;
   mandor: { id: number; username: string };
   /** Di prod lama / sebelum migration, field ini bisa belum ada — anggap APPROVED */
@@ -88,6 +90,7 @@ export interface CreateSpkDTO {
   pekerjaanInfraIds?: number[];
   terminScheme?: SpkTerminSchemeKey;
   fileSpk?: File | null;
+  fileRab?: File | null;
   progressOverride?: number | null;
 }
 
@@ -182,6 +185,9 @@ const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
   }
   if (data.fileSpk) {
     formData.append("fileSpk", data.fileSpk);
+  }
+  if (data.fileRab) {
+    formData.append("fileRab", data.fileRab);
   }
   return formData;
 };

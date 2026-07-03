@@ -306,17 +306,35 @@ const ApproveSpk = () => {
               </div>
             )}
 
-            {detailItem.fileSpk && (
-              <a
-                href={detailItem.fileSpk}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:underline"
-              >
-                <FileText size={16} />
-                Lihat Dokumen SPK
-                <ExternalLink size={14} />
-              </a>
+            {(detailItem.fileSpk || detailItem.fileRab) && (
+              <CollapsibleDetailSection title="Dokumen" defaultOpen>
+                <div className="flex flex-col gap-2">
+                  {detailItem.fileSpk && (
+                    <a
+                      href={detailItem.fileSpk}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:underline"
+                    >
+                      <FileText size={16} />
+                      Lihat Dokumen SPK
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
+                  {detailItem.fileRab && (
+                    <a
+                      href={detailItem.fileRab}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline"
+                    >
+                      <FileText size={16} />
+                      Lihat Dokumen RAB
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
+                </div>
+              </CollapsibleDetailSection>
             )}
 
             <div className="flex gap-3 pt-2">
