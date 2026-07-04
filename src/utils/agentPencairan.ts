@@ -109,12 +109,19 @@ export const isCashPayment = (caraPembayaran?: string | null) => {
 export const isPenjualanBatal = (status?: string | null) =>
   (status ?? '').toUpperCase() === 'BATAL';
 
-export const isBookingFeePaid = (detail?: SaleDetail) =>
-  !!detail?.bookingFeeLunasBatal ||
-  (detail?.tagihan ?? []).some(
-    (t) =>
-      effectiveTagihanTujuan(t) === 'BOOKING_FEE' && t.status === 'LUNAS',
+export const isBookingFeePaid = (detail?: SaleDetail) => {
+  if (isPenjualanBatal(detail?.status)) {
+    return !!detail?.bookingFeeLunasBatal;
+  }
+
+  return (
+    !!detail?.bookingFeeLunasBatal ||
+    (detail?.tagihan ?? []).some(
+      (t) =>
+        effectiveTagihanTujuan(t) === 'BOOKING_FEE' && t.status === 'LUNAS',
+    )
   );
+};
 
 type PenjualanListItem = PenjualanSaleRef &
   SaleDetail & {

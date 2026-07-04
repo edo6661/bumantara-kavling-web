@@ -23,7 +23,8 @@ import type { AgentData } from '../../types/models/agent';
 import type { FeeAgentData } from '../../services/feeAgent.service';
 
 const inferBookingFeePaid = (row: any) =>
-  !!row.bookingFeeLunasBatal || isBookingFeePaid({
+  isBookingFeePaid({
+    status: row.status,
     tagihan: row.tagihan,
     bookingFeeLunasBatal: row.bookingFeeLunasBatal,
   });
