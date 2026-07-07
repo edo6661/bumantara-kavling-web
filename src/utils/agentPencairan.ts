@@ -77,12 +77,10 @@ const effectiveTagihanTujuan = (tagihan: {
 
 /** Gabungkan data penjualan dari list API dengan ringkasan di agent */
 export const resolveSaleDetail = (
-  sale: PenjualanSaleRef,
-  penjualanList: Array<PenjualanSaleRef & SaleDetail>,
+  sale: PenjualanIdentity & Partial<Omit<PenjualanSaleRef, 'id'>>,
+  penjualanList: PenjualanListItem[],
 ): SaleDetail => {
-  const matched = penjualanList.find(
-    (p) => p.id === sale.id || p.noTransaksi === sale.noTransaksi,
-  );
+  const matched = penjualanList.find((p) => isSamePenjualan(sale, p));
   return {
     status: matched?.status ?? sale.status,
     caraPembayaran: matched?.caraPembayaran ?? sale.caraPembayaran,
@@ -123,8 +121,10 @@ export const isBookingFeePaid = (detail?: SaleDetail) => {
   );
 };
 
-type PenjualanListItem = PenjualanSaleRef &
+type PenjualanListItem = Omit<PenjualanSaleRef, 'id'> &
   SaleDetail & {
+    id?: number | string;
+    dbId?: number | null;
     agent?: string;
     nama?: string;
     tanggal?: string;
@@ -132,6 +132,58 @@ type PenjualanListItem = PenjualanSaleRef &
     nomorUnit?: string;
     perumahan?: string;
   };
+
+type PenjualanIdentity = {
+  id?: number | string;
+  dbId?: number | null;
+  noTransaksi?: string;
+};
+
+/** API /penjualan memakai `id` = noTransaksi (string); relasi agent memakai id numerik DB. */
+const getPenjualanNumericId = (item: PenjualanIdentity): number | null => {
+  if (item.dbId != null) {
+    const dbId = Number(item.dbId);
+    if (!Number.isNaN(dbId)) return dbId;
+  }
+  if (typeof item.id === 'number' && !Number.isNaN(item.id)) return item.id;
+  return null;
+};
+
+const isSamePenjualan = (a: PenjualanIdentity, b: PenjualanIdentity) => {
+  const aId = getPenjualanNumericId(a);
+  const bId = getPenjualanNumericId(b);
+  if (aId != null && bId != null && aId === bId) return true;
+
+  const aNo =
+    a.noTransaksi?.trim() ||
+    (typeof a.id === 'string' ? a.id.trim() : '');
+  const bNo =
+    b.noTransaksi?.trim() ||
+    (typeof b.id === 'string' ? b.id.trim() : '');
+  return Boolean(aNo && bNo && aNo === bNo);
+};
+
+const buildPenjualanSeenKeys = (sales: PenjualanIdentity[]) => {
+  const seen = new Set<string>();
+  sales.forEach((sale) => {
+    const numId = getPenjualanNumericId(sale);
+    if (numId != null) seen.add(`id:${numId}`);
+    const no =
+      sale.noTransaksi?.trim() ||
+      (typeof sale.id === 'string' ? sale.id.trim() : '');
+    if (no) seen.add(`no:${no}`);
+  });
+  return seen;
+};
+
+const isPenjualanSeen = (sale: PenjualanIdentity, seen: Set<string>) => {
+  const numId = getPenjualanNumericId(sale);
+  if (numId != null && seen.has(`id:${numId}`)) return true;
+  const no =
+    sale.noTransaksi?.trim() ||
+    (typeof sale.id === 'string' ? sale.id.trim() : '');
+  return Boolean(no && seen.has(`no:${no}`));
+};
 
 /** Penjualan batal yang booking fee-nya sudah lunas — eligible closing fee saja */
 export const isBatalClosingEligible = (detail?: SaleDetail) =>
@@ -146,18 +198,23 @@ export const mergeAgentPenjualanWithEligibleBatal = (
   penjualanList: PenjualanListItem[],
 ): PenjualanAgentData[] => {
   const base = agent.penjualan ?? [];
-  const seen = new Set(base.map((s) => s.id));
+  const seen = buildPenjualanSeenKeys(base);
 
   const extras = penjualanList
     .filter((p) => {
-      if (seen.has(p.id)) return false;
+      if (isPenjualanSeen(p, seen)) return false;
       if ((p.agent ?? '').trim() !== agent.nama.trim()) return false;
       return isBatalClosingEligible(resolveSaleDetail(p, penjualanList));
     })
-    .map(
-      (p): PenjualanAgentData => ({
-        id: p.id,
-        noTransaksi: p.noTransaksi,
+    .map((p): PenjualanAgentData => {
+      const numericId = getPenjualanNumericId(p);
+      const noTransaksi =
+        p.noTransaksi?.trim() ||
+        (typeof p.id === 'string' ? p.id.trim() : '');
+
+      return {
+        id: numericId ?? 0,
+        noTransaksi,
         tanggal: p.tanggal ?? '',
         hargaJual: Number(p.hargaJual ?? 0),
         status: p.status ?? 'BATAL',
@@ -168,8 +225,9 @@ export const mergeAgentPenjualanWithEligibleBatal = (
           nomorUnit: p.nomorUnit ?? '',
           perumahan: p.perumahan ? { nama: p.perumahan } : undefined,
         },
-      }),
-    );
+      };
+    })
+    .filter((sale) => sale.id > 0 && sale.noTransaksi);
 
   return [...base, ...extras];
 };
