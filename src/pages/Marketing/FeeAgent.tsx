@@ -290,9 +290,8 @@ const FeeAgent = () => {
       />
 
       <p className="text-xs text-slate-500 px-1">
-        Satu penjualan bisa memiliki beberapa pengajuan (tahap PPJB dan AJB, atau pengajuan
-        bertahap). Jika semua syarat sudah lengkap, closing fee dan komisi marketing juga bisa
-        diajukan sekaligus dalam satu pengajuan.
+        Satu penjualan bisa punya beberapa pengajuan (mis. 50% PPJB lalu 50% AJB untuk cash,
+        atau komisi penuh untuk KPR). Closing dan komisi bisa diajukan sekaligus jika syarat lengkap.
       </p>
 
       <Modal isOpen={!!previewUrl} onClose={() => setPreviewUrl(null)} title="Bukti Pembayaran">

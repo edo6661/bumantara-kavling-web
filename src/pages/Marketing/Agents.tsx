@@ -30,6 +30,7 @@ import PencairanHistoryModal from "../../components/marketing/PencairanHistoryMo
 import {
   hasAnyEligiblePencairan,
   getPencairanBlockReason,
+  formatPencairanTahapLabel,
   getPencairanPaymentStatus,
   getPencairanFeeTotals,
   resolveSaleDetail,
@@ -282,6 +283,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
   const [historyModal, setHistoryModal] = useState<{
     saleLabel: string;
     records: AgentPencairanData[];
+    caraPembayaran?: string | null;
   } | null>(null);
   const [historyPreviewUrl, setHistoryPreviewUrl] = useState<string | null>(null);
 
@@ -1038,7 +1040,11 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setHistoryModal({ saleLabel, records: pencairanList });
+                                setHistoryModal({
+                                  saleLabel,
+                                  records: pencairanList,
+                                  caraPembayaran: detail?.caraPembayaran,
+                                });
                               }}
                               className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"
                               title="Riwayat pencairan"
@@ -1050,7 +1056,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
                             <span
                               key={p.id}
                               className="p-1.5 text-amber-500"
-                              title={`Menunggu pembayaran finance (${p.tahap})`}
+                              title={`Menunggu finance (${formatPencairanTahapLabel(p.tahap, detail?.caraPembayaran)})`}
                             >
                               <Clock size={16} />
                             </span>
@@ -1659,6 +1665,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
             ? (pencairanByFeeAgentId.get(pencairanModal.feeRecord.id) ?? [])
             : []
         }
+        caraPembayaran={pencairanModal?.detail?.caraPembayaran}
         isSubmitting={ajukanPencairanMutation.isPending}
         onConfirm={(selected) => void handleConfirmAjukanPencairan(selected)}
       />
@@ -1672,6 +1679,7 @@ const Agents = ({ agentType, showFeeAgentBackfill = false }: AgentsProps) => {
         title="Riwayat Pencairan Agent"
         subtitle={historyModal?.saleLabel}
         records={historyModal?.records ?? []}
+        caraPembayaran={historyModal?.caraPembayaran}
         previewUrl={historyPreviewUrl}
         onPreviewBukti={setHistoryPreviewUrl}
         onClosePreview={() => setHistoryPreviewUrl(null)}

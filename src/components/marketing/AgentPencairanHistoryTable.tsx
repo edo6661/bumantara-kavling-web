@@ -1,7 +1,7 @@
 import BuktiFileThumbnail from '../shared/BuktiFileThumbnail';
 import { formatDate, formatRupiah } from '../../utils/formatters';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
-import { sortPencairanRecords } from '../../utils/agentPencairan';
+import { formatPencairanTahapLabel, sortPencairanRecords } from '../../utils/agentPencairan';
 import { getAgentPencairanInvoiceUrls } from '../../utils/agentPencairanInvoice';
 import { CheckCircle2, Clock } from 'lucide-react';
 
@@ -11,6 +11,7 @@ const tdClass = 'px-3 py-2.5 text-sm text-slate-800 align-middle border-b border
 
 interface AgentPencairanHistoryTableProps {
   records: AgentPencairanData[];
+  caraPembayaran?: string | null;
   compact?: boolean;
   showBukti?: boolean;
   showInvoice?: boolean;
@@ -21,6 +22,7 @@ interface AgentPencairanHistoryTableProps {
 
 const AgentPencairanHistoryTable = ({
   records,
+  caraPembayaran,
   compact = false,
   showBukti = true,
   showInvoice = false,
@@ -63,7 +65,7 @@ const AgentPencairanHistoryTable = ({
               <tr key={row.id} className="hover:bg-slate-50/60">
                 <td className={tdClass}>
                   <span className="inline-flex px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-slate-100 text-slate-700">
-                    {row.tahap}
+                    {formatPencairanTahapLabel(row.tahap, caraPembayaran)}
                   </span>
                 </td>
                 <td className={`${tdClass} text-right tabular-nums`}>

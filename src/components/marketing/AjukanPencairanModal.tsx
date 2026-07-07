@@ -20,6 +20,7 @@ interface AjukanPencairanModalProps {
   preview: PencairanAjukanPreview | null;
   saleLabel: string;
   pencairanHistory?: AgentPencairanData[];
+  caraPembayaran?: string | null;
   requireInvoice?: boolean;
   isSubmitting: boolean;
   onConfirm: (selected: Set<PencairanKomponenKey>, fileInvoices?: File[]) => void;
@@ -84,6 +85,7 @@ const AjukanPencairanModal = ({
   preview,
   saleLabel,
   pencairanHistory = [],
+  caraPembayaran,
   requireInvoice = false,
   isSubmitting,
   onConfirm,
@@ -251,6 +253,7 @@ const AjukanPencairanModal = ({
             </p>
             <AgentPencairanHistoryTable
               records={pencairanHistory}
+              caraPembayaran={caraPembayaran}
               compact
               showBukti={false}
             />

@@ -1,6 +1,6 @@
 import type { AgentData, PenjualanAgentData } from '../types/models/agent';
 import type { FeeAgentData } from '../services/feeAgent.service';
-import type { AgentPencairanData } from '../services/agentPencairan.service';
+import type { AgentPencairanData, AgentPencairanTahap } from '../services/agentPencairan.service';
 import { extractClosingDpp } from './agentPkpTax';
 import { isAgentPerusahaan } from './agentCommercialProfile';
 import {
@@ -14,7 +14,7 @@ export { getTotalNilaiAjb } from './progressPenjualanSertifikat';
 
 export const KOMISI_CASH_PPJB_RATIO = 0.5;
 
-/** Agent in-house: tanpa closing fee, komisi tetap 0,5% dari nilai AJB */
+/** Agent in-house: tanpa closing fee, komisi tetap 0,5% dari nilai AJB (syarat pencairan sama agent eksternal) */
 export const IN_HOUSE_FEE_MARKETING_PCT = 0.5;
 
 export const isAgentInHouse = (agent: { isInHouse?: boolean | null }) => !!agent.isInHouse;
@@ -102,6 +102,16 @@ export type PencairanKomponenKey = 'closing' | 'marketing';
 export const isCashPayment = (caraPembayaran?: string | null) => {
   const key = (caraPembayaran ?? '').replace(/\s/g, '_').toUpperCase();
   return key === 'CASH_KERAS' || key === 'CASH_BERTAHAP';
+};
+
+/** Label tahap di UI — AJB pada KPR berarti komisi penuh, bukan wajib upload AJB */
+export const formatPencairanTahapLabel = (
+  tahap: AgentPencairanTahap,
+  caraPembayaran?: string | null,
+) => {
+  if (tahap === 'PPJB') return '50% PPJB';
+  if (caraPembayaran == null) return 'Komisi penuh';
+  return isCashPayment(caraPembayaran) ? '50% AJB' : 'Komisi KPR';
 };
 
 export const isPenjualanBatal = (status?: string | null) =>
@@ -455,7 +465,7 @@ export const getPencairanKomponen = (
     nominalSisa: closingSisa,
     eligible: false,
     alasan: isAgentInHouse(agent)
-      ? 'Agent in-house — tidak ada closing fee'
+      ? 'In-house — tanpa closing fee'
       : closingSisa > 0
         ? 'Belum memenuhi syarat closing fee'
         : 'Closing fee sudah diajukan',
@@ -469,14 +479,14 @@ export const getPencairanKomponen = (
       closing.alasan = 'Transaksi batal — closing fee dapat dicairkan';
     } else if (isCash && hasPpjbComplete(progress, jumlahSertifikatTanah)) {
       closing.eligible = true;
-      closing.alasan = 'Dokumen PPJB sudah diunggah & booking lunas';
+      closing.alasan = 'PPJB OK — closing siap';
     } else if (!isCash && hasSp3kComplete(detail?.progressPenjualan)) {
       closing.eligible = true;
-      closing.alasan = 'Dokumen SP3K sudah diunggah & booking lunas';
+      closing.alasan = 'SP3K OK — closing siap';
     } else if (isCash) {
-      closing.alasan = 'Belum PPJB';
+      closing.alasan = 'Upload PPJB dulu';
     } else {
-      closing.alasan = 'Belum SP3K';
+      closing.alasan = 'Upload SP3K dulu';
     }
   }
 
@@ -490,20 +500,7 @@ export const getPencairanKomponen = (
   };
 
   if (!isBatal && fullMarketing > 0 && isBookingFeePaid(detail)) {
-    if (isAgentInHouse(agent)) {
-      marketing.nominalSisa = Math.max(0, fullMarketing - sudah.marketingNominal);
-
-      if (marketing.nominalSisa <= 0) {
-        marketing.alasan = 'Komisi in-house sudah diajukan';
-      } else if (!hasAjbComplete(progress, jumlahSertifikatTanah)) {
-        marketing.alasan = 'Belum AJB';
-      } else if (nilaiAjb <= 0) {
-        marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
-      } else {
-        marketing.eligible = true;
-        marketing.alasan = 'Agent in-house — komisi 0,5% dari nilai AJB';
-      }
-    } else if (isCash) {
+    if (isCash) {
       const buckets = getCashMarketingBuckets(agent, detail, sudah.marketingNominal);
       marketing.nominalSisa = buckets.ppjbSisa + buckets.ajbSisa;
 
@@ -523,17 +520,19 @@ export const getPencairanKomponen = (
         if (ppjbOk || ajbOk) {
           marketing.eligible = true;
           const parts: string[] = [];
-          if (ppjbOk) parts.push('50% tahap PPJB');
-          if (ajbOk) parts.push('50% tahap AJB');
-          marketing.alasan = `Komisi tersedia: ${parts.join(' + ')}`;
+          if (ppjbOk) parts.push('50% PPJB');
+          if (ajbOk) parts.push('50% AJB');
+          marketing.alasan = `Bisa cair: ${parts.join(' + ')}`;
         } else if (buckets.ppjbSisa > 0 && !hasPpjbComplete(progress, jumlahSertifikatTanah)) {
-          marketing.alasan = 'Belum PPJB (tahap 50%)';
+          marketing.alasan = 'Upload PPJB dulu (50%)';
         } else if (buckets.ppjbSisa > 0 && nilaiAjb <= 0) {
-          marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
-        } else {
+          marketing.alasan = 'Isi nilai AJB di Progress Penjualan';
+        } else if (buckets.ajbSisa > 0) {
           marketing.alasan = hasAjbComplete(progress, jumlahSertifikatTanah)
-            ? 'Isi nilai AJB di menu Progress Penjualan'
-            : 'Belum AJB (sisa 50%)';
+            ? 'Isi nilai AJB di Progress Penjualan'
+            : 'Upload salinan AJB (sisa 50%)';
+        } else {
+          marketing.alasan = 'Belum memenuhi syarat komisi marketing';
         }
       }
     } else {
@@ -542,15 +541,14 @@ export const getPencairanKomponen = (
       if (marketing.nominalSisa <= 0) {
         marketing.alasan = 'Komisi marketing sudah diajukan semua';
       } else if (!hasSp3kComplete(detail?.progressPenjualan)) {
-        marketing.alasan = 'Belum SP3K';
+        marketing.alasan = 'Upload SP3K dulu';
       } else if (!hasAkadKreditComplete(progress, jumlahSertifikatTanah)) {
-        marketing.alasan =
-          'Upload Dokumen PPJB atau AJB';
+        marketing.alasan = 'Upload PPJB atau surat akad';
       } else if (nilaiAjb <= 0) {
-        marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
+        marketing.alasan = 'Isi nilai AJB di Progress Penjualan';
       } else {
         marketing.eligible = true;
-        marketing.alasan = 'SP3K & akad kredit sudah ada — komisi dari nilai AJB';
+        marketing.alasan = 'Syarat KPR OK — komisi siap';
       }
     }
   } else if (!isBookingFeePaid(detail)) {
@@ -560,16 +558,15 @@ export const getPencairanKomponen = (
   } else if (isCash && fullMarketing <= 0 && isBookingFeePaid(detail)) {
     marketing.alasan =
       nilaiAjb <= 0
-        ? 'Isi nilai AJB di menu Progress Penjualan'
+        ? 'Isi nilai AJB di Progress Penjualan'
         : getMarketingFeeNotConfiguredReason(agent);
   } else if (!isCash && fullMarketing <= 0) {
     if (!hasSp3kComplete(detail?.progressPenjualan)) {
-      marketing.alasan = 'Belum SP3K';
+      marketing.alasan = 'Upload SP3K dulu';
     } else if (!hasAkadKreditComplete(progress, jumlahSertifikatTanah)) {
-      marketing.alasan =
-        'Upload Dokumen PPJB atau AJB';
+      marketing.alasan = 'Upload PPJB atau surat akad';
     } else if (nilaiAjb <= 0) {
-      marketing.alasan = 'Isi nilai AJB di menu Progress Penjualan';
+      marketing.alasan = 'Isi nilai AJB di Progress Penjualan';
     } else {
       marketing.alasan = getMarketingFeeNotConfiguredReason(agent);
     }
@@ -650,7 +647,7 @@ export const getPencairanBlockReason = (
 
   // Tahap sebelumnya sudah terbayar; tahap berikutnya belum memenuhi syarat
   const nextBlocked = komponen.find((k) => !k.eligible);
-  return nextBlocked?.alasan ?? 'Menunggu syarat tahap pencairan berikutnya';
+  return nextBlocked?.alasan ?? 'Menunggu syarat tahap berikutnya';
 };
 
 export interface PencairanFeeTotals {

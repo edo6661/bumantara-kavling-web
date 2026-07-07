@@ -11,6 +11,7 @@ interface PencairanHistoryModalProps {
   title: string;
   subtitle?: string;
   records: AgentPencairanData[];
+  caraPembayaran?: string | null;
   previewUrl: string | null;
   onPreviewBukti: (url: string) => void;
   onClosePreview: () => void;
@@ -22,6 +23,7 @@ const PencairanHistoryModal = ({
   title,
   subtitle,
   records,
+  caraPembayaran,
   previewUrl,
   onPreviewBukti,
   onClosePreview,
@@ -65,6 +67,7 @@ const PencairanHistoryModal = ({
 
           <AgentPencairanHistoryTable
             records={records}
+            caraPembayaran={caraPembayaran}
             showInvoice={records.some((r) => hasAgentPencairanInvoice(r))}
             onPreviewBukti={onPreviewBukti}
             onPreviewInvoice={onPreviewBukti}

@@ -14,6 +14,7 @@ import PencairanHistoryModal from './PencairanHistoryModal';
 import {
   hasAnyEligiblePencairan,
   getPencairanBlockReason,
+  formatPencairanTahapLabel,
   getPencairanPaymentStatus,
   getPencairanFeeTotals,
   getFullMarketingFee,
@@ -303,7 +304,7 @@ const AgentPenjualanPencairanPanel = ({ agent }: AgentPenjualanPencairanPanelPro
                               <span
                                 key={p.id}
                                 className="p-1.5 text-amber-500"
-                                title={`Menunggu pembayaran finance (${p.tahap})`}
+                                title={`Menunggu finance (${formatPencairanTahapLabel(p.tahap, detail?.caraPembayaran)})`}
                               >
                                 <Clock size={16} />
                               </span>
