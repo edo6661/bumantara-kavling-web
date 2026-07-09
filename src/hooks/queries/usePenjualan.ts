@@ -189,3 +189,18 @@ export const useRegenerateSpr = () => {
     },
   });
 };
+
+export const useLunaskanBookingFee = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => penjualanService.lunaskanBookingFee(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["tagihans"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-kavlings"] });
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      queryClient.invalidateQueries({ queryKey: ["fee-agents"] });
+      queryClient.invalidateQueries({ queryKey: ["agent-pencairan"] });
+    },
+  });
+};

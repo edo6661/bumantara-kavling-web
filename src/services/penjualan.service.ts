@@ -146,4 +146,10 @@ export const penjualanService = {
     const response = await api.post(`/penjualan/${noTransaksi}/generate-spr`);
     return response.data.data;
   },
+  lunaskanBookingFee: async (noTransaksi: string) => {
+    const response = await api.post(
+      `/penjualan/${noTransaksi}/lunaskan-booking-fee`,
+    );
+    return response.data;
+  },
 };

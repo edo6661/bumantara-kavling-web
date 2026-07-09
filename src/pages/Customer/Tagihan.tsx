@@ -1112,7 +1112,18 @@ const Tagihan = () => {
                               </>
                             ) : (
                               <>
-                                {isSuperAdmin && (
+                                {canApprovePayment &&
+                                  effectiveTagihanTujuan(c) === 'BOOKING_FEE' && (
+                                  <button
+                                    onClick={() => handleApproveBukti(c.id, true, true)}
+                                    className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition shadow-sm cursor-pointer"
+                                    title="Lunaskan booking fee tanpa bukti"
+                                  >
+                                    <Check size={12} /> Lunaskan BF
+                                  </button>
+                                )}
+                                {isSuperAdmin &&
+                                  effectiveTagihanTujuan(c) !== 'BOOKING_FEE' && (
                                   <button
                                     onClick={() => handleApproveBukti(c.id, true, true)}
                                     className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition shadow-sm cursor-pointer"

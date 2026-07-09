@@ -17,7 +17,7 @@ import { jsPDF } from "jspdf";
 import * as htmlToImage from 'html-to-image';
 import PageLoader from "../PageLoader";
 
-import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature } from "../../hooks/queries/usePenjualan";
+import { useGetPenjualan, useCreatePenjualan, useCancelPenjualan, useUploadBuktiPenjualan, useUpdatePenjualan, useUploadSignature, useLunaskanBookingFee } from "../../hooks/queries/usePenjualan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetPerumahan } from "../../hooks/queries/usePerumahan";
 import { useGetKavlings } from "../../hooks/queries/useKavling";
@@ -139,6 +139,13 @@ function isBookingFeePendingApproval(row: PenjualanData) {
   return getBookingTagihan(row)?.status === 'MENUNGGU_KONFIRMASI';
 }
 
+function canMelunaskanBookingFee(row: PenjualanData) {
+  if (isBookingFeeApproved(row)) return false;
+  if ((row.status ?? '').toUpperCase() === 'BATAL') return false;
+  const bookingFee = Number(row.bookingFee) || 0;
+  return bookingFee > 0 || !!getBookingTagihan(row);
+}
+
 const initialFormState: PenjualanData = {
   id: '',
   tanggal: '',
@@ -194,6 +201,8 @@ const Penjualan = () => {
   const { selectedPerumahan, user } = useAuth();
   const { canCreate, canUpdate } = usePermission('PENJUALAN');
   const isAgentUser = user?.role === 'AGENT';
+  const canLunaskanBookingFee =
+    user?.role === 'SUPERADMIN' || user?.role === 'FINANCE';
   // const queryClient = useQueryClient();
 
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
@@ -236,6 +245,7 @@ const Penjualan = () => {
   const createMutation = useCreatePenjualan();
   const cancelMutation = useCancelPenjualan();
   const uploadBuktiMutation = useUploadBuktiPenjualan();
+  const lunaskanBookingFeeMutation = useLunaskanBookingFee();
   const updateMutation = useUpdatePenjualan();
   const uploadSignatureMutation = useUploadSignature();
   // const regenerateSprMutation = useRegenerateSpr();
@@ -1418,6 +1428,26 @@ const Penjualan = () => {
       e.target.value = '';
     }
   };
+
+  const handleLunaskanBookingFee = async (noTransaksi: string) => {
+    if (!canLunaskanBookingFee) return;
+    if (
+      !window.confirm(
+        'Tandai booking fee sebagai LUNAS?\n\nIni akan memperbarui tagihan booking fee dan mengaktifkan alur pencairan agent (jika syarat lain terpenuhi).',
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const result = await lunaskanBookingFeeMutation.mutateAsync(noTransaksi);
+      alert(result?.message ?? 'Booking fee berhasil dilunaskan.');
+    } catch (error: unknown) {
+      const { message } = handleApiError(error);
+      alert(message);
+    }
+  };
+
   // const handleQuickGenerateSPR = async (id: string) => {
   //   if (!window.confirm("Apakah Anda yakin ingin men-generate dokumen SPR dengan data saat ini?")) return;
 
@@ -1494,6 +1524,19 @@ const Penjualan = () => {
                 >
                   <FileText size={14} className="text-slate-400" /> Invoice
                 </button>
+
+                {canLunaskanBookingFee && canMelunaskanBookingFee(row) && (
+                  <button
+                    type="button"
+                    onClick={() => handleLunaskanBookingFee(row.id!)}
+                    disabled={lunaskanBookingFeeMutation.isPending}
+                    className="flex-1 flex justify-center items-center gap-1.5 px-3 py-2.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Tandai booking fee lunas (Finance/Admin)"
+                  >
+                    <CheckCircle2 size={14} />
+                    {lunaskanBookingFeeMutation.isPending ? 'Memproses...' : 'Lunaskan BF'}
+                  </button>
+                )}
 
                 {isBookingFeeApproved(row) ? (
                   <>
