@@ -22,6 +22,14 @@ export const useGetTagihans = (params?: Record<string, unknown>) => {
   });
 };
 
+/** Fetch semua halaman tagihan — hindari data hilang saat total > limit API. */
+export const useGetAllTagihans = (params?: Record<string, unknown>) => {
+  return useQuery({
+    queryKey: [...TAGIHAN_KEYS.lists(), "all-pages", params || {}] as const,
+    queryFn: () => tagihanService.getAllPages(params),
+  });
+};
+
 export const useGetTagihanById = (id: number, enabled = true) => {
   return useQuery({
     queryKey: TAGIHAN_KEYS.detail(id),

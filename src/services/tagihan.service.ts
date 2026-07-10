@@ -60,6 +60,8 @@ export interface TagihanResponse {
   };
 }
 
+const TAGIHAN_API_MAX_LIMIT = 500;
+
 export const tagihanService = {
   getAll: async (
     params?: Record<string, unknown>,
@@ -70,6 +72,36 @@ export const tagihanService = {
     });
     // Hapus .items di ujungnya agar mengembalikan objek lengkap
     return response.data.data;
+  },
+
+  /** Ambil semua halaman tagihan (API max 500/halaman). */
+  getAllPages: async (
+    params?: Record<string, unknown>,
+  ): Promise<TagihanResponse> => {
+    const limit = Math.min(
+      Number(params?.limit) || TAGIHAN_API_MAX_LIMIT,
+      TAGIHAN_API_MAX_LIMIT,
+    );
+    const first = await tagihanService.getAll({ ...params, limit, page: 1 });
+    if (!first.meta.hasNextPage) return first;
+
+    const rest = await Promise.all(
+      Array.from({ length: first.meta.totalPages - 1 }, (_, index) =>
+        tagihanService.getAll({ ...params, limit, page: index + 2 }),
+      ),
+    );
+
+    return {
+      items: [...first.items, ...rest.flatMap((page) => page.items)],
+      meta: {
+        ...first.meta,
+        page: 1,
+        limit: first.meta.totalItems,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    };
   },
 
   getById: async (id: number): Promise<TagihanData> => {

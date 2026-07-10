@@ -30,7 +30,7 @@ import CurrencyInput from "../../components/shared/CurrencyInput";
 import QRCode from "react-qr-code";
 import SignatureCanvas from 'react-signature-canvas';
 import {
-  useGetTagihans,
+  useGetAllTagihans,
   useCreateTagihan,
   useUpdateTagihan,
   useDeleteTagihan,
@@ -112,9 +112,8 @@ const Tagihan = () => {
   const search = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') || 'ALL';
 
-  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetTagihans({
+  const { data: tagihansResponse, isLoading: isLoadingTagihan } = useGetAllTagihans({
     limit: TAGIHAN_FETCH_LIMIT,
-    page: 1,
   });
   const tagihans = tagihansResponse?.items || [];
 
