@@ -8,13 +8,14 @@ import { formatRupiah, formatDate } from "../../utils/formatters";
 import {
   FileUp, Eye, CheckCircle2, AlertCircle, Ban,
   Check, X, Clock,
-  XCircle, Pencil
+  XCircle, Pencil, Plus
 } from 'lucide-react';
-import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan, useUpdateBatalPenjualan } from "../../hooks/queries/usePenjualan";
+import { useGetPengajuanBatal, useApproveBatal, useGetPenjualan, useUpdateBatalPenjualan, useCreateManualBatalPenjualan } from "../../hooks/queries/usePenjualan";
 import { useUploadRefundTagihan } from "../../hooks/queries/useTagihan";
 import { useGetAgents } from "../../hooks/queries/useAgent";
 import { useGetFeeAgents } from "../../hooks/queries/useFeeAgent";
 import { useGetPerusahaanAgents } from "../../hooks/queries/usePerusahaanAgent";
+import { useGetCustomersPaginated } from "../../hooks/queries/useCustomer";
 import { storage } from "../../utils/storage";
 import { handleApiError } from '../../utils/errorHandler';
 import { getBatalClosingPencairanStatus, isBookingFeePaid } from '../../utils/agentPencairan';
@@ -32,21 +33,41 @@ const BatalTransaksi = () => {
   const [activeTab, setActiveTab] = useState<'pengajuan' | 'refund'>('refund');
   const { data: pengajuanList = [], isLoading: loadingPengajuan } = useGetPengajuanBatal('PENDING');
   const approveMutation = useApproveBatal();
-  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({ limit: 500 });
+  const { data: penjualanResponse, isLoading: loadingPenjualan } = useGetPenjualan({
+    limit: 500,
+    status: 'BATAL',
+  });
   const penjualanData = penjualanResponse?.items || [];
   const uploadRefundMutation = useUploadRefundTagihan();
   const updateBatalMutation = useUpdateBatalPenjualan();
+  const createBatalMutation = useCreateManualBatalPenjualan();
   const { data: agentData = [] } = useGetAgents();
   const { data: feeData = [] } = useGetFeeAgents();
   const { data: perusahaanList = [] } = useGetPerusahaanAgents();
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedPenjualan, setSelectedPenjualan] = useState<any>(null);
   const [editAgent, setEditAgent] = useState('');
   const [editBookingFeeLunas, setEditBookingFeeLunas] = useState(false);
   const [selectedTagihan, setSelectedTagihan] = useState<any>(null);
   const [refundFile, setRefundFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [createForm, setCreateForm] = useState({
+    customerId: '',
+    blok: '',
+    nomorUnit: '',
+    agent: '',
+    alasanBatal: '',
+    bookingFeeLunasBatal: true,
+  });
+  const { data: customerPage } = useGetCustomersPaginated({
+    search: customerSearch || undefined,
+    limit: 30,
+    page: 1,
+  });
+  const customerOptions = customerPage?.items || [];
   const user = storage.getUser();
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
 
@@ -69,12 +90,65 @@ const BatalTransaksi = () => {
     const commercial = matched
       ? resolveAgentForPencairan(matched, perusahaanList)
       : null;
-    const feeRecord = row.id ? feeByPenjualanId.get(row.id) : undefined;
+    const feeRecord = row.dbId ? feeByPenjualanId.get(row.dbId) : undefined;
     return getBatalClosingPencairanStatus(commercial, {
       status: row.status,
       bookingFeeLunasBatal: row.bookingFeeLunasBatal,
       tagihan: row.tagihan,
     }, feeRecord);
+  };
+  const resetCreateForm = () => {
+    setCreateForm({
+      customerId: '',
+      blok: '',
+      nomorUnit: '',
+      agent: '',
+      alasanBatal: '',
+      bookingFeeLunasBatal: true,
+    });
+    setCustomerSearch('');
+  };
+  const handleOpenCreate = () => {
+    resetCreateForm();
+    setIsCreateModalOpen(true);
+  };
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.customerId) {
+      alert('Customer wajib dipilih.');
+      return;
+    }
+    if (!createForm.blok.trim() || !createForm.nomorUnit.trim()) {
+      alert('Blok dan nomor unit wajib diisi.');
+      return;
+    }
+    if (!createForm.agent.trim()) {
+      alert('Agent wajib dipilih.');
+      return;
+    }
+    const confirmed = window.confirm(
+      `Buat penjualan batal untuk Blok ${createForm.blok.trim()}-${createForm.nomorUnit.trim()}?\n\n` +
+      'Status kavling TIDAK akan diubah (aman jika unit sudah terjual orang lain).\n' +
+      'Data ini hanya untuk pencairan closing fee agent.',
+    );
+    if (!confirmed) return;
+    try {
+      await createBatalMutation.mutateAsync({
+        customerId: Number(createForm.customerId),
+        blok: createForm.blok.trim(),
+        nomorUnit: createForm.nomorUnit.trim(),
+        agent: createForm.agent.trim(),
+        alasanBatal: createForm.alasanBatal.trim() || undefined,
+        bookingFeeLunasBatal: createForm.bookingFeeLunasBatal,
+      });
+      alert('Penjualan batal berhasil dibuat. Agent dapat mengajukan closing fee di menu Marketing → Agent.');
+      setIsCreateModalOpen(false);
+      resetCreateForm();
+      setActiveTab('refund');
+    } catch (error: any) {
+      const { message } = handleApiError(error);
+      alert(message);
+    }
   };
   const handleOpenEdit = (row: any) => {
     setSelectedPenjualan(row);
@@ -394,13 +468,163 @@ const BatalTransaksi = () => {
       )}
       {/* TAB 2: REFUND */}
       {activeTab === 'refund' && (
-        <DataTable
-          title="Daftar Transaksi Batal"
-          columns={columnsRefund}
-          data={canceledTransactions}
-          expandedRowRender={expandedRowRenderRefund}
-        />
+        <div className="space-y-4">
+          {isAdmin && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleOpenCreate}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-sm"
+              >
+                <Plus size={16} /> Tambah Penjualan Batal
+              </button>
+            </div>
+          )}
+          <DataTable
+            title="Daftar Transaksi Batal"
+            columns={columnsRefund}
+            data={canceledTransactions}
+            expandedRowRender={expandedRowRenderRefund}
+          />
+        </div>
       )}
+      {/* MODAL CREATE PENJUALAN BATAL HISTORIS */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          resetCreateForm();
+        }}
+        title="Tambah Penjualan Batal (Historis)"
+      >
+        <form onSubmit={handleCreateSubmit} className="space-y-5">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900 leading-relaxed">
+            Fitur ini untuk merekonstruksi data penjualan batal yang hilang.
+            <span className="font-bold"> Status kavling tidak diubah</span> — aman dipakai meskipun unit sudah terjual ke customer lain.
+            Hanya membuat catatan batal + fee agent agar closing fee bisa dicairkan.
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+              Cari Customer
+            </label>
+            <input
+              type="text"
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              placeholder="Ketik nama, mis. Muhammad Iqbal Yuze"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black text-black"
+            />
+            <select
+              value={createForm.customerId}
+              onChange={(e) => {
+                const id = e.target.value;
+                const selected = customerOptions.find(
+                  (c: { id: number }) => String(c.id) === id,
+                );
+                setCreateForm((f) => ({ ...f, customerId: id }));
+                if (selected?.nama) setCustomerSearch(selected.nama);
+              }}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black text-black"
+              required
+            >
+              <option value="">-- Pilih Customer --</option>
+              {customerOptions.map((c: { id: number; nama: string; nikKtp: string }) => (
+                <option key={c.id} value={c.id}>
+                  {c.nama} · {c.nikKtp}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">Blok</label>
+              <input
+                type="text"
+                value={createForm.blok}
+                onChange={(e) => setCreateForm((f) => ({ ...f, blok: e.target.value }))}
+                placeholder="AA23"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black text-black"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">Nomor Unit</label>
+              <input
+                type="text"
+                value={createForm.nomorUnit}
+                onChange={(e) => setCreateForm((f) => ({ ...f, nomorUnit: e.target.value }))}
+                placeholder="3"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black text-black"
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+              Agent Penjualan
+            </label>
+            <select
+              value={createForm.agent}
+              onChange={(e) => setCreateForm((f) => ({ ...f, agent: e.target.value }))}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black text-black"
+              required
+            >
+              <option value="">-- Pilih Agent --</option>
+              {agentData.map((agent: { id: number; nama: string }) => (
+                <option key={agent.id} value={agent.nama}>
+                  {agent.nama}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+              Alasan Batal (opsional)
+            </label>
+            <textarea
+              value={createForm.alasanBatal}
+              onChange={(e) => setCreateForm((f) => ({ ...f, alasanBatal: e.target.value }))}
+              rows={2}
+              placeholder="Mis. Customer batal / rekonstruksi data historis"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black text-black resize-none"
+            />
+          </div>
+          <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition">
+            <input
+              type="checkbox"
+              checked={createForm.bookingFeeLunasBatal}
+              onChange={(e) => setCreateForm((f) => ({ ...f, bookingFeeLunasBatal: e.target.checked }))}
+              className="mt-1 h-4 w-4 rounded border-slate-300"
+            />
+            <div>
+              <p className="text-sm font-bold text-slate-900">Customer sudah bayar booking fee</p>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Wajib dicentang agar closing fee agent bisa diajukan pencairannya (komisi marketing tidak dicairkan).
+              </p>
+            </div>
+          </label>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                resetCreateForm();
+              }}
+              disabled={createBatalMutation.isPending}
+              className="px-5 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={createBatalMutation.isPending}
+              className="px-6 py-2 text-sm font-bold text-white bg-black rounded-xl hover:bg-slate-800 transition cursor-pointer shadow-lg disabled:opacity-50"
+            >
+              {createBatalMutation.isPending ? 'Menyimpan...' : 'Buat Penjualan Batal'}
+            </button>
+          </div>
+        </form>
+      </Modal>
       {/* MODAL EDIT PENJUALAN BATAL */}
       <Modal
         isOpen={isEditModalOpen}

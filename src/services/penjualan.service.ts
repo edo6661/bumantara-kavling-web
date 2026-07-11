@@ -106,6 +106,18 @@ export const penjualanService = {
     const response = await api.patch(`/penjualan/${noTransaksi}/batal`, data);
     return response.data.data;
   },
+  createManualBatal: async (data: {
+    customerId: number;
+    blok: string;
+    nomorUnit: string;
+    agent: string;
+    alasanBatal?: string;
+    bookingFeeLunasBatal?: boolean;
+    tanggal?: string;
+  }) => {
+    const response = await api.post("/penjualan/batal", data);
+    return response.data.data;
+  },
   gantiKavling: async (
     noTransaksi: string,
     data: { kavlingBaruId: number; alasan: string },

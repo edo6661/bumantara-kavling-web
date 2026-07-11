@@ -117,6 +117,27 @@ export const useUpdateBatalPenjualan = () => {
   });
 };
 
+export const useCreateManualBatalPenjualan = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      customerId: number;
+      blok: string;
+      nomorUnit: string;
+      agent: string;
+      alasanBatal?: string;
+      bookingFeeLunasBatal?: boolean;
+      tanggal?: string;
+    }) => penjualanService.createManualBatal(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PENJUALAN_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["agents"] });
+      queryClient.invalidateQueries({ queryKey: ["fee-agents"] });
+      queryClient.invalidateQueries({ queryKey: ["agent-pencairan"] });
+    },
+  });
+};
+
 export const useGantiKavling = () => {
   const queryClient = useQueryClient();
   return useMutation({
