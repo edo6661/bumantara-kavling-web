@@ -16,6 +16,8 @@ export interface TukangData {
 export interface UpsertTukangBody {
   nik: string;
   nama: string;
+  /** NIK lama saat edit — agar koreksi NIK update baris yang sama, bukan create. */
+  originalNik?: string;
   sudahMenikah: boolean;
   jumlahAnak: number;
 }

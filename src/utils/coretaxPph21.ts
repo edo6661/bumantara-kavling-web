@@ -115,9 +115,6 @@ export function buildDefaultNitkuPemotong(tin: string): string {
 
 export function buildRecipientNitku(nik: string): string {
   const digits = normalizeNik(nik);
-  if (!isValidCoretaxNik(digits)) {
-    throw new Error(`NIK harus ${CORETAX_NIK_LENGTH} digit angka.`);
-  }
   return `${digits}${CORETAX_NITKU_SUFFIX}`;
 }
 
@@ -288,14 +285,6 @@ export function buildCoretaxPph21Rows(
 
   const rows: CoretaxPph21Row[] = baris.map((tukang, index) => {
     const nik = normalizeNik(tukang.nik);
-    if (!nik) {
-      throw new Error(`NIK tukang baris ${index + 1} (${tukang.nama || 'tanpa nama'}) wajib diisi.`);
-    }
-    if (!isValidCoretaxNik(nik)) {
-      throw new Error(
-        `NIK tukang ${tukang.nama} tidak valid (${nik.length} digit). Harus ${CORETAX_NIK_LENGTH} digit.`,
-      );
-    }
 
     const gross = grossList[index] ?? 0;
     if (gross <= 0) {

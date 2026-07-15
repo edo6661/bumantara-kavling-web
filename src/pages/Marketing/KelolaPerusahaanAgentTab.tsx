@@ -290,7 +290,7 @@ const KelolaPerusahaanAgentTab = () => {
               />
               {formData.isPkp ? (
                 <p className="text-[11px] text-emerald-700 mt-1">
-                  Nominal PKP sudah termasuk PPN 11%. DPP dihitung otomatis untuk PPh.
+                  Nominal PKP sudah termasuk PPN 11%. DPP dipakai untuk hitung PPh; PPN ikut dijumlahkan ke total transfer.
                 </p>
               ) : null}
             </div>

@@ -7,6 +7,7 @@ import {
   calcPotonganPphUntukPengajuan,
   getClosingFull,
   getClosingGross,
+  getClosingPpn,
   getFullMarketingFee,
   getPencairanKomponen,
   getTotalFeeReferensi,
@@ -33,6 +34,8 @@ export interface PencairanAjukanPreview {
   closingFeeFull: number;
   /** Nominal bruto closing (PKP, incl. PPN) — sama dengan master perusahaan */
   closingFeeGross?: number;
+  /** PPN closing (PKP only) — ikut di total transfer */
+  closingPpn: number;
   isPkp?: boolean;
   closingPkpHint?: string;
   marketingFeeFull: number;
@@ -43,7 +46,7 @@ export interface PencairanAjukanPreview {
   /** Pot. PPh yang dipotong pada pengajuan ini */
   potonganPph: number;
   potonganPphSudah: number;
-  /** Total transfer penuh = total fee − pot. PPh */
+  /** Total transfer penuh = total fee (+ PPN PKP) − pot. PPh */
   grandTotalPenuh: number;
   totalTransfer: number;
   potonganPphPct: number;
@@ -63,9 +66,10 @@ export const buildPencairanAjukanPreview = (
   const isPkp = !!agent.isPkp;
   const closingFeeGross = isPkp ? getClosingGross(agent, feeRecord, detail) : undefined;
   const closingFeeFull = getClosingFull(agent, feeRecord, detail);
+  const closingPpn = getClosingPpn(agent, feeRecord, detail);
   const closingPkpHint =
     isPkp && closingFeeGross != null && closingFeeGross > 0
-      ? `Agent PKP: closing ${formatRupiahShort(closingFeeFull)} (DPP) dari bruto ${formatRupiahShort(closingFeeGross)} incl. PPN ${Math.round(PPN_PKP_RATE * 100)}%.`
+      ? `Agent PKP: closing ${formatRupiahShort(closingFeeFull)} (DPP) + PPN ${formatRupiahShort(closingPpn)} dari bruto ${formatRupiahShort(closingFeeGross)} (PPN ${Math.round(PPN_PKP_RATE * 100)}%). PPh dari DPP; PPN ikut ditransfer.`
       : undefined;
   const marketingFeeFull = getFullMarketingFee(agent, detail);
   const totalFeeReferensi = getTotalFeeReferensi(agent, feeRecord, detail);
@@ -77,7 +81,11 @@ export const buildPencairanAjukanPreview = (
     detail,
   );
   const potonganPphSudah = potonganPphTotal - potonganPph;
-  const grandTotalPenuh = calcGrandTotalTransfer(totalFeeReferensi, potonganPphTotal);
+  const grandTotalPenuh = calcGrandTotalTransfer(
+    totalFeeReferensi,
+    potonganPphTotal,
+    closingPpn,
+  );
   const potonganPphPct = Number(agent.potonganPph) || 0;
 
   const pkpClosingAlasanSuffix =
@@ -114,17 +122,23 @@ export const buildPencairanAjukanPreview = (
     }));
 
   const defaultGross = komponenSekarang.reduce((s, k) => s + k.nominalDicairkan, 0);
-  const totalTransfer = defaultGross - potonganPph;
+  const defaultIncludesClosing = komponenSekarang.some((k) => k.key === 'closing');
+  const totalTransfer =
+    defaultGross + (defaultIncludesClosing ? closingPpn : 0) - potonganPph;
 
   const cairSekaligusHint =
     komponenSekarang.length > 1
       ? ' Jika semua syarat sudah lengkap, closing fee dan komisi marketing bisa diajukan sekaligus dalam satu pengajuan (keduanya tercentang otomatis).'
       : '';
 
+  const transferRumus = isPkp
+    ? `Total transfer penuh = DPP + PPN + marketing − pot. PPh = ${formatRupiahShort(grandTotalPenuh)}.`
+    : `Total transfer penuh = total fee − pot. PPh = ${formatRupiahShort(grandTotalPenuh)}.`;
+
   const pphRumus =
-    `Total fee = closing fee (${formatRupiahShort(closingFeeFull)}) + marketing fee (${formatRupiahShort(marketingFeeFull)}). ` +
+    `Total fee (dasar PPh) = closing fee (${formatRupiahShort(closingFeeFull)}) + marketing fee (${formatRupiahShort(marketingFeeFull)}). ` +
     `Pot. PPh = total fee × ${formatPct(potonganPphPct)}% = ${formatRupiahShort(potonganPphTotal)}. ` +
-    `Total transfer penuh = total fee − pot. PPh = ${formatRupiahShort(grandTotalPenuh)}.`;
+    transferRumus;
 
   const pphCatatan =
     potonganPphSudah > 0
@@ -141,6 +155,7 @@ export const buildPencairanAjukanPreview = (
     komponenBelum,
     closingFeeFull,
     closingFeeGross,
+    closingPpn,
     isPkp,
     closingPkpHint,
     marketingFeeFull,
@@ -169,9 +184,16 @@ export const calcSelectedPencairanTotal = (
   }
 
   const selectedGross = closingNominal + marketingNominal;
-  const totalTransfer = selectedGross - preview.potonganPph;
+  const closingPpn = selected.has('closing') ? preview.closingPpn : 0;
+  const totalTransfer = selectedGross + closingPpn - preview.potonganPph;
 
-  return { closingNominal, marketingNominal, potonganPph: preview.potonganPph, totalTransfer };
+  return {
+    closingNominal,
+    marketingNominal,
+    closingPpn,
+    potonganPph: preview.potonganPph,
+    totalTransfer,
+  };
 };
 
 function formatRupiahShort(n: number) {

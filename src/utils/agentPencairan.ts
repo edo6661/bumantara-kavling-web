@@ -1,7 +1,7 @@
 import type { AgentData, PenjualanAgentData } from '../types/models/agent';
 import type { FeeAgentData } from '../services/feeAgent.service';
 import type { AgentPencairanData, AgentPencairanTahap } from '../services/agentPencairan.service';
-import { extractClosingDpp } from './agentPkpTax';
+import { extractClosingDpp, extractClosingPpn } from './agentPkpTax';
 import { isAgentPerusahaan } from './agentCommercialProfile';
 import {
   getTotalNilaiAjb,
@@ -365,6 +365,13 @@ export const getClosingFull = (
   detail?: SaleDetail,
 ) => extractClosingDpp(getClosingGross(agent, feeRecord, detail), !!agent.isPkp);
 
+/** Bagian PPN closing (hanya PKP) — ikut dijumlahkan ke total transfer */
+export const getClosingPpn = (
+  agent: AgentData,
+  feeRecord: FeeAgentData,
+  detail?: SaleDetail,
+) => extractClosingPpn(getClosingGross(agent, feeRecord, detail), !!agent.isPkp);
+
 export const getFullMarketingFee = (agent: AgentData, detail?: SaleDetail) => {
   if (isPenjualanBatal(detail?.status)) return 0;
   const nilaiAjb = getTotalNilaiAjb(detail?.progressPenjualan);
@@ -410,16 +417,21 @@ export const calcPotonganPphFromReferensi = (
 ) => {
   const totalFee = getTotalFeeReferensi(agent, feeRecord, detail);
   const pct = Number(agent.potonganPph) || 0;
-  return totalFee * (pct / 100);
+  return Math.round(totalFee * (pct / 100));
 };
 
 export const calcPotonganPphTotal = calcPotonganPphFromReferensi;
 
-/** Grand total transfer (penuh) = total fee − pot. PPh */
+/**
+ * Grand total transfer (penuh).
+ * Non-PKP: total fee − pot. PPh
+ * PKP: total fee (DPP + marketing) + PPN closing − pot. PPh
+ */
 export const calcGrandTotalTransfer = (
   totalFee: number,
   potonganPph: number,
-) => Math.max(0, totalFee - potonganPph);
+  closingPpn = 0,
+) => Math.max(0, totalFee + closingPpn - potonganPph);
 
 /** PPh yang masih perlu dipotong pada pengajuan ini (total sekali per penjualan) */
 export const calcPotonganPphUntukPengajuan = (

@@ -228,8 +228,18 @@ const AjukanPencairanModal = ({
                 </span>
               )}
             </p>
+            {preview.isPkp && preview.closingPpn > 0 && (
+              <p>
+                PPN closing (ikut transfer):{' '}
+                <span className="font-bold text-slate-800 tabular-nums">
+                  {formatRupiah(preview.closingPpn)}
+                </span>
+              </p>
+            )}
             <p>
-              Total transfer penuh (total fee − pot. PPh):{' '}
+              Total transfer penuh
+              {preview.isPkp ? ' (DPP + PPN + marketing − pot. PPh)' : ' (total fee − pot. PPh)'}
+              :{' '}
               <span className="font-bold text-emerald-700 tabular-nums">
                 {formatRupiah(preview.grandTotalPenuh)}
               </span>
@@ -316,6 +326,14 @@ const AjukanPencairanModal = ({
                 {formatRupiah(totals.closingNominal + totals.marketingNominal)}
               </span>
             </div>
+            {totals.closingPpn > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">PPN closing (ikut transfer)</span>
+                <span className="font-medium tabular-nums text-slate-900">
+                  {formatRupiah(totals.closingPpn)}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between text-sm text-red-600">
               <span>Pot. PPh (pengajuan ini)</span>
               <span className="font-medium tabular-nums">

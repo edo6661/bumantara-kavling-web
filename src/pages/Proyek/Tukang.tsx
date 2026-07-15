@@ -13,7 +13,7 @@ import {
 } from '../../hooks/queries/useTukang';
 import type { TukangData } from '../../services/tukang.service';
 import { handleApiError } from '../../utils/errorHandler';
-import { getNikValidationError, isNikDuplicate, sanitizeNikInput } from '../../utils/nik';
+import { getNikValidationError, isNikDuplicate, normalizeNikInput } from '../../utils/nik';
 import {
   TUKANG_MAX_JUMLAH_ANAK,
   formatTukangStatusPernikahan,
@@ -239,7 +239,8 @@ const Tukang = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const nextValue = name === 'nik' ? sanitizeNikInput(value) : value;
+    // Max 20 digit agar NIK lama (prod) tetap utuh; create tetap divalidasi 16 digit.
+    const nextValue = name === 'nik' ? normalizeNikInput(value) : value;
     setForm((prev) => ({ ...prev, [name]: nextValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
@@ -291,10 +292,15 @@ const Tukang = () => {
     if (!validate()) return;
     try {
       const maritalPayload = tukangMaritalToPayload(form.marital);
-      const nik = sanitizeNikInput(form.nik);
+      // Jangan potong ke 16 saat NIK tidak berubah — data lama bisa >16 digit.
+      const nik =
+        editingNik && form.nik.trim() === editingNik.trim()
+          ? editingNik.trim()
+          : normalizeNikInput(form.nik);
       await upsertMutation.mutateAsync({
         nik,
         nama: form.nama.trim(),
+        ...(editingNik ? { originalNik: editingNik } : {}),
         ...maritalPayload,
       });
       if (ktpFile) {
@@ -354,7 +360,7 @@ const Tukang = () => {
             disabled={isSaving}
             placeholder="16 digit"
             inputMode="numeric"
-            maxLength={16}
+            maxLength={20}
           />
           <Input
             label="Nama"
