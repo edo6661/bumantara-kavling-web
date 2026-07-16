@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import JSZip from 'jszip';
 import PageSummaryCard from '../../components/shared/PageSummaryCard';
 import PageLoader from '../PageLoader';
 import {
@@ -7,6 +8,7 @@ import {
   ChevronRight,
   ChevronUp,
   FileCode2,
+  FileSpreadsheet,
   Filter,
   HardHat,
   Users,
@@ -20,6 +22,108 @@ import { formatShortNoSpk } from '../../utils/spk';
 import { isValidNik } from '../../utils/nik';
 import CoretaxPph21ExportModal from '../../components/proyek/CoretaxPph21ExportModal';
 import type { SpkPembayaranData } from '../../services/spkPembayaran.service';
+
+const escapeXml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const colLetter = (index: number) => String.fromCharCode(65 + index);
+
+const inlineStrCell = (row: number, col: number, value: string) =>
+  `<c r="${colLetter(col)}${row}" t="inlineStr"><is><t>${escapeXml(value)}</t></is></c>`;
+
+const numberCell = (row: number, col: number, value: number) =>
+  `<c r="${colLetter(col)}${row}"><v>${value}</v></c>`;
+
+/** Export hanya tukang di pengajuan ini (`upahBaris`), sama sumber data dengan XML. */
+const downloadUpahTukangExcel = async (row: SpkPembayaranData) => {
+  const tukangList = row.upahBaris ?? [];
+  if (tukangList.length === 0) return;
+
+  const headerRow = `<row r="1">${[
+    inlineStrCell(1, 0, 'No'),
+    inlineStrCell(1, 1, 'Nama'),
+    inlineStrCell(1, 2, 'NIK'),
+    inlineStrCell(1, 3, 'Upah'),
+  ].join('')}</row>`;
+
+  const bodyRows = tukangList
+    .map((tukang, index) => {
+      const r = index + 2;
+      return `<row r="${r}">${[
+        numberCell(r, 0, index + 1),
+        inlineStrCell(r, 1, tukang.nama),
+        // NIK sebagai teks agar tidak jadi scientific notation
+        inlineStrCell(r, 2, tukang.nik),
+        numberCell(r, 3, tukang.nominal),
+      ].join('')}</row>`;
+    })
+    .join('');
+
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <cols>
+    <col min="1" max="1" width="6" customWidth="1"/>
+    <col min="2" max="2" width="28" customWidth="1"/>
+    <col min="3" max="3" width="20" customWidth="1"/>
+    <col min="4" max="4" width="16" customWidth="1"/>
+  </cols>
+  <sheetData>${headerRow}${bodyRows}</sheetData>
+</worksheet>`;
+
+  const zip = new JSZip();
+  zip.file(
+    '[Content_Types].xml',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>`,
+  );
+  zip.file(
+    '_rels/.rels',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`,
+  );
+  zip.file(
+    'xl/workbook.xml',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Upah Tukang" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>`,
+  );
+  zip.file(
+    'xl/_rels/workbook.xml.rels',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>`,
+  );
+  zip.file('xl/worksheets/sheet1.xml', sheetXml);
+
+  const blob = await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const spkNo = formatShortNoSpk(row.spk?.noSpk ?? String(row.spkId));
+  const filename = `Upah_Tukang_SPK${spkNo}_${row.id}.xlsx`;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+};
 
 interface SpkUpahGroup {
   spkId: number;
@@ -234,6 +338,10 @@ const UpahTukang = () => {
 
   const handleConvertToXml = (row: SpkPembayaranData) => {
     setCoretaxExportPembayaran(row);
+  };
+
+  const handleExportToExcel = (row: SpkPembayaranData) => {
+    void downloadUpahTukangExcel(row);
   };
 
   if (isLoading) return <PageLoader />;
@@ -531,19 +639,34 @@ const UpahTukang = () => {
                                                   Diajukan {formatDate(row.createdAt)} oleh{' '}
                                                   {row.diajukanOleh.username}
                                                 </p>
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleConvertToXml(row);
-                                                  }}
-                                                  disabled={tukangList.length === 0}
-                                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-teal-300 bg-white text-[10px] font-bold text-teal-800 hover:bg-teal-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                                                  title="Export XML PPh 21 Coretax untuk pengajuan ini"
-                                                >
-                                                  <FileCode2 size={12} />
-                                                  Convert to XML
-                                                </button>
+                                                <div className="flex items-center gap-1.5">
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleConvertToXml(row);
+                                                    }}
+                                                    disabled={tukangList.length === 0}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-teal-300 bg-white text-[10px] font-bold text-teal-800 hover:bg-teal-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                    title="Export XML PPh 21 Coretax untuk pengajuan ini"
+                                                  >
+                                                    <FileCode2 size={12} />
+                                                    XML
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleExportToExcel(row);
+                                                    }}
+                                                    disabled={tukangList.length === 0}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-300 bg-white text-[10px] font-bold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                    title="Export Excel tukang untuk pengajuan ini"
+                                                  >
+                                                    <FileSpreadsheet size={12} />
+                                                    Excel
+                                                  </button>
+                                                </div>
                                               </div>
                                               {tukangList.length === 0 ? (
                                                 <p className="px-3 py-4 text-xs text-slate-400 italic">
