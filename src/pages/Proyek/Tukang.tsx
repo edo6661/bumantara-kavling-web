@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FileText, HardHat, UploadCloud, ZoomIn } from 'lucide-react';
+import { FileSpreadsheet, FileText, HardHat, UploadCloud, ZoomIn } from 'lucide-react';
 import DataTable from '../../components/shared/DataTable';
 import Modal from '../../components/shared/Modal';
 import Input from '../../components/shared/Input';
@@ -7,11 +7,12 @@ import PageLoader from '../PageLoader';
 import { useAuth } from '../../context/AuthContext';
 import { usePermission } from '../../hooks/usePermission';
 import {
+  useDeleteTukang,
   useGetTukangList,
   useUploadTukangKtp,
   useUpsertTukang,
 } from '../../hooks/queries/useTukang';
-import type { TukangData } from '../../services/tukang.service';
+import { tukangService, type TukangData } from '../../services/tukang.service';
 import { handleApiError } from '../../utils/errorHandler';
 import { getNikValidationError, isNikDuplicate, normalizeNikInput } from '../../utils/nik';
 import {
@@ -135,11 +136,24 @@ const Tukang = () => {
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [ktpPreview, setKtpPreview] = useState<string | null>(null);
   const [previewKtpUrl, setPreviewKtpUrl] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const ktpInputRef = useRef<HTMLInputElement>(null);
 
   const { data: list = [], isLoading } = useGetTukangList(search || undefined);
   const upsertMutation = useUpsertTukang();
   const uploadKtpMutation = useUploadTukangKtp();
+  const deleteMutation = useDeleteTukang();
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      await tukangService.exportExcel(search || undefined);
+    } catch (err: unknown) {
+      alert(handleApiError(err).message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const columns = [
     { header: 'NIK', accessor: 'nik' as const },
@@ -312,6 +326,22 @@ const Tukang = () => {
     }
   };
 
+  const handleDelete = async (row: TukangData) => {
+    if (deleteMutation.isPending) return;
+    if (
+      !window.confirm(
+        `Hapus tukang ${row.nama} (NIK ${row.nik})?\nTukang yang sudah pernah diajukan di upah/SPK tidak bisa dihapus.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await deleteMutation.mutateAsync(row.id);
+    } catch (err: unknown) {
+      alert(handleApiError(err).message);
+    }
+  };
+
   const previewUrl = ktpPreview ?? existingFileKtp;
   const isSaving = upsertMutation.isPending || uploadKtpMutation.isPending;
 
@@ -319,18 +349,29 @@ const Tukang = () => {
 
   return (
     <div className="space-y-4 max-w-[1000px] mx-auto pb-10">
-      <div className="flex items-start gap-3">
-        <div className="p-2.5 bg-teal-50 text-teal-700 rounded-xl border border-teal-100">
-          <HardHat size={22} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="p-2.5 bg-teal-50 text-teal-700 rounded-xl border border-teal-100 shrink-0">
+            <HardHat size={22} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-slate-900">Data Tukang</h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {isMandor
+                ? 'Kelola tukang untuk SPK Anda. Daftar ini hanya tampil untuk mandor yang login.'
+                : 'Daftar tukang per mandor untuk pengajuan upah di SPK.'}
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Data Tukang</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {isMandor
-              ? 'Kelola tukang untuk SPK Anda. Daftar ini hanya tampil untuk mandor yang login.'
-              : 'Daftar tukang per mandor untuk pengajuan upah di SPK.'}
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={handleExportExcel}
+          disabled={isExporting}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-sm transition-colors shrink-0"
+        >
+          <FileSpreadsheet size={18} />
+          {isExporting ? 'Mengekspor...' : 'Export Excel'}
+        </button>
       </div>
 
       <DataTable
@@ -342,6 +383,7 @@ const Tukang = () => {
         searchPlaceholder="Cari NIK atau nama..."
         onAdd={canManage ? openCreate : undefined}
         onEdit={canManage ? openEdit : undefined}
+        onDelete={canManage ? handleDelete : undefined}
       />
 
       <Modal
