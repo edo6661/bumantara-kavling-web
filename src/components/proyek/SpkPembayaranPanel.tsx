@@ -1536,9 +1536,10 @@ const SpkPembayaranPanel = ({
   const { user } = useAuth();
   const { canUpdate: canUpdateSpk } = usePermission('SPK');
   const isMandor = user?.role === 'MANDOR';
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
   const isAssignedMandor =
     isMandor && user?.id != null && Number(spk.mandorId) === Number(user.id);
-  const canManagePengurangan = canUpdateSpk || isAssignedMandor;
+  const canManagePengurangan = canUpdateSpk || isAssignedMandor || isSuperAdmin;
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [kasbonModalOpen, setKasbonModalOpen] = useState(false);
@@ -2652,6 +2653,7 @@ const SpkPembayaranPanel = ({
     !isPaidPengurangan(row) && !isDraftPengurangan(row);
 
   const getPenguranganRowBlockReason = (row: SpkPembayaranData): string | null => {
+    if (isSuperAdmin) return null;
     if (!canManagePengurangan) return 'Anda tidak memiliki akses mengubah pengajuan ini.';
     if (isPaidPengurangan(row)) return 'Pengajuan sudah terbayar.';
     if (rowHasBukti(row)) return 'Sudah ada bukti transfer — tidak dapat diubah/dihapus.';
@@ -2660,6 +2662,12 @@ const SpkPembayaranPanel = ({
   };
 
   const getPenguranganRowActions = (row: SpkPembayaranData) => {
+    if (isSuperAdmin) {
+      return {
+        editable: !isDraftPengurangan(row),
+        deletable: true,
+      };
+    }
     if (!canManagePengurangan || rowHasBukti(row) || isPaidPengurangan(row)) {
       return { editable: false, deletable: false };
     }
@@ -2678,11 +2686,14 @@ const SpkPembayaranPanel = ({
 
   const handleHapusPengurangan = async (
     row: SpkPembayaranData,
-    label: 'kasbon' | 'upah',
+    label: 'kasbon' | 'upah' | 'termin',
   ) => {
+    const forceNote = isSuperAdmin
+      ? '\nNilai sudah dibayar dan sisa nilai SPK akan dihitung ulang. File bukti/dokumen ikut dihapus.'
+      : '\nHanya dapat dihapus jika belum terbayar dan belum ada bukti transfer.';
     if (
       !window.confirm(
-        `Hapus pengajuan ${label} ${formatRupiah(row.nominal)}?\nHanya dapat dihapus jika belum terbayar dan belum ada bukti transfer.`,
+        `Hapus pengajuan ${label} ${formatRupiah(row.nominal)}?${forceNote}`,
       )
     ) {
       return;
@@ -2947,7 +2958,22 @@ const SpkPembayaranPanel = ({
     jenis: SpkTerminPembayaranJenis,
     nominal: number,
   ) => {
-    if (existing || !canAjukan || nominal <= 0) return null;
+    if (existing) {
+      if (!isSuperAdmin) return null;
+      return (
+        <button
+          type="button"
+          title="Hapus pengajuan (Superadmin)"
+          disabled={deleteMutation.isPending}
+          onClick={() => handleHapusPengurangan(existing, 'termin')}
+          className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 whitespace-nowrap"
+        >
+          <Trash2 size={11} />
+          Hapus
+        </button>
+      );
+    }
+    if (!canAjukan || nominal <= 0) return null;
     const check = canRequestSpkPembayaran(jenis, spkInput, statusRows, terminScheme);
     if (!check.allowed) {
       return check.reason ? (
@@ -3197,7 +3223,11 @@ const SpkPembayaranPanel = ({
                               {editable && (
                                 <button
                                   type="button"
-                                  title="Edit kasbon"
+                                  title={
+                                    isSuperAdmin && (isPaidPengurangan(row) || rowHasBukti(row))
+                                      ? 'Edit kasbon (Superadmin)'
+                                      : 'Edit kasbon'
+                                  }
                                   onClick={() => openEditKasbon(row)}
                                   className="p-1 rounded text-blue-600 hover:bg-blue-50"
                                 >
@@ -3207,7 +3237,11 @@ const SpkPembayaranPanel = ({
                               {deletable && (
                                 <button
                                   type="button"
-                                  title="Hapus kasbon"
+                                  title={
+                                    isSuperAdmin && (isPaidPengurangan(row) || rowHasBukti(row))
+                                      ? 'Hapus kasbon (Superadmin)'
+                                      : 'Hapus kasbon'
+                                  }
                                   disabled={deleteMutation.isPending}
                                   onClick={() => handleHapusPengurangan(row, 'kasbon')}
                                   className="p-1 rounded text-red-600 hover:bg-red-50 disabled:opacity-50"
@@ -3340,7 +3374,11 @@ const SpkPembayaranPanel = ({
                               {editable && (
                                 <button
                                   type="button"
-                                  title="Edit upah"
+                                  title={
+                                    isSuperAdmin && (isPaidPengurangan(row) || rowHasBukti(row))
+                                      ? 'Edit upah (Superadmin)'
+                                      : 'Edit upah'
+                                  }
                                   onClick={() => openEditUpah(row)}
                                   className="p-1 rounded text-blue-600 hover:bg-blue-50"
                                 >
@@ -3350,7 +3388,11 @@ const SpkPembayaranPanel = ({
                               {deletable && (
                                 <button
                                   type="button"
-                                  title="Hapus upah"
+                                  title={
+                                    isSuperAdmin && (isPaidPengurangan(row) || rowHasBukti(row))
+                                      ? 'Hapus upah (Superadmin)'
+                                      : 'Hapus upah'
+                                  }
                                   disabled={deleteMutation.isPending}
                                   onClick={() => handleHapusPengurangan(row, 'upah')}
                                   className="p-1 rounded text-red-600 hover:bg-red-50 disabled:opacity-50"
