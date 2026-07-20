@@ -58,9 +58,8 @@ const KAVLING_DATA: Record<string, KavlingTipeConfig> = {
     pairs: [
       { lb: 110, lt: 55 },
       { lb: 0, lt: 38 },
+      { lb: 38, lt: 38 },
       { lb: 55, lt: 55 },
-      { lb: 90, lt: 45 },
-      { lb: 45, lt: 45 },
       { lb: 80, lt: 40 },
     ],
   },
