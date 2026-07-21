@@ -1928,24 +1928,27 @@ const ProgressPenjualan = () => {
 
                       <div className="space-y-6">
                         {renderNotarisBox()}
-                        {Array.from({ length: jumlahSertifikatTanah }, (_, idx) => idx + 1).map((urutan) => (
-                          <div key={urutan} className={isMultiSertifikat ? 'pt-2 border-t border-slate-100 first:border-t-0 first:pt-0' : ''}>
-                            {isMultiSertifikat && (
+                        {/* PPJB selalu 1; nilai AJB mengikuti jumlah sertifikat */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {renderFileBox(
+                            "Dokumen PPJB",
+                            "filePpjb",
+                            getProgressSlot(progressData, 1).filePpjb ?? null,
+                            1,
+                          )}
+                          {!isMultiSertifikat && renderNilaiAjbBox(1)}
+                        </div>
+                        {isMultiSertifikat &&
+                          Array.from({ length: jumlahSertifikatTanah }, (_, idx) => idx + 1).map((urutan) => (
+                            <div key={urutan} className="pt-2 border-t border-slate-100">
                               <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-3">
-                                Sertifikat Tanah ke-{urutan}
+                                Nilai AJB — Sertifikat Tanah ke-{urutan}
                               </p>
-                            )}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              {renderFileBox(
-                                "Dokumen PPJB",
-                                "filePpjb",
-                                getProgressSlot(progressData, urutan).filePpjb ?? null,
-                                urutan,
-                              )}
-                              {renderNilaiAjbBox(urutan)}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {renderNilaiAjbBox(urutan)}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     </div>
                   </div>

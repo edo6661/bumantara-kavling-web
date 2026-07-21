@@ -44,50 +44,13 @@ const initialFormState: KavlingFormState = {
   jumlahSertifikatTanah: 1,
 };
 
-type KavlingTipeConfig =
-  | { kind: 'single-lb'; lb: number; lt: number[] }
-  | { kind: 'pairs'; pairs: { lb: number; lt: number }[] };
-
-const KAVLING_DATA: Record<string, KavlingTipeConfig> = {
-  Asvara: { kind: 'single-lb', lb: 48, lt: [60, 61, 62, 64, 67, 68, 72, 76, 79, 80, 81, 96, 100, 120, 123, 127, 132, 134, 135] },
-  Adara: { kind: 'single-lb', lb: 52, lt: [60, 61, 65, 70, 75, 82, 85, 87, 114, 120, 121, 133, 148] },
-  Aruna: { kind: 'single-lb', lb: 73, lt: [60, 62, 63, 67, 71, 91, 109, 154] },
-  Ansara: { kind: 'single-lb', lb: 36, lt: [60, 103, 120, 122, 132, 143] },
-  'Edena Terrace': {
-    kind: 'pairs',
-    pairs: [
-      { lb: 110, lt: 55 },
-      { lb: 0, lt: 38 },
-      { lb: 38, lt: 38 },
-      { lb: 55, lt: 55 },
-      { lb: 80, lt: 40 },
-    ],
-  },
-};
-
-const isPairTipe = (namaTipe: string) => KAVLING_DATA[namaTipe]?.kind === 'pairs';
-
-const formatLuasPairLabel = (lb: number, lt: number) => `${lb} / ${lt} m²`;
-
-const getLuasPairValue = (lb: number | '', lt: number | '') =>
-  lb !== '' && lt !== '' ? `${lb}|${lt}` : '';
-
-const getPairSelectOptions = (namaTipe: string) => {
-  const config = KAVLING_DATA[namaTipe];
-  if (!config || config.kind !== 'pairs') return [];
-  return [...config.pairs]
-    .sort((a, b) => a.lb - b.lb || a.lt - b.lt)
-    .map(({ lb, lt }) => ({
-      value: `${lb}|${lt}`,
-      label: formatLuasPairLabel(lb, lt),
-    }));
-};
-
-const getLuasTanahOptions = (namaTipe: string) => {
-  const config = KAVLING_DATA[namaTipe];
-  if (!config || config.kind !== 'single-lb') return [];
-  return [...config.lt].sort((a, b) => a - b).map(lt => ({ value: lt, label: String(lt) }));
-};
+const KAVLING_TIPE_OPTIONS = [
+  'Asvara',
+  'Adara',
+  'Aruna',
+  'Ansara',
+  'Edena Terrace',
+];
 
 const KAVLING_STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
   AVAILABLE: { label: 'Tersedia', badgeClass: 'bg-green-100 text-green-800 border-green-200' },
@@ -380,25 +343,7 @@ const Kavling = () => {
       type === 'number' || name === 'jumlahSertifikatTanah'
         ? (value === '' ? '' : Number(value))
         : value;
-    setFormData((prev) => {
-      const updates: Partial<KavlingFormState> = { [name]: parsedValue as never };
-      if (name === 'namaTipe') {
-        const config = KAVLING_DATA[value];
-        if (config?.kind === 'single-lb') {
-          updates.luasBangunan = config.lb;
-          updates.luasTanah = '';
-        } else {
-          updates.luasBangunan = '';
-          updates.luasTanah = '';
-        }
-      }
-      if (name === 'luasPair' && typeof value === 'string') {
-        const [lb, lt] = value.split('|').map(Number);
-        updates.luasBangunan = lb;
-        updates.luasTanah = lt;
-      }
-      return { ...prev, ...updates };
-    });
+    setFormData((prev) => ({ ...prev, [name]: parsedValue as never }));
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -709,36 +654,39 @@ const Kavling = () => {
               <Input label="Blok" name="blok" value={formData.blok} onChange={handleChange} error={errors.blok} placeholder="Contoh: A" />
               <Input label="Nomor Unit" name="nomorUnit" value={formData.nomorUnit} onChange={handleChange} error={errors.nomorUnit} placeholder="Contoh: 01" />
               <div className="md:col-span-2">
-                <Select label="Tipe" name="namaTipe" value={formData.namaTipe} onChange={handleChange} options={[{ value: '', label: '-- Pilih Tipe --' }, ...Object.keys(KAVLING_DATA).map(t => ({ value: t, label: t }))]} error={errors.namaTipe} />
+                <Select
+                  label="Tipe"
+                  name="namaTipe"
+                  value={formData.namaTipe}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: '-- Pilih Tipe --' },
+                    ...Array.from(new Set([...KAVLING_TIPE_OPTIONS, formData.namaTipe].filter(Boolean))).map((t) => ({
+                      value: t,
+                      label: t,
+                    })),
+                  ]}
+                  error={errors.namaTipe}
+                />
               </div>
-              {isPairTipe(formData.namaTipe) ? (
-                <>
-                  <div className="md:col-span-2">
-                    <Select
-                      label="Luas Bangunan / Tanah (m²)"
-                      name="luasPair"
-                      value={getLuasPairValue(formData.luasBangunan, formData.luasTanah)}
-                      onChange={handleChange}
-                      error={errors.luasBangunan || errors.luasTanah}
-                      options={[{ value: '', label: '-- Pilih LB / LT --' }, ...getPairSelectOptions(formData.namaTipe)]}
-                    />
-                  </div>
-                  <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
-                  <Input label="Luas Tanah (m²)" type="number" name="luasTanah" value={formData.luasTanah} onChange={handleChange} error={errors.luasTanah} readOnly />
-                </>
-              ) : (
-                <>
-                  <Input label="Luas Bangunan (m²)" type="number" name="luasBangunan" value={formData.luasBangunan} onChange={handleChange} error={errors.luasBangunan} readOnly />
-                  <Select
-                    label="Luas Tanah (m²)"
-                    name="luasTanah"
-                    value={formData.luasTanah}
-                    onChange={handleChange}
-                    error={errors.luasTanah}
-                    options={[{ value: '', label: '-- Pilih LT --' }, ...getLuasTanahOptions(formData.namaTipe)]}
-                  />
-                </>
-              )}
+              <Input
+                label="Luas Bangunan (m²)"
+                type="number"
+                name="luasBangunan"
+                value={formData.luasBangunan}
+                onChange={handleChange}
+                error={errors.luasBangunan}
+                placeholder="Contoh: 48"
+              />
+              <Input
+                label="Luas Tanah (m²)"
+                type="number"
+                name="luasTanah"
+                value={formData.luasTanah}
+                onChange={handleChange}
+                error={errors.luasTanah}
+                placeholder="Contoh: 72"
+              />
               <CurrencyInput
                 label="Harga Dasar (Rp)"
                 name="hargaDasar"

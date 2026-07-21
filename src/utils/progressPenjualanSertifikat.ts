@@ -137,10 +137,9 @@ export function isAllProgressFilePpjbComplete(
   jumlahSertifikatTanah: number,
   progress: ProgressPenjualanLike | null | undefined,
 ): boolean {
-  for (let urutan = 1; urutan <= jumlahSertifikatTanah; urutan++) {
-    if (!getProgressSlot(progress, urutan).filePpjb?.trim()) return false;
-  }
-  return true;
+  // Multi sertifikat: PPJB tetap 1 (hanya urutan 1), AJB mengikuti jumlah sertifikat
+  void jumlahSertifikatTanah;
+  return Boolean(getProgressSlot(progress, 1).filePpjb?.trim());
 }
 
 export function isAllProgressFileAjbComplete(
