@@ -1860,19 +1860,21 @@ const SpkPembayaranPanel = ({
       alert(check.reason);
       return;
     }
-    if (!terminInvoiceFile) {
-      alert('Dokumen invoice wajib diunggah.');
-      return;
-    }
     const isRetensi = jenis === 'RETENSI';
-    if (!isRetensi) {
-      if (!terminBaFile) {
-        alert('Dokumen berita acara / BA wajib diunggah.');
+    if (!isSuperAdmin) {
+      if (!terminInvoiceFile) {
+        alert('Dokumen invoice wajib diunggah.');
         return;
       }
-      if (!terminProgressFile) {
-        alert('Dokumen progress SPK wajib diunggah.');
-        return;
+      if (!isRetensi) {
+        if (!terminBaFile) {
+          alert('Dokumen berita acara / BA wajib diunggah.');
+          return;
+        }
+        if (!terminProgressFile) {
+          alert('Dokumen progress SPK wajib diunggah.');
+          return;
+        }
       }
     }
     if (
@@ -1884,16 +1886,24 @@ const SpkPembayaranPanel = ({
     }
     const mandorRekeningId = resolveSubmitMandorRekeningId();
     try {
-      const dokumenInvoice = await uploadPengajuanDokumen(terminInvoiceFile);
-      const body: CreateSpkPembayaranBody = isRetensi
-        ? { jenis, mandorRekeningId, dokumenInvoice }
-        : {
-            jenis,
-            mandorRekeningId,
-            dokumenInvoice,
-            dokumenBeritaAcara: await uploadPengajuanDokumen(terminBaFile!),
-            dokumenProgressSpk: await uploadPengajuanDokumen(terminProgressFile!),
-          };
+      const dokumenInvoice = terminInvoiceFile
+        ? await uploadPengajuanDokumen(terminInvoiceFile)
+        : undefined;
+      const dokumenBeritaAcara =
+        !isRetensi && terminBaFile
+          ? await uploadPengajuanDokumen(terminBaFile)
+          : undefined;
+      const dokumenProgressSpk =
+        !isRetensi && terminProgressFile
+          ? await uploadPengajuanDokumen(terminProgressFile)
+          : undefined;
+      const body: CreateSpkPembayaranBody = {
+        jenis,
+        mandorRekeningId,
+        ...(dokumenInvoice ? { dokumenInvoice } : {}),
+        ...(dokumenBeritaAcara ? { dokumenBeritaAcara } : {}),
+        ...(dokumenProgressSpk ? { dokumenProgressSpk } : {}),
+      };
       await createMutation.mutateAsync({ spkId: spk.id, body });
       closeTerminAjukanModal();
       alert('Pengajuan pembayaran berhasil dikirim ke pengawas.');
@@ -3655,20 +3665,33 @@ const SpkPembayaranPanel = ({
                 )}
               </strong>
             </p>
+            {isSuperAdmin && (
+              <p className="text-xs text-slate-500">
+                Sebagai Superadmin, unggah dokumen bersifat opsional.
+              </p>
+            )}
             <FileInput
-              label="Invoice"
+              label={isSuperAdmin ? 'Invoice (opsional)' : 'Invoice'}
               accept={PENGAJUAN_DOKUMEN_ACCEPT}
               onChange={(e) => setTerminInvoiceFile(e.target.files?.[0] ?? null)}
             />
             {terminAjukanModal !== 'RETENSI' && (
               <>
                 <FileInput
-                  label="Berita Acara / BA"
+                  label={
+                    isSuperAdmin
+                      ? 'Berita Acara / BA (opsional)'
+                      : 'Berita Acara / BA'
+                  }
                   accept={PENGAJUAN_DOKUMEN_ACCEPT}
                   onChange={(e) => setTerminBaFile(e.target.files?.[0] ?? null)}
                 />
                 <FileInput
-                  label={`Progress SPK — ${jenisLabels[terminAjukanModal]}`}
+                  label={
+                    isSuperAdmin
+                      ? `Progress SPK — ${jenisLabels[terminAjukanModal]} (opsional)`
+                      : `Progress SPK — ${jenisLabels[terminAjukanModal]}`
+                  }
                   accept={PENGAJUAN_DOKUMEN_ACCEPT}
                   onChange={(e) => setTerminProgressFile(e.target.files?.[0] ?? null)}
                 />

@@ -15,7 +15,7 @@ const SpkPembayaranDokumenPanel = ({ row, onPreview }: SpkPembayaranDokumenPanel
   if (!hasSpkPembayaranDokumen(row)) {
     return (
       <p className="text-xs text-slate-400 italic">
-        Tidak ada dokumen pengajuan (data lama sebelum fitur upload dokumen).
+        Tidak ada dokumen pengajuan.
       </p>
     );
   }

@@ -1691,7 +1691,7 @@ const SPK = () => {
                 <div className="md:col-span-2 flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
                   <span className="mt-0.5 shrink-0 w-5 h-5 bg-blue-200 text-blue-700 rounded-full flex items-center justify-center text-[10px] font-black leading-none">i</span>
                   <p className="text-xs text-blue-800 leading-relaxed">
-                    Sisa nilai kontrak dihitung otomatis dari setiap pembayaran (termin, retensi, kasbon) yang sudah diproses finance.
+                    Sisa nilai kontrak dihitung otomatis (nilai kontrak − yang sudah dibayar finance). Jika nilai kontrak diubah, sisa nilai ikut dihitung ulang.
                   </p>
                 </div>
               )}
