@@ -409,7 +409,7 @@ export const getTotalFeeReferensi = (
 /** Total fee = closing fee + marketing fee */
 export const getTotalFeeBruto = getTotalFeeReferensi;
 
-/** Pot. PPh = total fee × (potonganPph% / 100) — sekali per penjualan */
+/** Pot. PPh = total fee × (potonganPph% / 100) — referensi penuh penjualan */
 export const calcPotonganPphFromReferensi = (
   agent: AgentData,
   feeRecord: FeeAgentData,
@@ -422,6 +422,12 @@ export const calcPotonganPphFromReferensi = (
 
 export const calcPotonganPphTotal = calcPotonganPphFromReferensi;
 
+/** Pot. PPh proporsional dari nominal bruto yang dicairkan */
+export const calcPotonganPphDariNominal = (
+  brutoNominal: number,
+  potonganPphPct: number,
+) => Math.round(Math.max(0, brutoNominal) * (potonganPphPct / 100));
+
 /**
  * Grand total transfer (penuh).
  * Non-PKP: total fee − pot. PPh
@@ -433,17 +439,27 @@ export const calcGrandTotalTransfer = (
   closingPpn = 0,
 ) => Math.max(0, totalFee + closingPpn - potonganPph);
 
-/** PPh yang masih perlu dipotong pada pengajuan ini (total sekali per penjualan) */
+/**
+ * PPh proporsional untuk pengajuan ini =
+ * rate × (closing + marketing yang eligible & siap diajukan sekarang).
+ */
 export const calcPotonganPphUntukPengajuan = (
   agent: AgentData,
   feeRecord: FeeAgentData,
   pencairanList: AgentPencairanData[],
   detail?: SaleDetail,
 ) => {
-  const total = calcPotonganPphFromReferensi(agent, feeRecord, detail);
-  const sudah = pencairanList.reduce((s, p) => s + Number(p.potonganPph), 0);
-  return Math.max(0, total - sudah);
+  const komponen = getPencairanKomponen(agent, feeRecord, pencairanList, detail);
+  const bruto = komponen
+    .filter((k) => k.eligible && k.nominalSisa > 0)
+    .reduce((s, k) => s + k.nominalSisa, 0);
+  const pct = Number(agent.potonganPph) || 0;
+  return calcPotonganPphDariNominal(bruto, pct);
 };
+
+export const sumPotonganPphSudahDiajukan = (
+  pencairanList: AgentPencairanData[],
+) => pencairanList.reduce((s, p) => s + Number(p.potonganPph), 0);
 
 export interface PencairanKomponenInfo {
   key: PencairanKomponenKey;
@@ -531,6 +547,9 @@ export const getPencairanKomponen = (
 
         if (ppjbOk || ajbOk) {
           marketing.eligible = true;
+          // Hanya portion yang benar-benar bisa disubmit (mirror backend)
+          marketing.nominalSisa =
+            (ppjbOk ? buckets.ppjbSisa : 0) + (ajbOk ? buckets.ajbSisa : 0);
           const parts: string[] = [];
           if (ppjbOk) parts.push('50% PPJB');
           if (ajbOk) parts.push('50% AJB');

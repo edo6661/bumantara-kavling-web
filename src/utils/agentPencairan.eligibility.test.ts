@@ -141,7 +141,8 @@ describe('agentPencairan eligibility — in-house selaras dengan agent eksternal
     expect(marketing).toMatchObject({
       key: 'marketing',
       eligible: true,
-      nominalSisa: IN_HOUSE_MARKETING,
+      // Hanya portion yang bisa disubmit sekarang (50% PPJB)
+      nominalSisa: IN_HOUSE_MARKETING / 2,
     });
   });
 

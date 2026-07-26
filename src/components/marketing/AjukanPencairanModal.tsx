@@ -217,7 +217,7 @@ const AjukanPencairanModal = ({
               </span>
             </p>
             <p>
-              Pot. PPh ({preview.potonganPphPct}% × total fee):{' '}
+              Pot. PPh referensi penuh ({preview.potonganPphPct}% × total fee):{' '}
               <span className="font-bold text-red-600 tabular-nums">
                 {formatRupiah(preview.potonganPphTotal)}
               </span>
@@ -335,7 +335,7 @@ const AjukanPencairanModal = ({
               </div>
             )}
             <div className="flex justify-between text-sm text-red-600">
-              <span>Pot. PPh (pengajuan ini)</span>
+              <span>Pot. PPh ({preview.potonganPphPct}% × subtotal)</span>
               <span className="font-medium tabular-nums">
                 {totals.potonganPph > 0
                   ? `− ${formatRupiah(totals.potonganPph)}`
