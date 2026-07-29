@@ -17,6 +17,7 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  Trash2,
   UploadCloud,
   Users,
   Wallet,
@@ -30,6 +31,7 @@ import {
 import { handleApiError } from '../../utils/errorHandler';
 import type { AgentPencairanData } from '../../services/agentPencairan.service';
 import { getAgentPencairanInvoiceUrls } from '../../utils/agentPencairanInvoice';
+import { useAuth } from '../../context/AuthContext';
 
 const thClass =
   'px-4 py-2.5 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-slate-50 border-b border-slate-200 whitespace-nowrap';
@@ -48,6 +50,8 @@ const getKsoFull = (row: AgentPencairanData) =>
   row.penjualan?.kavling?.rekeningTujuan?.atasNama ?? null;
 
 const BayarAgent = () => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPERADMIN';
   const [searchParams, setSearchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<AgentPencairanData | null>(null);
@@ -198,18 +202,29 @@ const BayarAgent = () => {
     setUploadTarget(null);
   };
 
-  const handleBatalPencairan = async (row: AgentPencairanData) => {
+  const handleHapusPencairan = async (row: AgentPencairanData) => {
     const agentLabel = row.agent?.nama ?? 'Agent';
     const customerLabel = row.penjualan?.customer?.nama ?? '-';
+    const paid = row.status === 'SUDAH_DIBAYAR';
+    if (paid && !isSuperAdmin) {
+      alert('Hanya Superadmin yang dapat menghapus pencairan yang sudah dibayar.');
+      return;
+    }
     const confirmed = window.confirm(
-      `Batalkan pengajuan pencairan untuk ${agentLabel} (${customerLabel})?\n\nPengajuan akan dihapus dari antrian finance. Tim marketing dapat mengajukan ulang dari menu Agent.`,
+      paid
+        ? `Hapus pencairan yang SUDAH DIBAYAR untuk ${agentLabel} (${customerLabel})?\n\nBukti pembayaran akan dihapus, data fee agent digulirkan balik, dan tim marketing dapat mengajukan ulang dari menu Agent.`
+        : `Batalkan pengajuan pencairan untuk ${agentLabel} (${customerLabel})?\n\nPengajuan akan dihapus dari antrian finance. Tim marketing dapat mengajukan ulang dari menu Agent.`,
     );
     if (!confirmed) return;
 
     try {
       await batalMutation.mutateAsync(row.id);
       if (pasteTarget?.id === row.id) clearPasteSelection();
-      alert('Pengajuan pencairan agent berhasil dibatalkan.');
+      alert(
+        paid
+          ? 'Pencairan agent berhasil dihapus. Marketing dapat mengajukan ulang.'
+          : 'Pengajuan pencairan agent berhasil dibatalkan.',
+      );
     } catch (error) {
       alert(handleApiError(error).message);
     }
@@ -452,8 +467,8 @@ const BayarAgent = () => {
                         )}
                       </td>
                       <td className={`${tdClass} text-center`}>
-                        {!paid && (
-                          <div className="inline-flex items-center gap-1">
+                        <div className="inline-flex items-center gap-1">
+                          {!paid && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -466,11 +481,13 @@ const BayarAgent = () => {
                             >
                               <UploadCloud size={12} />
                             </button>
+                          )}
+                          {!paid && (
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                void handleBatalPencairan(row);
+                                void handleHapusPencairan(row);
                               }}
                               disabled={bayarMutation.isPending || batalMutation.isPending}
                               className="inline-flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50"
@@ -478,8 +495,22 @@ const BayarAgent = () => {
                             >
                               <XCircle size={12} />
                             </button>
-                          </div>
-                        )}
+                          )}
+                          {paid && isSuperAdmin && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleHapusPencairan(row);
+                              }}
+                              disabled={bayarMutation.isPending || batalMutation.isPending}
+                              className="inline-flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                              title="Hapus pencairan (sudah dibayar) agar bisa diajukan ulang — Superadmin"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
