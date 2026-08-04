@@ -4,12 +4,13 @@ import { useAuth } from "../../context/AuthContext";
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
 import PageLoader from "../PageLoader";
-import { ShieldAlert, Settings2, Save } from "lucide-react";
+import { ShieldAlert, Settings2, Save, Download, Loader2 } from "lucide-react";
 import {
   useGetRolePermissions,
   useUpsertRolePermission,
 } from "../../hooks/queries/useRolePermission";
 import { handleApiError } from "../../utils/errorHandler";
+import { adminService } from "../../services/admin.service";
 
 const RESOURCES = [
   "DASHBOARD", "PENJUALAN", "PROGRESS_PENJUALAN", "GANTI_KAVLING", "BATAL_TRANSAKSI",
@@ -42,6 +43,7 @@ const RolePermission = () => {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [permissionsMatrix, setPermissionsMatrix] = useState<PermissionMatrix>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportingDb, setIsExportingDb] = useState(false);
 
   // RBAC CHECK
   useEffect(() => {
@@ -145,13 +147,44 @@ const RolePermission = () => {
     }
   };
 
+  const handleExportDatabase = async () => {
+    const ok = window.confirm(
+      "Export semua tabel database ke 1 file Excel (tiap tabel = 1 sheet)?\nProses bisa memakan waktu beberapa detik.",
+    );
+    if (!ok) return;
+
+    setIsExportingDb(true);
+    try {
+      await adminService.exportDatabaseExcel();
+    } catch (error: unknown) {
+      const { message } = handleApiError(error);
+      alert(message);
+    } finally {
+      setIsExportingDb(false);
+    }
+  };
+
   if (isLoading) return <PageLoader />;
 
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 p-5 rounded-2xl text-sm text-slate-300 shadow-md">
-        <h3 className="text-white font-bold text-lg mb-1">Role-Based Access Control (RBAC)</h3>
-        <p>Halaman ini eksklusif untuk <strong>Super Admin</strong>. Konfigurasi di bawah ini menentukan modul apa saja yang muncul di sidebar dan tindakan (Tambah/Edit/Hapus) apa saja yang boleh dilakukan oleh setiap Role.</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-white font-bold text-lg mb-1">Role-Based Access Control (RBAC)</h3>
+            <p>Halaman ini eksklusif untuk <strong>Super Admin</strong>. Konfigurasi di bawah ini menentukan modul apa saja yang muncul di sidebar dan tindakan (Tambah/Edit/Hapus) apa saja yang boleh dilakukan oleh setiap Role.</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleExportDatabase}
+            disabled={isExportingDb}
+            className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md disabled:opacity-60 cursor-pointer"
+            title="Download semua tabel DB ke Excel"
+          >
+            {isExportingDb ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            {isExportingDb ? "Menyiapkan Excel..." : "Export Database Excel"}
+          </button>
+        </div>
       </div>
 
       <DataTable
