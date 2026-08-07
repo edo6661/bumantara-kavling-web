@@ -1974,6 +1974,7 @@ const SpkPembayaranPanel = ({
       const silent = options?.silent ?? false;
       const syncForm = options?.syncForm ?? true;
 
+      if (isMandorSendiriMode) return false;
       if (!suppliers.some(supplierIsUsed)) {
         if (!silent) {
           alert('Tidak ada bon/material yang diisi untuk disimpan sebagai draft.');
@@ -2012,7 +2013,7 @@ const SpkPembayaranPanel = ({
         return false;
       }
     },
-    [saveDraftMutation, spk.id],
+    [saveDraftMutation, spk.id, isMandorSendiriMode],
   );
 
   useEffect(() => {
@@ -2028,7 +2029,7 @@ const SpkPembayaranPanel = ({
   }, [kasbonOnly, canAjukan, spk.id, queryClient]);
 
   useEffect(() => {
-    if (!kasbonCreateModalOpen) {
+    if (!kasbonCreateModalOpen || isMandorSendiriMode) {
       hydratedDraftKeyRef.current = null;
       return;
     }
@@ -2047,7 +2048,7 @@ const SpkPembayaranPanel = ({
       setDraftAutoSaveStatus('idle');
     }
     hydratedDraftKeyRef.current = draftKey;
-  }, [kasbonCreateModalOpen, kasbonDraft, kasbonDraftFetched, kasbonDraftFetching]);
+  }, [kasbonCreateModalOpen, isMandorSendiriMode, kasbonDraft, kasbonDraftFetched, kasbonDraftFetching]);
 
   const handleAjukanLegacyKasbon = async () => {
     const rows = legacyCreateRows.filter(
@@ -2430,17 +2431,42 @@ const SpkPembayaranPanel = ({
 
   const kasbonCreateModalBody = (
     <div className="space-y-5">
-      {hasActiveDraft ? (
+      {/* Switch Mode Pengajuan: Kasbon Kantor vs Nota Material Sendiri */}
+      <div className="flex flex-col sm:flex-row p-1 bg-slate-100 rounded-xl border border-slate-200 gap-1">
+        <button
+          type="button"
+          onClick={() => setIsMandorSendiriMode(false)}
+          className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            !isMandorSendiriMode
+              ? 'bg-white text-orange-900 shadow-sm border border-orange-200'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+          Ajukan Kasbon Kantor (Reimbursement / Potong Plafon)
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsMandorSendiriMode(true)}
+          className={`flex-1 py-2.5 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            isMandorSendiriMode
+              ? 'bg-teal-700 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />
+          Nota Material Sendiri (Swadaya / Modal Mandor)
+        </button>
+      </div>
+
+      {!isMandorSendiriMode && hasActiveDraft ? (
         <div className="flex items-start gap-3 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
           <div className="w-6 h-6 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center shrink-0 text-[10px] font-black mt-0.5">D</div>
           <p className="text-xs text-blue-800 leading-relaxed">
             Ada <strong>draft kasbon</strong> tersimpan. Isi form sudah dimuat — klik <strong>Simpan Draft</strong> setelah ubah data, atau <strong>Ajukan</strong> jika sudah lengkap.
           </p>
         </div>
-      ) : (
-        <>
-        </>
-      )}
+      ) : null}
       {draftAutoSaveStatus === 'saving' && (
         <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
           <Loader2 size={13} className="animate-spin shrink-0 text-slate-500" />
