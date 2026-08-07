@@ -1,10 +1,14 @@
 import type { SpkJenis } from '../services/spk.service';
 
-export type SpkTerminSchemeKey = 'RUMAH_DEFAULT' | 'INFRA_20_6' | 'INFRA_30_4';
+export type SpkTerminSchemeKey = 'RUMAH_DEFAULT' | 'RUMAH_25_4' | 'INFRA_20_6' | 'INFRA_30_4';
 
 export type SpkTerminPembayaranJenis =
   | 'TERMIN_55'
   | 'TERMIN_100'
+  | 'TERMIN_RUMAH_25_1'
+  | 'TERMIN_RUMAH_25_2'
+  | 'TERMIN_RUMAH_25_3'
+  | 'TERMIN_RUMAH_25_4'
   | 'TERMIN_INFRA_20_1'
   | 'TERMIN_INFRA_20_2'
   | 'TERMIN_INFRA_20_3'
@@ -43,6 +47,49 @@ export const SPK_TERMIN_SCHEME_RUMAH: SpkTerminStepConfig[] = [
     label: 'Termin 100% (45% kontrak)',
     shortLabel: '100%',
     kasbonTargetLabel: 'Termin 100%',
+  },
+  {
+    jenis: 'RETENSI',
+    minProgress: 100,
+    kontrakFraction: 0.05,
+    label: 'Retensi (5% kontrak)',
+    shortLabel: 'Ret.',
+    kasbonTargetLabel: '',
+  },
+];
+
+export const SPK_TERMIN_SCHEME_RUMAH_25_4: SpkTerminStepConfig[] = [
+  {
+    jenis: 'TERMIN_RUMAH_25_1',
+    minProgress: 25,
+    kontrakFraction: 0.25,
+    label: 'Termin 1 (25% progress)',
+    shortLabel: '25%·1',
+    kasbonTargetLabel: 'Termin 1 (25%)',
+  },
+  {
+    jenis: 'TERMIN_RUMAH_25_2',
+    minProgress: 50,
+    kontrakFraction: 0.25,
+    label: 'Termin 2 (50% progress)',
+    shortLabel: '25%·2',
+    kasbonTargetLabel: 'Termin 2 (50%)',
+  },
+  {
+    jenis: 'TERMIN_RUMAH_25_3',
+    minProgress: 75,
+    kontrakFraction: 0.25,
+    label: 'Termin 3 (75% progress)',
+    shortLabel: '25%·3',
+    kasbonTargetLabel: 'Termin 3 (75%)',
+  },
+  {
+    jenis: 'TERMIN_RUMAH_25_4',
+    minProgress: 95,
+    kontrakFraction: 0.2,
+    label: 'Termin 4 (95% progress)',
+    shortLabel: '20%',
+    kasbonTargetLabel: 'Termin 4 (95%)',
   },
   {
     jenis: 'RETENSI',
@@ -145,6 +192,7 @@ export const SPK_TERMIN_SCHEME_INFRA = SPK_TERMIN_SCHEME_INFRA_20_6;
 
 const SCHEME_MAP: Record<SpkTerminSchemeKey, SpkTerminStepConfig[]> = {
   RUMAH_DEFAULT: SPK_TERMIN_SCHEME_RUMAH,
+  RUMAH_25_4: SPK_TERMIN_SCHEME_RUMAH_25_4,
   INFRA_20_6: SPK_TERMIN_SCHEME_INFRA_20_6,
   INFRA_30_4: SPK_TERMIN_SCHEME_INFRA_30_4,
 };
@@ -310,6 +358,23 @@ export function buildTerminUiColors(
   return colors;
 }
 
+export const SPK_RUMAH_TERMIN_SCHEME_OPTIONS: Array<{
+  value: Extract<SpkTerminSchemeKey, 'RUMAH_DEFAULT' | 'RUMAH_25_4'>;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: 'RUMAH_DEFAULT',
+    label: 'Termin 55% + 100% + Retensi 5%',
+    description: 'Skema Standar (50% kontrak di progress 55%, 45% di progress 100%, 5% retensi)',
+  },
+  {
+    value: 'RUMAH_25_4',
+    label: '25% × 3 + 20% + Retensi 5%',
+    description: 'Skema 4 Tahap (25% di progress 25%, 50%, 75%, 20% di progress 95%, 5% retensi)',
+  },
+];
+
 export const SPK_INFRA_TERMIN_SCHEME_OPTIONS: Array<{
   value: Extract<SpkTerminSchemeKey, 'INFRA_20_6' | 'INFRA_30_4'>;
   label: string;
@@ -328,7 +393,8 @@ export const SPK_INFRA_TERMIN_SCHEME_OPTIONS: Array<{
 ];
 
 export function getSpkTerminSchemeLabel(scheme: SpkTerminSchemeKey): string {
-  if (scheme === 'RUMAH_DEFAULT') return '55% / 100% / Retensi';
+  if (scheme === 'RUMAH_DEFAULT') return '55% / 100% / Retensi 5%';
+  if (scheme === 'RUMAH_25_4') return '25% × 3 + 20% + Retensi 5%';
   const option = SPK_INFRA_TERMIN_SCHEME_OPTIONS.find((item) => item.value === scheme);
   return option?.label ?? scheme;
 }

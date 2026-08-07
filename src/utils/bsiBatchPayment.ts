@@ -28,6 +28,10 @@ const BSI_BANK_NAME_MAP: Record<string, string> = {
 const SPK_BSI_PAYMENT_SUBJECT: Record<string, string> = {
   TERMIN_55: 'termin 55',
   TERMIN_100: 'termin 100',
+  TERMIN_RUMAH_25_1: 'termin 1 25%',
+  TERMIN_RUMAH_25_2: 'termin 2 25%',
+  TERMIN_RUMAH_25_3: 'termin 3 25%',
+  TERMIN_RUMAH_25_4: 'termin 4 20%',
   TERMIN_INFRA_20_1: 'termin infra 20-1',
   TERMIN_INFRA_20_2: 'termin infra 20-2',
   TERMIN_INFRA_20_3: 'termin infra 20-3',

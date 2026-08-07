@@ -37,7 +37,8 @@ import {
   useGetSpkPaginated,
   useUpdateSpk,
 } from "../../hooks/queries/useSpk";
-import type { GetSpkParams, SpkApprovalStatus, SpkData } from '../../services/spk.service';
+import type { GetSpkParams, SpkApprovalStatus, SpkData, SpkTerminSchemeKey } from '../../services/spk.service';
+import { SPK_RUMAH_TERMIN_SCHEME_OPTIONS } from '../../utils/spkTerminScheme';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
 import SpkInfrastrukturPanel from './SpkInfrastrukturPanel';
 import CollapsibleDetailSection from '../../components/shared/CollapsibleDetailSection';
@@ -56,6 +57,7 @@ interface SpkFormState {
   jatuhTempo: string;
   mandorId: number | '';
   kavlingIds: number[];
+  terminScheme: SpkTerminSchemeKey;
   fileSpk: File | null;
   existingFileSpk: string | null;
   fileRab: File | null;
@@ -296,6 +298,7 @@ const initialFormState = (): SpkFormState => ({
   jatuhTempo: '',
   mandorId: '',
   kavlingIds: [],
+  terminScheme: 'RUMAH_DEFAULT',
   fileSpk: null,
   existingFileSpk: null,
   fileRab: null,
@@ -1006,6 +1009,7 @@ const SPK = () => {
       jatuhTempo: item.jatuhTempo ? item.jatuhTempo.split('T')[0]! : '',
       mandorId: item.mandorId,
       kavlingIds: item.kavlingItems.map((p) => p.kavlingId),
+      terminScheme: item.terminScheme ?? 'RUMAH_DEFAULT',
       fileSpk: null,
       existingFileSpk: item.fileSpk,
       fileRab: null,
@@ -1130,6 +1134,7 @@ const SPK = () => {
 
     const payload = {
       jenis: 'RUMAH' as const,
+      terminScheme: formData.terminScheme,
       noSpk: formData.noSpk.trim(),
       tanggalSpk: formData.tanggalSpk,
       judulPekerjaan: formData.judulPekerjaan.trim(),
@@ -1208,6 +1213,13 @@ const SPK = () => {
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const isEditingSpk = editingId !== null;
+  const editingSpkData = useMemo(
+    () => (editingId ? spkData.find((s) => s.id === editingId) ?? null : null),
+    [editingId, spkData],
+  );
+  const isTerminSchemeDisabled = Boolean(
+    isEditingSpk && (editingSpkData?.pembayaranList?.length ?? 0) > 0,
+  );
   const hasUploadedFile = !!formData.fileSpk || !!formData.existingFileSpk;
   const hasUploadedRab = !!formData.fileRab || !!formData.existingFileRab;
 
@@ -1675,6 +1687,24 @@ const SPK = () => {
                   })),
                 ]}
               />
+              <div className="md:col-span-2">
+                <Select
+                  label="Skema Termin SPK Rumah"
+                  name="terminScheme"
+                  value={formData.terminScheme}
+                  onChange={handleChange}
+                  disabled={isTerminSchemeDisabled}
+                  options={SPK_RUMAH_TERMIN_SCHEME_OPTIONS.map((opt) => ({
+                    value: opt.value,
+                    label: `${opt.label} — ${opt.description}`,
+                  }))}
+                />
+                {isTerminSchemeDisabled && (
+                  <p className="text-[11px] font-medium text-amber-700 mt-1">
+                    * Skema termin terkunci karena SPK ini telah memiliki riwayat pengajuan/pencairan pembayaran.
+                  </p>
+                )}
+              </div>
               <div className="md:col-span-2 flex flex-col gap-1.5">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-0.5">
                   Catatan Pekerjaan (opsional)
