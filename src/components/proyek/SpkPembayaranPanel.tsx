@@ -484,13 +484,14 @@ const tdClass = 'px-2.5 py-1.5 border border-slate-200 text-xs text-slate-800 al
 
 const toCalcRows = (list: SpkPembayaranData[]) =>
   list
-    .filter((p) => p.status !== 'DRAFT')
+    .filter((p) => p.status !== 'DRAFT' && !p.isMandorSendiri)
     .map((p) => ({
       id: p.id,
       jenis: p.jenis,
       status: p.status,
       nominal: p.nominal,
       mengurangiTermin: p.mengurangiTermin,
+      isMandorSendiri: p.isMandorSendiri ?? false,
     }));
 
 const KalkulasiSingkat = ({
@@ -1729,12 +1730,15 @@ const SpkPembayaranPanel = ({
 
   const pengurangRows: SpkPengurangTerminRow[] = useMemo(
     () =>
-      submittedPembayaranList.map((p) => ({
-        id: p.id,
-        jenis: p.jenis,
-        nominal: p.nominal,
-        mengurangiTermin: p.mengurangiTermin,
-      })),
+      submittedPembayaranList
+        .filter((p) => !p.isMandorSendiri)
+        .map((p) => ({
+          id: p.id,
+          jenis: p.jenis,
+          nominal: p.nominal,
+          mengurangiTermin: p.mengurangiTermin,
+          isMandorSendiri: p.isMandorSendiri ?? false,
+        })),
     [submittedPembayaranList],
   );
   const statusRows = submittedPembayaranList.map((p) => ({
@@ -1743,6 +1747,7 @@ const SpkPembayaranPanel = ({
     status: p.status,
     nominal: p.nominal,
     mengurangiTermin: p.mengurangiTermin,
+    isMandorSendiri: p.isMandorSendiri ?? false,
   }));
 
   const spkInput = {

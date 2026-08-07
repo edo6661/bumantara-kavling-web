@@ -270,12 +270,13 @@ function toPengurangRowsFromCalc(
   pembayaranList: SpkPembayaranCalcRow[],
 ): SpkPengurangTerminRow[] {
   return pembayaranList
-    .filter((p) => isPengurangJenis(p.jenis))
+    .filter((p) => isPengurangJenis(p.jenis) && !p.isMandorSendiri)
     .map((p) => ({
       id: p.id,
       jenis: p.jenis,
       nominal: p.nominal,
       mengurangiTermin: p.mengurangiTermin,
+      isMandorSendiri: p.isMandorSendiri ?? false,
     }));
 }
 
@@ -360,7 +361,7 @@ export function calcSisaNilaiKontrak(
   pembayaranList: SpkPembayaranCalcRow[],
 ): number {
   const paid = pembayaranList
-    .filter((p) => p.status === 'SUDAH_DIBAYAR')
+    .filter((p) => p.status === 'SUDAH_DIBAYAR' && !p.isMandorSendiri)
     .reduce((sum, p) => sum + p.nominal, 0);
   return Math.max(0, nilaiKontrak - paid);
 }
