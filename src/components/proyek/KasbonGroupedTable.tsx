@@ -17,12 +17,13 @@ const tdClass =
 interface KasbonGroupedTableProps {
   baris: SpkPembayaranKasbonBarisData[];
   onPreviewFoto?: (url: string) => void;
+  isMandorSendiri?: boolean;
 }
 
 const supplierRowSpan = (supplier: KasbonDisplaySupplier) =>
   supplier.bons.reduce((sum, bon) => sum + bon.items.length, 0);
 
-const KasbonGroupedTable = ({ baris, onPreviewFoto }: KasbonGroupedTableProps) => {
+const KasbonGroupedTable = ({ baris, onPreviewFoto, isMandorSendiri = false }: KasbonGroupedTableProps) => {
   const groups = useMemo(() => groupKasbonBarisForDisplay(baris), [baris]);
   const totalBons = groups.reduce((sum, g) => sum + g.bons.length, 0);
 
@@ -49,13 +50,18 @@ const KasbonGroupedTable = ({ baris, onPreviewFoto }: KasbonGroupedTableProps) =
     );
   };
 
+  const containerBorder = isMandorSendiri ? 'border-teal-200 bg-teal-50/15' : 'border-orange-200 bg-orange-50/15';
+  const headerBg = isMandorSendiri ? 'bg-teal-50 border-b border-teal-100' : 'bg-orange-50 border-b border-orange-100';
+  const titleColor = isMandorSendiri ? 'text-teal-900' : 'text-orange-900';
+  const subtitleColor = isMandorSendiri ? 'text-teal-700/80' : 'text-orange-700/80';
+
   return (
-    <div className="rounded-xl border border-orange-200 overflow-hidden bg-orange-50/15">
-      <div className="px-3 py-2 bg-orange-50 border-b border-orange-100 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-bold text-orange-900 uppercase tracking-wide">
-          Detail Kasbon Material
+    <div className={`rounded-xl border ${containerBorder} overflow-hidden`}>
+      <div className={`px-3 py-2 ${headerBg} flex items-center justify-between gap-2`}>
+        <p className={`text-[10px] font-bold ${titleColor} uppercase tracking-wide`}>
+          {isMandorSendiri ? 'Detail Nota Material Sendiri (Non-Reimburse)' : 'Detail Kasbon Material'}
         </p>
-        <p className="text-[10px] text-orange-700/80 font-medium">
+        <p className={`text-[10px] ${subtitleColor} font-medium`}>
           {groups.length} supplier · {totalBons} bon · {baris.length} item
         </p>
       </div>
@@ -82,15 +88,19 @@ const KasbonGroupedTable = ({ baris, onPreviewFoto }: KasbonGroupedTableProps) =
                   const isFirstBonRow = itemIdx === 0;
                   const bonRowSpan = bon.items.length;
 
+                  const rowHover = isMandorSendiri ? 'hover:bg-teal-50/30' : 'hover:bg-orange-50/30';
+                  const supplierTdBg = isMandorSendiri ? 'bg-teal-50/40 border-r border-teal-100' : 'bg-orange-50/40 border-r border-orange-100';
+                  const nominalText = isMandorSendiri ? 'text-teal-800' : 'text-orange-800';
+
                   return (
-                    <tr key={item.id} className="hover:bg-orange-50/30">
+                    <tr key={item.id} className={rowHover}>
                       {isFirstSupplierRow && (
                         <td
                           rowSpan={sRowSpan}
-                          className={`${tdClass} font-bold text-slate-900 bg-orange-50/40 border-r border-orange-100`}
+                          className={`${tdClass} font-bold text-slate-900 ${supplierTdBg}`}
                         >
                           {kasbonSupplierDisplayName(supplier.namaSupplier)}
-                          <p className="text-[10px] font-semibold text-orange-800 mt-1 tabular-nums">
+                          <p className={`text-[10px] font-semibold ${nominalText} mt-1 tabular-nums`}>
                             {formatRupiah(supplier.total)}
                           </p>
                         </td>
@@ -106,7 +116,7 @@ const KasbonGroupedTable = ({ baris, onPreviewFoto }: KasbonGroupedTableProps) =
                       {isFirstBonRow && renderFotoCell(bon, bonRowSpan)}
                       <td className={`${tdClass} font-medium text-slate-800`}>{item.keterangan}</td>
                       <td
-                        className={`${tdClass} font-bold text-orange-800 text-right tabular-nums whitespace-nowrap`}
+                        className={`${tdClass} font-bold ${nominalText} text-right tabular-nums whitespace-nowrap`}
                       >
                         {formatRupiah(item.nominal)}
                       </td>

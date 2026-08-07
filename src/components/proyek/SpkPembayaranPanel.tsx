@@ -386,11 +386,20 @@ const kasbonBarisToSuppliers = (
 
 const KasbonBatchDetailView = ({
   baris,
+  isMandorSendiri = false,
 }: {
   baris: NonNullable<SpkPembayaranData['kasbonBaris']>;
+  isMandorSendiri?: boolean;
 }) => {
   const groups = useMemo(() => groupKasbonBarisForDisplay(baris), [baris]);
   const totalBons = groups.reduce((sum, g) => sum + g.bons.length, 0);
+
+  const cardBorder = isMandorSendiri ? 'border-teal-100' : 'border-orange-100';
+  const headerBg = isMandorSendiri
+    ? 'bg-teal-50 border-b border-teal-100'
+    : 'bg-orange-50 border-b border-orange-100';
+  const nominalColor = isMandorSendiri ? 'text-teal-800' : 'text-orange-800';
+  const ringColor = isMandorSendiri ? 'hover:ring-teal-200' : 'hover:ring-orange-200';
 
   return (
     <div className="space-y-2 min-w-[220px]">
@@ -400,13 +409,13 @@ const KasbonBatchDetailView = ({
       {groups.map((supplier) => (
         <div
           key={supplier.namaSupplier}
-          className="rounded-lg border border-orange-100 bg-white overflow-hidden shadow-sm"
+          className={`rounded-lg border ${cardBorder} bg-white overflow-hidden shadow-sm`}
         >
-          <div className="flex items-start justify-between gap-2 px-2.5 py-1.5 bg-orange-50 border-b border-orange-100">
+          <div className={`flex items-start justify-between gap-2 px-2.5 py-1.5 ${headerBg}`}>
             <span className="text-[11px] font-bold text-slate-900 leading-snug">
               {kasbonSupplierDisplayName(supplier.namaSupplier)}
             </span>
-            <span className="text-[10px] font-bold text-orange-800 tabular-nums shrink-0">
+            <span className={`text-[10px] font-bold ${nominalColor} tabular-nums shrink-0`}>
               {formatRupiah(supplier.total)}
             </span>
           </div>
@@ -428,7 +437,7 @@ const KasbonBatchDetailView = ({
                       <img
                         src={bon.fotoBon}
                         alt=""
-                        className="h-11 w-11 rounded-md object-cover border border-slate-200 hover:ring-2 hover:ring-orange-200 transition-shadow"
+                        className={`h-11 w-11 rounded-md object-cover border border-slate-200 hover:ring-2 ${ringColor} transition-shadow`}
                       />
                     </a>
                   ) : null}
@@ -447,7 +456,7 @@ const KasbonBatchDetailView = ({
                           className="flex justify-between gap-2 text-[10px] leading-snug"
                         >
                           <span className="text-slate-800 font-medium">{item.keterangan}</span>
-                          <span className="font-bold text-orange-800 tabular-nums shrink-0">
+                          <span className={`font-bold ${nominalColor} tabular-nums shrink-0`}>
                             {formatRupiah(item.nominal)}
                           </span>
                         </li>
@@ -1543,6 +1552,7 @@ const SpkPembayaranPanel = ({
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [kasbonModalOpen, setKasbonModalOpen] = useState(false);
+  const [isMandorSendiriMode, setIsMandorSendiriMode] = useState(false);
   const [kasbonEditModalOpen, setKasbonEditModalOpen] = useState(false);
   const [editingKasbon, setEditingKasbon] = useState<SpkPembayaranData | null>(null);
   const [editingKasbonIsBatch, setEditingKasbonIsBatch] = useState(false);
@@ -1930,6 +1940,14 @@ const SpkPembayaranPanel = ({
   };
 
   const openKasbonCreateModal = () => {
+    setIsMandorSendiriMode(false);
+    clearKasbonDraftCache(queryClient, spk.id);
+    resetKasbonForm();
+    setKasbonModalOpen(true);
+  };
+
+  const openNotaSendiriCreateModal = () => {
+    setIsMandorSendiriMode(true);
     clearKasbonDraftCache(queryClient, spk.id);
     resetKasbonForm();
     setKasbonModalOpen(true);
@@ -1937,6 +1955,7 @@ const SpkPembayaranPanel = ({
 
   const closeKasbonCreateModal = () => {
     setKasbonModalOpen(false);
+    setIsMandorSendiriMode(false);
     hydratedDraftKeyRef.current = null;
     clearKasbonDraftCache(queryClient, spk.id);
     if (kasbonOnly) onKasbonModalClose?.();
@@ -2118,6 +2137,52 @@ const SpkPembayaranPanel = ({
   };
 
   const handleAjukanKasbon = async () => {
+    if (isMandorSendiriMode) {
+      const materialSectionUsed = materialSuppliers.some(supplierIsUsed);
+      if (!materialSectionUsed) {
+        alert('Isi minimal satu supplier & item material.');
+        return;
+      }
+      const uploadedSuppliers = await uploadMaterialSupplierFotos(materialSuppliers);
+      const materialBaris = flattenMaterialSuppliers(uploadedSuppliers);
+      if (!materialBaris) {
+        alert(
+          'Setiap supplier wajib memiliki nama, tanggal, dan minimal satu item dengan keterangan serta nominal.',
+        );
+        return;
+      }
+      const materialTotal = materialBaris.reduce((sum, b) => sum + b.nominal, 0);
+      if (materialTotal <= 0) {
+        alert('Total nominal nota material harus lebih dari 0.');
+        return;
+      }
+
+      if (
+        !window.confirm(
+          `Simpan nota material sendiri (mandor swadaya) total ${formatRupiah(materialTotal)}?\nData ini hanya disimpan sebagai catatan rekam jejak dan tidak memotong plafon/termin SPK.`,
+        )
+      ) {
+        return;
+      }
+
+      try {
+        await createMutation.mutateAsync({
+          spkId: spk.id,
+          body: {
+            jenis: 'KASBON',
+            isMandorSendiri: true,
+            kasbonBaris: materialBaris,
+          },
+        });
+        closeKasbonCreateModal();
+        resetKasbonForm();
+        alert('Nota material sendiri berhasil disimpan.');
+      } catch (err: unknown) {
+        alert(handleApiError(err).message);
+      }
+      return;
+    }
+
     if (kasbonInputMode === 'legacy') {
       await handleAjukanLegacyKasbon();
       return;
@@ -2389,46 +2454,53 @@ const SpkPembayaranPanel = ({
           <p className="text-xs text-red-700 font-semibold">Gagal simpan draft. Periksa isian bon lalu coba lagi.</p>
         </div>
       )}
-      {!pengurangCheck.allowed && pengurangCheck.reason && (
-        <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {pengurangCheck.reason}
-        </p>
+      {isMandorSendiriMode ? (
+        <div className="p-3.5 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 leading-relaxed font-medium">
+          Catatan rekam jejak material yang dibeli secara independen oleh mandor (swadaya/modal sendiri). Data ini <strong>tidak memotong plafon kasbon/termin SPK</strong> dan <strong>tidak memerlukan reimbursement kantor</strong>.
+        </div>
+      ) : (
+        !pengurangCheck.allowed && pengurangCheck.reason && (
+          <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            {pengurangCheck.reason}
+          </p>
+        )
       )}
 
-      {mandorRekeningSelect}
+      {!isMandorSendiriMode && mandorRekeningSelect}
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
-        <button
-          type="button"
-          disabled={hasActiveDraft}
-          onClick={() => setKasbonInputMode('detail')}
-          className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
-            kasbonInputMode === 'detail'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          } disabled:opacity-50`}
-        >
-          Bon &amp; supplier (normal)
-        </button>
-        <button
-          type="button"
-          disabled={hasActiveDraft}
-          onClick={() => setKasbonInputMode('legacy')}
-          className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
-            kasbonInputMode === 'legacy'
-              ? 'bg-amber-100 text-amber-900 shadow-sm border border-amber-200'
-              : 'text-slate-500 hover:text-slate-700'
-          } disabled:opacity-50`}
-          title={
-            hasActiveDraft
-              ? 'Selesaikan atau hapus draft material terlebih dahulu'
-              : undefined
-          }
-        >
-          Input data lama (sementara)
-        </button>
-      </div>
-      
+      {!isMandorSendiriMode && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
+          <button
+            type="button"
+            disabled={hasActiveDraft}
+            onClick={() => setKasbonInputMode('detail')}
+            className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
+              kasbonInputMode === 'detail'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            } disabled:opacity-50`}
+          >
+            Bon &amp; supplier (normal)
+          </button>
+          <button
+            type="button"
+            disabled={hasActiveDraft}
+            onClick={() => setKasbonInputMode('legacy')}
+            className={`flex-1 px-3 py-2 text-xs font-bold rounded-lg transition-colors ${
+              kasbonInputMode === 'legacy'
+                ? 'bg-amber-100 text-amber-900 shadow-sm border border-amber-200'
+                : 'text-slate-500 hover:text-slate-700'
+            } disabled:opacity-50`}
+            title={
+              hasActiveDraft
+                ? 'Selesaikan atau hapus draft material terlebih dahulu'
+                : undefined
+            }
+          >
+            Input data lama (sementara)
+          </button>
+        </div>
+      )}
 
       {spk.kavlingItems.length > 0 && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -2450,7 +2522,7 @@ const SpkPembayaranPanel = ({
         </div>
       )}
 
-      {kasbonInputMode === 'legacy' ? (
+      {kasbonInputMode === 'legacy' && !isMandorSendiriMode ? (
         <LegacyKasbonCreateEditor
           rows={legacyCreateRows}
           setRows={setLegacyCreateRows}
@@ -2458,105 +2530,109 @@ const SpkPembayaranPanel = ({
         />
       ) : (
         <>
-      <CollapsibleDetailSection
-        title="Material"
-        className="border-orange-200"
-        badge={
-          materialTotalPreview > 0 ? (
-            <span className="text-[10px] font-bold text-orange-800 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full tabular-nums">
-              {formatRupiah(materialTotalPreview)}
-            </span>
-          ) : (
-            <span className="text-[10px] font-medium text-slate-400">-</span>
-          )
-        }
-      >
-        <MaterialSuppliersEditor
-          suppliers={materialSuppliers}
-          setSuppliers={setMaterialSuppliers}
-          idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
-        />
-      </CollapsibleDetailSection>
+          <CollapsibleDetailSection
+            title="Material"
+            className="border-orange-200"
+            badge={
+              materialTotalPreview > 0 ? (
+                <span className="text-[10px] font-bold text-orange-800 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded-full tabular-nums">
+                  {formatRupiah(materialTotalPreview)}
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium text-slate-400">-</span>
+              )
+            }
+          >
+            <MaterialSuppliersEditor
+              suppliers={materialSuppliers}
+              setSuppliers={setMaterialSuppliers}
+              idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
+            />
+          </CollapsibleDetailSection>
 
-      <CollapsibleDetailSection
-        title="Upah Tukang"
-        className="border-teal-200"
-        badge={
-          upahTotalPreview > 0 ? (
-            <span className="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-full tabular-nums">
-              {formatRupiah(upahTotalPreview)}
-            </span>
-          ) : (
-            <span className="text-[10px] font-medium text-slate-400">-</span>
-          )
-        }
-      >
-        <UpahTukangEditor
-          upahTanggalDari={upahTanggalDari}
-          setUpahTanggalDari={setUpahTanggalDari}
-          upahTanggalSampai={upahTanggalSampai}
-          setUpahTanggalSampai={setUpahTanggalSampai}
-          upahBaris={upahBaris}
-          setUpahBaris={setUpahBaris}
-          upahTotalNominal={upahTotalNominal}
-          setUpahTotalNominal={setUpahTotalNominal}
-          tukangList={tukangList}
-          onSelectTukang={handleSelectTukang}
-          idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
-        />
-      </CollapsibleDetailSection>
+          {!isMandorSendiriMode && (
+            <CollapsibleDetailSection
+              title="Upah Tukang"
+              className="border-teal-200"
+              badge={
+                upahTotalPreview > 0 ? (
+                  <span className="text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-full tabular-nums">
+                    {formatRupiah(upahTotalPreview)}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium text-slate-400">-</span>
+                )
+              }
+            >
+              <UpahTukangEditor
+                upahTanggalDari={upahTanggalDari}
+                setUpahTanggalDari={setUpahTanggalDari}
+                upahTanggalSampai={upahTanggalSampai}
+                setUpahTanggalSampai={setUpahTanggalSampai}
+                upahBaris={upahBaris}
+                setUpahBaris={setUpahBaris}
+                upahTotalNominal={upahTotalNominal}
+                setUpahTotalNominal={setUpahTotalNominal}
+                tukangList={tukangList}
+                onSelectTukang={handleSelectTukang}
+                idPrefix={kasbonOnly ? 'kasbon-quick' : 'kasbon-create'}
+              />
+            </CollapsibleDetailSection>
+          )}
         </>
       )}
 
-      {kasbonInputMode === 'legacy' ? (
-        <div className="space-y-1 rounded-xl border border-amber-100 bg-amber-50/40 p-4">
-          <FileInput
-            label="Invoice material (PDF)"
-            accept="application/pdf,.pdf"
-            onChange={(e) => setLegacyKasbonInvoiceFile(e.target.files?.[0] ?? null)}
-          />
-          <FileInput
-            label="Dokumen material (PDF)"
-            accept="application/pdf,.pdf"
-            onChange={(e) => setLegacyKasbonMaterialDocFile(e.target.files?.[0] ?? null)}
-          />
-          <p className="text-[11px] text-amber-800/90 leading-relaxed px-1">
-            Dokumen material wajib diunggah pada setiap pengajuan material. Material yang sudah
-            dibayar tidak dapat diajukan kembali untuk reimburs.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-          {(materialSuppliers.some(supplierIsUsed) || materialTotalPreview > 0) && (
-            <>
-              <FileInput
-                label="Invoice material (PDF)"
-                accept="application/pdf,.pdf"
-                onChange={(e) => setMaterialInvoiceFile(e.target.files?.[0] ?? null)}
-              />
-              <FileInput
-                label="Dokumen material (PDF)"
-                accept="application/pdf,.pdf"
-                onChange={(e) => setMaterialDokumenFile(e.target.files?.[0] ?? null)}
-              />
-              <p className="text-[11px] text-slate-600 leading-relaxed px-1 -mt-2">
-                Dokumen material wajib diunggah pada setiap pengajuan material. Material yang sudah
-                dibayar tidak dapat diajukan kembali untuk reimburs.
-              </p>
-            </>
-          )}
-          {(upahTotalPreview > 0 ||
-            upahBaris.some((r) => r.nik.trim() || r.nama.trim())) && (
+      {!isMandorSendiriMode && (
+        kasbonInputMode === 'legacy' ? (
+          <div className="space-y-1 rounded-xl border border-amber-100 bg-amber-50/40 p-4">
             <FileInput
-              label="Invoice upah mandor (PDF)"
+              label="Invoice material (PDF)"
               accept="application/pdf,.pdf"
-              onChange={(e) => setUpahInvoiceFile(e.target.files?.[0] ?? null)}
+              onChange={(e) => setLegacyKasbonInvoiceFile(e.target.files?.[0] ?? null)}
             />
-          )}
-        </div>
+            <FileInput
+              label="Dokumen material (PDF)"
+              accept="application/pdf,.pdf"
+              onChange={(e) => setLegacyKasbonMaterialDocFile(e.target.files?.[0] ?? null)}
+            />
+            <p className="text-[11px] text-amber-800/90 leading-relaxed px-1">
+              Dokumen material wajib diunggah pada setiap pengajuan material. Material yang sudah
+              dibayar tidak dapat diajukan kembali untuk reimburs.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            {(materialSuppliers.some(supplierIsUsed) || materialTotalPreview > 0) && (
+              <>
+                <FileInput
+                  label="Invoice material (PDF)"
+                  accept="application/pdf,.pdf"
+                  onChange={(e) => setMaterialInvoiceFile(e.target.files?.[0] ?? null)}
+                />
+                <FileInput
+                  label="Dokumen material (PDF)"
+                  accept="application/pdf,.pdf"
+                  onChange={(e) => setMaterialDokumenFile(e.target.files?.[0] ?? null)}
+                />
+                <p className="text-[11px] text-slate-600 leading-relaxed px-1 -mt-2">
+                  Dokumen material wajib diunggah pada setiap pengajuan material. Material yang sudah
+                  dibayar tidak dapat diajukan kembali untuk reimburs.
+                </p>
+              </>
+            )}
+            {(upahTotalPreview > 0 ||
+              upahBaris.some((r) => r.nik.trim() || r.nama.trim())) && (
+              <FileInput
+                label="Invoice upah mandor (PDF)"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setUpahInvoiceFile(e.target.files?.[0] ?? null)}
+              />
+            )}
+          </div>
+        )
       )}
 
-      {pengurangCheck.targetTermin && activeCreateTotal > 0 && (
+      {!isMandorSendiriMode && pengurangCheck.targetTermin && activeCreateTotal > 0 && (
         <PengurangPlafonBanner
           nilaiKontrak={spk.nilaiKontrak}
           rows={pengurangRows}
@@ -2571,14 +2647,16 @@ const SpkPembayaranPanel = ({
       <div className="border-t border-slate-100 pt-4 space-y-3">
         <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total diajukan</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              {isMandorSendiriMode ? 'Total Nota Material Sendiri' : 'Total diajukan'}
+            </p>
             <p className="text-base font-black text-slate-900 mt-0.5">{formatRupiah(activeCreateTotal)}</p>
-            {kasbonInputMode === 'detail' && materialTotalPreview > 0 && upahTotalPreview > 0 && (
+            {!isMandorSendiriMode && kasbonInputMode === 'detail' && materialTotalPreview > 0 && upahTotalPreview > 0 && (
               <p className="text-[10px] text-slate-400 mt-0.5">
                 Material {formatRupiah(materialTotalPreview)} + Upah {formatRupiah(upahTotalPreview)}
               </p>
             )}
-            {kasbonInputMode === 'legacy' && legacyCreateTotal > 0 && (
+            {!isMandorSendiriMode && kasbonInputMode === 'legacy' && legacyCreateTotal > 0 && (
               <p className="text-[10px] text-slate-400 mt-0.5">
                 {legacyCreateRows.filter((r) => r.keterangan.trim() && r.nominal !== '').length} baris kasbon
               </p>
@@ -2594,50 +2672,61 @@ const SpkPembayaranPanel = ({
           >
             Batal
           </button>
-          {kasbonInputMode === 'detail' && (
-          <button
-            type="button"
-            disabled={
-              isSavingDraft ||
-              submitDraftMutation.isPending ||
-              createMutation.isPending ||
-              deleteMutation.isPending
-            }
-            onClick={() => void handleSimpanDraftKasbon()}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold bg-slate-800 text-white rounded-xl hover:bg-slate-900 disabled:opacity-50 disabled:pointer-events-none transition-colors"
-          >
-            {isSavingDraft ? (
-              <>
-                <Loader2 size={15} className="animate-spin shrink-0" />
-                Menyimpan...
-              </>
-            ) : (
-              'Simpan Draft'
-            )}
-          </button>
+          {!isMandorSendiriMode && kasbonInputMode === 'detail' && (
+            <button
+              type="button"
+              disabled={
+                isSavingDraft ||
+                submitDraftMutation.isPending ||
+                createMutation.isPending ||
+                deleteMutation.isPending
+              }
+              onClick={() => void handleSimpanDraftKasbon()}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold bg-slate-800 text-white rounded-xl hover:bg-slate-900 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            >
+              {isSavingDraft ? (
+                <>
+                  <Loader2 size={15} className="animate-spin shrink-0" />
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan Draft'
+              )}
+            </button>
           )}
-          <button
-            type="button"
-            disabled={
-              createMutation.isPending ||
-              isSavingDraft ||
-              submitDraftMutation.isPending ||
-              deleteMutation.isPending ||
-              kasbonCreateOverPlafon ||
-              !pengurangCheck.allowed
-            }
-            onClick={handleAjukanKasbon}
-            title={
-              kasbonCreateOverPlafon
-                ? kasbonCreatePlafonValidation.reason ?? 'Total kasbon melebihi sisa plafon termin'
-                : !pengurangCheck.allowed
-                  ? pengurangCheck.reason
-                  : undefined
-            }
-            className="px-5 py-2.5 text-sm font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-all shadow-sm hover:shadow-orange-200 hover:shadow-md active:scale-95"
-          >
-            Ajukan
-          </button>
+          {isMandorSendiriMode ? (
+            <button
+              type="button"
+              disabled={createMutation.isPending}
+              onClick={handleAjukanKasbon}
+              className="px-5 py-2.5 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50 transition-all shadow-sm active:scale-95"
+            >
+              {createMutation.isPending ? 'Menyimpan...' : 'Simpan Nota Material Sendiri'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={
+                createMutation.isPending ||
+                isSavingDraft ||
+                submitDraftMutation.isPending ||
+                deleteMutation.isPending ||
+                kasbonCreateOverPlafon ||
+                !pengurangCheck.allowed
+              }
+              onClick={handleAjukanKasbon}
+              title={
+                kasbonCreateOverPlafon
+                  ? kasbonCreatePlafonValidation.reason ?? 'Total kasbon melebihi sisa plafon termin'
+                  : !pengurangCheck.allowed
+                    ? pengurangCheck.reason
+                    : undefined
+              }
+              className="px-5 py-2.5 text-sm font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 transition-all shadow-sm hover:shadow-orange-200 hover:shadow-md active:scale-95"
+            >
+              Ajukan
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -3067,6 +3156,16 @@ const SpkPembayaranPanel = ({
                   <Plus size={11} />
                   Ajukan Kasbon
                 </button>
+                <button
+                  type="button"
+                  disabled={createMutation.isPending}
+                  title="Catat nota material belanja sendiri oleh mandor (tanpa klaim/reimburstment kantor)"
+                  onClick={openNotaSendiriCreateModal}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40 shadow-sm transition-all active:scale-95"
+                >
+                  <Plus size={11} />
+                  + Nota Material Sendiri
+                </button>
               </div>
             )}
           </div>
@@ -3172,7 +3271,10 @@ const SpkPembayaranPanel = ({
                     <tr key={row.id} className={JENIS_UI_COLOR.KASBON.row}>
                       <td className={`${tdClass} align-top`}>
                         {batch && row.kasbonBaris?.length ? (
-                          <KasbonBatchDetailView baris={row.kasbonBaris} />
+                          <KasbonBatchDetailView
+                            baris={row.kasbonBaris}
+                            isMandorSendiri={row.isMandorSendiri}
+                          />
                         ) : (
                           <span className="font-medium text-slate-800">{row.keterangan}</span>
                         )}
@@ -3190,14 +3292,20 @@ const SpkPembayaranPanel = ({
                         
                       </td>
                       <td className={tdClass}>
-                        <PengurangMengurangiCell
-                          rowId={row.id}
-                          nilaiKontrak={spk.nilaiKontrak}
-                          pengurangRows={pengurangRows}
-                          terminStatus={terminStatus}
-                          fallbackTermin={row.mengurangiTermin}
-                          terminScheme={terminScheme}
-                        />
+                        {row.isMandorSendiri ? (
+                          <span className="inline-flex px-1.5 py-0.5 text-[9px] font-bold rounded bg-teal-50 text-teal-700 border border-teal-200">
+                            Nota Sendiri (Non-Reimburse)
+                          </span>
+                        ) : (
+                          <PengurangMengurangiCell
+                            rowId={row.id}
+                            nilaiKontrak={spk.nilaiKontrak}
+                            pengurangRows={pengurangRows}
+                            terminStatus={terminStatus}
+                            fallbackTermin={row.mengurangiTermin}
+                            terminScheme={terminScheme}
+                          />
+                        )}
                       </td>
                       <td className={`${tdClass} font-bold ${JENIS_UI_COLOR.KASBON.text}`}>
                         {formatRupiah(row.nominal)}
@@ -3205,14 +3313,16 @@ const SpkPembayaranPanel = ({
                       <td className={tdClass}>
                         <span
                           className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded ${
-                            isDraft
-                              ? 'bg-slate-100 text-slate-700'
-                              : paid
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-amber-100 text-amber-800'
+                            row.isMandorSendiri
+                              ? 'bg-teal-100 text-teal-800 border border-teal-200'
+                              : isDraft
+                                ? 'bg-slate-100 text-slate-700'
+                                : paid
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {getPenguranganStatusLabel(row)}
+                          {row.isMandorSendiri ? 'Tercatat' : getPenguranganStatusLabel(row)}
                         </span>
                       </td>
                       <td className={tdClass}>
@@ -3477,7 +3587,7 @@ const SpkPembayaranPanel = ({
       <Modal
         isOpen={kasbonModalOpen}
         onClose={closeKasbonCreateModal}
-        title="Ajukan Kasbon"
+        title={isMandorSendiriMode ? '+ Nota Material Sendiri (Non-Reimburse)' : 'Ajukan Kasbon'}
         size="lg"
       >
         {isKasbonDraftLoading ? (

@@ -58,6 +58,7 @@ export interface SpkPembayaranData {
   dibayarOleh: { id: number; username: string } | null;
   createdAt: string;
   updatedAt: string;
+  isMandorSendiri?: boolean;
   mandorRekeningId?: number | null;
   mandorRekening?: {
     id: number;
@@ -124,13 +125,14 @@ export interface SpkPembayaranDokumenBody {
 
 export type CreateSpkPembayaranBody =
   | ({ jenis: SpkTerminPembayaranJenis; mandorRekeningId?: number } & SpkPembayaranDokumenBody)
-  | ({ jenis: 'KASBON'; kasbonBaris: SpkPembayaranKasbonBarisBody[]; mandorRekeningId?: number } & SpkPembayaranDokumenBody)
+  | ({ jenis: 'KASBON'; kasbonBaris: SpkPembayaranKasbonBarisBody[]; mandorRekeningId?: number; isMandorSendiri?: boolean } & SpkPembayaranDokumenBody)
   | ({
       jenis: 'KASBON';
       keterangan: string;
       nominal: number;
       tanggalPo: string;
       mandorRekeningId?: number;
+      isMandorSendiri?: boolean;
     } & SpkPembayaranDokumenBody)
   | ({
       jenis: 'UPAH';

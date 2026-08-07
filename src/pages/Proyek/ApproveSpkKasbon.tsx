@@ -393,6 +393,7 @@ export const ApproveSpkPembayaranReview = ({ step }: { step: ApprovalStep }) => 
             {detailRow.jenis === 'KASBON' && detailRow.kasbonBaris && detailRow.kasbonBaris.length > 0 && (
               <KasbonGroupedTable
                 baris={detailRow.kasbonBaris}
+                isMandorSendiri={detailRow.isMandorSendiri}
                 onPreviewFoto={(url) =>
                   setFilePreview({ url, title: 'Foto Bon Kasbon' })
                 }
