@@ -77,6 +77,7 @@ export interface SpkPembayaranCalcRow {
   status: SpkPembayaranStatus;
   nominal: number;
   mengurangiTermin?: SpkKasbonTargetTermin | null;
+  isMandorSendiri?: boolean | null;
 }
 
 export interface SpkPengurangTerminRow {
@@ -84,6 +85,7 @@ export interface SpkPengurangTerminRow {
   jenis: SpkPembayaranJenis;
   nominal: number;
   mengurangiTermin?: SpkKasbonTargetTermin | null;
+  isMandorSendiri?: boolean | null;
 }
 
 export interface PengurangWaterfallResult {
@@ -99,7 +101,7 @@ function isPengurangJenis(jenis: SpkPembayaranJenis): jenis is 'KASBON' | 'UPAH'
 
 function sortPengurangRows(rows: SpkPengurangTerminRow[]): SpkPengurangTerminRow[] {
   return [...rows]
-    .filter((p) => isPengurangJenis(p.jenis))
+    .filter((p) => isPengurangJenis(p.jenis) && !p.isMandorSendiri)
     .sort((a, b) => (a.id ?? Number.MAX_SAFE_INTEGER) - (b.id ?? Number.MAX_SAFE_INTEGER));
 }
 
@@ -121,7 +123,7 @@ export function getTerminPaymentStatus(
   const scheme = getSpkTerminScheme(terminScheme);
   const status: TerminPaymentStatus = {};
   for (const step of getKasbonTargetSteps(scheme)) {
-    const row = pembayaranList.find((p) => p.jenis === step.jenis);
+    const row = pembayaranList.find((p) => p.jenis === step.jenis && !p.isMandorSendiri);
     status[step.jenis] = row?.status === 'SUDAH_DIBAYAR';
   }
   return status;
@@ -390,6 +392,7 @@ export interface SpkPembayaranStatusRow {
   status: SpkPembayaranStatus;
   nominal?: number;
   mengurangiTermin?: SpkKasbonTargetTermin | null;
+  isMandorSendiri?: boolean | null;
 }
 
 export function calcTerminBruto(
@@ -551,21 +554,23 @@ export function canRequestKasbon(
   terpakai?: number;
 } {
   const calcRows: SpkPembayaranCalcRow[] = pembayaranList
-    .filter((p) => p.status !== 'DRAFT')
+    .filter((p) => p.status !== 'DRAFT' && !p.isMandorSendiri)
     .map((p) => ({
       id: p.id,
       jenis: p.jenis,
       status: p.status,
       nominal: p.nominal ?? 0,
       mengurangiTermin: p.mengurangiTermin,
+      isMandorSendiri: p.isMandorSendiri ?? false,
     }));
   const pengurangRowsForTarget: SpkPengurangTerminRow[] = pembayaranList
-    .filter((p) => p.status !== 'DRAFT')
+    .filter((p) => p.status !== 'DRAFT' && !p.isMandorSendiri)
     .map((p) => ({
       id: p.id,
       jenis: p.jenis,
       nominal: p.nominal ?? 0,
       mengurangiTermin: p.mengurangiTermin,
+      isMandorSendiri: p.isMandorSendiri ?? false,
     }));
   const target = getKasbonTargetTermin(calcRows, {
     nilaiKontrak,
@@ -611,13 +616,14 @@ function toCalcRowsFromStatus(
   pembayaranList: SpkPembayaranStatusRow[],
 ): SpkPembayaranCalcRow[] {
   return pembayaranList
-    .filter((p) => p.status !== 'DRAFT')
+    .filter((p) => p.status !== 'DRAFT' && !p.isMandorSendiri)
     .map((p) => ({
       id: p.id,
       jenis: p.jenis,
       status: p.status,
       nominal: p.nominal ?? 0,
       mengurangiTermin: p.mengurangiTermin,
+      isMandorSendiri: p.isMandorSendiri ?? false,
     }));
 }
 
@@ -629,11 +635,13 @@ export function isTerminFulfilled(
   terminScheme: SpkTerminSchemeKey = 'RUMAH_DEFAULT',
 ): boolean {
   if (
-    pembayaranList.some((p) => p.jenis === jenis && p.status === 'SUDAH_DIBAYAR')
+    pembayaranList.some(
+      (p) => p.jenis === jenis && p.status === 'SUDAH_DIBAYAR' && !p.isMandorSendiri,
+    )
   ) {
     return true;
   }
-  if (pembayaranList.some((p) => p.jenis === jenis)) {
+  if (pembayaranList.some((p) => p.jenis === jenis && !p.isMandorSendiri)) {
     return false;
   }
   const nominal = calcSpkPembayaranNominal(
