@@ -393,7 +393,8 @@ export interface SpkPembayaranStatusRow {
   status: SpkPembayaranStatus;
   nominal?: number;
   mengurangiTermin?: SpkKasbonTargetTermin | null;
-  isMandorSendiri?: boolean | null;
+  /** Wajib diisi. Tanpa field ini nota sendiri bisa ikut mengurangi termin. */
+  isMandorSendiri: boolean;
 }
 
 export function calcTerminBruto(
