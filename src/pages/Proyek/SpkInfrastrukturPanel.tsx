@@ -39,11 +39,13 @@ import {
   useGetSpkPaginated,
   useUpdateSpk,
 } from '../../hooks/queries/useSpk';
-import type { GetSpkParams, SpkData, SpkTerminSchemeKey } from '../../services/spk.service';
+import type { GetSpkParams, SpkData, SpkTerminSchemeKey, SpkCustomTerminStep } from '../../services/spk.service';
 import {
   SPK_INFRA_TERMIN_SCHEME_OPTIONS,
   getSpkTerminSchemeLabel,
+  validateCustomTerminConfig,
 } from '../../utils/spkTerminScheme';
+import { CustomTerminBuilder } from '../../components/proyek/CustomTerminBuilder';
 import type { ZonaData } from '../../services/zona.service';
 import type { PekerjaanInfraData } from '../../services/pekerjaanInfra.service';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
@@ -62,6 +64,7 @@ interface InfraFormState {
   nilaiKontrak: number | '';
   bankRekeningPtId: number | '';
   terminScheme: SpkTerminSchemeKey;
+  terminConfig: SpkCustomTerminStep[];
   progressOverride: number | '';
   notesPekerjaan: string;
   jatuhTempo: string;
@@ -107,6 +110,7 @@ const initialFormState = (): InfraFormState => ({
   nilaiKontrak: '',
   bankRekeningPtId: '',
   terminScheme: 'INFRA_20_6',
+  terminConfig: [],
   progressOverride: '',
   notesPekerjaan: '',
   jatuhTempo: '',
@@ -339,6 +343,9 @@ const SpkInfrastrukturPanel = () => {
       nilaiKontrak: item.nilaiKontrak,
       bankRekeningPtId: item.bankRekeningPtId ?? '',
       terminScheme: item.terminScheme ?? 'INFRA_20_6',
+      terminConfig: item.terminConfig
+        ? (Array.isArray(item.terminConfig) ? item.terminConfig : JSON.parse(String(item.terminConfig)))
+        : [],
       progressOverride: item.progressOverride ?? '',
       notesPekerjaan: item.notesPekerjaan || '',
       jatuhTempo: item.jatuhTempo ? item.jatuhTempo.split('T')[0]! : '',
@@ -409,6 +416,12 @@ const SpkInfrastrukturPanel = () => {
     if (formData.pekerjaanInfraIds.length === 0) {
       newErrors.pekerjaanInfraIds = 'Pilih minimal satu pekerjaan';
     }
+    if (formData.terminScheme === 'CUSTOM') {
+      const customCheck = validateCustomTerminConfig(formData.terminConfig);
+      if (!customCheck.valid) {
+        newErrors.terminScheme = customCheck.message || 'Konfigurasi termin kustom tidak valid';
+      }
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -433,6 +446,7 @@ const SpkInfrastrukturPanel = () => {
       zonaId: Number(formData.zonaId),
       pekerjaanInfraIds: formData.pekerjaanInfraIds,
       terminScheme: formData.terminScheme,
+      terminConfig: formData.terminScheme === 'CUSTOM' ? formData.terminConfig : null,
       fileSpk: formData.fileSpk,
     };
 
@@ -979,7 +993,7 @@ const SpkInfrastrukturPanel = () => {
       >
         {detailItem && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
               <div>
                 <p className="text-slate-500">Mandor</p>
                 <p className="font-bold text-slate-800">{detailItem.mandor.username}</p>
@@ -995,6 +1009,10 @@ const SpkInfrastrukturPanel = () => {
               <div>
                 <p className="text-slate-500">Tanggal SPK</p>
                 <p className="font-bold text-slate-800">{formatDate(detailItem.tanggalSpk)}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">Skema Termin</p>
+                <p className="font-semibold text-slate-800">{getSpkTerminSchemeLabel(detailItem)}</p>
               </div>
             </div>
 
@@ -1182,33 +1200,54 @@ const SpkInfrastrukturPanel = () => {
                 })),
               ]}
             />
-            <Select
-              label="Skema Termin Pembayaran"
-              name="terminScheme"
-              value={formData.terminScheme}
-              disabled={!!editingId}
-              onChange={(e) =>
-                setFormData((p) => ({
-                  ...p,
-                  terminScheme: e.target.value as SpkTerminSchemeKey,
-                }))
-              }
-              options={SPK_INFRA_TERMIN_SCHEME_OPTIONS.map((option) => ({
-                value: option.value,
-                label: option.label,
-              }))}
-            />
-            {editingId && (
-              <p className="md:col-span-2 text-xs text-slate-500 leading-relaxed">
-                Skema termin tidak dapat diubah setelah SPK dibuat. Skema saat ini:{' '}
-                <strong>{getSpkTerminSchemeLabel(formData.terminScheme)}</strong>
-              </p>
-            )}
-            {!editingId && (
-              <p className="md:col-span-2 text-xs text-slate-500 leading-relaxed">
-                Pilih skema termin sesuai kontrak SPK. Skema lama (20%×4 + 15% + retensi) tetap
-                default untuk SPK infrastruktur yang sudah ada.
-              </p>
+            <div className="md:col-span-2">
+              <Select
+                label="Skema Termin Pembayaran"
+                name="terminScheme"
+                value={formData.terminScheme}
+                disabled={!!editingId}
+                onChange={(e) => {
+                  const val = e.target.value as SpkTerminSchemeKey;
+                  setFormData((p) => ({
+                    ...p,
+                    terminScheme: val,
+                  }));
+                  if (errors.terminScheme) {
+                    setErrors((prev) => ({ ...prev, terminScheme: undefined }));
+                  }
+                }}
+                options={SPK_INFRA_TERMIN_SCHEME_OPTIONS.map((option) => ({
+                  value: option.value,
+                  label: `${option.label} — ${option.description}`,
+                }))}
+              />
+              {editingId && (
+                <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                  Skema termin tidak dapat diubah setelah SPK dibuat. Skema saat ini:{' '}
+                  <strong>{getSpkTerminSchemeLabel(formData.terminScheme)}</strong>
+                </p>
+              )}
+              {errors.terminScheme && (
+                <p className="text-xs font-semibold text-red-600 mt-1">
+                  {errors.terminScheme}
+                </p>
+              )}
+            </div>
+
+            {formData.terminScheme === 'CUSTOM' && (
+              <div className="md:col-span-2">
+                <CustomTerminBuilder
+                  value={formData.terminConfig}
+                  onChange={(steps) => {
+                    setFormData((prev) => ({ ...prev, terminConfig: steps }));
+                    if (errors.terminScheme) {
+                      setErrors((prev) => ({ ...prev, terminScheme: undefined }));
+                    }
+                  }}
+                  nilaiKontrak={Number(formData.nilaiKontrak) || 0}
+                  disabled={!!editingId}
+                />
+              </div>
             )}
             <Select
               label="Mandor"

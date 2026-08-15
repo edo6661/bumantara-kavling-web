@@ -22,6 +22,8 @@ import {
   JENIS_UI_COLOR,
   SPK_KASBON_TARGET_LABEL,
   SPK_PEMBAYARAN_JENIS_LABEL,
+  buildSpkKasbonTargetLabel,
+  buildSpkPembayaranJenisLabel,
   type SpkPembayaranStatus,
 } from '../../utils/spkPembayaran';
 import KasbonGroupedTable from '../../components/proyek/KasbonGroupedTable';
@@ -82,18 +84,21 @@ const thClass =
 const tdClass = 'px-4 py-3 text-sm text-slate-800 align-middle border-b border-slate-100';
 
 const getItemLabel = (row: SpkPembayaranData) => {
+  const targetLabel =
+    row.mengurangiTermin && row.spk
+      ? (buildSpkKasbonTargetLabel(row.spk as any)[row.mengurangiTermin] ?? SPK_KASBON_TARGET_LABEL[row.mengurangiTermin])
+      : row.mengurangiTermin
+        ? SPK_KASBON_TARGET_LABEL[row.mengurangiTermin]
+        : '';
+
   if (row.jenis === 'KASBON') {
-    const target = row.mengurangiTermin
-      ? ` → ${SPK_KASBON_TARGET_LABEL[row.mengurangiTermin]}`
-      : '';
+    const target = targetLabel ? ` → ${targetLabel}` : '';
     const itemCount = row.kasbonBaris?.length ?? 0;
     if (itemCount > 0) return `Kasbon ${itemCount} item${target}`;
     return `${row.keterangan ?? 'Kasbon'}${target}`;
   }
   if (row.jenis === 'UPAH') {
-    const target = row.mengurangiTermin
-      ? ` → ${SPK_KASBON_TARGET_LABEL[row.mengurangiTermin]}`
-      : '';
+    const target = targetLabel ? ` → ${targetLabel}` : '';
     const periode =
       row.tanggalDari && row.tanggalSampai
         ? ` · ${formatDate(row.tanggalDari)}–${formatDate(row.tanggalSampai)}`
@@ -101,7 +106,11 @@ const getItemLabel = (row: SpkPembayaranData) => {
     const tukangCount = row.upahBaris?.length ?? 0;
     return `Upah ${tukangCount} tukang${periode}${target}`;
   }
-  return SPK_PEMBAYARAN_JENIS_LABEL[row.jenis];
+  if (row.spk) {
+    const labels = buildSpkPembayaranJenisLabel(row.spk as any);
+    if (labels[row.jenis]) return labels[row.jenis];
+  }
+  return SPK_PEMBAYARAN_JENIS_LABEL[row.jenis] || row.jenis;
 };
 
 export const ApproveSpkPembayaranReview = ({ step }: { step: ApprovalStep }) => {

@@ -1,5 +1,9 @@
-import type { SpkTerminSchemeKey } from './spkTerminScheme';
-import type { SpkNominalInput, SpkPembayaranCalcRow, SpkPembayaranJenis } from './spkPembayaran';
+import type {
+  SpkNominalInput,
+  SpkPembayaranCalcRow,
+  SpkPembayaranJenis,
+  SpkTerminSchemeParam,
+} from './spkPembayaran';
 import {
   getSpkTerminScheme,
   getTerminStep,
@@ -17,7 +21,7 @@ export function buildSpkPembayaranKalkulasi(
   jenis: SpkPembayaranJenis,
   spk: SpkNominalInput,
   pembayaranList: SpkPembayaranCalcRow[] = [],
-  terminScheme: SpkTerminSchemeKey = 'RUMAH_DEFAULT',
+  terminScheme: SpkTerminSchemeParam = 'RUMAH_DEFAULT',
 ): SpkPembayaranKalkulasiBaris[] {
   const kontrak = spk.nilaiKontrak;
   const step = getTerminStep(

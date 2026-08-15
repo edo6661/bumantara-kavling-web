@@ -1,11 +1,15 @@
 import api from "../lib/axios";
 import type { SpkPembayaranData } from "./spkPembayaran.service";
+import type {
+  SpkCustomTerminStep,
+  SpkTerminSchemeKey,
+} from "../utils/spkTerminScheme";
+
+export type { SpkCustomTerminStep, SpkTerminSchemeKey };
 
 export type SpkJenis = "RUMAH" | "INFRASTRUKTUR";
 
 export type SpkApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
-
-export type SpkTerminSchemeKey = "RUMAH_DEFAULT" | "RUMAH_25_4" | "INFRA_20_6" | "INFRA_30_4";
 
 export interface SpkKavlingItem {
   id: number;
@@ -40,6 +44,7 @@ export interface SpkData {
   noSpk: string;
   jenis: SpkJenis;
   terminScheme: SpkTerminSchemeKey;
+  terminConfig?: SpkCustomTerminStep[] | null;
   tanggalSpk: string;
   judulPekerjaan: string;
   nilaiKontrak: number;
@@ -89,6 +94,7 @@ export interface CreateSpkDTO {
   kavlingIds?: number[];
   pekerjaanInfraIds?: number[];
   terminScheme?: SpkTerminSchemeKey;
+  terminConfig?: SpkCustomTerminStep[] | string | null;
   fileSpk?: File | null;
   fileRab?: File | null;
   progressOverride?: number | null;
@@ -134,6 +140,14 @@ const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
   if (data.noSpk !== undefined) formData.append("noSpk", data.noSpk);
   if (data.jenis !== undefined) formData.append("jenis", data.jenis);
   if (data.terminScheme !== undefined) formData.append("terminScheme", data.terminScheme);
+  if (data.terminConfig !== undefined) {
+    formData.append(
+      "terminConfig",
+      typeof data.terminConfig === "string"
+        ? data.terminConfig
+        : JSON.stringify(data.terminConfig ?? []),
+    );
+  }
   if (data.tanggalSpk !== undefined) formData.append("tanggalSpk", data.tanggalSpk);
   if (data.judulPekerjaan !== undefined) {
     formData.append("judulPekerjaan", data.judulPekerjaan);

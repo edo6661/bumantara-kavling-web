@@ -55,7 +55,7 @@ import {
   type SpkPembayaranJenis,
   type SpkPengurangTerminRow,
   type SpkTerminPembayaranJenis,
-  type SpkTerminSchemeKey,
+  type SpkTerminSchemeParam,
 } from '../../utils/spkPembayaran';
 import { buildSpkPembayaranKalkulasi } from '../../utils/spkPembayaranKalkulasi';
 import { isValidNik, normalizeNikInput, hasDuplicateNikInList } from '../../utils/nik';
@@ -1359,7 +1359,7 @@ const PengurangMengurangiCell = ({
   pengurangRows: SpkPengurangTerminRow[];
   terminStatus: ReturnType<typeof getTerminPaymentStatus>;
   fallbackTermin?: SpkKasbonTargetTermin | null;
-  terminScheme: SpkTerminSchemeKey;
+  terminScheme: SpkTerminSchemeParam;
 }) => {
   const kasbonTargetLabels = buildSpkKasbonTargetLabel(terminScheme);
   const split = getPengurangRowWaterfallSplit(
@@ -1412,7 +1412,7 @@ const PengurangPlafonBanner = ({
   additionalNominal: number;
   excludeId?: number;
   terminStatus?: ReturnType<typeof getTerminPaymentStatus>;
-  terminScheme: SpkTerminSchemeKey;
+  terminScheme: SpkTerminSchemeParam;
   spkProgress?: number;
 }) => {
   const kasbonTargetLabels = buildSpkKasbonTargetLabel(terminScheme);
@@ -1709,7 +1709,7 @@ const SpkPembayaranPanel = ({
     [pembayaranList],
   );
   const calcRows = toCalcRows(submittedPembayaranList);
-  const terminScheme = resolveSpkTerminScheme(spk);
+  const terminScheme = spk;
   const terminJenisOrder = useMemo(() => {
     const base = getSpkTerminJenisOrder(terminScheme);
     const legacyTermin = submittedPembayaranList

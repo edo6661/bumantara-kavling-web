@@ -37,8 +37,13 @@ import {
   useGetSpkPaginated,
   useUpdateSpk,
 } from "../../hooks/queries/useSpk";
-import type { GetSpkParams, SpkApprovalStatus, SpkData, SpkTerminSchemeKey } from '../../services/spk.service';
-import { SPK_RUMAH_TERMIN_SCHEME_OPTIONS } from '../../utils/spkTerminScheme';
+import type { GetSpkParams, SpkApprovalStatus, SpkData, SpkTerminSchemeKey, SpkCustomTerminStep } from '../../services/spk.service';
+import {
+  SPK_RUMAH_TERMIN_SCHEME_OPTIONS,
+  getSpkTerminSchemeLabel,
+  validateCustomTerminConfig,
+} from '../../utils/spkTerminScheme';
+import { CustomTerminBuilder } from '../../components/proyek/CustomTerminBuilder';
 import SpkPembayaranPanel from '../../components/proyek/SpkPembayaranPanel';
 import SpkInfrastrukturPanel from './SpkInfrastrukturPanel';
 import CollapsibleDetailSection from '../../components/shared/CollapsibleDetailSection';
@@ -58,6 +63,7 @@ interface SpkFormState {
   mandorId: number | '';
   kavlingIds: number[];
   terminScheme: SpkTerminSchemeKey;
+  terminConfig: SpkCustomTerminStep[];
   fileSpk: File | null;
   existingFileSpk: string | null;
   fileRab: File | null;
@@ -299,6 +305,7 @@ const initialFormState = (): SpkFormState => ({
   mandorId: '',
   kavlingIds: [],
   terminScheme: 'RUMAH_DEFAULT',
+  terminConfig: [],
   fileSpk: null,
   existingFileSpk: null,
   fileRab: null,
@@ -1010,6 +1017,9 @@ const SPK = () => {
       mandorId: item.mandorId,
       kavlingIds: item.kavlingItems.map((p) => p.kavlingId),
       terminScheme: item.terminScheme ?? 'RUMAH_DEFAULT',
+      terminConfig: item.terminConfig
+        ? (Array.isArray(item.terminConfig) ? item.terminConfig : JSON.parse(String(item.terminConfig)))
+        : [],
       fileSpk: null,
       existingFileSpk: item.fileSpk,
       fileRab: null,
@@ -1102,6 +1112,12 @@ const SPK = () => {
     if (formData.kavlingIds.length === 0) {
       newErrors.kavlingIds = 'Pilih minimal satu kavling';
     }
+    if (formData.terminScheme === 'CUSTOM') {
+      const customCheck = validateCustomTerminConfig(formData.terminConfig);
+      if (!customCheck.valid) {
+        newErrors.terminScheme = customCheck.message || 'Konfigurasi termin kustom tidak valid';
+      }
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -1135,6 +1151,7 @@ const SPK = () => {
     const payload = {
       jenis: 'RUMAH' as const,
       terminScheme: formData.terminScheme,
+      terminConfig: formData.terminScheme === 'CUSTOM' ? formData.terminConfig : null,
       noSpk: formData.noSpk.trim(),
       tanggalSpk: formData.tanggalSpk,
       judulPekerjaan: formData.judulPekerjaan.trim(),
@@ -1437,6 +1454,12 @@ const SPK = () => {
                       : <span className="text-slate-300">—</span>}
                   </dd>
                 </div>
+                <div className="sm:col-span-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Skema Termin</dt>
+                  <dd className="text-slate-800 font-semibold">
+                    {getSpkTerminSchemeLabel(detailItem)}
+                  </dd>
+                </div>
               </dl>
             </CollapsibleDetailSection>
 
@@ -1704,7 +1727,28 @@ const SPK = () => {
                     * Skema termin terkunci karena SPK ini telah memiliki riwayat pengajuan/pencairan pembayaran.
                   </p>
                 )}
+                {errors.terminScheme && (
+                  <p className="text-xs font-semibold text-red-600 mt-1">
+                    {errors.terminScheme}
+                  </p>
+                )}
               </div>
+
+              {formData.terminScheme === 'CUSTOM' && (
+                <div className="md:col-span-2">
+                  <CustomTerminBuilder
+                    value={formData.terminConfig}
+                    onChange={(steps) => {
+                      setFormData((prev) => ({ ...prev, terminConfig: steps }));
+                      if (errors.terminScheme) {
+                        setErrors((prev) => ({ ...prev, terminScheme: undefined }));
+                      }
+                    }}
+                    nilaiKontrak={Number(formData.nilaiKontrak) || 0}
+                    disabled={isTerminSchemeDisabled}
+                  />
+                </div>
+              )}
               <div className="md:col-span-2 flex flex-col gap-1.5">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-0.5">
                   Catatan Pekerjaan (opsional)
