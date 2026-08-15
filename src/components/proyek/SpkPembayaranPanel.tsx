@@ -47,6 +47,7 @@ import {
   getSpkTerminJenisOrder,
   getSpkTerminScheme,
   getTerminPaymentStatus,
+  sumPengurangJenisForTermin,
   validatePengurangTerminNominal,
   canSpillPengurangToNextTermin,
   resolveSpkTerminScheme,
@@ -3060,12 +3061,40 @@ const SpkPembayaranPanel = ({
       );
     }
     if (nominal <= 0) {
+      const totalKasbon = sumPengurangJenisForTermin(
+        spk.nilaiKontrak,
+        calcRows,
+        jenis as SpkKasbonTargetTermin,
+        'KASBON',
+        terminScheme,
+      );
+      const totalUpah = sumPengurangJenisForTermin(
+        spk.nilaiKontrak,
+        calcRows,
+        jenis as SpkKasbonTargetTermin,
+        'UPAH',
+        terminScheme,
+      );
+      const label =
+        totalKasbon > 0 && totalUpah > 0
+          ? 'Lunas (kasbon & upah)'
+          : totalUpah > 0
+            ? 'Lunas (by upah)'
+            : 'Lunas (by kasbon)';
+      const tooltip = `Termin sudah lunas melalui pengurangan ${
+        totalKasbon > 0 && totalUpah > 0
+          ? 'kasbon dan upah tukang'
+          : totalUpah > 0
+            ? 'upah tukang'
+            : 'kasbon'
+      }`;
+
       return (
         <span
           className="inline-flex px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-100 text-emerald-700"
-          title="Termin sudah lunas melalui pengurangan kasbon"
+          title={tooltip}
         >
-          Lunas (by kasbon)
+          {label}
         </span>
       );
     }
@@ -3582,9 +3611,6 @@ const SpkPembayaranPanel = ({
           targetIndex >= 0 && targetIndex < targets.length - 1
             ? kasbonTargetLabels[targets[targetIndex + 1]!.jenis]
             : null;
-        const firstTargetPaid = pengurangCheck.targetTermin
-          ? terminStatus[targets[0]!.jenis]
-          : false;
 
         return (
         <p className="text-[10px] text-slate-500 mt-2">
@@ -3595,12 +3621,12 @@ const SpkPembayaranPanel = ({
           {spillLabel && targetIndex === 0 && (
             <span className="text-slate-400"> (kelebihan otomatis mengurangi {spillLabel})</span>
           )}
-          {targetIndex > 0 && !firstTargetPaid && (
-              <span className="text-slate-400">
-                {' '}
-                (plafon {kasbonTargetLabels[targets[0]!.jenis]} sudah habis)
-              </span>
-            )}
+          {targetIndex > 0 && (
+            <span className="text-slate-400">
+              {' '}
+              (plafon termin sebelumnya sudah terpakai penuh)
+            </span>
+          )}
           {pengurangCheck.sisaPengurang != null && (
             <>
               {' '}
