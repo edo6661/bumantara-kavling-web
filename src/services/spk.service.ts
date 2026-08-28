@@ -49,6 +49,11 @@ export interface SpkData {
   judulPekerjaan: string;
   nilaiKontrak: number;
   bankRekeningPtId: number | null;
+  bankRekeningPt?: {
+    id: number;
+    namaBank: string;
+    atasNama: string;
+  } | null;
   zonaId: number | null;
   zona: SpkZonaSummary | null;
   nilaiSudahDibayarkan: number | null;
@@ -100,7 +105,7 @@ export interface CreateSpkDTO {
   progressOverride?: number | null;
 }
 
-export interface UpdateSpkDTO extends Partial<CreateSpkDTO> {}
+export type UpdateSpkDTO = Partial<CreateSpkDTO>;
 
 export interface SpkListSummary {
   totalSpk: number;
@@ -133,6 +138,19 @@ export interface GetSpkParams {
   jenis?: SpkJenis;
   statusApproval?: SpkApprovalStatus;
   orderBy?: "mandor:asc" | "mandor:desc" | "id:desc";
+}
+
+function parseFilenameFromDisposition(
+  disposition: string | undefined,
+  fallback: string,
+): string {
+  if (!disposition) return fallback;
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1].replace(/"/g, ""));
+  }
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  return match?.[1]?.trim() || fallback;
 }
 
 const buildFormData = (data: CreateSpkDTO | UpdateSpkDTO): FormData => {
@@ -220,6 +238,26 @@ export const spkService = {
       jenis: params?.jenis,
     });
     return result.items;
+  },
+
+  exportExcel: async (): Promise<void> => {
+    const response = await api.get("/spk/export/excel", {
+      responseType: "blob",
+    });
+    const blob = new Blob([response.data], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const fallback = `Rekap_SPK_Disetujui_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = parseFilenameFromDisposition(
+      response.headers["content-disposition"] as string | undefined,
+      fallback,
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
   },
 
   getById: async (id: number): Promise<SpkData> => {

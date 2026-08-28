@@ -15,6 +15,7 @@ import {
   Edit2,
   Trash2,
   ArrowRightLeft,
+  FileSpreadsheet,
 } from 'lucide-react';
 import DataTable from "../../components/shared/DataTable";
 import Modal from "../../components/shared/Modal";
@@ -37,7 +38,14 @@ import {
   useGetSpkPaginated,
   useUpdateSpk,
 } from "../../hooks/queries/useSpk";
-import type { GetSpkParams, SpkApprovalStatus, SpkData, SpkTerminSchemeKey, SpkCustomTerminStep } from '../../services/spk.service';
+import {
+  spkService,
+  type GetSpkParams,
+  type SpkApprovalStatus,
+  type SpkData,
+  type SpkTerminSchemeKey,
+  type SpkCustomTerminStep,
+} from '../../services/spk.service';
 import {
   SPK_RUMAH_TERMIN_SCHEME_OPTIONS,
   getSpkTerminSchemeLabel,
@@ -477,6 +485,7 @@ const SPK = () => {
   const [rabPreviewUrl, setRabPreviewUrl] = useState<string | null>(null);
   const [expandedBloks, setExpandedBloks] = useState<Set<string>>(new Set());
   const [spkProgressInput, setSpkProgressInput] = useState<string>('');
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (!detailItem) return;
@@ -1249,6 +1258,17 @@ const SPK = () => {
     });
   };
 
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      await spkService.exportExcel();
+    } catch (err: unknown) {
+      alert(handleApiError(err).message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const spkTabBar = (
     <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
       <button
@@ -1278,10 +1298,30 @@ const SPK = () => {
     </div>
   );
 
+  const exportButton = (
+    <button
+      type="button"
+      onClick={handleExportExcel}
+      disabled={isExporting}
+      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl shadow-sm transition-colors"
+      title="Export rekap SPK yang sudah disetujui"
+    >
+      <FileSpreadsheet size={16} />
+      {isExporting ? 'Mengekspor...' : 'Export Excel'}
+    </button>
+  );
+
+  const spkNavigation = (
+    <div className="flex flex-wrap items-center gap-3">
+      {!isSuperAdmin && spkTabBar}
+      {exportButton}
+    </div>
+  );
+
   if (activeTab === 'infra') {
     return (
       <div className="space-y-4 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
-        {!isSuperAdmin && spkTabBar}
+        {spkNavigation}
         <SpkInfrastrukturPanel />
       </div>
     );
@@ -1296,7 +1336,7 @@ const SPK = () => {
 
   return (
     <div className="space-y-2 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-10">
-      {!isSuperAdmin && spkTabBar}
+      {spkNavigation}
 
       {isAdminRole ? (
         <DataTable
